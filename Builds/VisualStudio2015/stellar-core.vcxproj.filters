@@ -1345,118 +1345,7 @@
     <None Include="..\..\docs\learn\testnet.md">
       <Filter>docs</Filter>
     </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-account.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-account-limits.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-account-type-limits.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-asset.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-asset-pair.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-balance.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-coins-emission-request.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-exchange.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-fee.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-invoice.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-offer.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-payment.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-payment-request.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-referrer-group.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-statistics.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-create-account.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-demurrage.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-direct-debit.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-manage-account.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-manage-asset.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-manage-asset-pair.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-manage-balance.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-manage-coins-emission-request.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-manage-forfeit-request.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-manage-invoice.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-manage-offer.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-payment.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-recover.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-review-coins-emission-request.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-review-payment-request.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-set-fees.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-set-limits.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-set-options.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-upload-preemissions.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-overlay.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-SCP.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-transaction.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-types.x">
+    <None Include="..\..\src\xdr\Stellar-ledger-entries-reference.x">
       <Filter>xdr</Filter>
     </None>
   </ItemGroup>
@@ -1470,5 +1359,43 @@
     <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries.x">
       <Filter>xdr</Filter>
     </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-limits.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-type-limits.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset-pair.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-balance.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-coins-emission-request.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-exchange.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-fee.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-invoice.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-offer.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-payment-request.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-payment.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-referrer-group.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-statistics.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-account.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-demurrage.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-direct-debit.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-account.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset-pair.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-balance.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-coins-emission-request.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-forfeit-request.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-invoice.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-offer.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-recover.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-coins-emission-request.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-payment-request.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-fees.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-limits.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-options.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-upload-preemissions.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-overlay.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-SCP.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-transaction.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-types.x" />
   </ItemGroup>
 </Project>

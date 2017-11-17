@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -13,18 +13,19 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{916B91AB-A300-422C-B9C2-D683924DC109}</ProjectGuid>
     <RootNamespace>stellar-core</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -593,194 +594,289 @@
     <None Include="..\..\src\history\readme.md" />
     <None Include="..\..\src\ledger\readme.md" />
     <None Include="..\..\lib\xdrpp\tests\xdrtest.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-limits.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-account-limits.h D:\tokend\core\src\xdr\Stellar-ledger-entries-account-limits.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-account-limits.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-account-limits.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-type-limits.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-account-type-limits.h D:\tokend\core\src\xdr\Stellar-ledger-entries-account-type-limits.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-account-type-limits.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-account-type-limits.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-account.h D:\tokend\core\src\xdr\Stellar-ledger-entries-account.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-account.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-account.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset-pair.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-asset-pair.h D:\tokend\core\src\xdr\Stellar-ledger-entries-asset-pair.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-asset-pair.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-asset-pair.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-asset.h D:\tokend\core\src\xdr\Stellar-ledger-entries-asset.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-asset.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-asset.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-balance.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-balance.h D:\tokend\core\src\xdr\Stellar-ledger-entries-balance.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-balance.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-balance.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-coins-emission-request.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-coins-emission-request.h D:\tokend\core\src\xdr\Stellar-ledger-entries-coins-emission-request.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-coins-emission-request.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-coins-emission-request.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-fee.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-fee.h D:\tokend\core\src\xdr\Stellar-ledger-entries-fee.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-fee.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-fee.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-invoice.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-invoice.h D:\tokend\core\src\xdr\Stellar-ledger-entries-invoice.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-invoice.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-invoice.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-offer.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-offer.h D:\tokend\core\src\xdr\Stellar-ledger-entries-offer.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-offer.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-offer.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-payment-request.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-payment-request.h D:\tokend\core\src\xdr\Stellar-ledger-entries-payment-request.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-payment-request.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-payment-request.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-reference.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-reference.h D:\tokend\core\src\xdr\Stellar-ledger-entries-reference.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-reference.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-reference.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-statistics.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries-statistics.h D:\tokend\core\src\xdr\Stellar-ledger-entries-statistics.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries-statistics.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries-statistics.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger-entries.h D:\tokend\core\src\xdr\Stellar-ledger-entries.x</Command>
-      <Message>running xdrc for Stellar-ledger-entries.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger-entries.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-ledger.h D:\tokend\core\src\xdr\Stellar-ledger.x</Command>
-      <Message>running xdrc for Stellar-ledger.x</Message>
-      <Outputs>src/generated/xdr/Stellar-ledger.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-account.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-create-account.h D:\tokend\core\src\xdr\Stellar-operation-create-account.x</Command>
-      <Message>running xdrc for Stellar-operation-create-account.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-create-account.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-direct-debit.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-direct-debit.h D:\tokend\core\src\xdr\Stellar-operation-direct-debit.x</Command>
-      <Message>running xdrc for Stellar-operation-direct-debit.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-direct-debit.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-account.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-manage-account.h D:\tokend\core\src\xdr\Stellar-operation-manage-account.x</Command>
-      <Message>running xdrc for Stellar-operation-manage-account.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-manage-account.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset-pair.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-manage-asset-pair.h D:\tokend\core\src\xdr\Stellar-operation-manage-asset-pair.x</Command>
-      <Message>running xdrc for Stellar-operation-manage-asset-pair.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-manage-asset-pair.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-manage-asset.h D:\tokend\core\src\xdr\Stellar-operation-manage-asset.x</Command>
-      <Message>running xdrc for Stellar-operation-manage-asset.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-manage-asset.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-balance.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-manage-balance.h D:\tokend\core\src\xdr\Stellar-operation-manage-balance.x</Command>
-      <Message>running xdrc for Stellar-operation-manage-balance.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-manage-balance.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-coins-emission-request.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-manage-coins-emission-request.h D:\tokend\core\src\xdr\Stellar-operation-manage-coins-emission-request.x</Command>
-      <Message>running xdrc for Stellar-operation-manage-coins-emission-request.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-manage-coins-emission-request.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-forfeit-request.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-manage-forfeit-request.h D:\tokend\core\src\xdr\Stellar-operation-manage-forfeit-request.x</Command>
-      <Message>running xdrc for Stellar-operation-manage-forfeit-request.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-manage-forfeit-request.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-invoice.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-manage-invoice.h D:\tokend\core\src\xdr\Stellar-operation-manage-invoice.x</Command>
-      <Message>running xdrc for Stellar-operation-manage-invoice.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-manage-invoice.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-offer.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-manage-offer.h D:\tokend\core\src\xdr\Stellar-operation-manage-offer.x</Command>
-      <Message>running xdrc for Stellar-operation-manage-offer.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-manage-offer.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-payment.h D:\tokend\core\src\xdr\Stellar-operation-payment.x</Command>
-      <Message>running xdrc for Stellar-operation-payment.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-payment.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-recover.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-recover.h D:\tokend\core\src\xdr\Stellar-operation-recover.x</Command>
-      <Message>running xdrc for Stellar-operation-recover.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-recover.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-coins-emission-request.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-review-coins-emission-request.h D:\tokend\core\src\xdr\Stellar-operation-review-coins-emission-request.x</Command>
-      <Message>running xdrc for Stellar-operation-review-coins-emission-request.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-review-coins-emission-request.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-payment-request.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-review-payment-request.h D:\tokend\core\src\xdr\Stellar-operation-review-payment-request.x</Command>
-      <Message>running xdrc for Stellar-operation-review-payment-request.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-review-payment-request.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-fees.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-set-fees.h D:\tokend\core\src\xdr\Stellar-operation-set-fees.x</Command>
-      <Message>running xdrc for Stellar-operation-set-fees.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-set-fees.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-limits.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-set-limits.h D:\tokend\core\src\xdr\Stellar-operation-set-limits.x</Command>
-      <Message>running xdrc for Stellar-operation-set-limits.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-set-limits.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-options.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-set-options.h D:\tokend\core\src\xdr\Stellar-operation-set-options.x</Command>
-      <Message>running xdrc for Stellar-operation-set-options.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-set-options.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-upload-preemissions.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-operation-upload-preemissions.h D:\tokend\core\src\xdr\Stellar-operation-upload-preemissions.x</Command>
-      <Message>running xdrc for Stellar-operation-upload-preemissions.x</Message>
-      <Outputs>src/generated/xdr/Stellar-operation-upload-preemissions.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-overlay.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-overlay.h D:\tokend\core\src\xdr\Stellar-overlay.x</Command>
-      <Message>running xdrc for Stellar-overlay.x</Message>
-      <Outputs>src/generated/xdr/Stellar-overlay.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-SCP.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-SCP.h D:\tokend\core\src\xdr\Stellar-SCP.x</Command>
-      <Message>running xdrc for Stellar-SCP.x</Message>
-      <Outputs>src/generated/xdr/Stellar-SCP.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-transaction.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-transaction.h D:\tokend\core\src\xdr\Stellar-transaction.x</Command>
-      <Message>running xdrc for Stellar-transaction.x</Message>
-      <Outputs>src/generated/xdr/Stellar-transaction.h</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-types.x">
-      <Command>D:\tokend\core\Builds\VisualStudio2015\x64\Debug\xdrc.exe -hh -o src/generated/xdr/Stellar-types.h D:\tokend\core\src\xdr\Stellar-types.x</Command>
-      <Message>running xdrc for Stellar-types.x</Message>
-      <Outputs>src/generated/xdr/Stellar-types.h</Outputs>
-    </CustomBuild>
     <None Include="..\..\src\overlay\readme.md" />
     <None Include="..\..\src\scp\readme.md" />
     <None Include="..\..\src\transactions\readme.md" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger.x">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+	<CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-limits.x">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-type-limits.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset-pair.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-balance.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-coins-emission-request.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-exchange.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-fee.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-invoice.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-offer.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-payment-request.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-payment.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-referrer-group.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-statistics.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+	<CustomBuild Include="..\..\src\xdr\Stellar-operation-create-account.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-demurrage.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-direct-debit.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-account.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset-pair.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-balance.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-coins-emission-request.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-forfeit-request.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-invoice.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-offer.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-recover.x">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-coins-emission-request.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-payment-request.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-fees.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-limits.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-options.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-upload-preemissions.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-overlay.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-SCP.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-transaction.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-types.x" >
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
     <None Include="libmedida\libmedida.vcxproj" />
   </ItemGroup>
   <ItemGroup>

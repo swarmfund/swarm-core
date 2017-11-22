@@ -23,8 +23,7 @@ protected:
 
 	static std::vector<Signer> getSigners(Application& app, Database& db, AccountFrame& account);
 
-	Result checkSignatureV1(Application& app, Database& db, AccountFrame& account, SourceDetails& sourceDetails);
-	Result checkSignatureV2(Application& app, Database& db, AccountFrame& account, SourceDetails& sourceDetails);
+    Result checkSignature(Application &app, Database &db, AccountFrame &account, SourceDetails &sourceDetails);
 
 
 public:

@@ -4,14 +4,11 @@
 
 #include "AccountFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
-#include "crypto/SecretKey.h"
-#include "crypto/Hex.h"
 #include "database/Database.h"
 #include "LedgerDelta.h"
 #include "util/basen.h"
 #include "util/types.h"
 #include "lib/util/format.h"
-#include <algorithm>
 
 using namespace soci;
 using namespace std;
@@ -284,6 +281,7 @@ AccountFrame::loadSigners(Database& db, std::string const& actIDStrKey, LedgerDe
     {
         signer.pubKey = PubKeyUtils::fromStrKey(pubKey);
         signer.name = signerName;
+
         res.push_back(signer);
         st2.fetch();
     }
@@ -376,7 +374,7 @@ AccountFrame::storeUpdate(LedgerDelta& delta, Database& db, bool insert)
     if (mAccountEntry.referrer)
         refIDStrKey = PubKeyUtils::toStrKey(*mAccountEntry.referrer);
 
-	int32_t newAccountVersion = static_cast<int32_t >(mAccountEntry.ext.v());
+	int32_t newAccountVersion = static_cast<int32_t>(mAccountEntry.ext.v());
 	int32_t newAccountPolicies = mAccountEntry.policies;
 
     std::string sql;

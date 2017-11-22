@@ -5,34 +5,19 @@
 #include "bucket/BucketManager.h"
 #include "crypto/Hex.h"
 #include "crypto/SHA.h"
-#include "crypto/SecretKey.h"
-#include "database/Database.h"
 #include "herder/Herder.h"
-#include "herder/TxSetFrame.h"
 #include "herder/LedgerCloseData.h"
-#include "history/HistoryManager.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/LedgerManagerImpl.h"
-#include "ledger/FeeFrame.h"
 #include "ledger/AssetPairFrame.h"
 
-#include "main/Application.h"
-#include "main/Config.h"
 #include "overlay/OverlayManager.h"
-#include "util/Logging.h"
 #include "util/make_unique.h"
 #include "util/format.h"
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
-#include "medida/timer.h"
-#include "medida/counter.h"
 #include "xdrpp/printer.h"
-#include "xdrpp/types.h"
-
-#include <chrono>
-#include <sstream>
 
 /*
 The ledger module:
@@ -384,12 +369,7 @@ LedgerManagerImpl::getCurrentLedgerHeader()
     return mCurrentLedger->mHeader;
 }
 
-bool LedgerManagerImpl::useImprovedSignatureCheck() const
-{
-	return LedgerHeaderFrame(mLastClosedLedger).useImprovedSignatureCheck();
-}
-
-LedgerHeaderHistoryEntry const&
+    LedgerHeaderHistoryEntry const&
 LedgerManagerImpl::getLastClosedLedgerHeader() const
 {
     return mLastClosedLedger;

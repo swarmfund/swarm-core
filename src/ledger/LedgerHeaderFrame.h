@@ -27,32 +27,14 @@ class LedgerHeaderFrame
     LedgerHeader mHeader;
 
     // wraps the given ledger as is
-    LedgerHeaderFrame(LedgerHeader const& lh);
+    explicit LedgerHeaderFrame(LedgerHeader const& lh);
 
     // creates a new, _subsequent_ ledger, following the provided closed ledger
     explicit LedgerHeaderFrame(LedgerHeaderHistoryEntry const& lastClosed);
 
     Hash const& getHash() const;
 
-	bool useImprovedStatsCalculation() const {
-		return mHeader.ledgerVersion >= LedgerVersion::IMPROVED_STATS_CALCULATION;
-	}
-
-	bool useEmissionRequestBalanceID() const  {
-		return mHeader.ledgerVersion >= LedgerVersion::EMISSION_REQUEST_BALANCE_ID;
-	}
-
-	bool useImprovedTransferFeesCalc() const {
-		return mHeader.ledgerVersion >= LedgerVersion::IMPROVED_TRANSFER_FEES_CALC;
-	}
-
-	bool useImprovedSignatureCheck() const {
-		return mHeader.ledgerVersion >= LedgerVersion::USE_IMPROVED_SIGNATURE_CHECK;
-	}
-
-
-
-    // methods to generate IDs
+	// methods to generate IDs
     uint64_t getLastGeneratedID() const;
     // generates a new ID and returns it
     uint64_t generateID();

@@ -105,9 +105,6 @@ bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)
 
 bool PaymentOpFrame::checkFees(Application& app, Database& db, LedgerDelta& delta)
 {
-	if (!delta.getHeaderFrame().useImprovedTransferFeesCalc())
-		return checkFeesV1(app, db, delta);
-
 	bool areFeesNotRequired = isSystemAccountType(mSourceAccount->getAccountType());
 	if (areFeesNotRequired)
 		return true;

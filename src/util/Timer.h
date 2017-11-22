@@ -87,7 +87,7 @@ class VirtualClock
 
     // These two are named to mimic the std::chrono::system_clock methods
     static tm tm_from_time_t(std::time_t timet);
-    static bool weekPassed(tm& from, tm& to, bool useImprovedVersion);
+    static bool weekPassed(tm &from, tm &to);
     static int getDaysOfYear(tm&);
 
     static std::time_t to_time_t(time_point);

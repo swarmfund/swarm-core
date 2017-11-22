@@ -32,6 +32,7 @@
 #include "transactions/ManageOfferOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
+#include "transactions/ReviewRequestOpFrame.h"
 
 #include "database/Database.h"
 
@@ -73,7 +74,7 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
     case REVIEW_PAYMENT_REQUEST:
 		return shared_ptr<OperationFrame>(new ReviewPaymentRequestOpFrame(op, res, tx));
     case MANAGE_ASSET:
-		return shared_ptr<OperationFrame>(new ManageAssetOpFrame(op, res, tx));
+		return shared_ptr<OperationFrame>(ManageAssetOpFrame::makeHelper(op, res, tx));
     case UPLOAD_PREEMISSIONS:
 		return shared_ptr<OperationFrame>(new UploadPreemissionsOpFrame(op, res, tx));
     case SET_LIMITS:
@@ -86,7 +87,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
 		return shared_ptr<OperationFrame>(new ManageOfferOpFrame(op, res, tx));
     case MANAGE_INVOICE:
         return shared_ptr<OperationFrame>(new ManageInvoiceOpFrame(op, res, tx));
-
+	case REVIEW_REQUEST:
+		return shared_ptr<OperationFrame>(ReviewRequestOpFrame::makeHelper(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << op.body.type();
@@ -107,7 +109,14 @@ OperationFrame::apply(LedgerDelta& delta, Application& app)
     res = checkValid(app, &delta);
     if (!res)
         return res;
-    return doApply(app, delta, app.getLedgerManager());
+    bool isApplied = doApply(app, delta, app.getLedgerManager());
+	app.getMetrics().NewMeter({ "operation", isApplied ? "applied" : "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
+	return isApplied;
+}
+
+std::string OperationFrame::getInnerResultCodeAsStr() {
+	// Default implementation does nothing, make remove this implementation when all operations switched to it
+	return "not_implemented";
 }
 
 bool OperationFrame::isAllowed() const
@@ -271,7 +280,12 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
     mResult.code(opINNER);
     mResult.tr().type(mOperation.body.type());
     
-    return doCheckValid(app);
+    bool isValid = doCheckValid(app);
+	if (!isValid) {
+		app.getMetrics().NewMeter({ "operation", "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
+	}
+
+	return isValid;
 }
 
 bool

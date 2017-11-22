@@ -158,6 +158,12 @@ case ASSET_PAIR:
 			auto const& bi = b.invoice();
 			return ai.invoiceID < bi.invoiceID;
 		}
+		case REVIEWABLE_REQUEST:
+		{
+			auto const& ar = a.reviewableRequest();
+			auto const& br = b.reviewableRequest();
+			return ar.ID < br.ID;
+		}
         }
 
         return false;

@@ -136,7 +136,7 @@ TransactionFramePtr createManageAssetTx(Hash const& networkID, SecretKey& source
 void
 applyManageAssetTx(Application& app, SecretKey& source, Salt seq,
 				   AssetCode asset, int32 policies = 1,
-				   ManageAssetAction action  = MANAGE_ASSET_CREATE,
+				   ManageAssetAction action  = MANAGE_ASSET_CREATE_ASSET_CREATION_REQUEST,
 				   ManageAssetResultCode result = MANAGE_ASSET_SUCCESS);
 
 TransactionFramePtr createManageAssetPairTx(Hash const& networkID, SecretKey& source,

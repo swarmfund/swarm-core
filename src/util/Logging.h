@@ -20,6 +20,10 @@ class Logging
     static el::Configurations gDefaultConf;
 
   public:
+	  static const char* ENTRY_LOGGER;
+	  static const char* OPERATION_LOGGER;
+
+
     static void init();
     static void setFmt(std::string const& peerID, bool timestamps = true);
     static void setLoggingToFile(std::string const& filename);

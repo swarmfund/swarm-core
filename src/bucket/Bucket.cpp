@@ -36,6 +36,7 @@
 #include "ledger/AccountLimitsFrame.h"
 #include "ledger/StatisticsFrame.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/ReviewableRequestFrame.h"
 #include "medida/medida.h"
 #include "lib/util/format.h"
 #include <cassert>
@@ -521,6 +522,7 @@ checkDBAgainstBuckets(medida::MetricsRegistry& metrics,
 		{ ASSET_PAIR, BucketCounter::create(AssetPairFrame::countObjects) },
 		{ OFFER_ENTRY, BucketCounter::create(OfferFrame::countObjects) },
 		{ INVOICE, BucketCounter::create(InvoiceFrame::countObjects) },
+		{REVIEWABLE_REQUEST, BucketCounter::create(ReviewableRequestFrame::countObjects)},
 	};
     {
         auto& meter = metrics.NewMeter({"bucket", "checkdb", "object-compare"},

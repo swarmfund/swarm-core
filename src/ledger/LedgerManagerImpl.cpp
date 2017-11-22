@@ -200,9 +200,9 @@ LedgerManagerImpl::startNewLedger()
     auto baseAssetCodes = mApp.getBaseAssets();
     for (auto baseAssetCode: baseAssetCodes)
     {
-
-		auto baseAssetFrame = AssetFrame::create(baseAssetCode, mApp.getConfig().GENESIS_LEDGER_ASSET_POLICIES);
-		baseAssetFrame->storeAdd(delta, this->getDatabase());
+		// TODO fix ME
+		//auto baseAssetFrame = AssetFrame::create(baseAssetCode, mApp.getConfig().GENESIS_LEDGER_ASSET_POLICIES);
+		//baseAssetFrame->storeAdd(delta, this->getDatabase());
 
 		for (auto systemAccount : systemAccounts)
 		{
@@ -879,6 +879,7 @@ LedgerManagerImpl::deleteOldEntries(Database& db, uint32_t ledgerSeq, uint64_t l
 void
 LedgerManagerImpl::checkDbState()
 {
+	// TODO move to invariant
     std::unordered_map<AccountID, AccountFrame::pointer> aData =
         AccountFrame::checkDB(getDatabase());
 

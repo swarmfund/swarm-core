@@ -109,7 +109,7 @@ class AssetPairFrame : public EntryFrame
 		auto result = loadAssetPair(base, quote, db, delta);
 		if (!result)
 		{
-			CLOG(ERROR, "EntryFrame") << "Unexpected db state. Expected asset pair to exists. Base " << base << " Quote " << quote;
+			CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected db state. Expected asset pair to exists. Base " << base << " Quote " << quote;
 			throw std::runtime_error("Unexpected db state. Expected asset pair to exist");
 		}
 

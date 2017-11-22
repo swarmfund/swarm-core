@@ -28,6 +28,7 @@
 #include "ledger/TrustFrame.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/ReviewableRequestFrame.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -321,6 +322,7 @@ Database::initialize()
     LedgerHeaderFrame::dropAll(*this);
     TransactionFrame::dropAll(*this);
     HistoryManager::dropAll(*this);
+	ReviewableRequestFrame::dropAll(*this);
     BucketManager::dropAll(mApp);
     putSchemaVersion(1);
 }

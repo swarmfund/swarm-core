@@ -20,6 +20,7 @@
 #include "ledger/TrustFrame.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/ReviewableRequestFrame.h"
 #include "xdrpp/printer.h"
 #include "xdrpp/marshal.h"
 #include "crypto/Hex.h"
@@ -78,8 +79,11 @@ namespace stellar {
             case INVOICE:
                 res = std::make_shared<InvoiceFrame>(from);
                 break;
+			case REVIEWABLE_REQUEST:
+				res = std::make_shared<ReviewableRequestFrame>(from);
+				break;
             default:
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on construct: " << from.data.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on construct: " << from.data.type();
                 throw std::runtime_error("Unexpected entry type on costruct");
         }
         return res;
@@ -177,8 +181,14 @@ namespace stellar {
                         InvoiceFrame::loadInvoice(invoice.invoiceID, db));
                 break;
             }
+			case REVIEWABLE_REQUEST: {
+				auto const &request = key.reviewableRequest();
+				res = std::static_pointer_cast<EntryFrame>(
+					ReviewableRequestFrame::loadRequest(request.ID, db));
+				break;
+			}
             default: {
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on load: " << key.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on load: " << key.type();
                 throw std::runtime_error("Unexpected entry type on load");
             }
 
@@ -318,8 +328,10 @@ namespace stellar {
                 return OfferFrame::exists(db, key);
             case INVOICE:
                 return InvoiceFrame::exists(db, key);
+			case REVIEWABLE_REQUEST:
+				return ReviewableRequestFrame::exists(db, key);
             default: {
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on exists: " << key.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on exists: " << key.type();
                 throw std::runtime_error("Unexpected entry type on exists");
             }
         }
@@ -373,8 +385,11 @@ namespace stellar {
             case INVOICE:
                 InvoiceFrame::storeDelete(delta, db, key);
                 break;
+			case REVIEWABLE_REQUEST:
+				ReviewableRequestFrame::storeDelete(delta, db, key);
+				break;
             default: {
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on delete: " << key.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on delete: " << key.type();
                 throw std::runtime_error("Unexpected entry type on delete");
             }
         }
@@ -452,8 +467,12 @@ namespace stellar {
                 k.type(INVOICE);
                 k.invoice().invoiceID = d.invoice().invoiceID;
                 break;
+			case REVIEWABLE_REQUEST:
+				k.type(REVIEWABLE_REQUEST);
+				k.reviewableRequest().ID = d.reviewableRequest().ID;
+				break;
             default:
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on key create: " << d.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on key create: " << d.type();
                 throw std::runtime_error("Unexpected ledger entry type");
         }
 

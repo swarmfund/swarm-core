@@ -43,6 +43,9 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\Build\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <CustomBuildBeforeTargets>BuildGenerateSources</CustomBuildBeforeTargets>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <EnableCppCoreCheck>false</EnableCppCoreCheck>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -58,7 +61,7 @@
       <PreprocessorDefinitions>NOMINMAX;ASIO_STANDALONE;USE_POSTGRES;_WINSOCK_DEPRECATED_NO_WARNINGS;SODIUM_STATIC;ASIO_SEPARATE_COMPILATION;ASIO_ERROR_CATEGORY_NOEXCEPT=noexcept;_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0501;WIN32;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
-      <DisableSpecificWarnings>4060;4100;4127;4324;4408;4510;4512;4582;4583;4592</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4060;4100;4127;4324;4408;4510;4512;4582;4583;4592;4996</DisableSpecificWarnings>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <BrowseInformation>false</BrowseInformation>
       <ControlFlowGuard>
@@ -66,6 +69,7 @@
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -163,6 +167,7 @@
     <ClCompile Include="..\..\src\crypto\StrKey.cpp" />
     <ClCompile Include="..\..\src\database\Database.cpp" />
     <ClCompile Include="..\..\src\database\DatabaseTests.cpp" />
+    <ClCompile Include="..\..\src\database\Marshaler.cpp" />
     <ClCompile Include="..\..\src\herder\Herder.cpp" />
     <ClCompile Include="..\..\src\herder\HerderImpl.cpp" />
     <ClCompile Include="..\..\src\herder\HerderTests.cpp" />
@@ -251,6 +256,7 @@
     <ClCompile Include="..\..\src\ledger\OfferFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\ReferenceFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\PaymentRequestFrame.cpp" />
+    <ClCompile Include="..\..\src\ledger\ReviewableRequestFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\StatisticsFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\TrustFrame.cpp" />
     <ClCompile Include="..\..\src\main\Application.cpp" />
@@ -290,10 +296,21 @@
     <ClCompile Include="..\..\src\transactions\FlexibleFeesTests.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAccountOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAccountTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\CancelAssetRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAssetOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\CreateAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAssetPairOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAssetPairTests.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAssetTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\ReviewAssetCreationRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\ReviewAssetUpdateRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\ReviewRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\test_helper\ManageAssetHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test_helper\ReviewAssetRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test_helper\ReviewRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test_helper\TestManager.cpp" />
+    <ClCompile Include="..\..\src\transactions\test_helper\TxHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\UpdateAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageBalanceOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageBalanceTests.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageCoinsEmissionRequestOpFrame.cpp" />
@@ -378,6 +395,7 @@
     <ClInclude Include="..\..\src\crypto\SecretKey.h" />
     <ClInclude Include="..\..\src\crypto\StrKey.h" />
     <ClInclude Include="..\..\src\database\Database.h" />
+    <ClInclude Include="..\..\src\database\Marshaler.h" />
     <ClInclude Include="..\..\src\history\HistoryWork.h" />
     <ClInclude Include="..\..\src\history\InferredQuorum.h" />
     <ClInclude Include="..\..\src\history\StateSnapshot.h" />
@@ -398,6 +416,7 @@
     <ClInclude Include="..\..\src\ledger\OfferFrame.h" />
     <ClInclude Include="..\..\src\ledger\ReferenceFrame.h" />
     <ClInclude Include="..\..\src\ledger\PaymentRequestFrame.h" />
+    <ClInclude Include="..\..\src\ledger\ReviewableRequestFrame.h" />
     <ClInclude Include="..\..\src\ledger\StatisticsFrame.h" />
     <ClInclude Include="..\..\src\ledger\TrustFrame.h" />
     <ClInclude Include="..\..\src\main\ExternalQueue.h" />
@@ -471,8 +490,20 @@
     <ClInclude Include="..\..\src\transactions\CreateAccountOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\DirectDebitOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAccountOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\CancelAssetRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\CreateAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAssetPairOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\ReviewAssetCreationRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\ReviewAssetUpdateRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\ReviewRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\test_helper\Account.h" />
+    <ClInclude Include="..\..\src\transactions\test_helper\ManageAssetHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test_helper\ReviewAssetRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test_helper\ReviewRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test_helper\TestManager.h" />
+    <ClInclude Include="..\..\src\transactions\test_helper\TxHelper.h" />
+    <ClInclude Include="..\..\src\transactions\UpdateAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageBalanceOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageCoinsEmissionRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageForfeitRequestOpFrame.h" />
@@ -851,6 +882,24 @@
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-reference.x">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-reviewable-request.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-asset.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-request.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

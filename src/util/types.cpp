@@ -222,7 +222,29 @@ bool isFeeTypeValid(FeeType feeType)
 
 bool isAssetValid(AssetCode asset)
 {
-	return !asset.empty() && isAlNum(asset);
+	bool zeros = false;
+	bool onechar = false; // at least one non zero character
+	for (uint8_t b : asset)
+	{
+		if (b == 0)
+		{
+			zeros = true;
+		}
+		else if (zeros)
+		{
+			// zeros can only be trailing
+			return false;
+		}
+		else
+		{
+			if (b > 0x7F || !std::isalnum((char)b, cLocale))
+			{
+				return false;
+			}
+			onechar = true;
+		}
+	}
+	return onechar;
 }
 
 bool isAdminOp(OperationType op)

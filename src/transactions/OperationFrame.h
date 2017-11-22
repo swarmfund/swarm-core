@@ -118,5 +118,7 @@ class OperationFrame
     {
         return mOperation;
     }
+
+	virtual std::string getInnerResultCodeAsStr();
 };
 }

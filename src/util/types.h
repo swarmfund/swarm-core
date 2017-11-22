@@ -65,6 +65,25 @@ bool isTransferOp(OperationType op);
 
 int32_t getManagerType(AccountType accountType);
 
+// Returns true, if flag value is valid. (Does not contains any values which do not belongs to FlagType)
+template <typename FlagType>
+bool isValidXDRFlag(int32 value)
+{
+	for (auto flagElem : xdr::xdr_traits<FlagType>::enum_values()) {
+		value &= ~flagElem;
+	}
+
+	return value == 0;
+}
+
+// Returns true, if enum value valid
+template <typename EnumType>
+bool isValidEnumValue(EnumType value)
+{
+	auto enums = xdr::xdr_traits<EnumType>::enum_values();
+	return std::find(std::begin(enums), std::end(enums), value) != std::end(enums);
+}
+
 // calculates A*B/C when A*B overflows 64bits
 int64_t bigDivide(int64_t A, int64_t B, int64_t C, Rounding rounding);
 // no throw version, returns true if result is valid

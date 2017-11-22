@@ -34,6 +34,7 @@
 #include "ledger/OfferFrame.h"
 #include "ledger/InvoiceFrame.h"
 #include "crypto/SHA.h"
+#include "transactions/test_helper/TestManager.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -86,8 +87,8 @@ PaymentFeeData getGeneralPaymentFee(uint64 fixedFee, uint64 paymentFee) {
     return paymentFeeData;
 }
 
-bool
-applyCheck(TransactionFramePtr tx, LedgerDelta& delta, Application& app)
+[[deprecated("Use TxHelper")]]
+bool applyCheck(TransactionFramePtr tx, LedgerDelta& delta, Application& app)
 {
     auto txSet = std::make_shared<TxSetFrame>(
             app.getLedgerManager().getLastClosedLedgerHeader().hash);
@@ -253,22 +254,10 @@ closeLedgerOn(Application& app, uint32 ledgerSeq, int day, int month, int year,
     
 }
 
-void
-upgradeToCurrentLedgerVersion(Application& app)
+[[deprecated("Use TestMnager")]]
+void upgradeToCurrentLedgerVersion(Application& app)
 {
-    auto const& lcl = app.getLedgerManager().getLastClosedLedgerHeader();
-    auto const& lastHash = lcl.hash;
-    TxSetFramePtr txSet = std::make_shared<TxSetFrame>(lastHash);
-
-    LedgerUpgrade upgrade(LEDGER_UPGRADE_VERSION);
-    upgrade.newLedgerVersion() = app.getConfig().LEDGER_PROTOCOL_VERSION;
-    xdr::xvector<UpgradeType, 6> upgrades;
-    Value v(xdr::xdr_to_opaque(upgrade));
-    upgrades.emplace_back(v.begin(), v.end());
-
-    StellarValue sv(txSet->getContentsHash(), 1, upgrades, StellarValue::_ext_t(LedgerVersion::EMPTY_VERSION));
-    LedgerCloseData ledgerData(1, txSet, sv);
-    app.getLedgerManager().closeLedger(ledgerData);
+	TestManager::make(app)->upgradeToCurrentLedgerVersion();
 }
 
 SecretKey
@@ -299,8 +288,7 @@ loadAccount(SecretKey const& k, Application& app, bool mustExist)
 AccountFrame::pointer
 loadAccount(PublicKey const& k, Application& app, bool mustExist)
 {
-	AccountFrame::pointer res =
-		AccountFrame::loadAccount(k, app.getDatabase());
+	AccountFrame::pointer res = AccountFrame::loadAccount(k, app.getDatabase());
 	if (mustExist)
 	{
 		REQUIRE(res);
@@ -387,8 +375,8 @@ checkTransactionForOpResult(TransactionFramePtr txFrame, Application& app, Opera
     REQUIRE(getFirstResult(*txFrame).code() == opCode);
 }
 
-TransactionFramePtr
-transactionFromOperation(Hash const& networkID, SecretKey& from,
+[[deprecated("Use txHelper")]]
+TransactionFramePtr transactionFromOperation(Hash const& networkID, SecretKey& from,
                          Salt salt, Operation const& op, SecretKey* signer = nullptr, TimeBounds* timeBounds = nullptr)
 {
     if (!signer)
@@ -692,62 +680,12 @@ TransactionFramePtr
 createManageAssetTx(Hash const& networkID, SecretKey& source, Salt seq, AssetCode code,
     int32 policies, ManageAssetAction action)
 {
-    Operation op;
-    op.body.type(MANAGE_ASSET);
-    op.body.manageAssetOp().code = code;
-    op.body.manageAssetOp().policies = policies;
-    op.body.manageAssetOp().action = action;
-
-    return transactionFromOperation(networkID, source, seq, op);
+	throw std::runtime_error("use manageAssetHelper");
 }
 
-void
-applyManageAssetTx(Application &app, SecretKey &source, Salt seq, AssetCode code, int32 policies,
-                   ManageAssetAction action, ManageAssetResultCode result)
+void applyManageAssetTx(Application & app, SecretKey & source, Salt seq, AssetCode asset, int32 policies, ManageAssetAction action, ManageAssetResultCode result)
 {
-    TransactionFramePtr txFrame;
-
-    uint64 assetsSize = AssetFrame::countObjects(app.getDatabase().getSession());
-    txFrame = createManageAssetTx(app.getNetworkID(), source, seq, code, policies, action);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    auto txResult = txFrame->getResult();
-    auto innerCode =
-        ManageAssetOpFrame::getInnerCode(txResult.result.results()[0]);
-    REQUIRE(innerCode == result);
-    REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
-
-    uint64 assetsAfterSize = AssetFrame::countObjects(app.getDatabase().getSession());
-
-    auto opResult = txResult.result.results()[0].tr().manageAssetResult();
-
-    if (innerCode != MANAGE_ASSET_SUCCESS)
-    {
-        REQUIRE(assetsSize == assetsAfterSize);
-    }
-    else
-    {
-        if (action == MANAGE_ASSET_CREATE)
-        {
-            REQUIRE(assetsSize == assetsAfterSize - 1);
-            auto asset = AssetFrame::loadAsset(code, app.getDatabase());
-            REQUIRE(asset);
-            REQUIRE(asset->getPolicies() == policies);
-            REQUIRE(BalanceFrame::loadBalance(app.getMasterID(), code, app.getDatabase(), nullptr));
-            REQUIRE(BalanceFrame::loadBalance(app.getCommissionID(), code, app.getDatabase(), nullptr));
-        }
-        else if (action == MANAGE_ASSET_UPDATE_POLICIES)
-        {
-            auto asset = AssetFrame::loadAsset(code, app.getDatabase());
-            REQUIRE(asset);
-            if (action == MANAGE_ASSET_UPDATE_POLICIES)
-                REQUIRE(asset->getPolicies() == policies);
-        }
-    }
+	throw std::runtime_error("use manageAssetHelper");
 }
 
 TransactionFramePtr createManageAssetPairTx(Hash const& networkID, SecretKey& source,

@@ -78,7 +78,7 @@ class StatisticsFrame : public EntryFrame
 		auto result = loadStatistics(accountID, db, delta);
 		if (!result)
 		{
-			CLOG(ERROR, "EntryFrame") << "Unexpected db state. Expected statistics to exists. AccountID " << PubKeyUtils::toStrKey(accountID);
+			CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected db state. Expected statistics to exists. AccountID " << PubKeyUtils::toStrKey(accountID);
 			throw std::runtime_error("Unexpected db state. Expected statistics to exist");
 		}
 

@@ -180,9 +180,6 @@ makeValid(AssetEntry& o)
 {
 	o.code = randomAssetCode();
 	stripControlCharacters(o.code);
-	if (o.policies < 0) {
-		o.policies = -o.policies;
-	}
 }
 
 void

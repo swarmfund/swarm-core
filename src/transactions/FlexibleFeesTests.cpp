@@ -281,8 +281,6 @@ TEST_CASE("Flexible fees", "[tx][flexible_fees]")
 		applyCreateAccountTx(app, root, account2, rootSeq++, GENERAL);
 
 		const int64_t amount = 100 * ONE;
-		applyManageAssetTx(app, root, 0, app.getBaseAsset(), 0, MANAGE_ASSET_UPDATE_POLICIES, MANAGE_ASSET_SUCCESS);
-
         auto feeFrame = FeeFrame::create(FORFEIT_FEE, 1, 5 * ONE, app.getBaseAsset(), nullptr, nullptr, FeeFrame::SUBTYPE_ANY);
 
 		auto feeToSet = feeFrame->getFee();

@@ -38,7 +38,7 @@ public:
 
     AssetFrame& operator=(AssetFrame const& other);
 
-	static pointer create(AssetCode code, int32_t policies);
+	static pointer create(AssetCreationRequest const& request, AccountID const& owner);
 
     EntryFrame::pointer
     copy() const override
@@ -67,14 +67,20 @@ public:
         return mAsset.code;
     }
 
+	AccountID const& getOwner() const {
+		return mAsset.owner;
+	}
+
     void setPolicies(int32 policies)
     {
         mAsset.policies = policies;
     }
     
-    bool checkPolicy(AssetPolicy policy) const
+    bool checkPolicy(AssetPolicy rawPolicy) const
     {
-        return (mAsset.policies & policy) == policy;
+		assert(rawPolicy >= 0);
+		uint32_t policy = static_cast<uint32_t>(rawPolicy);
+		return (mAsset.policies & policy) == policy;
     }
 
     static bool isValid(AssetEntry const& oe);
@@ -95,11 +101,13 @@ public:
     // database utilities
     static pointer loadAsset(AssetCode code,
                              Database& db, LedgerDelta* delta = nullptr);
+	// returns nullptr, if not found
+	static pointer loadAsset(AssetCode code, AccountID const& owner,
+		Database& db, LedgerDelta* delta = nullptr);
 
 	static void loadAssets(std::vector<AssetFrame::pointer>& retAssets,
 		Database& db);
 
     static void dropAll(Database& db);
-    static const char* kSQLCreateStatement1;
 };
 }

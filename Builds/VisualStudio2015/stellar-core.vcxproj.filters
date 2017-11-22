@@ -97,6 +97,15 @@
     <Filter Include="invariant">
       <UniqueIdentifier>{b2d4dd1b-c327-4823-a8d6-0fe4d2648576}</UniqueIdentifier>
     </Filter>
+    <Filter Include="transactions\manage_asset">
+      <UniqueIdentifier>{ee6ed6e2-c5a1-44fd-a651-862454ac3eea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="transactions\review_request">
+      <UniqueIdentifier>{54bb009c-9f51-4cf5-a0f0-50e3a159de80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="transactions\tests\test_helper">
+      <UniqueIdentifier>{23c65bbc-34e6-486b-91bf-1fd7959df62d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -555,9 +564,6 @@
     <ClCompile Include="..\..\src\transactions\ReviewPaymentRequestOpFrame.cpp">
       <Filter>transactions</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\transactions\ManageAssetOpFrame.cpp">
-      <Filter>transactions</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\transactions\ManageBalanceTests.cpp">
       <Filter>transactions\tests</Filter>
     </ClCompile>
@@ -656,6 +662,48 @@
     </ClCompile>
     <ClCompile Include="..\..\src\ledger\ReferenceFrame.cpp">
       <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\ReviewableRequestFrame.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\CancelAssetRequestOpFrame.cpp">
+      <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\ManageAssetOpFrame.cpp">
+      <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\CreateAssetOpFrame.cpp">
+      <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\UpdateAssetOpFrame.cpp">
+      <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\database\Marshaler.cpp">
+      <Filter>database</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\ReviewRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\ReviewAssetCreationRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\ReviewAssetUpdateRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test_helper\TestManager.cpp">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test_helper\TxHelper.cpp">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test_helper\ManageAssetHelper.cpp">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test_helper\ReviewRequestHelper.cpp">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test_helper\ReviewAssetRequestHelper.cpp">
+      <Filter>transactions\tests\test_helper</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1118,9 +1166,6 @@
     <ClInclude Include="..\..\src\transactions\ReviewPaymentRequestOpFrame.h">
       <Filter>transactions</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\transactions\ManageAssetOpFrame.h">
-      <Filter>transactions</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\transactions\UploadPreemissionsOpFrame.h">
       <Filter>transactions</Filter>
     </ClInclude>
@@ -1262,6 +1307,51 @@
     <ClInclude Include="..\..\src\ledger\ReferenceFrame.h">
       <Filter>ledger</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\ledger\ReviewableRequestFrame.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\ManageAssetOpFrame.h">
+      <Filter>transactions\manage_asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\CancelAssetRequestOpFrame.h">
+      <Filter>transactions\manage_asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\CreateAssetOpFrame.h">
+      <Filter>transactions\manage_asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\UpdateAssetOpFrame.h">
+      <Filter>transactions\manage_asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\database\Marshaler.h">
+      <Filter>database</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\ReviewRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\ReviewAssetCreationRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\ReviewAssetUpdateRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test_helper\TestManager.h">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test_helper\TxHelper.h">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test_helper\Account.h">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test_helper\ManageAssetHelper.h">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test_helper\ReviewRequestHelper.h">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test_helper\ReviewAssetRequestHelper.h">
+      <Filter>transactions\tests\test_helper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -1345,9 +1435,6 @@
     <None Include="..\..\docs\learn\testnet.md">
       <Filter>docs</Filter>
     </None>
-    <None Include="..\..\src\xdr\Stellar-ledger-entries-reference.x">
-      <Filter>xdr</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\..\INSTALL-Windows.txt" />
@@ -1359,43 +1446,117 @@
     <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries.x">
       <Filter>xdr</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-limits.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-type-limits.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset-pair.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-balance.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-coins-emission-request.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-exchange.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-fee.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-invoice.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-offer.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-payment-request.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-payment.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-referrer-group.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-statistics.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-account.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-demurrage.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-direct-debit.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-account.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset-pair.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-balance.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-coins-emission-request.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-forfeit-request.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-invoice.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-offer.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-recover.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-coins-emission-request.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-payment-request.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-fees.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-limits.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-options.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-upload-preemissions.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-overlay.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-SCP.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-transaction.x" />
-    <CustomBuild Include="..\..\src\xdr\Stellar-types.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-reference.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-limits.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-type-limits.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-asset-pair.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-balance.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-coins-emission-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-fee.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-invoice.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-offer.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-payment-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-statistics.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-account.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-direct-debit.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-account.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-asset-pair.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-balance.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-coins-emission-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-forfeit-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-invoice.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-offer.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-recover.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-coins-emission-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-payment-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-fees.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-limits.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-set-options.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-upload-preemissions.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-overlay.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-SCP.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-transaction.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-types.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-asset.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-reviewable-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

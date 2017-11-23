@@ -8,6 +8,7 @@ before_script:
   - chmod 600 ~/.ssh/id_rsa
   - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
   - 'echo -e "Host gitlab\n\tHostName gitlab.com\n\tIdentityFile ~/.ssh/id_rsa\n\tUser git\n" >> ~/.ssh/config'
+  -  git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/
 
 stages:
   - prebuild

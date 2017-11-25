@@ -15,24 +15,27 @@ namespace stellar
     const char* FeeFrame::kSQLCreateStatement1 =
     "CREATE TABLE fee_state"
     "("
-    "fee_type INT    NOT NULL,"
-    "asset    VARCHAR(16)       NOT NULL,"
-    "fixed          BIGINT NOT NULL,"
-	"percent        BIGINT NOT NULL,"
-    "account_id    VARCHAR(56),"
-    "account_type    INT,"
-    "subtype    BIGINT NOT NULL,"
+    "fee_type       INT          NOT NULL,"
+    "asset          VARCHAR(16)  NOT NULL,"
+    "fixed          BIGINT       NOT NULL,"
+	"percent        BIGINT       NOT NULL,"
+    "account_id     VARCHAR(56),"
+    "account_type   INT,"
+    "subtype        BIGINT       NOT NULL,"
     "lower_bound    BIGINT,"
     "upper_bound    BIGINT,"
-    "hash    VARCHAR(256)  NOT NULL,"
-    "lastmodified   INT    NOT NULL,"
-		"PRIMARY KEY(hash, lower_bound, upper_bound)"
+    "hash           VARCHAR(256) NOT NULL,"
+    "lastmodified   INT          NOT NULL,"
+    "version        INT          NOT NULL   DEFAULT 0,"
+	"PRIMARY KEY(hash, lower_bound, upper_bound)"
     ");";
     
-    static const char* feeColumnSelector = "SELECT fee_type, asset, fixed, percent, account_id, account_type, subtype, lower_bound, upper_bound, hash, lastmodified FROM fee_state";
+    static const char* feeColumnSelector = "SELECT fee_type, asset, fixed, percent, account_id, account_type, subtype, "
+                                                  "lower_bound, upper_bound, hash, lastmodified, version "
+                                           "FROM   fee_state";
 
     
-    FeeFrame::FeeFrame() : EntryFrame(FEE), mFee(mEntry.data.feeState())
+    FeeFrame::FeeFrame() : EntryFrame(LedgerEntryType::FEE), mFee(mEntry.data.feeState())
     {
     }
     
@@ -61,7 +64,7 @@ namespace stellar
         AccountType* accountType, int64_t subtype, int64_t lowerBound, int64_t upperBound)
 	{
 		LedgerEntry le;
-		le.data.type(FEE);
+		le.data.type(LedgerEntryType::FEE);
 		FeeEntry& entry = le.data.feeState();
 		entry.fixedFee = fixedFee;
 		entry.percentFee = percentFee;
@@ -102,18 +105,23 @@ namespace stellar
         
         if (insert)
         {
-            sql = "INSERT INTO fee_state (fee_type, asset, fixed, percent, account_id, account_type, subtype, lastmodified, lower_bound, upper_bound, hash) VALUES (:ft, :as, :f, :p, :aid, :at, :subt, :lm, :lb, :ub, :hash)";
+            sql = "INSERT INTO fee_state (fee_type, asset, fixed, percent, account_id, account_type, subtype, "
+                                            "lastmodified, lower_bound, upper_bound, hash, version) "
+                  "VALUES (:ft, :as, :f, :p, :aid, :at, :subt, :lm, :lb, :ub, :hash, :v)";
         }
         else
         {
-            sql = "UPDATE fee_state SET fee_type = :ft, asset = :as, fixed=:f, percent =:p, account_id=:aid, account_type=:at, subtype=:subt, lastmodified=:lm WHERE lower_bound=:lb AND upper_bound=:ub AND hash=:hash";
+            sql = "UPDATE fee_state "
+                  "SET    fee_type=:ft, asset=:as, fixed=:f, percent=:p, account_id=:aid, "
+                         "account_type=:at, subtype=:subt, lastmodified=:lm, version=:v "
+                  "WHERE  lower_bound=:lb AND upper_bound=:ub AND hash=:hash";
         }
             
         
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
         
-		int feeType = mFee.feeType;
+		int feeType = static_cast<int32_t >(mFee.feeType);
         string assetCode = mFee.asset;
         st.exchange(use(feeType, "ft"));
         st.exchange(use(assetCode, "as"));
@@ -129,7 +137,7 @@ namespace stellar
 
         int32_t accountType = EMPTY_VALUE;
         if(mFee.accountType)
-            accountType = *mFee.accountType;
+            accountType = static_cast<int32_t >(*mFee.accountType);
         st.exchange(use(accountType, "at"));
 
         st.exchange(use(mFee.subtype, "subt"));
@@ -141,6 +149,9 @@ namespace stellar
 
         string hash(binToHex(mFee.hash));
         st.exchange(use(hash, "hash"));
+
+        int32_t feeVersion = static_cast<int32_t >(mFee.ext.v());
+        st.exchange(use(feeVersion, "v"));
 
         st.define_and_bind();
         
@@ -176,7 +187,8 @@ namespace stellar
         Hash hash3 = calcHash(feeType, asset, nullptr, nullptr, subtype);
 
 		std::string sql = feeColumnSelector;
-		sql += " WHERE hash IN (:h1, :h2, :h3) AND lower_bound <= :am1 AND :am2 <= upper_bound  ORDER BY hash=:h4 DESC, hash=:h5 DESC, hash=:h6 DESC LIMIT 1";
+		sql += " WHERE hash IN (:h1, :h2, :h3) AND lower_bound <= :am1 AND :am2 <= upper_bound "
+               " ORDER BY hash=:h4 DESC, hash=:h5 DESC, hash=:h6 DESC LIMIT 1";
 		auto prep = db.getPreparedStatement(sql);
 		auto& st = prep.statement();
 		string strHash1 = binToHex(hash1);
@@ -252,13 +264,14 @@ namespace stellar
     {
 
         LedgerEntry le;
-        le.data.type(FEE);
+        le.data.type(LedgerEntryType::FEE);
 
 		int rawFeeType;
 		string rawAsset;
 
 		std::string actIDStrKey, rawHash;
 		int32_t accountType;
+        int32_t feeVersion = 0;
 
 		auto& st = prep.statement();
 		st.exchange(into(rawFeeType));
@@ -274,6 +287,7 @@ namespace stellar
 		st.exchange(into(rawHash));
 
 		st.exchange(into(le.lastModifiedLedgerSeq));
+        st.exchange(into(feeVersion));
 
         st.define_and_bind();
         st.execute(true);
@@ -281,6 +295,7 @@ namespace stellar
         {   
             le.data.feeState().asset = rawAsset;
             le.data.feeState().feeType = FeeType(rawFeeType);
+            le.data.feeState().ext.v((LedgerVersion)feeVersion);
 			if (actIDStrKey.size() > 0)
 				le.data.feeState().accountID.activate() = PubKeyUtils::fromStrKey(actIDStrKey);
 
@@ -342,7 +357,7 @@ namespace stellar
     bool FeeFrame::exists(Database& db, Hash hash, int64_t lowerBound, int64_t upperBound)
     {
 		LedgerKey key;
-		key.type(FEE);
+		key.type(LedgerEntryType::FEE);
 		key.feeState().hash = hash;
 		key.feeState().lowerBound = lowerBound;
 		key.feeState().upperBound = upperBound;

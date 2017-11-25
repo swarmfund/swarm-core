@@ -22,7 +22,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageForfeitRequestOpFrame::
 
 SourceDetails ManageForfeitRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({ GENERAL, OPERATIONAL }, mSourceAccount->getMediumThreshold(), SIGNER_BALANCE_MANAGER);
+	return SourceDetails({ AccountType::GENERAL, AccountType::OPERATIONAL }, mSourceAccount->getMediumThreshold(),
+                         static_cast<int32_t >(SignerType::BALANCE_MANAGER));
 }
 
 ManageForfeitRequestOpFrame::ManageForfeitRequestOpFrame(Operation const& op, OperationResult& res,
@@ -38,7 +39,7 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-	innerResult().code(MANAGE_FORFEIT_REQUEST_SUCCESS);
+	innerResult().code(ManageForfeitRequestResultCode::SUCCESS);
 
     auto balance = BalanceFrame::loadBalance(mManageForfeitRequest.balance, db);
 
@@ -46,7 +47,7 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         app.getMetrics().NewMeter({ "op-manage-forfeit-request", "invalid", "balance-not-found" },
                 "operation").Mark();
-        innerResult().code(MANAGE_FORFEIT_REQUEST_BALANCE_MISMATCH);
+        innerResult().code(ManageForfeitRequestResultCode::BALANCE_MISMATCH);
         return false;
     }
 
@@ -56,7 +57,7 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         app.getMetrics().NewMeter({ "op-manage-forfeit-request", "invalid", "request-reviewer-not-found" },
                                   "operation").Mark();
-        innerResult().code(MANAGE_FORFEIT_REQUEST_REVIEWER_NOT_FOUND);
+        innerResult().code(ManageForfeitRequestResultCode::REVIEWER_NOT_FOUND);
         return false;
     }
 
@@ -71,7 +72,7 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         app.getMetrics().NewMeter({"op-manage-forfeit-request", "invalid", "fee-mismatch" },
             "operation").Mark();
-        innerResult().code(MANAGE_FORFEIT_REQUEST_FEE_MISMATCH);
+        innerResult().code(ManageForfeitRequestResultCode::FEE_MISMATCH);
         return false;
     }
 
@@ -104,7 +105,7 @@ ManageForfeitRequestOpFrame::calculateFee(Database &db, AssetCode asset, int64_t
         return 0;
     }
 
-    auto feeFrame = FeeFrame::loadForAccount(FORFEIT_FEE, asset, FeeFrame::SUBTYPE_ANY, mSourceAccount, amount, db);
+    auto feeFrame = FeeFrame::loadForAccount(FeeType::FORFEIT_FEE, asset, FeeFrame::SUBTYPE_ANY, mSourceAccount, amount, db);
     if (!feeFrame)
     {
         return 0;
@@ -119,21 +120,21 @@ ManageForfeitRequestOpFrame::processBalanceChange(Application& app, AccountManag
     if (balanceChangeResult == AccountManager::Result::UNDERFUNDED)
     {
         app.getMetrics().NewMeter({ "op-manage-forfeit-request", "failure", "underfunded" }, "operation").Mark();
-        innerResult().code(MANAGE_FORFEIT_REQUEST_UNDERFUNDED);
+        innerResult().code(ManageForfeitRequestResultCode::UNDERFUNDED);
         return false;
     }
 
     if (balanceChangeResult == AccountManager::Result::STATS_OVERFLOW)
     {
         app.getMetrics().NewMeter({ "op-manage-forfeit-request", "failure", "stats-overflow"}, "operation").Mark();
-        innerResult().code(MANAGE_FORFEIT_REQUEST_STATS_OVERFLOW);
+        innerResult().code(ManageForfeitRequestResultCode::STATS_OVERFLOW);
         return false;
     }
 
     if (balanceChangeResult == AccountManager::Result::LIMITS_EXCEEDED)
     {
         app.getMetrics().NewMeter({ "op-manage-forfeit-request", "failure", "limits-exceeded"}, "operation").Mark();
-        innerResult().code(MANAGE_FORFEIT_REQUEST_LIMITS_EXCEEDED);
+        innerResult().code(ManageForfeitRequestResultCode::LIMITS_EXCEEDED);
         return false;
     }
     return true;
@@ -146,14 +147,14 @@ ManageForfeitRequestOpFrame::doCheckValid(Application& app)
     {
         app.getMetrics().NewMeter({"op-manage-forfeit-request", "invalid", "malformed-negative-amount"},
                          "operation").Mark();
-        innerResult().code(MANAGE_FORFEIT_REQUEST_INVALID_AMOUNT);
+        innerResult().code(ManageForfeitRequestResultCode::INVALID_AMOUNT);
         return false;
     }
 
     if (mManageForfeitRequest.details.size() > app.getWithdrawalDetailsMaxLength())
     {
         app.getMetrics().NewMeter({"op-manage-forfeit-request", "invalid", "malformed-details-length"}, "operation").Mark();
-        innerResult().code(MANAGE_FORFEIT_REQUEST_INVALID_DETAILS);
+        innerResult().code(ManageForfeitRequestResultCode::INVALID_DETAILS);
         return false;
     }
 

@@ -20,19 +20,21 @@ const char* StatisticsFrame::kSQLCreateStatement1 =
     "CREATE TABLE statistics"
     "("
 	"account_id       VARCHAR(56) NOT NULL,"
-	"daily_out        BIGINT NOT NULL,"
-	"weekly_out  	  BIGINT NOT NULL,"
-	"monthly_out      BIGINT NOT NULL,"
-	"annual_out	      BIGINT NOT NULL,"
-	"updated_at       BIGINT NOT NULL,"
-    "lastmodified     INT NOT NULL,"
+	"daily_out        BIGINT 	  NOT NULL,"
+	"weekly_out  	  BIGINT 	  NOT NULL,"
+	"monthly_out      BIGINT 	  NOT NULL,"
+	"annual_out	      BIGINT 	  NOT NULL,"
+	"updated_at       BIGINT 	  NOT NULL,"
+    "lastmodified     INT 		  NOT NULL,"
+	"version		  INT 		  NOT NULL	DEFAULT 0,"
     "PRIMARY KEY  (account_id)"
     ");";
 
 static const char* statisticsColumnSelector =
-    "SELECT account_id, daily_out, weekly_out, monthly_out, annual_out, updated_at, lastmodified FROM statistics";
+    "SELECT account_id, daily_out, weekly_out, monthly_out, annual_out, updated_at, lastmodified, version "
+	"FROM   statistics";
 
-StatisticsFrame::StatisticsFrame() : EntryFrame(STATISTICS), mStatistics(mEntry.data.stats())
+StatisticsFrame::StatisticsFrame() : EntryFrame(LedgerEntryType::STATISTICS), mStatistics(mEntry.data.stats())
 {
 }
 
@@ -104,8 +106,9 @@ StatisticsFrame::loadStatistics(StatementContext& prep,
 	std::string accountID;
 
     LedgerEntry le;
-    le.data.type(STATISTICS);
+    le.data.type(LedgerEntryType::STATISTICS);
     StatisticsEntry& se = le.data.stats();
+	int32_t statisticsVersion = 0;
 
     statement& st = prep.statement();
     st.exchange(into(accountID));
@@ -117,11 +120,13 @@ StatisticsFrame::loadStatistics(StatementContext& prep,
 
 	st.exchange(into(se.updatedAt));
     st.exchange(into(le.lastModifiedLedgerSeq));
+	st.exchange(into(statisticsVersion));
     st.define_and_bind();
     st.execute(true);
     while (st.got_data())
     {
 		se.accountID = PubKeyUtils::fromStrKey(accountID);
+		se.ext.v((LedgerVersion)statisticsVersion);
 
         if (!isValid(se))
         {
@@ -193,6 +198,7 @@ StatisticsFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert
     }
 
 	std::string strAccountID = PubKeyUtils::toStrKey(mStatistics.accountID);
+	int32_t statisticsVersion = static_cast<int32_t >(mStatistics.ext.v());
 
     string sql;
 
@@ -200,14 +206,16 @@ StatisticsFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert
     {
 		//  
         sql = "INSERT INTO statistics (account_id, daily_out, "
-			  "weekly_out, monthly_out, annual_out, updated_at, lastmodified) VALUES "
-              "(:aid, :d_out, :w_out, :m_out, :a_out, :up, :lm)";
+			  							"weekly_out, monthly_out, annual_out, updated_at, lastmodified, version) "
+			  "VALUES "
+              "(:aid, :d_out, :w_out, :m_out, :a_out, :up, :lm, :v)";
     }
     else
     {
-        sql = "UPDATE statistics SET daily_out = :d_out, "
-			"weekly_out = :w_out, monthly_out = :m_out, annual_out = :a_out, updated_at = :up, lastmodified = :lm "
-			"WHERE account_id=:aid";
+        sql = "UPDATE statistics "
+			  "SET 	  daily_out=:d_out, weekly_out=:w_out, monthly_out=:m_out, annual_out=:a_out, "
+					 "updated_at=:up, lastmodified=:lm, version=:v "
+			  "WHERE  account_id=:aid";
     }
 
     auto prep = db.getPreparedStatement(sql);
@@ -220,6 +228,7 @@ StatisticsFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert
 	st.exchange(use(mStatistics.annualOutcome, "a_out"));
 	st.exchange(use(mStatistics.updatedAt, "up"));
     st.exchange(use(getLastModified(), "lm"));
+	st.exchange(use(statisticsVersion, "v"));
     st.define_and_bind();
 
     auto timer =
@@ -241,7 +250,7 @@ StatisticsFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert
     }
 }
 
-void StatisticsFrame::clearObsolete(time_t rawCurrentTime, bool useImprovedVersion)
+void StatisticsFrame::clearObsolete(time_t rawCurrentTime)
 {   
 	struct tm currentTime = VirtualClock::tm_from_time_t(rawCurrentTime);
  
@@ -259,7 +268,7 @@ void StatisticsFrame::clearObsolete(time_t rawCurrentTime, bool useImprovedVersi
 		mStatistics.monthlyOutcome = 0;
 	}
 
-	bool isWeek = VirtualClock::weekPassed(timeUpdated, currentTime, useImprovedVersion);
+	bool isWeek = VirtualClock::weekPassed(timeUpdated, currentTime);
 	if (isWeek)
 	{
 		mStatistics.weeklyOutcome = 0;
@@ -272,9 +281,9 @@ void StatisticsFrame::clearObsolete(time_t rawCurrentTime, bool useImprovedVersi
 	}
 }
 
-bool StatisticsFrame::add(int64 outcome, time_t rawCurrentTime, time_t rawTimePerformed, bool useImprovedVersion)
+bool StatisticsFrame::add(int64 outcome, time_t rawCurrentTime, time_t rawTimePerformed)
 {
-	clearObsolete(rawCurrentTime, useImprovedVersion);
+	clearObsolete(rawCurrentTime);
 	struct tm currentTime = VirtualClock::tm_from_time_t(rawCurrentTime);
 	struct tm timePerformed = VirtualClock::tm_from_time_t(rawTimePerformed);
 	if (currentTime.tm_year != timePerformed.tm_year)
@@ -297,7 +306,7 @@ bool StatisticsFrame::add(int64 outcome, time_t rawCurrentTime, time_t rawTimePe
 		return false;
 	}
 
-	bool isWeek = VirtualClock::weekPassed(timePerformed, currentTime, useImprovedVersion);
+	bool isWeek = VirtualClock::weekPassed(timePerformed, currentTime);
 	if (isWeek)
 	{
 		return true;

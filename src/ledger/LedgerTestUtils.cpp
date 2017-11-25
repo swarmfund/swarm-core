@@ -235,43 +235,43 @@ LedgerEntry makeValid(LedgerEntry& le)
 	auto& led = le.data;
 	switch (led.type())
 	{
-	case ACCOUNT:
+	case LedgerEntryType::ACCOUNT:
 		makeValid(led.account());
 		break;
-	case FEE:
+    case LedgerEntryType::FEE:
 		makeValid(led.feeState());
 		break;
-	case BALANCE:
+    case LedgerEntryType::BALANCE:
 		makeValid(led.balance());
 		break;
-	case PAYMENT_REQUEST:
+	case LedgerEntryType::PAYMENT_REQUEST:
 		makeValid(led.paymentRequest());
 		break;
-	case ASSET:
+	case LedgerEntryType::ASSET:
 		makeValid(led.asset());
 		break;
-	case REFERENCE_ENTRY:
+	case LedgerEntryType::REFERENCE_ENTRY:
 		makeValid(led.reference());
 		break;
-	case ACCOUNT_TYPE_LIMITS:
+	case LedgerEntryType::ACCOUNT_TYPE_LIMITS:
 		makeValid(led.accountTypeLimits());
 		break;
-	case STATISTICS:
+	case LedgerEntryType::STATISTICS:
 		makeValid(led.stats());
 		break;
-	case TRUST:
+	case LedgerEntryType::TRUST:
 		makeValid(led.trust());
 		break;
-	case ACCOUNT_LIMITS:
+	case LedgerEntryType::ACCOUNT_LIMITS:
 		makeValid(led.accountLimits());
 		break;
-	case ASSET_PAIR:
+	case LedgerEntryType::ASSET_PAIR:
 		makeValid(led.assetPair());
 		break;
-	case OFFER_ENTRY:
+	case LedgerEntryType::OFFER_ENTRY:
 		makeValid(led.offer());
 		break;
-	case INVOICE:
+	case LedgerEntryType::INVOICE:
 		makeValid(led.invoice());
 		break;
 

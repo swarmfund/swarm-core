@@ -163,16 +163,16 @@ LedgerManagerImpl::startNewLedger()
 	{
 		AccountFrame::pointer operationalAccount = make_shared<AccountFrame>(
 			mApp.getOperationalID());
-		operationalAccount->getAccount().accountType = OPERATIONAL;
+		operationalAccount->getAccount().accountType = AccountType::OPERATIONAL;
 		systemAccounts.push_back(operationalAccount);
 
 		AccountFrame::pointer masterAccount = make_shared<AccountFrame>(mApp.getMasterID());
-		masterAccount->getAccount().accountType = MASTER;
+		masterAccount->getAccount().accountType = AccountType::MASTER;
 		systemAccounts.push_back(masterAccount);
 
 		AccountFrame::pointer commissionAccount = make_shared<AccountFrame>(
 			mApp.getCommissionID());
-		commissionAccount->getAccount().accountType = COMMISSION;
+		commissionAccount->getAccount().accountType = AccountType::COMMISSION;
 		systemAccounts.push_back(commissionAccount);
 	}
 
@@ -218,7 +218,7 @@ LedgerManagerImpl::startNewLedger()
 			balance->storeAdd(delta, this->getDatabase());
 		}
 
-		int32_t assetPairPolicies = baseAssetCode == mApp.getStatsQuoteAsset() ? 0 : ASSET_PAIR_TRADEABLE;
+		int32_t assetPairPolicies = baseAssetCode == mApp.getStatsQuoteAsset() ? 0 : static_cast<int32_t >(AssetPairPolicy::TRADEABLE);
 		auto assetPair = AssetPairFrame::create(baseAssetCode, mApp.getStatsQuoteAsset(), ONE, ONE, 0, 0, assetPairPolicies);
 		assetPair->storeAdd(delta, this->getDatabase());
     }
@@ -804,23 +804,23 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const& ledgerData)
         }
         switch (lupgrade.type())
         {
-        case LEDGER_UPGRADE_VERSION:
+        case LedgerUpgradeType::VERSION:
             ledgerDelta.getHeader().ledgerVersion = lupgrade.newLedgerVersion();
             break;
-        case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
+        case LedgerUpgradeType::MAX_TX_SET_SIZE:
             ledgerDelta.getHeader().maxTxSetSize = lupgrade.newMaxTxSetSize();
             break;
-        case LEDGER_UPGRADE_ISSUANCE_KEYS:
+        case LedgerUpgradeType::ISSUANCE_KEYS:
             ledgerDelta.getHeader().issuanceKeys = lupgrade.newIssuanceKeys();
             break;
-        case LEDGER_UPGRADE_TX_EXPIRATION_PERIOD:
+        case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
             ledgerDelta.getHeader().txExpirationPeriod = lupgrade.newTxExpirationPeriod();
             break;
         default:
         {
             string s;
             s = "Unknown upgrade type: ";
-            s += std::to_string(lupgrade.type());
+            s += std::to_string(static_cast<int32_t >(lupgrade.type()));
             throw std::runtime_error(s);
         }
         }
@@ -958,12 +958,12 @@ LedgerManagerImpl::applyTransactions(std::vector<TransactionFramePtr>& txs,
         catch (std::runtime_error& e)
         {
             CLOG(ERROR, "Ledger") << "Exception during tx->apply: " << e.what();
-            tx->getResult().result.code(txINTERNAL_ERROR);
+            tx->getResult().result.code(TransactionResultCode::txINTERNAL_ERROR);
         }
         catch (...)
         {
             CLOG(ERROR, "Ledger") << "Unknown exception during tx->apply";
-            tx->getResult().result.code(txINTERNAL_ERROR);
+            tx->getResult().result.code(TransactionResultCode::txINTERNAL_ERROR);
         }
         tx->storeTransaction(*this, tm, ++index, txResultSet);
     }

@@ -44,7 +44,7 @@ TEST_CASE("Review forfeit request", "[dep_tx][review_forfeit_request]")
     // fund root account
     auto emissionAmount = 10 * app.getConfig().EMISSION_UNIT;
     auto asset = app.getBaseAsset();
-    applyCreateAccountTx(app, root, accountWithMoney, rootSeq++, GENERAL);
+    applyCreateAccountTx(app, root, accountWithMoney, rootSeq++, AccountType::GENERAL);
 
     fundAccount(app, root, issuance, rootSeq,
         accountWithMoney.getPublicKey(), emissionAmount);

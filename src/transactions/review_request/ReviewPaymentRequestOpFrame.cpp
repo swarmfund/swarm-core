@@ -29,7 +29,7 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 	auto sourceBalanceFrame = BalanceFrame::loadBalance(request->getSourceBalance(), db);
 	if (sourceBalanceFrame)
 	{
-		result.insert({sourceBalanceFrame->getAccountID(), CounterpartyDetails({ GENERAL, OPERATIONAL, COMMISSION }, false, true) });
+		result.insert({sourceBalanceFrame->getAccountID(), CounterpartyDetails({ AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, false, true) });
 	}
 
 	auto destBalance = request->getPaymentRequest().destinationBalance;
@@ -38,7 +38,7 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 		auto destBalanceFrame = BalanceFrame::loadBalance(*request->getPaymentRequest().destinationBalance, db);
 		if (destBalanceFrame)
 		{
-			result.insert({ destBalanceFrame->getAccountID(), CounterpartyDetails({ NOT_VERIFIED, GENERAL, OPERATIONAL, COMMISSION }, true, true) });
+			result.insert({ destBalanceFrame->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, true, true) });
 		}
 	}
 	return result;
@@ -46,7 +46,7 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 
 SourceDetails ReviewPaymentRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER}, mSourceAccount->getMediumThreshold(), SIGNER_PAYMENT_OPERATOR);
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getMediumThreshold(), static_cast<int32_t>(SignerType::PAYMENT_OPERATOR));
 }
 
 ReviewPaymentRequestOpFrame::ReviewPaymentRequestOpFrame(Operation const& op, OperationResult& res,
@@ -68,13 +68,13 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     AccountManager accountManager(app, db, delta, ledgerManager);
 
-	innerResult().code(REVIEW_PAYMENT_REQUEST_SUCCESS);
+	innerResult().code(ReviewPaymentRequestResultCode::SUCCESS);
     auto request = PaymentRequestFrame::loadPaymentRequest(mReviewPaymentRequest.paymentID, db, &delta);
     if (!request)
     {
         app.getMetrics().NewMeter({ "op-review-payment-request", "invalid", "not-found" },
             "operation").Mark();
-        innerResult().code(REVIEW_PAYMENT_REQUEST_NOT_FOUND);
+        innerResult().code(ReviewPaymentRequestResultCode::NOT_FOUND);
         return false;
     }
 
@@ -94,7 +94,7 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
             if (!destBalanceFrame->addBalance(request->getDestinationReceive()))
             {
                 app.getMetrics().NewMeter({ "op-review-payment-request", "failure", "full-line" }, "operation").Mark();
-                innerResult().code(REVIEW_PAYMENT_REQUEST_LINE_FULL);
+                innerResult().code(ReviewPaymentRequestResultCode::LINE_FULL);
                 return false;
             }
             destBalanceFrame->storeChange(delta, db);
@@ -116,14 +116,14 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         if (!commissionBalanceFrame->addBalance(fee))
         {
             app.getMetrics().NewMeter({ "op-review-payment-request", "failure", "commission-full-line" }, "operation").Mark();
-            innerResult().code(REVIEW_PAYMENT_REQUEST_LINE_FULL);
+            innerResult().code(ReviewPaymentRequestResultCode::LINE_FULL);
             return false;
         }
                 
         sourceBalanceFrame->storeChange(delta, db);
         commissionBalanceFrame->storeChange(delta, db);
         request->storeDelete(delta, db);
-        innerResult().reviewPaymentResponse().state = PAYMENT_PROCESSED;
+        innerResult().reviewPaymentResponse().state = PaymentState::PROCESSED;
         
         tryProcessInvoice(request->getInvoiceID(), delta, db);
 	}
@@ -140,14 +140,14 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
             request->getSourceSendUniversal(), request->getCreatedAt()))
         {
             app.getMetrics().NewMeter({ "op-review-payment-request", "failure", "line-full" }, "operation").Mark();
-            innerResult().code(REVIEW_PAYMENT_REQUEST_LINE_FULL);
+            innerResult().code(ReviewPaymentRequestResultCode::LINE_FULL);
             return false;
         }
 
         request->storeDelete(delta, ledgerManager.getDatabase());
 
         sourceBalanceFrame->storeChange(delta, db);
-        innerResult().reviewPaymentResponse().state = PAYMENT_REJECTED;
+        innerResult().reviewPaymentResponse().state = PaymentState::REJECTED;
 
         tryProcessInvoice(request->getInvoiceID(), delta, db);
     }

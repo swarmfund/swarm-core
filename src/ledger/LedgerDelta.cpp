@@ -259,7 +259,7 @@ LedgerDelta::addCurrentMeta(LedgerEntryChanges& changes,
         auto const& e = it->second->mEntry;
         if (e.lastModifiedLedgerSeq != mCurrentHeader.mHeader.ledgerSeq)
         {
-            changes.emplace_back(LEDGER_ENTRY_STATE);
+            changes.emplace_back(LedgerEntryChangeType::STATE);
             changes.back().state() = e;
         }
     }
@@ -272,20 +272,20 @@ LedgerDelta::getChanges() const
 
     for (auto const& k : mNew)
     {
-        changes.emplace_back(LEDGER_ENTRY_CREATED);
+        changes.emplace_back(LedgerEntryChangeType::CREATED);
         changes.back().created() = k.second->mEntry;
     }
     for (auto const& k : mMod)
     {
         addCurrentMeta(changes, k.first);
-        changes.emplace_back(LEDGER_ENTRY_UPDATED);
+        changes.emplace_back(LedgerEntryChangeType::UPDATED);
         changes.back().updated() = k.second->mEntry;
     }
 
     for (auto const& k : mDelete)
     {
         addCurrentMeta(changes, k);
-        changes.emplace_back(LEDGER_ENTRY_REMOVED);
+        changes.emplace_back(LedgerEntryChangeType::REMOVED);
         changes.back().removed() = k;
     }
 

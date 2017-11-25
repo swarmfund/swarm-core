@@ -40,7 +40,7 @@ TEST_CASE("Manage forfeit request", "[dep_tx][manage_forfeit_request]")
     SecretKey issuance = getIssuanceKey();
     
     SecretKey accountWithMoney = SecretKey::random();
-    applyCreateAccountTx(app, root, accountWithMoney, rootSeq++, GENERAL);
+    applyCreateAccountTx(app, root, accountWithMoney, rootSeq++, AccountType::GENERAL);
 
     auto asset = app.getBaseAsset();
 	SECTION("Malformed")
@@ -49,37 +49,37 @@ TEST_CASE("Manage forfeit request", "[dep_tx][manage_forfeit_request]")
 		{
 			applyManageForfeitRequestTx(app, accountWithMoney,
 										accountWithMoney.getPublicKey(), rootSeq++, rootPK, -1, 0, "",
-										MANAGE_FORFEIT_REQUEST_INVALID_AMOUNT);
+										ManageForfeitRequestResultCode::INVALID_AMOUNT);
 		}
 		SECTION("Zero amount")
 		{
 			applyManageForfeitRequestTx(app, accountWithMoney,
 										accountWithMoney.getPublicKey(), rootSeq++, rootPK, 0, 0, "",
-										MANAGE_FORFEIT_REQUEST_INVALID_AMOUNT);
+										ManageForfeitRequestResultCode::INVALID_AMOUNT);
 		}
 		SECTION("Invalid details")
 		{
             std::string bigString(app.getConfig().WITHDRAWAL_DETAILS_MAX_LENGTH + 1, 'a');
 			applyManageForfeitRequestTx(app, accountWithMoney,
 										accountWithMoney.getPublicKey(), rootSeq++, rootPK, 1, 0, bigString,
-										MANAGE_FORFEIT_REQUEST_INVALID_DETAILS);
+										ManageForfeitRequestResultCode::INVALID_DETAILS);
 		}
 	}
     SECTION("Underfunded")
     {
 		applyManageForfeitRequestTx(app, accountWithMoney, accountWithMoney.getPublicKey(), rootSeq++, rootPK, 1, 0, "",
-									MANAGE_FORFEIT_REQUEST_UNDERFUNDED);
+									ManageForfeitRequestResultCode::UNDERFUNDED);
     }
 	SECTION("Reviewer does not exist")
 	{
 		auto reviewer = SecretKey::random().getPublicKey();
 		applyManageForfeitRequestTx(app, accountWithMoney, accountWithMoney.getPublicKey(), rootSeq++, reviewer, 1, 0, "",
-									MANAGE_FORFEIT_REQUEST_REVIEWER_NOT_FOUND);
+									ManageForfeitRequestResultCode::REVIEWER_NOT_FOUND);
 	}
     SECTION("Works for ordinary account")
     {
         auto account = SecretKey::random();
-        applyCreateAccountTx(app, root, account, rootSeq++, GENERAL);
+        applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
 
 		int64 emissionAmount = app.getConfig().EMISSION_UNIT;
 		fundAccount(app, root, issuance, rootSeq, account.getPublicKey(), emissionAmount);
@@ -101,10 +101,10 @@ TEST_CASE("Manage forfeit request", "[dep_tx][manage_forfeit_request]")
         SECTION("Balance mismatch")
         {
 			SecretKey account = SecretKey::random();
-			applyCreateAccountTx(app, root, account, rootSeq++, GENERAL);
+			applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
             auto requestID = applyManageForfeitRequestTx(app, accountWithMoney,
 														 account.getPublicKey(), rootSeq++, rootPK, 1, 0, "",
-														 MANAGE_FORFEIT_REQUEST_BALANCE_MISMATCH);
+														 ManageForfeitRequestResultCode::BALANCE_MISMATCH);
         }
 
 		SECTION("Can create")
@@ -116,11 +116,11 @@ TEST_CASE("Manage forfeit request", "[dep_tx][manage_forfeit_request]")
 		SECTION("Can create with reviewer")
 		{
 			auto reviewer = SecretKey::random();
-			applyCreateAccountTx(app, root, reviewer, rootSeq++, GENERAL, nullptr);
+			applyCreateAccountTx(app, root, reviewer, rootSeq++, AccountType::GENERAL, nullptr);
 			auto reviewerID = reviewer.getPublicKey();
 			auto result = applyManageForfeitRequestTx(app, accountWithMoney,
 													  accountWithMoney.getPublicKey(), rootSeq++, reviewerID, 1, 0, "",
-													  MANAGE_FORFEIT_REQUEST_SUCCESS);
+													  ManageForfeitRequestResultCode::SUCCESS);
 		}
 	}
 
@@ -128,11 +128,11 @@ TEST_CASE("Manage forfeit request", "[dep_tx][manage_forfeit_request]")
 	{
 		SecretKey account = SecretKey::random();
 		int64_t initialAmount = 100 * ONE;
-		applyCreateAccountTx(app, root, account, rootSeq++, GENERAL);
+		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
 		fundAccount(app, root, issuance, rootSeq, account.getPublicKey(), initialAmount, app.getBaseAsset());
 		rootSeq++;
 
-		auto feeFrame = FeeFrame::create(FORFEIT_FEE, 1, 2 * ONE, app.getBaseAsset());
+		auto feeFrame = FeeFrame::create(FeeType::FORFEIT_FEE, 1, 2 * ONE, app.getBaseAsset());
 		auto feeEntry = feeFrame->getFee();
 		applySetFees(app, root, rootSeq++, &feeEntry, false, nullptr);
 
@@ -144,7 +144,7 @@ TEST_CASE("Manage forfeit request", "[dep_tx][manage_forfeit_request]")
 			int64_t wrongFee = feeToPay + 1;
 			applyManageForfeitRequestTx(app, account,
 										account.getPublicKey(), rootSeq++, rootPK, amountToForfeit, wrongFee, "",
-										MANAGE_FORFEIT_REQUEST_FEE_MISMATCH);
+										ManageForfeitRequestResultCode::FEE_MISMATCH);
 		}
 
 		SECTION("Success")

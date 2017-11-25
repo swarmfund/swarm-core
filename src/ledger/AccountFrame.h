@@ -81,7 +81,8 @@ class AccountFrame : public EntryFrame
 
 	bool checkPolicy(AccountPolicies policy) const
 	{
-		return (mAccountEntry.policies & policy) == policy;
+        auto policyValue = static_cast<int32_t >(policy);
+		return (mAccountEntry.policies & policyValue) == policyValue;
 	}
 
     uint32_t getMasterWeight() const;

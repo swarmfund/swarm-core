@@ -93,7 +93,7 @@ ReferenceFrame::loadReferences(StatementContext& prep,
                        std::function<void(LedgerEntry const&)> referenceProcessor)
 {
     LedgerEntry le;
-    le.data.type(REFERENCE_ENTRY);
+    le.data.type(LedgerEntryType::REFERENCE_ENTRY);
     ReferenceEntry& oe = le.data.reference();
 
 

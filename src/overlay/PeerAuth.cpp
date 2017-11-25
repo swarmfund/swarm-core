@@ -29,7 +29,7 @@ makeAuthCert(Application& app, Curve25519Public const& pub)
     cert.expiration = app.timeNow() + expirationLimit;
 
     auto hash = sha256(xdr::xdr_to_opaque(
-        app.getNetworkID(), ENVELOPE_TYPE_AUTH, cert.expiration, cert.pubkey));
+        app.getNetworkID(), EnvelopeType::AUTH, cert.expiration, cert.pubkey));
     CLOG(DEBUG, "Overlay") << "PeerAuth signing cert hash: " << hexAbbrev(hash);
     cert.sig = app.getConfig().NODE_SEED.sign(hash);
     return cert;
@@ -65,7 +65,7 @@ PeerAuth::verifyRemoteAuthCert(NodeID const& remoteNode, AuthCert const& cert)
         return false;
     }
     auto hash = sha256(xdr::xdr_to_opaque(
-        mApp.getNetworkID(), ENVELOPE_TYPE_AUTH, cert.expiration, cert.pubkey));
+        mApp.getNetworkID(), EnvelopeType::AUTH, cert.expiration, cert.pubkey));
 
     CLOG(DEBUG, "Overlay") << "PeerAuth verifying cert hash: "
                            << hexAbbrev(hash);

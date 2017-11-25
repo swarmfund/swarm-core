@@ -41,25 +41,25 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 	closeLedgerOn(app, 3, 1, 7, 2014);
 	applySetFees(app, root, rootSeq, nullptr, false, nullptr);
 	closeLedgerOn(app, 4, 1, 7, 2014);
-    auto accountType = GENERAL; 
+    auto accountType = AccountType::GENERAL;
 
 
 	SECTION("Set global, set for account check global")
 	{
-		auto globalFee = createFeeEntry(OFFER_FEE, 0, 10 * ONE, app.getBaseAsset(), nullptr, nullptr);
+		auto globalFee = createFeeEntry(FeeType::OFFER_FEE, 0, 10 * ONE, app.getBaseAsset(), nullptr, nullptr);
 		applySetFees(app, root, rootSeq++, &globalFee, false, nullptr);
 
 		auto a = SecretKey::random();
 		auto aPubKey = a.getPublicKey();
 		applyCreateAccountTx(app, root, a, rootSeq++, accountType);
-		auto accountFee = createFeeEntry(OFFER_FEE, 0, 10 * ONE, app.getBaseAsset(), &aPubKey, nullptr);
+		auto accountFee = createFeeEntry(FeeType::OFFER_FEE, 0, 10 * ONE, app.getBaseAsset(), &aPubKey, nullptr);
 		applySetFees(app, root, rootSeq++, &accountFee, false, nullptr);
 
-		auto globalFeeFrame = FeeFrame::loadFee(OFFER_FEE, app.getBaseAsset(), nullptr, nullptr, 0, 0, INT64_MAX, app.getDatabase());
+		auto globalFeeFrame = FeeFrame::loadFee(FeeType::OFFER_FEE, app.getBaseAsset(), nullptr, nullptr, 0, 0, INT64_MAX, app.getDatabase());
 		REQUIRE(globalFeeFrame);
 		REQUIRE(globalFeeFrame->getFee() == globalFee);
 
-		auto accountFeeFrame = FeeFrame::loadFee(OFFER_FEE, app.getBaseAsset(), &aPubKey, nullptr, 0, 0, INT64_MAX, app.getDatabase());
+		auto accountFeeFrame = FeeFrame::loadFee(FeeType::OFFER_FEE, app.getBaseAsset(), &aPubKey, nullptr, 0, 0, INT64_MAX, app.getDatabase());
 		REQUIRE(accountFeeFrame);
 		REQUIRE(accountFeeFrame->getFee() == accountFee);
 	}
@@ -69,11 +69,11 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
         // account has custom storage fee
         auto a = SecretKey::random();
         auto aPubKey = a.getPublicKey();
-        applyCreateAccountTx(app, root, a, rootSeq++, GENERAL);
+        applyCreateAccountTx(app, root, a, rootSeq++, AccountType::GENERAL);
         auto referral = SecretKey::random();
-        auto feeEntryB = createFeeEntry(REFERRAL_FEE, 0, 10 * ONE, app.getBaseAsset(), nullptr, &accountType);
+        auto feeEntryB = createFeeEntry(FeeType::REFERRAL_FEE, 0, 10 * ONE, app.getBaseAsset(), nullptr, &accountType);
         applySetFees(app, root, rootSeq++, &feeEntryB, false, nullptr);
-        applyCreateAccountTx(app, root, referral, rootSeq++, GENERAL, nullptr, &aPubKey);
+        applyCreateAccountTx(app, root, referral, rootSeq++, AccountType::GENERAL, nullptr, &aPubKey);
         auto referralFrame = loadAccount(referral, app, true);
         REQUIRE(referralFrame->getShareForReferrer() == 10 * ONE);
     }
@@ -84,18 +84,18 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
         // account has custom storage fee
         auto a = SecretKey::random();
         auto aPubKey = a.getPublicKey();
-        applyCreateAccountTx(app, root, a, rootSeq++, GENERAL);
+        applyCreateAccountTx(app, root, a, rootSeq++, AccountType::GENERAL);
 
         auto referral = SecretKey::random();
                 
-        auto feeEntryA = createFeeEntry(REFERRAL_FEE, 0, 5 * ONE, app.getBaseAsset(), &aPubKey);
+        auto feeEntryA = createFeeEntry(FeeType::REFERRAL_FEE, 0, 5 * ONE, app.getBaseAsset(), &aPubKey);
         applySetFees(app, root, rootSeq++, &feeEntryA, false, nullptr);
 
-        auto feeEntryB = createFeeEntry(REFERRAL_FEE, 0, 10 * ONE, app.getBaseAsset(), nullptr, &accountType);
+        auto feeEntryB = createFeeEntry(FeeType::REFERRAL_FEE, 0, 10 * ONE, app.getBaseAsset(), nullptr, &accountType);
         applySetFees(app, root, rootSeq++, &feeEntryB, false, nullptr);
 
 
-        applyCreateAccountTx(app, root, referral, rootSeq++, GENERAL, nullptr, &aPubKey);
+        applyCreateAccountTx(app, root, referral, rootSeq++, AccountType::GENERAL, nullptr, &aPubKey);
 
 
         auto referralFrame = loadAccount(referral, app, true);
@@ -109,18 +109,18 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
         // account has custom storage fee
         auto a = SecretKey::random();
         auto aPubKey = a.getPublicKey();
-        applyCreateAccountTx(app, root, a, rootSeq++, GENERAL);
+        applyCreateAccountTx(app, root, a, rootSeq++, AccountType::GENERAL);
 
         auto referral1 = SecretKey::random();
         auto referral2 = SecretKey::random();
 
 
-        applyCreateAccountTx(app, root, referral1, rootSeq++, GENERAL, nullptr, &aPubKey);
+        applyCreateAccountTx(app, root, referral1, rootSeq++, AccountType::GENERAL, nullptr, &aPubKey);
                 
-        auto feeEntryA = createFeeEntry(REFERRAL_FEE, 0, 2 * ONE, app.getBaseAsset(), &aPubKey);
+        auto feeEntryA = createFeeEntry(FeeType::REFERRAL_FEE, 0, 2 * ONE, app.getBaseAsset(), &aPubKey);
         applySetFees(app, root, rootSeq++, &feeEntryA, false, nullptr);
 
-        applyCreateAccountTx(app, root, referral2, rootSeq++, GENERAL, nullptr, &aPubKey);
+        applyCreateAccountTx(app, root, referral2, rootSeq++, AccountType::GENERAL, nullptr, &aPubKey);
 
 
         auto referral1Frame = loadAccount(referral1, app, true);
@@ -134,17 +134,17 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
     {
 		auto account = SecretKey::random();
         auto aPubKey = account.getPublicKey();
-		applyCreateAccountTx(app, root, account, rootSeq++, GENERAL);        
+		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
 		auto dest = SecretKey::random();
         auto destPubKey = dest.getPublicKey();
-		applyCreateAccountTx(app, root, dest, rootSeq++, GENERAL);
+		applyCreateAccountTx(app, root, dest, rootSeq++, AccountType::GENERAL);
 
-        auto feeFrame = FeeFrame::create(PAYMENT_FEE, 1, 0, app.getBaseAsset());
+        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 1, 0, app.getBaseAsset());
         auto fee = feeFrame->getFee();
 		applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 
 
-        auto specificFeeFrame = FeeFrame::create(PAYMENT_FEE, 0, 10 * ONE, app.getBaseAsset(), &destPubKey);
+        auto specificFeeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 0, 10 * ONE, app.getBaseAsset(), &destPubKey);
         auto specificFee = specificFeeFrame->getFee();
         applySetFees(app, root, rootSeq++, &specificFee, false, nullptr);
 
@@ -158,11 +158,11 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 		fundAccount(app, root, issuance, rootSeq, account.getPublicKey(), balance);
 
         applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, paymentFee,
-                true, "", "", PAYMENT_FEE_MISMATCHED);
+                true, "", "", PaymentResultCode::FEE_MISMATCHED);
         paymentFee = getGeneralPaymentFee(1, 0);
 
 		applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, paymentFee,
-			true, "", "", PAYMENT_FEE_MISMATCHED);
+			true, "", "", PaymentResultCode::FEE_MISMATCHED);
             
         paymentFee.destinationFee.paymentFee = paymentAmount * 0.1;
 		paymentFee.destinationFee.fixedFee = 0;
@@ -181,7 +181,7 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 
 		auto buyer = SecretKey::random();
         auto buyerPubKey = buyer.getPublicKey();
-		applyCreateAccountTx(app, root, buyer, rootSeq, GENERAL);
+		applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
 		auto baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, nullptr);
 		REQUIRE(baseBuyerBalance);
 		auto quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, nullptr);
@@ -190,7 +190,7 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 		fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
 		auto seller = SecretKey::random();
         auto sellerPubKey = seller.getPublicKey();
-		applyCreateAccountTx(app, root, seller, rootSeq, GENERAL);
+		applyCreateAccountTx(app, root, seller, rootSeq, AccountType::GENERAL);
 		auto baseSellerBalance = BalanceFrame::loadBalance(sellerPubKey, base, db, nullptr);
 		REQUIRE(baseBuyerBalance);
 		auto quoteSellerBalance = BalanceFrame::loadBalance(sellerPubKey, quote, db, nullptr);
@@ -198,11 +198,11 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 		auto baseAssetAmount = 200 * ONE;
 		fundAccount(app, root, issuance, rootSeq, baseSellerBalance->getBalanceID(), baseAssetAmount, base);
 
-        auto offerFeeFrame = FeeFrame::create(OFFER_FEE, 0, ONE, quote);
+        auto offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, ONE, quote);
         auto offerFee = offerFeeFrame->getFee();
         applySetFees(app, root, rootSeq, &offerFee, false, nullptr);
 
-        auto sellerOfferFeeFrame = FeeFrame::create(OFFER_FEE, 0, 30 * ONE, quote, &sellerPubKey);
+        auto sellerOfferFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, 30 * ONE, quote, &sellerPubKey);
         auto sellerOfferFee = sellerOfferFeeFrame->getFee();
             
         applySetFees(app, root, rootSeq, &sellerOfferFee, false, nullptr);
@@ -253,8 +253,8 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
     {
 		auto account2 = SecretKey::random();
         auto account2PubKey = account2.getPublicKey();
-		applyCreateAccountTx(app, root, account2, rootSeq++, GENERAL);
-        auto specificFeeFrame = FeeFrame::create(FORFEIT_FEE, 25, 0, app.getBaseAsset(), &account2PubKey, nullptr, FeeFrame::SUBTYPE_ANY);
+		applyCreateAccountTx(app, root, account2, rootSeq++, AccountType::GENERAL);
+        auto specificFeeFrame = FeeFrame::create(FeeType::FORFEIT_FEE, 25, 0, app.getBaseAsset(), &account2PubKey, nullptr, FeeFrame::SUBTYPE_ANY);
         auto specificFee = specificFeeFrame->getFee();
         applySetFees(app, root, rootSeq++, &specificFee, false, nullptr);
 
@@ -266,7 +266,7 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
         closeLedgerOn(app, 5, 2, 7, 2014);
         applyManageForfeitRequestTx(app, account2,
                                     account2PubKey, rootSeq++, rootPK, amountToForfeit, 0, "",
-                                    MANAGE_FORFEIT_REQUEST_FEE_MISMATCH);
+                                    ManageForfeitRequestResultCode::FEE_MISMATCH);
 
         applyManageForfeitRequestTx(app, account2, account2PubKey, rootSeq++, rootPK, amountToForfeit, 25);
         
@@ -278,10 +278,10 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
     {
 		auto account2 = SecretKey::random();
         auto account2PubKey = account2.getPublicKey();
-		applyCreateAccountTx(app, root, account2, rootSeq++, GENERAL);
+		applyCreateAccountTx(app, root, account2, rootSeq++, AccountType::GENERAL);
 
 		const int64_t amount = 100 * ONE;
-        auto feeFrame = FeeFrame::create(FORFEIT_FEE, 1, 5 * ONE, app.getBaseAsset(), nullptr, nullptr, FeeFrame::SUBTYPE_ANY);
+        auto feeFrame = FeeFrame::create(FeeType::FORFEIT_FEE, 1, 5 * ONE, app.getBaseAsset(), nullptr, nullptr, FeeFrame::SUBTYPE_ANY);
 
 		auto feeToSet = feeFrame->getFee();
         applySetFees(app, root, rootSeq++, &feeToSet, false, nullptr);
@@ -295,7 +295,7 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 
         fundAccount(app, root, issuance, rootSeq, account2.getPublicKey(), balanceAmount);
         auto result = applyManageForfeitRequestTx(app, account2, account2PubKey, rootSeq++, rootPK, amountToForfeit, totalFee);
-        REQUIRE(result.code() == MANAGE_FORFEIT_REQUEST_SUCCESS);
+        REQUIRE(result.code() == ManageForfeitRequestResultCode::SUCCESS);
 
         auto balance2 = loadBalance(account2PubKey, app, true);
         REQUIRE(balance2->getAmount() == (balanceAmount - amountToForfeit - expectedPercentFee - expectedFixedFee));

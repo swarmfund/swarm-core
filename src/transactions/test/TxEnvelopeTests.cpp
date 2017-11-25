@@ -58,56 +58,56 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 
         SECTION("no signature")
         {
-            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, GENERAL);
+            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, AccountType::GENERAL);
             txFrame->getEnvelope().signatures.clear();
 
             applyCheck(txFrame, delta, app);
 
-            REQUIRE(txFrame->getResultCode() == txBAD_AUTH);
+            REQUIRE(txFrame->getResultCode() == TransactionResultCode::txBAD_AUTH);
         }
         SECTION("bad signature")
         {
             Signature fakeSig = root.sign("fake data");
-            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, GENERAL);
+            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, AccountType::GENERAL);
             txFrame->getEnvelope().signatures[0].signature = fakeSig;
 
             applyCheck(txFrame, delta, app);
 
-            REQUIRE(txFrame->getResultCode() == txBAD_AUTH_EXTRA);
+            REQUIRE(txFrame->getResultCode() == TransactionResultCode::txBAD_AUTH_EXTRA);
         }
         SECTION("bad signature (wrong hint)")
         {
-            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, GENERAL);
+            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, AccountType::GENERAL);
             txFrame->getEnvelope().signatures[0].hint.fill(1);
 
             applyCheck(txFrame, delta, app);
 
-            REQUIRE(txFrame->getResultCode() == txBAD_AUTH_EXTRA);
+            REQUIRE(txFrame->getResultCode() == TransactionResultCode::txBAD_AUTH_EXTRA);
         }
         SECTION("too many signatures (signed twice)")
         {
-            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, GENERAL);
+            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, AccountType::GENERAL);
             txFrame->addSignature(a1);
 
             applyCheck(txFrame, delta, app);
 
-            REQUIRE(txFrame->getResultCode() == txBAD_AUTH_EXTRA);
+            REQUIRE(txFrame->getResultCode() == TransactionResultCode::txBAD_AUTH_EXTRA);
         }
         SECTION("too many signatures (unused signature)")
         {
-            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, GENERAL);
+            txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, AccountType::GENERAL);
             SecretKey bogus = getAccount("bogus");
             txFrame->addSignature(bogus);
 
             applyCheck(txFrame, delta, app);
 
-            REQUIRE(txFrame->getResultCode() == txBAD_AUTH_EXTRA);
+            REQUIRE(txFrame->getResultCode() == TransactionResultCode::txBAD_AUTH_EXTRA);
         }
     }
 
     SECTION("multisig")
     {
-        applyCreateAccountTx(app, root, a1, rootSeq++, GENERAL);
+        applyCreateAccountTx(app, root, a1, rootSeq++, AccountType::GENERAL);
         Salt a1Seq = 1;
 
         SecretKey s1 = getAccount("S1");
@@ -130,7 +130,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 		SECTION("Commission can be signed by master")
 		{
 			auto account = SecretKey::random();
-			applyCreateAccountTx(app, root, account, rootSeq++, GENERAL);
+			applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
 			int64_t amount = app.getConfig().EMISSION_UNIT;
 			Salt s = 0;
 			fundAccount(app, root, issuance, s, account.getPublicKey(), amount);
@@ -164,7 +164,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                               app.getDatabase());
 
             applyCheck(tx, delta, app);
-            REQUIRE(tx->getResultCode() == txBAD_AUTH);
+            REQUIRE(tx->getResultCode() == TransactionResultCode::txBAD_AUTH);
         }
 
         SECTION("not enough rights (operation)")
@@ -181,8 +181,8 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                               app.getDatabase());
 
             applyCheck(tx, delta, app);
-            REQUIRE(tx->getResultCode() == txFAILED);
-            REQUIRE(getFirstResultCode(*tx) == opBAD_AUTH);
+            REQUIRE(tx->getResultCode() == TransactionResultCode::txFAILED);
+            REQUIRE(getFirstResultCode(*tx) == OperationResultCode::opBAD_AUTH);
         }
 
 		SECTION("Same identity can't sign twice")
@@ -203,7 +203,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 				app.getDatabase());
 
 			applyCheck(tx, delta, app);
-			REQUIRE(tx->getResultCode() == txBAD_AUTH_EXTRA);
+			REQUIRE(tx->getResultCode() == TransactionResultCode::txBAD_AUTH_EXTRA);
 		}
 
         SECTION("success two signatures")
@@ -227,9 +227,9 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                               app.getDatabase());
 
             applyCheck(tx, delta, app);
-            REQUIRE(tx->getResultCode() == txSUCCESS);
+            REQUIRE(tx->getResultCode() == TransactionResultCode::txSUCCESS);
             REQUIRE(PaymentOpFrame::getInnerCode(getFirstResult(*tx)) ==
-                    PAYMENT_SUCCESS);
+                    PaymentResultCode::SUCCESS);
         }
     }
 
@@ -249,14 +249,14 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
             REQUIRE(!tx->checkValid(app));
 
             applyCheck(tx, delta, app);
-            REQUIRE(tx->getResultCode() == txMISSING_OPERATION);
+            REQUIRE(tx->getResultCode() == TransactionResultCode::txMISSING_OPERATION);
         }
 
         SECTION("non empty")
         {
             SecretKey b1 = getAccount("B");
-            applyCreateAccountTx(app, root, a1, rootSeq++, GENERAL);
-            applyCreateAccountTx(app, root, b1, rootSeq++, GENERAL);
+            applyCreateAccountTx(app, root, a1, rootSeq++, AccountType::GENERAL);
+            applyCreateAccountTx(app, root, b1, rootSeq++, AccountType::GENERAL);
 
             Salt a1Seq = 1;
             Salt b1Seq = 1;
@@ -286,9 +286,9 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 
                     REQUIRE(!tx->checkValid(app));
                     applyCheck(tx, delta, app);
-                    REQUIRE(tx->getResultCode() == txFAILED);
+                    REQUIRE(tx->getResultCode() == TransactionResultCode::txFAILED);
                     REQUIRE(tx->getOperations()[0]->getResultCode() ==
-                            opBAD_AUTH);
+                            OperationResultCode::opBAD_AUTH);
                 }
 
                 SECTION("success signature check")
@@ -300,9 +300,9 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 
                     REQUIRE(tx->checkValid(app));
                     applyCheck(tx, delta, app);
-                    REQUIRE(tx->getResultCode() == txFAILED);
+                    REQUIRE(tx->getResultCode() == TransactionResultCode::txFAILED);
                     REQUIRE(PaymentOpFrame::getInnerCode(getFirstResult(*tx)) ==
-                            PAYMENT_BALANCE_ACCOUNT_MISMATCHED);
+                            PaymentResultCode::BALANCE_ACCOUNT_MISMATCHED);
                 }
             }
             SECTION("multiple tx")
@@ -343,20 +343,20 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 
                     applyCheck(tx, delta, app);
 
-                    REQUIRE(tx->getResultCode() == txFAILED);
+                    REQUIRE(tx->getResultCode() == TransactionResultCode::txFAILED);
                     // first operation was success
                     REQUIRE(SetOptionsOpFrame::getInnerCode(getFirstResult(*tx)) ==
-                            SET_OPTIONS_SUCCESS);
+                            SetOptionsResultCode::SUCCESS);
                     // second
                     REQUIRE(SetOptionsOpFrame::getInnerCode(
                                 tx->getOperations()[1]->getResult()) ==
-						SET_OPTIONS_BAD_SIGNER);
+						SetOptionsResultCode::BAD_SIGNER);
                 }
                 SECTION("one failed tx")
                 {
 					// not found to delete
 					TransactionFramePtr tx_b = createManageBalanceTx(networkID, b1, b1, b1Seq++,
-						b1.getPublicKey(), "AETH", MANAGE_BALANCE_CREATE);
+						b1.getPublicKey(), "AETH", ManageBalanceAction::CREATE);
 
                     tx_b->getEnvelope()
                         .tx.operations[0]
@@ -380,13 +380,13 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 
                     applyCheck(tx, delta, app);
 
-                    REQUIRE(tx->getResultCode() == txFAILED);
+                    REQUIRE(tx->getResultCode() == TransactionResultCode::txFAILED);
                     // first operation was success
 					REQUIRE(SetOptionsOpFrame::getInnerCode(getFirstResult(*tx)) ==
-						SET_OPTIONS_SUCCESS);
+						SetOptionsResultCode::SUCCESS);
                     REQUIRE(ManageBalanceOpFrame::getInnerCode(
                                     tx->getOperations()[1]->getResult()) ==
-						MANAGE_BALANCE_ALREADY_EXISTS);
+						ManageBalanceResultCode::ALREADY_EXISTS);
                 }
                 SECTION("both success")
                 {
@@ -418,13 +418,13 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 
                     applyCheck(tx, delta, app);
 
-                    REQUIRE(tx->getResultCode() == txSUCCESS);
+                    REQUIRE(tx->getResultCode() == TransactionResultCode::txSUCCESS);
 
 					REQUIRE(SetOptionsOpFrame::getInnerCode(getFirstResult(*tx)) ==
-						SET_OPTIONS_SUCCESS);
+						SetOptionsResultCode::SUCCESS);
                     REQUIRE(SetOptionsOpFrame::getInnerCode(
                                 tx->getOperations()[1]->getResult()) ==
-						SET_OPTIONS_SUCCESS);
+						SetOptionsResultCode::SUCCESS);
                 }
             }
         }
@@ -448,7 +448,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 
 			applyCheck(txFrame, delta, app);			
 			REQUIRE(txFrame->getResultCode() == expectedResult);
-			if (expectedResult == txSUCCESS)
+			if (expectedResult == TransactionResultCode::txSUCCESS)
 			{
 				VirtualClock::time_point tp = VirtualClock::tmToPoint(app.getLedgerManager().getTmCloseTime());
 				time_t t = VirtualClock::to_time_t(tp);
@@ -468,22 +468,22 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
             SECTION("duplicate payment")
             {
 				auto validUntill = start + 5;
-				auto txFrame = createCreateAccountTx(app.getNetworkID(), root, a1, 0, GENERAL);
+				auto txFrame = createCreateAccountTx(app.getNetworkID(), root, a1, 0, AccountType::GENERAL);
 				txFrame->getEnvelope().tx.timeBounds = TimeBounds(0, validUntill);
 				txFrame->getEnvelope().signatures.clear();
 				txFrame->addSignature(root);
 
 				
-				applyCheckTxFrame(txFrame, txSUCCESS);
+				applyCheckTxFrame(txFrame, TransactionResultCode::txSUCCESS);
 				// try submit same transaction
-				applyCheckTxFrame(txFrame, txDUPLICATION);
+				applyCheckTxFrame(txFrame, TransactionResultCode::txDUPLICATION);
 
-				applyCheckTxFrame(txFrame, txDUPLICATION);
+				applyCheckTxFrame(txFrame, TransactionResultCode::txDUPLICATION);
 				// some time has passed
 				validUntill++;
 				closeLedger(validUntill, nullptr);
 
-				applyCheckTxFrame(txFrame, txTOO_LATE);
+				applyCheckTxFrame(txFrame, TransactionResultCode::txTOO_LATE);
             }
 
            SECTION("time issues")
@@ -491,7 +491,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                 // tx too young
                 // tx ok
                 // tx too old
-			   auto txFrame = createCreateAccountTx(app.getNetworkID(), root, a1, 0, GENERAL);
+			   auto txFrame = createCreateAccountTx(app.getNetworkID(), root, a1, 0, AccountType::GENERAL);
 			   auto setTimeBounds = [](TransactionFramePtr txFrame, SecretKey signer, TimeBounds tb) {
 				   txFrame->getEnvelope().tx.timeBounds = tb;
 				   txFrame->getEnvelope().signatures.clear();
@@ -499,13 +499,13 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 			   };
 
 			   setTimeBounds(txFrame, root, TimeBounds(start + 1, start + 10));
-			   applyCheckTxFrame(txFrame, txTOO_EARLY);
+			   applyCheckTxFrame(txFrame, TransactionResultCode::txTOO_EARLY);
 
 			   setTimeBounds(txFrame, root, TimeBounds(start, start + 10));
-			   applyCheckTxFrame(txFrame, txSUCCESS);
+			   applyCheckTxFrame(txFrame, TransactionResultCode::txSUCCESS);
 
 			   setTimeBounds(txFrame, root, TimeBounds(start - 10, start - 1));
-			   applyCheckTxFrame(txFrame, txTOO_LATE);
+			   applyCheckTxFrame(txFrame, TransactionResultCode::txTOO_LATE);
             }
 
         }

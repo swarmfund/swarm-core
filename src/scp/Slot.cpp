@@ -63,7 +63,7 @@ Slot::setStateFromEnvelope(SCPEnvelope const& e)
     if (e.statement.nodeID == getSCP().getLocalNodeID() &&
         e.statement.slotIndex == mSlotIndex)
     {
-        if (e.statement.pledges.type() == SCPStatementType::SCP_ST_NOMINATE)
+        if (e.statement.pledges.type() == SCPStatementType::NOMINATE)
         {
             mNominationProtocol.setStateFromEnvelope(e);
         }
@@ -119,7 +119,7 @@ Slot::processEnvelope(SCPEnvelope const& envelope, bool self)
     {
 
         if (envelope.statement.pledges.type() ==
-            SCPStatementType::SCP_ST_NOMINATE)
+            SCPStatementType::NOMINATE)
         {
             res = mNominationProtocol.processEnvelope(envelope);
         }
@@ -258,16 +258,16 @@ Slot::getCompanionQuorumSetHashFromStatement(SCPStatement const& st)
     Hash h;
     switch (st.pledges.type())
     {
-    case SCP_ST_PREPARE:
+    case SCPStatementType::PREPARE:
         h = st.pledges.prepare().quorumSetHash;
         break;
-    case SCP_ST_CONFIRM:
+    case SCPStatementType::CONFIRM:
         h = st.pledges.confirm().quorumSetHash;
         break;
-    case SCP_ST_EXTERNALIZE:
+    case SCPStatementType::EXTERNALIZE:
         h = st.pledges.externalize().commitQuorumSetHash;
         break;
-    case SCP_ST_NOMINATE:
+    case SCPStatementType::NOMINATE:
         h = st.pledges.nominate().quorumSetHash;
         break;
     default:
@@ -280,7 +280,7 @@ std::vector<Value>
 Slot::getStatementValues(SCPStatement const& st)
 {
     std::vector<Value> res;
-    if (st.pledges.type() == SCP_ST_NOMINATE)
+    if (st.pledges.type() == SCPStatementType::NOMINATE)
     {
         res = NominationProtocol::getStatementValues(st);
     }
@@ -297,22 +297,22 @@ Slot::getQuorumSetFromStatement(SCPStatement const& st)
     SCPQuorumSetPtr res;
     SCPStatementType t = st.pledges.type();
 
-    if (t == SCP_ST_EXTERNALIZE)
+    if (t == SCPStatementType::EXTERNALIZE)
     {
         res = LocalNode::getSingletonQSet(st.nodeID);
     }
     else
     {
         Hash h;
-        if (t == SCP_ST_PREPARE)
+        if (t == SCPStatementType::PREPARE)
         {
             h = st.pledges.prepare().quorumSetHash;
         }
-        else if (t == SCP_ST_CONFIRM)
+        else if (t == SCPStatementType::CONFIRM)
         {
             h = st.pledges.confirm().quorumSetHash;
         }
-        else if (t == SCP_ST_NOMINATE)
+        else if (t == SCPStatementType::NOMINATE)
         {
             h = st.pledges.nominate().quorumSetHash;
         }

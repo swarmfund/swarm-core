@@ -44,7 +44,7 @@ TEST_CASE("account_manager", "[dep_tx][account_manager]")
     Salt rootSeq = 1;
 
 	Limits limits(app.getConfig().EMISSION_UNIT, 2 * app.getConfig().EMISSION_UNIT, 4 * app.getConfig().EMISSION_UNIT, 4 * app.getConfig().EMISSION_UNIT, Limits::_ext_t(LedgerVersion::EMPTY_VERSION));
-	AccountType accountType = GENERAL;
+	AccountType accountType = AccountType::GENERAL;
     
     auto amount = app.getConfig().EMISSION_UNIT;
 

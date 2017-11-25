@@ -32,13 +32,15 @@ const char* AssetPairFrame::kSQLCreateStatement1 =
 	"max_price_step            BIGINT            NOT NULL CHECK(max_price_step >= 0), "
 	"policies                  INT               NOT NULL, "
     "lastmodified              INT               NOT NULL, "
+	"version				   INT				 NOT NULL DEFAULT 0, "
     "PRIMARY KEY (base, quote)"
     ");";
 static const char* assetPairColumnSelector =
-"SELECT base, quote, current_price, physical_price, physical_price_correction, max_price_step, policies, lastmodified "
+"SELECT base, quote, current_price, physical_price, physical_price_correction, max_price_step, policies, "
+		"lastmodified, version "
 "FROM asset_pair";
 
-AssetPairFrame::AssetPairFrame() : EntryFrame(ASSET_PAIR), mAssetPair(mEntry.data.assetPair())
+AssetPairFrame::AssetPairFrame() : EntryFrame(LedgerEntryType::ASSET_PAIR), mAssetPair(mEntry.data.assetPair())
 {
 }
 
@@ -66,7 +68,7 @@ AssetPairFrame::pointer AssetPairFrame::create(AssetCode base, AssetCode quote, 
 	int64_t physicalPriceCorrection, int64_t maxPriceStep, int32_t policies)
 {
 	LedgerEntry le;
-	le.data.type(ASSET_PAIR);
+	le.data.type(LedgerEntryType::ASSET_PAIR);
 	AssetPairEntry& assetPair = le.data.assetPair();
 	assetPair.base = base;
 	assetPair.quote = quote;
@@ -99,7 +101,7 @@ bool AssetPairFrame::getPhysicalPriceWithCorrection(int64_t& result) const
 int64_t AssetPairFrame::getMinPriceInTermsOfCurrent() const
 {
 	int64_t minPriceInTermsOfCurrent = 0;
-	if (checkPolicy(ASSET_PAIR_CURRENT_PRICE_RESTRICTION))
+	if (checkPolicy(AssetPairPolicy::CURRENT_PRICE_RESTRICTION))
 	{
 		int64_t maxPrice = 0;
 		if (!getCurrentPriceCoridor(minPriceInTermsOfCurrent, maxPrice))
@@ -114,7 +116,7 @@ int64_t AssetPairFrame::getMinPriceInTermsOfCurrent() const
 int64_t AssetPairFrame::getMinPriceInTermsOfPhysical() const
 {
 	int64_t minPriceInTermsOfPhysical = 0;
-	if (checkPolicy(ASSET_PAIR_PHYSICAL_PRICE_RESTRICTION))
+	if (checkPolicy(AssetPairPolicy::PHYSICAL_PRICE_RESTRICTION))
 	{
 		if (!getPhysicalPriceWithCorrection(minPriceInTermsOfPhysical))
 		{
@@ -164,7 +166,7 @@ AssetPairFrame::loadAssetPair(AssetCode base, AssetCode quote, Database& db,
                       LedgerDelta* delta)
 {
 	LedgerKey key;
-	key.type(ASSET_PAIR);
+	key.type(LedgerEntryType::ASSET_PAIR);
 	key.assetPair().base = base;
 	key.assetPair().quote = quote;
 
@@ -209,9 +211,10 @@ AssetPairFrame::loadAssetPairs(StatementContext& prep,
                        std::function<void(LedgerEntry const&)> assetPairProcessor)
 {
     LedgerEntry le;
-    le.data.type(ASSET_PAIR);
+    le.data.type(LedgerEntryType::ASSET_PAIR);
     AssetPairEntry& oe = le.data.assetPair();
 	string baseCode, quoteCode;
+	int32_t assetPairVersion = 0;
 
     statement& st = prep.statement();
     st.exchange(into(baseCode));
@@ -222,12 +225,14 @@ AssetPairFrame::loadAssetPairs(StatementContext& prep,
 	st.exchange(into(oe.maxPriceStep));
 	st.exchange(into(oe.policies));
     st.exchange(into(le.lastModifiedLedgerSeq));
+	st.exchange(into(assetPairVersion));
     st.define_and_bind();
     st.execute(true);
     while (st.got_data())
     {
         oe.base = baseCode;
 		oe.quote = quoteCode;
+		oe.ext.v((LedgerVersion)assetPairVersion);
         if (!isValid(oe))
         {
             throw std::runtime_error("Invalid asset pair");
@@ -296,14 +301,16 @@ AssetPairFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
 
     if (insert)
     {
-		sql = "INSERT INTO asset_pair (base, quote, current_price, physical_price, physical_price_correction, max_price_step, policies, lastmodified)"
-			"VALUES (:b, :q, :cp, :pp, :ppc, :mps, :p, :lm)";
+		sql = "INSERT INTO asset_pair (base, quote, current_price, physical_price, physical_price_correction, "
+										"max_price_step, policies, lastmodified, version) "
+ 			  "VALUES (:b, :q, :cp, :pp, :ppc, :mps, :p, :lm, :v)";
     }
     else
     {
-        sql = "UPDATE asset_pair SET current_price=:cp, physical_price=:pp, physical_price_correction=:ppc, max_price_step=:mps, policies =:p, "
-			"lastmodified=:lm "
-            "WHERE base = :b AND quote=:q";
+        sql = "UPDATE asset_pair "
+			  "SET 	  current_price=:cp, physical_price=:pp, physical_price_correction=:ppc, max_price_step=:mps, policies=:p, "
+			  "       lastmodified=:lm, version=:v "
+			  "WHERE  base = :b AND quote=:q";
     }
 
     auto prep = db.getPreparedStatement(sql);
@@ -311,6 +318,7 @@ AssetPairFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
 
 	string base = mAssetPair.base;
 	string quote = mAssetPair.quote;
+	int32_t assetPairVersion = static_cast<int32_t >(mAssetPair.ext.v());
 
     st.exchange(use(base, "b"));
 	st.exchange(use(quote, "q"));
@@ -320,6 +328,7 @@ AssetPairFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
 	st.exchange(use(mAssetPair.maxPriceStep, "mps"));
 	st.exchange(use(mAssetPair.policies, "p"));
 	st.exchange(use(mEntry.lastModifiedLedgerSeq, "lm"));
+	st.exchange(use(assetPairVersion, "v"));
     st.define_and_bind();
 
     auto timer =

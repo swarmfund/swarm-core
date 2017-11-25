@@ -107,7 +107,7 @@ public:
     
     bool checkPolicy(AssetPolicy rawPolicy) const
     {
-		assert(rawPolicy >= 0);
+        assert(rawPolicy >= 0);
 		uint32_t policy = static_cast<uint32_t>(rawPolicy);
 		return (mAsset.policies & policy) == policy;
     }

@@ -200,7 +200,7 @@ class Bucket::OutputIterator
     void
     put(BucketEntry const& e)
     {
-        if (!mKeepDeadEntries && e.type() == DEADENTRY)
+        if (!mKeepDeadEntries && e.type() == BucketEntryType::DEADENTRY)
         {
             return;
         }
@@ -277,7 +277,7 @@ Bucket::countLiveAndDeadEntries() const
     Bucket::InputIterator iter(shared_from_this());
     while (iter)
     {
-        if ((*iter).type() == LIVEENTRY)
+        if ((*iter).type() == BucketEntryType::LIVEENTRY)
         {
             ++live;
         }
@@ -312,7 +312,7 @@ Bucket::fresh(BucketManager& bucketManager,
     for (auto const& e : liveEntries)
     {
         BucketEntry ce;
-        ce.type(LIVEENTRY);
+        ce.type(BucketEntryType::LIVEENTRY);
         ce.liveEntry() = e;
         live.push_back(ce);
     }
@@ -320,7 +320,7 @@ Bucket::fresh(BucketManager& bucketManager,
     for (auto const& e : deadEntries)
     {
         BucketEntry ce;
-        ce.type(DEADENTRY);
+        ce.type(BucketEntryType::DEADENTRY);
         ce.deadEntry() = e;
         dead.push_back(ce);
     }
@@ -529,14 +529,14 @@ checkDBAgainstBuckets(medida::MetricsRegistry& metrics,
         {
             meter.Mark();
             auto& e = *iter;
-            if (e.type() == LIVEENTRY)
+            if (e.type() == BucketEntryType::LIVEENTRY)
             {
 				
 				auto entryType = e.liveEntry().data.type();
 				auto counter = counters.find(entryType);
 				if (counter == counters.end())
 				{
-					CLOG(ERROR, "Bucket") << "Unexpected live entry type " << entryType << " while counting entries";
+					CLOG(ERROR, "Bucket") << "Unexpected live entry type " << static_cast<int32_t >(entryType) << " while counting entries";
 					throw std::runtime_error("Unexpected live entry type");
 				}
 

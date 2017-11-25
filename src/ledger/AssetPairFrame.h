@@ -82,7 +82,8 @@ class AssetPairFrame : public EntryFrame
 
 	bool checkPolicy(AssetPairPolicy policy) const
 	{
-		return (mAssetPair.policies & policy) == policy;
+		auto policyValue = static_cast<int32_t >(policy);
+		return (mAssetPair.policies & policyValue) == policyValue;
 	}
 
     static bool isValid(AssetPairEntry const& oe);

@@ -18,7 +18,7 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> RecoverOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{ 
-		{ mRecover.account, CounterpartyDetails({NOT_VERIFIED, GENERAL}, true, true) }
+		{ mRecover.account, CounterpartyDetails({AccountType::NOT_VERIFIED, AccountType::GENERAL}, true, true) }
 	};
 }
 
@@ -34,16 +34,16 @@ SourceDetails RecoverOpFrame::getSourceAccountDetails(std::unordered_map<Account
 	uint32_t allowedSignerClass = 0;
 	switch (counterparty->second.mAccount->getAccountType())
 	{
-	case NOT_VERIFIED:
-		allowedSignerClass = SIGNER_NOT_VERIFIED_ACC_MANAGER;
+	case AccountType::NOT_VERIFIED:
+		allowedSignerClass = static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
 		break;
-	case GENERAL:
-		allowedSignerClass = SIGNER_GENERAL_ACC_MANAGER;
+	case AccountType::GENERAL:
+		allowedSignerClass = static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
 		break;
 	default:
 		throw std::invalid_argument("Unexpected counterparty type in recovery");
 	}
-	return SourceDetails({MASTER}, mSourceAccount->getLowThreshold(), allowedSignerClass);
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getLowThreshold(), allowedSignerClass);
 }
 
 RecoverOpFrame::RecoverOpFrame(Operation const& op, OperationResult& res,
@@ -64,7 +64,7 @@ RecoverOpFrame::doApply(Application& app, LedgerDelta& delta,
 	if (!targetAccountFrame)
 	{
 		app.getMetrics().NewMeter({ "op-recover", "failure", "targe-account-not-exists" }, "operation").Mark();
-		innerResult().code(RECOVER_MALFORMED);
+		innerResult().code(RecoverResultCode::MALFORMED);
 		return false;
 	}
     
@@ -72,29 +72,29 @@ RecoverOpFrame::doApply(Application& app, LedgerDelta& delta,
 	if (accountType != AccountType::GENERAL && accountType != AccountType::NOT_VERIFIED)
 	{
 		app.getMetrics().NewMeter({ "op-recover", "failure", "invalid-account-type" }, "operation").Mark();
-		innerResult().code(RECOVER_MALFORMED);
+		innerResult().code(RecoverResultCode::MALFORMED);
 		return false;
 	}
 
 	targetAccountFrame->setUpdateSigners();
 	auto& targetAccount = targetAccountFrame->getAccount();
-	targetAccount.thresholds[THRESHOLD_MASTER_WEIGHT] = 0;
+	targetAccount.thresholds[static_cast<int32_t>(ThresholdIndexes::MASTER_WEIGHT)] = 0;
     auto& signers = targetAccountFrame->getAccount().signers;
 	signers.clear();
 	Signer newSigner;
 	newSigner.identity = 0;
 	newSigner.pubKey = mRecover.newSigner;
-	uint32_t newSignerWeight = targetAccount.thresholds[THRESHOLD_HIGH];
+	uint32_t newSignerWeight = targetAccount.thresholds[static_cast<int32_t>(ThresholdIndexes::HIGH)];
 	newSigner.weight = newSignerWeight == 0 ? 1 : newSignerWeight;
 	newSigner.signerType = getAnySignerType();
 	signers.push_back(newSigner);
 
-	targetAccount.blockReasons &= ~BlockReasons::RECOVERY_REQUEST;
+	targetAccount.blockReasons &= ~static_cast<int32_t>(BlockReasons::RECOVERY_REQUEST);
 	targetAccountFrame->storeChange(delta, db);
 
     app.getMetrics().NewMeter({"op-recover", "success", "apply"}, "operation")
         .Mark();
-    innerResult().code(RECOVER_SUCCESS);
+    innerResult().code(RecoverResultCode::SUCCESS);
 
 	return true;
 }
@@ -106,7 +106,7 @@ RecoverOpFrame::doCheckValid(Application& app)
     {
         app.getMetrics().NewMeter({"op-recover", "invalid", "malformed-same-signer"},
                          "operation").Mark();
-        innerResult().code(RECOVER_MALFORMED);
+        innerResult().code(RecoverResultCode::MALFORMED);
         return false;
     }
     return true;

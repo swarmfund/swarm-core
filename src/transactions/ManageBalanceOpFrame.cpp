@@ -19,9 +19,9 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageBalanceOpFrame::getCoun
 {
 	std::vector<AccountType> allowedCounterparties;
 	if (getSourceID() == mManageBalance.destination)
-		allowedCounterparties = { GENERAL, NOT_VERIFIED };
+		allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED };
 	else
-		allowedCounterparties = { GENERAL, NOT_VERIFIED };
+		allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED };
 	return{
 		{ mManageBalance.destination, CounterpartyDetails(allowedCounterparties, true, true)}
 	};
@@ -31,10 +31,10 @@ SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(std::unordered_map<A
 {
 	std::vector<AccountType> allowedSourceAccounts;
 	if (getSourceID() == mManageBalance.destination)
-		allowedSourceAccounts = { GENERAL, NOT_VERIFIED};
+		allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED};
 	else
 		allowedSourceAccounts = {};
-	return SourceDetails(allowedSourceAccounts, mSourceAccount->getLowThreshold(), SIGNER_BALANCE_MANAGER);
+	return SourceDetails(allowedSourceAccounts, mSourceAccount->getLowThreshold(), static_cast<int32_t >(SignerType::BALANCE_MANAGER));
 }
 
 ManageBalanceOpFrame::ManageBalanceOpFrame(Operation const& op,
@@ -58,7 +58,7 @@ ManageBalanceOpFrame::doApply(Application& app,
     {
         app.getMetrics().NewMeter({ "op-manage-balance", "invalid", "dest-not-found" },
             "operation").Mark();
-        innerResult().code(MANAGE_BALANCE_DESTINATION_NOT_FOUND);
+        innerResult().code(ManageBalanceResultCode::DESTINATION_NOT_FOUND);
         return false;
     }
 
@@ -68,7 +68,7 @@ ManageBalanceOpFrame::doApply(Application& app,
 	{
 		app.getMetrics().NewMeter({ "op-manage-balance", "invalid", "already-exists" },
 			"operation").Mark();
-		innerResult().code(MANAGE_BALANCE_ALREADY_EXISTS);
+		innerResult().code(ManageBalanceResultCode::ALREADY_EXISTS);
 		return false;
 	}
 
@@ -77,7 +77,7 @@ ManageBalanceOpFrame::doApply(Application& app,
 	{
 		app.getMetrics().NewMeter({ "op-manage-balance", "invalid", "asset-not-found" },
 			"operation").Mark();
-		innerResult().code(MANAGE_BALANCE_ASSET_NOT_FOUND);
+		innerResult().code(ManageBalanceResultCode::ASSET_NOT_FOUND);
 		return false;
 	}
 
@@ -86,19 +86,19 @@ ManageBalanceOpFrame::doApply(Application& app,
     
 	app.getMetrics().NewMeter({"op-manage-balance", "success", "apply"},
 	                          "operation").Mark();
-	innerResult().code(MANAGE_BALANCE_SUCCESS);
+	innerResult().code(ManageBalanceResultCode::SUCCESS);
 	return true;
 }
 
 bool
 ManageBalanceOpFrame::doCheckValid(Application& app)
 {
-    if (mManageBalance.action == MANAGE_BALANCE_DELETE)
+    if (mManageBalance.action == ManageBalanceAction::DELETE)
     {
         app.getMetrics().NewMeter({"op-manage-balance", "invalid",
                           "malformed-destination-for-delete"},
                          "operation").Mark();
-        innerResult().code(MANAGE_BALANCE_MALFORMED);
+        innerResult().code(ManageBalanceResultCode::MALFORMED);
         return false;
     }
 
@@ -107,7 +107,7 @@ ManageBalanceOpFrame::doCheckValid(Application& app)
         app.getMetrics().NewMeter({"op-manage-asset", "invalid",
                           "malformed-invalid-asset"},
                          "operation").Mark();
-        innerResult().code(MANAGE_BALANCE_INVALID_ASSET);
+        innerResult().code(ManageBalanceResultCode::INVALID_ASSET);
         return false;
     }
 

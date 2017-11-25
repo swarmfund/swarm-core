@@ -53,7 +53,7 @@ bool SignatureValidator::isAccountTypeAllowed(AccountFrame& account, vector<Acco
 vector<Signer> SignatureValidator::getSigners(Application& app, Database& db, AccountFrame& account)
 {
 	// system accounts use master's signers
-	if (account.getAccountType() != MASTER && isSystemAccountType(account.getAccountType()))
+	if (account.getAccountType() != AccountType::MASTER && isSystemAccountType(account.getAccountType()))
 	{
 		auto master = AccountFrame::loadAccount(app.getMasterID(), db);
 		assert(master);

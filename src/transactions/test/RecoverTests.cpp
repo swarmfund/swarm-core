@@ -42,18 +42,20 @@ TEST_CASE("Recover", "[dep_tx][recover]")
 
 	SECTION("basics")
 	{
-		applyCreateAccountTx(app, root, accountA, rootSeq++, GENERAL);
+		applyCreateAccountTx(app, root, accountA, rootSeq++, AccountType::GENERAL);
 
 		SECTION("recover to the same pubkey")
 		{
-			applyRecover(app, root, rootSeq++, accountA.getPublicKey(), accountA.getPublicKey(), accountA.getPublicKey(), RECOVER_MALFORMED);
+			applyRecover(app, root, rootSeq++, accountA.getPublicKey(), accountA.getPublicKey(), accountA.getPublicKey(), RecoverResultCode::MALFORMED);
 		}
 		SECTION("Remove only recovery flag")
 		{
-			applyManageAccountTx(app, root, accountA, 0, BlockReasons::KYC_UPDATE | BlockReasons::RECOVERY_REQUEST, 0);
+			applyManageAccountTx(app, root, accountA, 0,
+								 static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
+ 			   					 static_cast<int32_t>(BlockReasons::RECOVERY_REQUEST), 0);
 			applyRecover(app, root, rootSeq++, accountA.getPublicKey(), accountA.getPublicKey(), s1.getPublicKey());
 			auto accAfter = AccountFrame::loadAccount(accountA.getPublicKey(), app.getDatabase());
-			REQUIRE(accAfter->getBlockReasons() == BlockReasons::KYC_UPDATE);
+			REQUIRE(accAfter->getBlockReasons() == static_cast<int32_t>(BlockReasons::KYC_UPDATE));
 		}
 		SECTION("change master signer to new signer")
 		{
@@ -70,7 +72,7 @@ TEST_CASE("Recover", "[dep_tx][recover]")
 			REQUIRE(signers[0].signerType == getAnySignerType());
 			ThresholdSetter th;
 			th.masterWeight = make_optional<uint8_t>(100);
-			applySetOptions(app, accountA, 1, &th, nullptr, nullptr, SET_OPTIONS_SUCCESS, &s1);
+			applySetOptions(app, accountA, 1, &th, nullptr, nullptr, SetOptionsResultCode::SUCCESS, &s1);
 		}
 
 		SECTION("Remove all old signers and add new with high threshold")
@@ -84,7 +86,7 @@ TEST_CASE("Recover", "[dep_tx][recover]")
 			applySetOptions(app, accountA, aSeq++, nullptr, &sk2);
 			ThresholdSetter th;
 			th.highThreshold = make_optional<uint8_t>(100);
-			applySetOptions(app, accountA, 1, &th, nullptr, nullptr, SET_OPTIONS_SUCCESS, &s1);
+			applySetOptions(app, accountA, 1, &th, nullptr, nullptr, SetOptionsResultCode::SUCCESS, &s1);
 
 			auto accountAFrame = AccountFrame::loadAccount(accountA.getPublicKey(), app.getDatabase());
 			REQUIRE(accountAFrame->getMasterWeight() == 1);

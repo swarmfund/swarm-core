@@ -12,6 +12,7 @@
 #include "util/types.h"
 #include "lib/util/format.h"
 #include <algorithm>
+#include "AssetFrame.h"
 
 using namespace soci;
 using namespace std;
@@ -77,7 +78,7 @@ BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, Ass
 bool
 BalanceFrame::isValid(BalanceEntry const& oe)
 {
-    return isAssetValid(oe.asset) && oe.locked >= 0 && oe.amount >= 0;
+    return AssetFrame::isAssetCodeValid(oe.asset) && oe.locked >= 0 && oe.amount >= 0;
 }
 
 bool
@@ -122,6 +123,22 @@ BalanceFrame::Result BalanceFrame::lockBalance(int64_t delta)
 	mBalance.amount -= delta;
     mBalance.locked += delta;
 	return Result::SUCCESS;
+}
+
+bool BalanceFrame::tryFundAccount(uint64_t amount)
+{
+	uint64_t updatedAmount;
+	if (!safeSum(mBalance.amount, amount, updatedAmount)) {
+		return false;
+	}
+
+	uint64_t totalFunds;
+	if (!safeSum(updatedAmount, mBalance.locked, totalFunds)) {
+		return false;
+	}
+
+	mBalance.amount = updatedAmount;
+	return true;
 }
 
 BalanceFrame::pointer

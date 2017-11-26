@@ -131,7 +131,7 @@ ManageAssetPairOpFrame::doApply(Application& app,
 bool
 ManageAssetPairOpFrame::doCheckValid(Application& app)
 {
-    if (!isAssetValid(mManageAssetPair.base) || !isAssetValid(mManageAssetPair.quote))
+    if (!AssetFrame::isAssetCodeValid(mManageAssetPair.base) || !AssetFrame::isAssetCodeValid(mManageAssetPair.quote))
     {
         app.getMetrics().NewMeter({"op-manage-asset-pair", "invalid",
                           "malformed-invalid-asset-pair"},

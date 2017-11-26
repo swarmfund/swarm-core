@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "AssetPairFrame.h"
+#include "AssetFrame.h"
 #include "crypto/SecretKey.h"
 #include "crypto/Hex.h"
 #include "database/Database.h"
@@ -80,7 +81,7 @@ AssetPairFrame::pointer AssetPairFrame::create(AssetCode base, AssetCode quote, 
 bool
 AssetPairFrame::isValid(AssetPairEntry const& oe)
 {
-	return isAssetValid(oe.base) && isAssetValid(oe.quote) && oe.currentPrice >= 0 && oe.maxPriceStep >= 0
+	return AssetFrame::isAssetCodeValid(oe.base) && AssetFrame::isAssetCodeValid(oe.quote) && oe.currentPrice >= 0 && oe.maxPriceStep >= 0
 		&& oe.physicalPrice >= 0 && oe.physicalPriceCorrection >= 0;
 }
 

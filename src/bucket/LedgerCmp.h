@@ -47,17 +47,6 @@ struct LedgerEntryIdCmp
 
         case ACCOUNT:
             return a.account().accountID < b.account().accountID;
-
-		case COINS_EMISSION_REQUEST:
-		{
-			auto const& ar = a.coinsEmissionRequest();
-			auto const& br = b.coinsEmissionRequest();
-			if (ar.issuer < br.issuer)
-				return true;
-			if (br.issuer < ar.issuer)
-				return false;
-			return ar.requestID < br.requestID;
-		}
         case FEE:
         {
             auto const& af = a.feeState();
@@ -74,12 +63,6 @@ struct LedgerEntryIdCmp
 				return false;
 			return af.upperBound < bf.upperBound;
         }
-		case COINS_EMISSION:
-		{
-			auto const& ac = a.coinsEmission();
-			auto const& bc = b.coinsEmission();
-			return ac.serialNumber < bc.serialNumber;
-		}
 		case BALANCE:
 		{
 			auto const& ab = a.balance();
@@ -112,8 +95,8 @@ struct LedgerEntryIdCmp
         }
         case REFERENCE_ENTRY:
         {
-            auto const& ap = a.payment();
-			auto const& bp = b.payment();
+            auto const& ap = a.reference();
+			auto const& bp = b.reference();
 			return ap.reference < bp.reference;
         }
 		case TRUST:

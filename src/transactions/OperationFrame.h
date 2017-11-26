@@ -10,7 +10,6 @@
 #include "transactions/SourceDetails.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/AccountFrame.h"
-#include "ledger/CoinsEmissionFrame.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/BalanceFrame.h"
 #include "overlay/StellarXDR.h"

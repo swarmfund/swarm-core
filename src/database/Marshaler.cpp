@@ -27,4 +27,46 @@ namespace soci
 		result = PubKeyUtils::toStrKey(accountID);
 		ind = i_ok;
 	}
+
+	void type_conversion<xdr::pointer<string64>>::from_base(std::string rawStr, indicator ind, xdr::pointer<string64> & result) {
+		switch (ind) {
+		case soci::i_ok: 
+		{
+			result = xdr::pointer<string64>(new string64(rawStr));
+			return;
+		}
+		case soci::i_null:
+			return;
+		default:
+			throw std::runtime_error("Unexpected indicator type for xdr::pointer<string64>");
+		}
+	}
+
+	void type_conversion<xdr::pointer<string64>>::to_base(const xdr::pointer<string64>& raw, std::string & result, indicator & ind) {
+		if (!raw) {
+			ind = soci::i_null;
+			return;
+		}
+
+		ind = soci::i_ok;
+		result = *raw;
+	}
+
+
+	void type_conversion<string64>::from_base(std::string rawStr, indicator ind, string64 & result) {
+		switch (ind) {
+		case soci::i_ok:
+		{
+			result = rawStr;
+			return;
+		}
+		default:
+			throw std::runtime_error("Unexpected indicator type for string64");
+		}
+	}
+
+	void type_conversion<string64>::to_base(const string64& raw, std::string & result, indicator & ind) {
+		ind = soci::i_ok;
+		result = raw;
+	}
 }

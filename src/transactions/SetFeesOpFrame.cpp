@@ -291,7 +291,7 @@ namespace stellar
 			return true;
 		}
 
-		if (!isAssetValid(mSetFees.fee->asset))
+		if (!AssetFrame::isAssetCodeValid(mSetFees.fee->asset))
 		{
 			innerResult().code(SET_FEES_INVALID_ASSET);
 			app.getMetrics().NewMeter({ "op-set-fees", "invalid", "invalid-asset" }, "operation").Mark();

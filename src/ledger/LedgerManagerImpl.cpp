@@ -17,8 +17,6 @@
 #include "ledger/FeeFrame.h"
 #include "ledger/AssetPairFrame.h"
 
-#include "CoinsEmissionRequestFrame.h"
-#include "CoinsEmissionFrame.h"
 #include "main/Application.h"
 #include "main/Config.h"
 #include "overlay/OverlayManager.h"

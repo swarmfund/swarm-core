@@ -83,13 +83,17 @@ class BalanceFrame : public EntryFrame
         
     static bool isValid(BalanceEntry const& oe);
     bool isValid() const;
+	[[deprecated]]
 	bool addBalance(int64_t delta);
+	[[deprecated]]
     bool addLocked(int64_t delta);
     
     enum Result {SUCCESS, LINE_FULL, UNDERFUNDED};
     
+	[[deprecated]]
 	Result lockBalance(int64_t delta);
-	// delta >= 0
+	// returns false if total amount of funds (balance amount + locked) exceeds UINT64_MAX
+	bool tryFundAccount(uint64_t amount);
 
     // Instance-based overrides of EntryFrame.
     void storeDelete(LedgerDelta& delta, Database& db) const override;

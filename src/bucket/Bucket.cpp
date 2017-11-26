@@ -22,12 +22,10 @@
 #include "ledger/EntryFrame.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/BalanceFrame.h"
-#include "ledger/CoinsEmissionRequestFrame.h"
 #include "ledger/AssetPairFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/OfferFrame.h"
-#include "ledger/CoinsEmissionFrame.h"
 #include "ledger/PaymentRequestFrame.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/ReferenceFrame.h"
@@ -508,9 +506,7 @@ checkDBAgainstBuckets(medida::MetricsRegistry& metrics,
 
 	std::map<LedgerEntryType, BucketCounter::pointer> counters = {
 		{ACCOUNT, BucketCounter::create(AccountFrame::countObjects)},
-		{ COINS_EMISSION_REQUEST, BucketCounter::create(CoinsEmissionRequestFrame::countObjects) },
 		{ FEE, BucketCounter::create(FeeFrame::countObjects) },
-		{ COINS_EMISSION, BucketCounter::create(CoinsEmissionFrame::countObjects) },
 		{ BALANCE, BucketCounter::create(BalanceFrame::countObjects) },
 		{ PAYMENT_REQUEST, BucketCounter::create(PaymentRequestFrame::countObjects) },
 		{ ASSET, BucketCounter::create(AssetFrame::countObjects) },

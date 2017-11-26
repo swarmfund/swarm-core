@@ -12,6 +12,7 @@
 #include "util/format.h"
 #include "xdrpp/printer.h"
 #include "crypto/Hex.h"
+#include <locale>
 
 using namespace soci;
 using namespace std;
@@ -66,10 +67,88 @@ AssetFrame::pointer AssetFrame::create(AssetCreationRequest const & request, Acc
 	return std::make_shared<AssetFrame>(le);
 }
 
+bool AssetFrame::willExceedMaxIssuanceAmount(uint64_t amount) {
+	uint64_t issued;
+	if (!safeSum(mAsset.issued, amount, issued)) {
+		return true;
+	}
+
+	return issued > mAsset.maxIssuanceAmount;
+}
+
+bool AssetFrame::tryIssue(uint64_t amount) {
+	if (willExceedMaxIssuanceAmount(amount)) {
+		return false;
+	}
+
+	if (!isAvailableForIssuanceAmountSufficient(amount)) {
+		return false;
+	}
+
+	mAsset.availableForIssueance -= amount;
+	mAsset.issued += amount;
+	return true;
+}
+
+bool AssetFrame::canAddAvailableForIssuance(uint64_t amount) {
+	uint64_t availableForIssueance;
+	if (!safeSum(mAsset.availableForIssueance, amount, availableForIssueance))
+		return false;
+
+	uint64_t maxAmountCanBeIssuedAfterUpdate;
+	if (!safeSum(mAsset.issued, availableForIssueance, maxAmountCanBeIssuedAfterUpdate))
+		return false;
+
+	if (maxAmountCanBeIssuedAfterUpdate > mAsset.maxIssuanceAmount)
+		return false;
+
+	return true;
+}
+
+bool AssetFrame::tryAddAvailableForIssuance(uint64_t amount) {
+	if (!canAddAvailableForIssuance(amount))
+		return false;
+
+	mAsset.availableForIssueance += amount;
+	return true;
+}
+
+bool AssetFrame::isAssetCodeValid(AssetCode const & code)
+{
+	bool zeros = false;
+	bool onechar = false; // at least one non zero character
+	for (uint8_t b : code)
+	{
+		if (b == 0)
+		{
+			zeros = true;
+		}
+		else if (zeros)
+		{
+			// zeros can only be trailing
+			return false;
+		}
+		else
+		{
+			if (b > 0x7F || !std::isalnum((char)b, cLocale))
+			{
+				return false;
+			}
+			onechar = true;
+		}
+	}
+	return onechar;
+}
+
 bool
 AssetFrame::isValid(AssetEntry const& oe)
 {
-	return isAssetValid(oe.code) && oe.maxIssuanceAmount >= oe.issued;
+	uint64_t canBeIssued;
+	if (!safeSum(oe.issued, oe.availableForIssueance, canBeIssued)) {
+		return false;
+	}
+
+	return isAssetCodeValid(oe.code) && oe.maxIssuanceAmount >= canBeIssued;
 }
 
 bool
@@ -337,18 +416,18 @@ AssetFrame::dropAll(Database& db)
     db.getSession() << "DROP TABLE IF EXISTS asset;";
     db.getSession() << "CREATE TABLE asset"
 		"("
-		"code                    VARCHAR(16)  NOT NULL,"
-		"owner                   VARCHAR(56)  NOT NULL,"
-		"name                    VARCHAR(64)  NOT NULL,"
-		"preissued_asset_signer  VARCHAR(56)  NOT NULL,"
-		"description             TEXT         NOT NULL,"
-		"external_resource_link  VARCHAR(256) NOT NULL,"
-		"max_issuance_amount     BIGINT       NOT NULL CHECK (max_issuance_amount >= 0),"
-		"available_for_issueance BIGINT       NOT NULL CHECK (available_for_issueance >= 0),"
-		"issued                  BIGINT       NOT NULL CHECK (issued >= 0),"
-		"policies                INT          NOT NULL, "
-		"lastmodified            INT          NOT NULL, "
-		"version                 INT          NOT NULL, "
+		"code                    VARCHAR(16)   NOT NULL,"
+		"owner                   VARCHAR(56)   NOT NULL,"
+		"name                    VARCHAR(64)   NOT NULL,"
+		"preissued_asset_signer  VARCHAR(56)   NOT NULL,"
+		"description             TEXT          NOT NULL,"
+		"external_resource_link  VARCHAR(256)  NOT NULL,"
+		"max_issuance_amount     NUMERIC(20,0) NOT NULL CHECK (max_issuance_amount >= 0),"
+		"available_for_issueance NUMERIC(20,0) NOT NULL CHECK (available_for_issueance >= 0),"
+		"issued                  NUMERIC(20,0) NOT NULL CHECK (issued >= 0),"
+		"policies                INT           NOT NULL, "
+		"lastmodified            INT           NOT NULL, "
+		"version                 INT           NOT NULL, "
 		"PRIMARY KEY (code)"
 		");";
 }

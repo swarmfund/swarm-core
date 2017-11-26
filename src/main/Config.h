@@ -171,7 +171,9 @@ class Config : public std::enable_shared_from_this<Config>
     // totally insensitive to overloading.
     uint32_t MINIMUM_IDLE_PERCENT;
     
+	[[deprecated]]
     uint32_t PREEMISSIONS_PER_OP = 100;
+	[[deprecated]]
     uint32_t EMISSION_UNIT = 100 * ONE;
 
     // process-management config

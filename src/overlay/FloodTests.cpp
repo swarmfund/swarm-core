@@ -13,7 +13,7 @@
 #include "simulation/Simulation.h"
 #include "overlay/OverlayManager.h"
 #include "simulation/Topologies.h"
-#include "transactions/TxTests.h"
+#include "transactions/test/TxTests.h"
 #include "herder/Herder.h"
 #include "ledger/LedgerDelta.h"
 #include "herder/HerderImpl.h"

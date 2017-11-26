@@ -12,10 +12,8 @@
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetPairFrame.h"
 #include "ledger/BalanceFrame.h"
-#include "ledger/CoinsEmissionRequestFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
-#include "ledger/CoinsEmissionFrame.h"
 #include "ledger/PaymentRequestFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/OfferFrame.h"
@@ -37,14 +35,8 @@ namespace stellar {
             case ACCOUNT:
                 res = std::make_shared<AccountFrame>(from);
                 break;
-            case COINS_EMISSION_REQUEST:
-                res = std::make_shared<CoinsEmissionRequestFrame>(from);
-                break;
             case FEE:
                 res = std::make_shared<FeeFrame>(from);
-                break;
-            case COINS_EMISSION:
-                res = std::make_shared<CoinsEmissionFrame>(from);
                 break;
             case BALANCE:
                 res = std::make_shared<BalanceFrame>(from);
@@ -99,22 +91,10 @@ namespace stellar {
                         AccountFrame::loadAccount(key.account().accountID, db));
                 break;
             }
-            case COINS_EMISSION_REQUEST: {
-                auto const &request = key.coinsEmissionRequest();
-                res = std::static_pointer_cast<EntryFrame>(
-                        CoinsEmissionRequestFrame::loadCoinsEmissionRequest(request.requestID, db));
-                break;
-            }
             case FEE: {
                 auto const &fee = key.feeState();
                 res = std::static_pointer_cast<EntryFrame>(
                         FeeFrame::loadFee(fee.hash, fee.lowerBound, fee.upperBound, db));
-                break;
-            }
-            case COINS_EMISSION: {
-                auto const &emission = key.coinsEmission();
-                res = std::static_pointer_cast<EntryFrame>(
-                        CoinsEmissionFrame::loadCoinsEmission(emission.serialNumber, db));
                 break;
             }
             case BALANCE: {
@@ -146,8 +126,8 @@ namespace stellar {
                 break;
             }
             case REFERENCE_ENTRY: {
-                auto const &payment = key.payment();
-                res = std::static_pointer_cast<EntryFrame>(ReferenceFrame::loadPayment(payment.sender, payment.reference, db));
+                auto const &payment = key.reference();
+                res = std::static_pointer_cast<EntryFrame>(ReferenceFrame::loadReference(payment.sender, payment.reference, db));
                 break;
             }
             case TRUST: {
@@ -260,10 +240,10 @@ namespace stellar {
         auto key = LedgerEntryKey(entry);
         flushCachedEntry(key, db);
         auto const &fromDb = EntryFrame::storeLoad(key, db);
-        if (!(fromDb->mEntry == entry)) {
+        if (!fromDb || !(fromDb->mEntry == entry)) {
             std::string s;
             s = "Inconsistent state between objects: ";
-            s += xdr::xdr_to_string(fromDb->mEntry, "db");
+            s += !!fromDb ? xdr::xdr_to_string(fromDb->mEntry, "db") : "db: nullptr\n";
             s += xdr::xdr_to_string(entry, "live");
             throw std::runtime_error(s);
         }
@@ -300,12 +280,8 @@ namespace stellar {
         switch (key.type()) {
             case ACCOUNT:
                 return AccountFrame::exists(db, key);
-            case COINS_EMISSION_REQUEST:
-                return CoinsEmissionRequestFrame::exists(db, key);
             case FEE:
                 return FeeFrame::exists(db, key);
-            case COINS_EMISSION:
-                return CoinsEmissionFrame::exists(db, key);
             case BALANCE:
                 return BalanceFrame::exists(db, key);
             case PAYMENT_REQUEST:
@@ -343,14 +319,8 @@ namespace stellar {
             case ACCOUNT:
                 AccountFrame::storeDelete(delta, db, key);
                 break;
-            case COINS_EMISSION_REQUEST:
-                CoinsEmissionRequestFrame::storeDelete(delta, db, key);
-                break;
             case FEE:
                 FeeFrame::storeDelete(delta, db, key);
-                break;
-            case COINS_EMISSION:
-                CoinsEmissionFrame::storeDelete(delta, db, key);
                 break;
             case BALANCE:
                 BalanceFrame::storeDelete(delta, db, key);
@@ -405,20 +375,11 @@ namespace stellar {
                 k.type(ACCOUNT);
                 k.account().accountID = d.account().accountID;
                 break;
-            case COINS_EMISSION_REQUEST:
-                k.type(COINS_EMISSION_REQUEST);
-                k.coinsEmissionRequest().issuer = d.coinsEmissionRequest().issuer;
-                k.coinsEmissionRequest().requestID = d.coinsEmissionRequest().requestID;
-                break;
             case FEE:
                 k.type(FEE);
                 k.feeState().hash = d.feeState().hash;
                 k.feeState().lowerBound = d.feeState().lowerBound;
                 k.feeState().upperBound = d.feeState().upperBound;
-                break;
-            case COINS_EMISSION:
-                k.type(COINS_EMISSION);
-                k.coinsEmission().serialNumber = d.coinsEmission().serialNumber;
                 break;
             case BALANCE:
                 k.type(BALANCE);
@@ -434,7 +395,8 @@ namespace stellar {
                 break;
             case REFERENCE_ENTRY:
                 k.type(REFERENCE_ENTRY);
-                k.payment().reference = d.payment().reference;
+                k.reference().reference = d.reference().reference;
+				k.reference().sender = d.reference().sender;
                 break;
             case ACCOUNT_TYPE_LIMITS:
                 k.type(ACCOUNT_TYPE_LIMITS);

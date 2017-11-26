@@ -8,6 +8,7 @@
 #include "crypto/SecretKey.h"
 #include "database/Database.h"
 #include "util/types.h"
+#include "AssetFrame.h"
 
 using namespace std;
 using namespace soci;
@@ -81,7 +82,7 @@ namespace stellar
 	bool
 		OfferFrame::isValid(OfferEntry const& oe)
 	{
-		return isAssetValid(oe.base) && isAssetValid(oe.quote) && oe.baseAmount > 0 && oe.quoteAmount > 0 && oe.price > 0 && oe.fee >= 0;
+		return AssetFrame::isAssetCodeValid(oe.base) && AssetFrame::isAssetCodeValid(oe.quote) && oe.baseAmount > 0 && oe.quoteAmount > 0 && oe.price > 0 && oe.fee >= 0;
 	}
 
 	bool

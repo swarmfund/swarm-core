@@ -21,4 +21,24 @@ namespace soci
 
 		static void to_base(const AccountID& accountID, std::string & result, indicator & ind);
 	};
+
+		template <>
+		struct type_conversion<xdr::pointer<string64>>
+		{
+			typedef std::string base_type;
+
+			static void from_base(std::string rawStr, indicator ind, xdr::pointer<string64> & result);
+
+			static void to_base(const xdr::pointer<string64>& raw, std::string & result, indicator & ind);
+		};
+
+		template <>
+		struct type_conversion<string64>
+		{
+			typedef std::string base_type;
+
+			static void from_base(std::string rawStr, indicator ind, string64& result);
+
+			static void to_base(const string64& raw, std::string & result, indicator & ind);
+		};
 }

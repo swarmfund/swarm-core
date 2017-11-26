@@ -19,8 +19,6 @@
 #include "ledger/AssetFrame.h"
 #include "ledger/BalanceFrame.h"
 #include "ledger/FeeFrame.h"
-#include "ledger/CoinsEmissionRequestFrame.h"
-#include "ledger/CoinsEmissionFrame.h"
 #include "ledger/PaymentRequestFrame.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/StatisticsFrame.h"
@@ -308,8 +306,6 @@ Database::initialize()
     AssetFrame::dropAll(*this);
     BalanceFrame::dropAll(*this);
     StatisticsFrame::dropAll(*this);
-	CoinsEmissionRequestFrame::dropAll(*this);
-    CoinsEmissionFrame::dropAll(*this);
     FeeFrame::dropAll(*this);
 	OfferFrame::dropAll(*this);
     PaymentRequestFrame::dropAll(*this);

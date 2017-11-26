@@ -8,6 +8,8 @@
 #include "database/Database.h"
 #include "LedgerDelta.h"
 #include "ledger/LedgerManager.h"
+#include "ledger/ReferenceFrame.h"
+#include "ledger/AssetFrame.h"
 #include "util/basen.h"
 #include "util/types.h"
 #include "lib/util/format.h"
@@ -46,24 +48,45 @@ ReviewableRequestFrame& ReviewableRequestFrame::operator=(ReviewableRequestFrame
     return *this;
 }
 
-ReviewableRequestFrame::pointer ReviewableRequestFrame::createNew(uint64 id, AccountID requestor)
+ReviewableRequestFrame::pointer ReviewableRequestFrame::createNew(uint64 id, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference)
 {
 	LedgerEntry entry;
 	entry.data.type(LedgerEntryType::REVIEWABLE_REQUEST);
 	auto& request = entry.data.reviewableRequest();
 	request.requestor = requestor;
+	request.reviewer = reviewer;
 	request.ID = id;
+	request.reference = reference;
 	return make_shared<ReviewableRequestFrame>(entry);
+}
+
+ReviewableRequestFrame::pointer ReviewableRequestFrame::createNewWithHash(uint64 id, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body)
+{
+	auto result = createNew(id, requestor, reviewer, reference);
+	auto& reviewableRequestEntry = result->getRequestEntry();
+	reviewableRequestEntry.body = body;
+	result->recalculateHashRejectReason();
+	return result;
 }
 
 bool ReviewableRequestFrame::isAssetCreateValid(AssetCreationRequest const& request)
 {
-	return request.code != "" && request.name != "";
+	return AssetFrame::isAssetCodeValid(request.code) && request.name != "";
 }
 
 bool ReviewableRequestFrame::isAssetUpdateValid(AssetUpdateRequest const& request)
 {
-	return request.code != "";
+	return AssetFrame::isAssetCodeValid(request.code);
+}
+
+bool ReviewableRequestFrame::isPreIssuanceValid(PreIssuanceRequest const & request)
+{
+	return AssetFrame::isAssetCodeValid(request.asset) && request.amount != 0;
+}
+
+bool ReviewableRequestFrame::isIssuanceValid(IssuanceRequest const & request)
+{
+	return AssetFrame::isAssetCodeValid(request.asset) && request.amount != 0;
 }
 
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
@@ -82,6 +105,10 @@ ReviewableRequestFrame::isValid(ReviewableRequestEntry const& oe)
 		return isAssetCreateValid(oe.body.assetCreationRequest());
 	case ReviewableRequestType::ASSET_UPDATE:
 		return isAssetUpdateValid(oe.body.assetUpdateRequest());
+	case ReviewableRequestType::ISSUANCE_CREATE:
+		return isIssuanceValid(oe.body.issuanceRequest());
+	case ReviewableRequestType::PRE_ISSUANCE_CREATE:
+		return isPreIssuanceValid(oe.body.preIssuanceRequest());
 	default:
 		return false;
 	}
@@ -115,12 +142,12 @@ void ReviewableRequestFrame::storeUpdateHelper(LedgerDelta & delta, Database & d
 
 	if (insert)
 	{
-		sql = "INSERT INTO reviewable_request (id, hash, body, requestor, reject_reason, version, lastmodified)"
-			" VALUES (:id, :hash, :body, :requestor, :reject_reason, :v, :lm)";
+		sql = "INSERT INTO reviewable_request (id, hash, body, requestor, reviewer, reference, reject_reason, version, lastmodified)"
+			" VALUES (:id, :hash, :body, :requestor, :reviewer, :reference, :reject_reason, :v, :lm)";
 	}
 	else
 	{
-		sql = "UPDATE reviewable_request SET hash=:hash, body = :body, requestor = :requestor, reject_reason = :reject_reason, version=:v, lastmodified=:lm"
+		sql = "UPDATE reviewable_request SET hash=:hash, body = :body, requestor = :requestor, reviewer = :reviewer, reference = :reference, reject_reason = :reject_reason, version=:v, lastmodified=:lm"
 			" WHERE id = :id";
 	}
 
@@ -131,6 +158,8 @@ void ReviewableRequestFrame::storeUpdateHelper(LedgerDelta & delta, Database & d
 	st.exchange(use(hash, "hash"));
 	st.exchange(use(strBody, "body"));
 	st.exchange(use(mRequest.requestor, "requestor"));
+	st.exchange(use(mRequest.reviewer, "reviewer"));
+	st.exchange(use(mRequest.reference, "reference"));
 	st.exchange(use(rejectReason, "reject_reason"));
 	st.exchange(use(version, "v"));
 	st.exchange(use(mEntry.lastModifiedLedgerSeq, "lm"));
@@ -186,14 +215,16 @@ void ReviewableRequestFrame::loadRequests(StatementContext & prep, std::function
 	LedgerEntry le;
 	le.data.type(REVIEWABLE_REQUEST);
 	ReviewableRequestEntry& oe = le.data.reviewableRequest();
-	std::string hash, requestor, body, rejectReason;
+	std::string hash, body, rejectReason;
 	int version;
 
 	statement& st = prep.statement();
 	st.exchange(into(oe.ID));
 	st.exchange(into(hash));
 	st.exchange(into(body));
-	st.exchange(into(requestor));
+	st.exchange(into(oe.requestor));
+	st.exchange(into(oe.reviewer));
+	st.exchange(into(oe.reference));
 	st.exchange(into(rejectReason));
 	st.exchange(into(version));
 	st.exchange(into(le.lastModifiedLedgerSeq));
@@ -211,7 +242,6 @@ void ReviewableRequestFrame::loadRequests(StatementContext & prep, std::function
 		xdr::xdr_argpack_archive(unmarshaler, oe.body);
 		unmarshaler.done();
 
-		oe.requestor = PubKeyUtils::fromStrKey(requestor);
 		oe.rejectReason = rejectReason;
 		oe.ext.v((LedgerVersion)version);
 		if (!isValid(oe))
@@ -244,11 +274,34 @@ bool ReviewableRequestFrame::exists(Database & db, LedgerKey const & key)
 	return exists != 0;
 }
 
+bool ReviewableRequestFrame::exists(Database & db, AccountID const & requestor, stellar::string64 reference)
+{
+	auto timer = db.getSelectTimer("reviewable_request_exists_by_reference");
+	auto prep =
+		db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM reviewable_request WHERE requestor=:requestor AND reference = :reference)");
+	auto& st = prep.statement();
+	st.exchange(use(requestor, "requestor"));
+	st.exchange(use(reference, "reference"));
+	int exists = 0;
+	st.exchange(into(exists));
+	st.define_and_bind();
+	st.execute(true);
+
+	return exists != 0;
+}
+
 uint64_t ReviewableRequestFrame::countObjects(soci::session & sess)
 {
 	uint64_t count = 0;
 	sess << "SELECT COUNT(*) FROM reviewable_request;", into(count);
 	return count;
+}
+
+bool ReviewableRequestFrame::isReferenceExist(Database & db, AccountID const & requestor, stellar::string64 reference)
+{
+	if (ReviewableRequestFrame::exists(db, requestor, reference))
+		return true;
+	return ReferenceFrame::exists(db, reference, requestor);
 }
 
 ReviewableRequestFrame::pointer ReviewableRequestFrame::loadRequest(uint64 requestID, Database & db, LedgerDelta * delta)
@@ -316,7 +369,7 @@ ReviewableRequestFrame::pointer ReviewableRequestFrame::loadRequest(uint64 reque
 	return nullptr;
 }
 
-const char* ReviewableRequestFrame::select = "SELECT id, hash, body, requestor, reject_reason, version, lastmodified FROM reviewable_request";
+const char* ReviewableRequestFrame::select = "SELECT id, hash, body, requestor, reviewer, reference, reject_reason, version, lastmodified FROM reviewable_request";
 
 void ReviewableRequestFrame::dropAll(Database & db)
 {
@@ -327,11 +380,14 @@ void ReviewableRequestFrame::dropAll(Database & db)
 	"hash          CHARACTER(64) NOT NULL,"
 	"body          TEXT          NOT NULL,"
     "requestor     VARCHAR(56)   NOT NULL,"
+	"reviewer      VARCHAR(56)   NOT NULL,"
+	"reference     VARCHAR(64),"
 	"reject_reason TEXT          NOT NULL,"
 	"version       INT           NOT NULL,"
     "lastmodified  INT           NOT NULL,"
 	"PRIMARY KEY (id)"
 		");";
+	db.getSession() << "CREATE UNIQUE INDEX requestor_reference ON reviewable_request (requestor, reference) WHERE reference IS NOT NULL;";
 }
 }
 

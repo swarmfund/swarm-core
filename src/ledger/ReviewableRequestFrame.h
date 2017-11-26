@@ -35,6 +35,8 @@ class ReviewableRequestFrame : public EntryFrame
 
 	static bool isAssetCreateValid(AssetCreationRequest const & request);
 	static bool isAssetUpdateValid(AssetUpdateRequest const& request);
+	static bool isPreIssuanceValid(PreIssuanceRequest const& request);
+	static bool isIssuanceValid(IssuanceRequest const& request);
 
   public:
     typedef std::shared_ptr<ReviewableRequestFrame> pointer;
@@ -44,7 +46,9 @@ class ReviewableRequestFrame : public EntryFrame
 
     ReviewableRequestFrame& operator=(ReviewableRequestFrame const& other);
 
-	static pointer createNew(uint64 id, AccountID requestor);
+	static pointer createNew(uint64 id, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference);
+	// creates new reviewable request and calculates hash for it
+	static pointer createNewWithHash(uint64 id, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body);
 
 	void setBody(ReviewableRequestEntry::_body_t body) {
 		mRequest.body = body;
@@ -52,6 +56,14 @@ class ReviewableRequestFrame : public EntryFrame
 
 	AccountID getRequestor() const {
 		return mRequest.requestor;
+	}
+
+	AccountID getReviewer() {
+		return mRequest.reviewer;
+	}
+
+	xdr::pointer<stellar::string64> getReference() {
+		return mRequest.reference;
 	}
 
 	uint64 getRequestID() const {
@@ -113,7 +125,10 @@ class ReviewableRequestFrame : public EntryFrame
 
 	static void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key);
 	static bool exists(Database& db, LedgerKey const& key);
+	static bool exists(Database& db, AccountID const& requestor, stellar::string64 reference);
     static uint64_t countObjects(soci::session& sess);
+	// returns true if reviewable request with such reference already exist or reference already exists
+	static bool isReferenceExist(Database& db, AccountID const& requestor, stellar::string64 reference);
 
     // database utilities
 	// loadRequest - loads request by it's id. If not found returns nullptr.

@@ -88,19 +88,6 @@ makeValid(AccountEntry& a)
 }
 
 void
-makeValid(CoinsEmissionRequestEntry& o)
-{
-    o.reference = SecretKey::random().getStrKeyPublic();
-	if (o.amount < 0)
-	{
-		o.amount = -o.amount;
-	}
-
-	clampLow<int64_t>(1, o.amount);
-	// to fulfill uniqueness constraint
-}
-
-void
 makeValid(FeeEntry& o)
 {
 	o.fixedFee = mustPositive<int64_t>(o.fixedFee);
@@ -114,32 +101,11 @@ makeValid(FeeEntry& o)
 }
 
 void
-makeValid(CoinsEmissionEntry& o)
-{
-	o.serialNumber = SecretKey::random().getStrKeyPublic();
-	if (o.amount < 0)
-	{
-		o.amount = -o.amount;
-	}
-
-	clampLow<int64_t>(1, o.amount);
-}
-
-void
 makeValid(BalanceEntry& o)
 {
-	if (o.amount < 0)
-	{
-		o.amount = -o.amount;
-	}
 
-	if (o.locked < 0)
-	{
-		o.locked = -o.locked;
-	}
-
-	clampLow<int64_t>(1, o.amount);
-	clampLow<int64_t>(1, o.locked);
+	clampLow<uint64_t>(1, o.amount);
+	clampLow<uint64_t>(1, o.locked);
 }
 
 void
@@ -272,14 +238,8 @@ LedgerEntry makeValid(LedgerEntry& le)
 	case ACCOUNT:
 		makeValid(led.account());
 		break;
-	case COINS_EMISSION_REQUEST:
-		makeValid(led.coinsEmissionRequest());
-		break;
 	case FEE:
 		makeValid(led.feeState());
-		break;
-	case COINS_EMISSION:
-		makeValid(led.coinsEmission());
 		break;
 	case BALANCE:
 		makeValid(led.balance());
@@ -291,7 +251,7 @@ LedgerEntry makeValid(LedgerEntry& le)
 		makeValid(led.asset());
 		break;
 	case REFERENCE_ENTRY:
-		makeValid(led.payment());
+		makeValid(led.reference());
 		break;
 	case ACCOUNT_TYPE_LIMITS:
 		makeValid(led.accountTypeLimits());
@@ -337,22 +297,6 @@ static auto validAccountEntryGenerator = autocheck::map(
     },
     autocheck::generator<AccountEntry>());
 
-static auto validCoinsEmissionRequestEntryGenerator = autocheck::map(
-	[](CoinsEmissionRequestEntry&& o, size_t s)
-	{
-		makeValid(o);
-		return o;
-	},
-	autocheck::generator<CoinsEmissionRequestEntry>());
-
-static auto validCoinsEmissionEntryGenerator = autocheck::map(
-	[](CoinsEmissionEntry&& o, size_t s)
-	{
-		makeValid(o);
-		return o;
-	},
-	autocheck::generator<CoinsEmissionEntry>());
-
 static auto validFeeEntryGenerator = autocheck::map(
 	[](FeeEntry&& o, size_t s)
 {
@@ -385,26 +329,6 @@ generateValidAccountEntries(size_t n)
 {
     static auto vecgen = autocheck::list_of(validAccountEntryGenerator);
     return vecgen(n);
-}
-
-CoinsEmissionRequestEntry generateCoinsEmissionRequestEntry(size_t b)
-{
-	return validCoinsEmissionRequestEntryGenerator(b);
-}
-std::vector<CoinsEmissionRequestEntry> generateCoinsEmissionRequestEntries(size_t n)
-{
-	static auto vecgen = autocheck::list_of(validCoinsEmissionRequestEntryGenerator);
-	return vecgen(n);
-}
-
-CoinsEmissionEntry generateCoinsEmissionEntry(size_t b)
-{
-	return validCoinsEmissionEntryGenerator(b);
-}
-std::vector<CoinsEmissionEntry> generateCoinsEmissionEntries(size_t n)
-{
-	static auto vecgen = autocheck::list_of(validCoinsEmissionEntryGenerator);
-	return vecgen(n);
 }
 
 FeeEntry generateFeeEntry(size_t b)

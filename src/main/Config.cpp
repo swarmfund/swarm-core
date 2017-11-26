@@ -11,6 +11,7 @@
 #include "crypto/Hex.h"
 #include "scp/LocalNode.h"
 #include <sstream>
+#include "ledger/AssetFrame.h"
 
 namespace stellar
 {
@@ -746,7 +747,7 @@ AssetCode Config::getAssetCode(std::shared_ptr<cpptoml::toml_base> rawValue, con
 		throw std::invalid_argument(errorMessage);
 	}
 	auto asset = rawValue->as<std::string>()->value();
-	if (!isAssetValid(asset))
+	if (!AssetFrame::isAssetCodeValid(asset))
 		throw std::invalid_argument(errorMessage);
 	return asset;
 }

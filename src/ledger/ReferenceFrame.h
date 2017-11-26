@@ -20,14 +20,12 @@ class StatementContext;
 class ReferenceFrame : public EntryFrame
 {
     static void
-    loadPayments(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> paymentProcessor);
+    loadReferences(StatementContext& prep,
+               std::function<void(LedgerEntry const&)> referenceProcessor);
 
-    ReferenceEntry& mPayment;
+    ReferenceEntry& mReference;
 
     ReferenceFrame(ReferenceFrame const& from);
-
-    void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
 
   public:
     typedef std::shared_ptr<ReferenceFrame> pointer;
@@ -37,6 +35,8 @@ class ReferenceFrame : public EntryFrame
 
     ReferenceFrame& operator=(ReferenceFrame const& other);
 
+	static ReferenceFrame::pointer create(AccountID sender, stellar::string64 reference);
+
     EntryFrame::pointer
     copy() const override
     {
@@ -44,14 +44,14 @@ class ReferenceFrame : public EntryFrame
     }
 
     ReferenceEntry const&
-    getPayment() const
+    getReference() const
     {
-        return mPayment;
+        return mReference;
     }
     ReferenceEntry&
-    getPayment()
+    getReference()
     {
-        return mPayment;
+        return mReference;
     }
 
     static bool isValid(ReferenceEntry const& oe);
@@ -70,13 +70,11 @@ class ReferenceFrame : public EntryFrame
     static uint64_t countObjects(soci::session& sess);
 
     // database utilities
-    static pointer loadPayment(AccountID exchange, std::string reference,
+    static pointer loadReference(AccountID exchange, std::string reference,
                              Database& db, LedgerDelta* delta = nullptr);
 
 
 
     static void dropAll(Database& db);
-    static const char* kSQLCreateStatement1;
-    static const char* kSQLCreateStatement2;
 };
 }

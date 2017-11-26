@@ -25,12 +25,6 @@ std::vector<AccountEntry> generateValidAccountEntries(size_t n);
 
 LedgerEntry makeValid(LedgerEntry& le);
 
-CoinsEmissionRequestEntry generateCoinsEmissionRequestEntry(size_t b = 3);
-std::vector<CoinsEmissionRequestEntry> generateCoinsEmissionRequestEntries(size_t n);
-
-CoinsEmissionEntry generateCoinsEmissionEntry(size_t b = 3);
-std::vector<CoinsEmissionEntry> generateCoinsEmissionEntries(size_t n);
-
 FeeEntry generateFeeEntry(size_t b);
 std::vector<FeeEntry> generateFeeEntries(size_t n);
 

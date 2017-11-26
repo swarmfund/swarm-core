@@ -4,7 +4,6 @@
 
 #include "util/asio.h"
 #include "transactions/ManageOfferOpFrame.h"
-#include "transactions/ManageCoinsEmissionRequestOpFrame.h"
 #include "OfferExchange.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"

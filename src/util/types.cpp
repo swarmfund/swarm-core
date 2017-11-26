@@ -9,7 +9,6 @@
 
 namespace stellar
 {
-static std::locale cLocale("C");
 
 using xdr::operator==;
 
@@ -220,45 +219,6 @@ bool isFeeTypeValid(FeeType feeType)
 	return false;
 }
 
-bool isAssetValid(AssetCode asset)
-{
-	bool zeros = false;
-	bool onechar = false; // at least one non zero character
-	for (uint8_t b : asset)
-	{
-		if (b == 0)
-		{
-			zeros = true;
-		}
-		else if (zeros)
-		{
-			// zeros can only be trailing
-			return false;
-		}
-		else
-		{
-			if (b > 0x7F || !std::isalnum((char)b, cLocale))
-			{
-				return false;
-			}
-			onechar = true;
-		}
-	}
-	return onechar;
-}
-
-bool isAdminOp(OperationType op)
-{
-	return op == CREATE_ACCOUNT || op == REVIEW_COINS_EMISSION_REQUEST || op == SET_FEES || op == MANAGE_ACCOUNT ||
-        op == RECOVER || op == MANAGE_ASSET_PAIR;
-}
-
-
-bool isTransferOp(OperationType op)
-{
-	return op == PAYMENT;
-}
-
 int32_t getManagerType(AccountType accountType)
 {
 	switch (accountType)
@@ -301,6 +261,12 @@ bigDivide(uint64_t& result, uint64_t A, uint64_t B, uint64_t C, Rounding roundin
     result = (uint64_t)x;
 
     return (x <= UINT64_MAX);
+}
+
+bool safeSum(uint64_t a, uint64_t b, uint64_t& result)
+{
+	result = a + b;
+	return result >= a && result >= b;
 }
 
 int64_t

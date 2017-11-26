@@ -4,7 +4,7 @@
 
 #include "simulation/LoadGenerator.h"
 #include "main/Config.h"
-#include "transactions/TxTests.h"
+#include "transactions/test/TxTests.h"
 #include "herder/Herder.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"

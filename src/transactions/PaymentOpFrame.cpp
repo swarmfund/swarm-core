@@ -3,9 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/PaymentOpFrame.h"
-#include "transactions/ManageCoinsEmissionRequestOpFrame.h"
 #include "ledger/ReferenceFrame.h"
-#include "ledger/CoinsEmissionRequestFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
 #include "medida/meter.h"

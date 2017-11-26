@@ -26,7 +26,7 @@
 #include "ExternalQueue.h"
 
 #include <regex>
-#include "transactions/TxTests.h"
+#include "transactions/test/TxTests.h"
 using namespace stellar::txtest;
 
 using std::placeholders::_1;

@@ -17,22 +17,21 @@
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/PaymentOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
-#include "transactions/ManageCoinsEmissionRequestOpFrame.h"
-#include "transactions/ReviewCoinsEmissionRequestOpFrame.h"
 #include "transactions/SetFeesOpFrame.h"
 #include "transactions/ManageAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/ManageForfeitRequestOpFrame.h"
 #include "transactions/RecoverOpFrame.h"
-#include "transactions/ReviewPaymentRequestOpFrame.h"
-#include "transactions/ManageAssetOpFrame.h"
-#include "transactions/UploadPreemissionsOpFrame.h"
+#include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
+#include "transactions/manage_asset/ManageAssetOpFrame.h"
+#include "transactions/issuance/CreatePreissuanceRequestOpFrame.h"
+#include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
 #include "transactions/SetLimitsOpFrame.h"
 #include "transactions/ManageAssetPairOpFrame.h"
 #include "transactions/ManageOfferOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
-#include "transactions/ReviewRequestOpFrame.h"
+#include "transactions/review_request/ReviewRequestOpFrame.h"
 
 #include "database/Database.h"
 
@@ -57,10 +56,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new PaymentOpFrame(op, res, tx));
     case SET_OPTIONS:
         return shared_ptr<OperationFrame>(new SetOptionsOpFrame(op, res, tx));
-	case MANAGE_COINS_EMISSION_REQUEST:
-		return shared_ptr<OperationFrame>(new ManageCoinsEmissionRequestOpFrame(op, res, tx));
-	case REVIEW_COINS_EMISSION_REQUEST:
-		return shared_ptr<OperationFrame>(new ReviewCoinsEmissionRequestOpFrame(op, res, tx));
+	case CREATE_ISSUANCE_REQUEST:
+		return shared_ptr<OperationFrame>(new CreateIssuanceRequestOpFrame(op, res, tx));
     case SET_FEES:
         return shared_ptr<OperationFrame>(new SetFeesOpFrame(op, res, tx));
 	case MANAGE_ACCOUNT:
@@ -75,8 +72,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
 		return shared_ptr<OperationFrame>(new ReviewPaymentRequestOpFrame(op, res, tx));
     case MANAGE_ASSET:
 		return shared_ptr<OperationFrame>(ManageAssetOpFrame::makeHelper(op, res, tx));
-    case UPLOAD_PREEMISSIONS:
-		return shared_ptr<OperationFrame>(new UploadPreemissionsOpFrame(op, res, tx));
+    case CREATE_PREISSUANCE_REQUEST:
+		return shared_ptr<OperationFrame>(new CreatePreIssuanceRequestOpFrame(op, res, tx));
     case SET_LIMITS:
 		return shared_ptr<OperationFrame>(new SetLimitsOpFrame(op, res, tx));
 	case MANAGE_ASSET_PAIR:
@@ -204,14 +201,16 @@ OperationFrame::createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, 
     return entry;
 }
 
+[[deprecated]]
 void
 OperationFrame::createReferenceEntry(string reference, LedgerDelta* delta, Database& db)
 {
     LedgerEntry le;
     le.data.type(REFERENCE_ENTRY);
-    ReferenceEntry& entry = le.data.payment();
+    ReferenceEntry& entry = le.data.reference();
 
     entry.reference = reference;
+	entry.sender = getSourceID();
     auto referenceFrame = std::make_shared<ReferenceFrame>(le);
     referenceFrame->storeAdd(*delta, db);
 }

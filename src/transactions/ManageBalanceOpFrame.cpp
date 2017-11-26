@@ -102,7 +102,7 @@ ManageBalanceOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    if (!isAssetValid(mManageBalance.asset))
+    if (!AssetFrame::isAssetCodeValid(mManageBalance.asset))
     {
         app.getMetrics().NewMeter({"op-manage-asset", "invalid",
                           "malformed-invalid-asset"},

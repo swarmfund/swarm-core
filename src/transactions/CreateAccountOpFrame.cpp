@@ -35,7 +35,7 @@ SourceDetails CreateAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
 {
 	int32_t threshold = mSourceAccount->getMediumThreshold();
 	uint32_t allowedSignerClass = 0;
-	switch (mCreateAccount.details.accountType())
+	switch (mCreateAccount.accountType)
 	{
 	case NOT_VERIFIED:
 		allowedSignerClass = SIGNER_NOT_VERIFIED_ACC_MANAGER;
@@ -88,7 +88,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta, L
 	auto destAccountFrame = make_shared<AccountFrame>(mCreateAccount.destination);
 	auto& destAccount = destAccountFrame->getAccount();
 
-	destAccount.accountType = mCreateAccount.details.accountType();
+	destAccount.accountType = mCreateAccount.accountType;
 	trySetReferrer(app, db, destAccountFrame);
 	trySetPolicies(destAccount);
 
@@ -146,8 +146,8 @@ CreateAccountOpFrame::doApply(Application& app,
 	
 	auto accountType = destAccountFrame->getAccountType();
 	// it is only allowed to change account type from not verified to general
-	bool isChangingAccountType = accountType != mCreateAccount.details.accountType();
-	bool isNotVerifiedToGeneral = accountType == NOT_VERIFIED && mCreateAccount.details.accountType() == GENERAL;
+	bool isChangingAccountType = accountType != mCreateAccount.accountType;
+	bool isNotVerifiedToGeneral = accountType == NOT_VERIFIED && mCreateAccount.accountType == GENERAL;
 	if (isChangingAccountType && !isNotVerifiedToGeneral)
 	{
 		app.getMetrics().NewMeter({ "op-create-account", "invalid", "account-type-not-allowed" }, "operation").Mark();
@@ -155,7 +155,7 @@ CreateAccountOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	destAccountFrame->setAccountType(mCreateAccount.details.accountType());
+	destAccountFrame->setAccountType(mCreateAccount.accountType);
 
 	trySetPolicies(destAccountFrame->getAccount());
 
@@ -179,7 +179,7 @@ CreateAccountOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-	if (mCreateAccount.details.accountType() == AccountType::NOT_VERIFIED && mCreateAccount.ext.v() == LedgerVersion::ACCOUNT_POLICIES &&
+	if (mCreateAccount.accountType == AccountType::NOT_VERIFIED && mCreateAccount.ext.v() == LedgerVersion::ACCOUNT_POLICIES &&
 		mCreateAccount.ext.policies() != 0)
 	{
 		app.getMetrics().NewMeter({ "op-create-account", "invalid", "account-type-not-allowed" }, "operation").Mark();
@@ -187,7 +187,7 @@ CreateAccountOpFrame::doCheckValid(Application& app)
 		return false;
 	}
 
-	if (isSystemAccountType(mCreateAccount.details.accountType()))
+	if (isSystemAccountType(mCreateAccount.accountType))
 	{
 		app.getMetrics().NewMeter({ "op-create-account", "invalid", "account-type-not-allowed" }, "operation").Mark();
 		innerResult().code(CREATE_ACCOUNT_TYPE_NOT_ALLOWED);

@@ -395,7 +395,7 @@ createCreateAccountTx(Hash const& networkID, SecretKey& from, SecretKey& to,
     Operation op;
     op.body.type(CREATE_ACCOUNT);
     op.body.createAccountOp().destination = to.getPublicKey();
-	op.body.createAccountOp().details.accountType(accountType);
+	op.body.createAccountOp().accountType = accountType;
 
 	if (policies != -1)
 	{

@@ -34,16 +34,6 @@ class LedgerHeaderFrame
 
     Hash const& getHash() const;
 
-	bool useSignerName() const
-	{
-		return mHeader.ledgerVersion >= LedgerVersion::SIGNER_NAME;
-	}
-
-	bool useAccountPolicies() const
-	{
-		return mHeader.ledgerVersion >= LedgerVersion::ACCOUNT_POLICIES;
-	}
-
 	bool useImprovedStatsCalculation() const {
 		return mHeader.ledgerVersion >= LedgerVersion::IMPROVED_STATS_CALCULATION;
 	}

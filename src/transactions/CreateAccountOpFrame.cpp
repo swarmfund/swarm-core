@@ -41,7 +41,7 @@ SourceDetails CreateAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
 		allowedSignerClass = SIGNER_NOT_VERIFIED_ACC_MANAGER;
 		break;
 	case GENERAL:
-		if (mCreateAccount.ext.v() == LedgerVersion::ACCOUNT_POLICIES && mCreateAccount.ext.policies() != 0)
+		if (mCreateAccount.policies != 0)
 		{
 			allowedSignerClass = SIGNER_GENERAL_ACC_MANAGER;
 			break;
@@ -90,7 +90,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta, L
 
 	destAccount.accountType = mCreateAccount.accountType;
 	trySetReferrer(app, db, destAccountFrame);
-	trySetPolicies(destAccount);
+	destAccount.policies = mCreateAccount.policies;
 
 	destAccountFrame->storeAdd(delta, db);
 
@@ -113,16 +113,6 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta, L
 	return true;
 }
 
-void CreateAccountOpFrame::trySetPolicies(AccountEntry& account)
-{
-
-	if (mCreateAccount.ext.v() != LedgerVersion::ACCOUNT_POLICIES)
-		return;
-
-	account.ext.v(LedgerVersion::ACCOUNT_POLICIES);
-	account.ext.policies() = mCreateAccount.ext.policies();
-}
-
 bool
 CreateAccountOpFrame::doApply(Application& app,
                               LedgerDelta& delta, LedgerManager& ledgerManager)
@@ -131,14 +121,6 @@ CreateAccountOpFrame::doApply(Application& app,
 	innerResult().code(CREATE_ACCOUNT_SUCCESS);
 
     auto destAccountFrame = AccountFrame::loadAccount(delta, mCreateAccount.destination, db);
-
-	if (ledgerManager.getCurrentLedgerHeader().ledgerVersion < mCreateAccount.ext.v())
-	{
-		app.getMetrics().NewMeter({ "op-create-account", "invalid", "invalid_account_version" }, "operation").Mark();
-		innerResult().code(CREATE_ACCOUNT_INVALID_ACCOUNT_VERSION);
-		return false;
-	}
-
     if (!destAccountFrame)
     {
 		return createAccount(app, delta, ledgerManager);
@@ -156,8 +138,8 @@ CreateAccountOpFrame::doApply(Application& app,
 	}
 
 	destAccountFrame->setAccountType(mCreateAccount.accountType);
-
-	trySetPolicies(destAccountFrame->getAccount());
+	AccountEntry& accountEntry = destAccountFrame->getAccount();
+	accountEntry.policies = mCreateAccount.policies;
 
 	destAccountFrame->storeChange(delta, db);
 
@@ -179,8 +161,7 @@ CreateAccountOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-	if (mCreateAccount.accountType == AccountType::NOT_VERIFIED && mCreateAccount.ext.v() == LedgerVersion::ACCOUNT_POLICIES &&
-		mCreateAccount.ext.policies() != 0)
+	if (mCreateAccount.accountType == AccountType::NOT_VERIFIED && mCreateAccount.policies != 0)
 	{
 		app.getMetrics().NewMeter({ "op-create-account", "invalid", "account-type-not-allowed" }, "operation").Mark();
 		innerResult().code(CREATE_ACCOUNT_TYPE_NOT_ALLOWED);

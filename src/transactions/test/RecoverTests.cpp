@@ -76,11 +76,11 @@ TEST_CASE("Recover", "[dep_tx][recover]")
 		SECTION("Remove all old signers and add new with high threshold")
 		{
 			auto signerType = getAnySignerType();
-			Signer sk1(s1.getPublicKey(), 3, signerType, 1, Signer::_ext_t{});
+			Signer sk1(s1.getPublicKey(), 3, signerType, 1, "", Signer::_ext_t{});
 			auto aSeq = 1;
 			applySetOptions(app, accountA, aSeq++, nullptr, &sk1);
 			auto s2 = SecretKey::random();
-			Signer sk2(s2.getPublicKey(), 3, signerType, 2, Signer::_ext_t{});
+			Signer sk2(s2.getPublicKey(), 3, signerType, 2, "", Signer::_ext_t{});
 			applySetOptions(app, accountA, aSeq++, nullptr, &sk2);
 			ThresholdSetter th;
 			th.highThreshold = make_optional<uint8_t>(100);

@@ -399,7 +399,7 @@ createCreateAccountTx(Hash const& networkID, SecretKey& from, SecretKey& to,
 
 	if (policies != -1)
 	{
-		op.body.createAccountOp().ext.v(ACCOUNT_POLICIES).policies() = policies;
+		op.body.createAccountOp().policies = policies;
 	}
 
     if (referrer)

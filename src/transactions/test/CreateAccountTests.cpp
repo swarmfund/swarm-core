@@ -54,14 +54,7 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 			auto accountFrame = AccountFrame::loadAccount(accountID, app.getDatabase(), &delta);
 			REQUIRE(accountFrame);
 			REQUIRE(accountFrame->getAccount().ext.v() == expectedAccountVersion);
-			if (expectedAccountVersion != LedgerVersion::ACCOUNT_POLICIES)
-			{
-				if (expectedPolicies != -1)
-					throw std::invalid_argument("Invalid expected policies for provided expected account version");
-				return;
-			}
-
-			REQUIRE(accountFrame->getAccount().ext.policies() == expectedPolicies);
+			REQUIRE(accountFrame->getAccount().policies == expectedPolicies);
 		};
 		SECTION("Can update created without policies")
 		{
@@ -70,28 +63,28 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 			// can update account without polices
 			applyCreateAccountTx(app, rootKP, account, rootSeq++, GENERAL, nullptr, &validReferrer, CREATE_ACCOUNT_SUCCESS,
 				AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
-			checkAccountPolicies(account.getPublicKey(), LedgerVersion::ACCOUNT_POLICIES, AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
+			checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
 
 			// can update account without changing policies
 			applyCreateAccountTx(app, rootKP, account, rootSeq++, GENERAL, nullptr, &validReferrer);
-			checkAccountPolicies(account.getPublicKey(), LedgerVersion::ACCOUNT_POLICIES, AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
+			checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
 
 			// can update account with policies
 			applyCreateAccountTx(app, rootKP, account, rootSeq++, GENERAL, nullptr, &validReferrer, CREATE_ACCOUNT_SUCCESS,
 				AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
-			checkAccountPolicies(account.getPublicKey(), LedgerVersion::ACCOUNT_POLICIES, AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
+			checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
 
 			// can remove
 			applyCreateAccountTx(app, rootKP, account, rootSeq++, GENERAL, nullptr, &validReferrer, CREATE_ACCOUNT_SUCCESS,
 				AccountPolicies::NO_PERMISSIONS);
-			checkAccountPolicies(account.getPublicKey(), LedgerVersion::ACCOUNT_POLICIES, AccountPolicies::NO_PERMISSIONS);
+			checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, AccountPolicies::NO_PERMISSIONS);
 		}
 		
 		SECTION("Can create account with policies")
 		{
 			applyCreateAccountTx(app, rootKP, account, rootSeq++, GENERAL, nullptr, &validReferrer, CREATE_ACCOUNT_SUCCESS,
 				AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
-			checkAccountPolicies(account.getPublicKey(), LedgerVersion::ACCOUNT_POLICIES, AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
+			checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API);
 		}
 	}
 	SECTION("Can't create account with non-zero policies and NON_VERYFIED type")
@@ -126,7 +119,7 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 			th.medThreshold = make_optional<uint8_t>(50);
 			th.highThreshold = make_optional<uint8_t>(100);
 			auto s1KP = SecretKey::random();
-			auto s1 = Signer(s1KP.getPublicKey(), (*th.medThreshold.get()) - 1, SIGNER_GENERAL_ACC_MANAGER, 1, Signer::_ext_t{});
+			auto s1 = Signer(s1KP.getPublicKey(), (*th.medThreshold.get()) - 1, SIGNER_GENERAL_ACC_MANAGER, 1, "", Signer::_ext_t{});
 			applySetOptions(app, rootKP, rootSeq++, &th, &s1);
 			auto createAccount = createCreateAccountTx(app.getNetworkID(), rootKP, account, rootSeq++, GENERAL);
 			createAccount->getEnvelope().signatures.clear();
@@ -142,7 +135,7 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 			for (auto signerType = signerTypes.begin();
                 signerType != signerTypes.end(); ++signerType)
 			{
-				auto s1 = Signer(s1KP.getPublicKey(), root->getMediumThreshold() + 1, *signerType, 1, Signer::_ext_t{});
+				auto s1 = Signer(s1KP.getPublicKey(), root->getMediumThreshold() + 1, *signerType, 1, "", Signer::_ext_t{});
 				applySetOptions(app, rootKP, rootSeq++, nullptr, &s1);
 				account = SecretKey::random();
 				auto createAccount = createCreateAccountTx(app.getNetworkID(), rootKP, account, rootSeq++, GENERAL);

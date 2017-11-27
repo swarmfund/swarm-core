@@ -81,10 +81,7 @@ class AccountFrame : public EntryFrame
 
 	bool checkPolicy(AccountPolicies policy) const
 	{
-		if (mAccountEntry.ext.v() != LedgerVersion::ACCOUNT_POLICIES)
-			return false;
-
-		return (mAccountEntry.ext.policies() & policy) == policy;
+		return (mAccountEntry.policies & policy) == policy;
 	}
 
     uint32_t getMasterWeight() const;

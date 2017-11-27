@@ -63,7 +63,7 @@ vector<Signer> SignatureValidator::getSigners(Application& app, Database& db, Ac
 	vector<Signer> signers;
 	if (account.getAccount().thresholds[0])
 		signers.push_back(
-			Signer(account.getID(), account.getAccount().thresholds[0], getAnySignerType(), 0, Signer::_ext_t{}));
+			Signer(account.getID(), account.getAccount().thresholds[0], getAnySignerType(), 0, "", Signer::_ext_t{}));
 
 	auto accountSigners = account.getAccount().signers;
 	signers.insert(signers.end(), accountSigners.begin(), accountSigners.end());

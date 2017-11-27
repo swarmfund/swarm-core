@@ -52,7 +52,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
     SECTION("Signers")
     {
         SecretKey s1 = getAccount("S1");
-        Signer sk1(s1.getPublicKey(), 1, getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 1, Signer::_ext_t{}); // low right account
+        Signer sk1(s1.getPublicKey(), 1, getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 1, "", Signer::_ext_t{}); // low right account
 
         ThresholdSetter th;
 
@@ -67,7 +67,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 
 			SecretKey regularKP = getAccount("regular");
 			auto a1Account = loadAccount(a1, app);
-			Signer regular(regularKP.getPublicKey(), a1Account->getHighThreshold(), getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 2, Signer::_ext_t{}); // high right regular account
+			Signer regular(regularKP.getPublicKey(), a1Account->getHighThreshold(), getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 2, "", Signer::_ext_t{}); // high right regular account
 			applySetOptions(app, a1, a1seq++, nullptr, &regular);
 
 			LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
@@ -76,7 +76,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 			SECTION("Can't add new signer")
 			{
 				SecretKey s2KP = getAccount("s2");
-				Signer s2(s2KP.getPublicKey(), a1Account->getHighThreshold(), getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 2, Signer::_ext_t{}); // high right regular account
+				Signer s2(s2KP.getPublicKey(), a1Account->getHighThreshold(), getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 2, "", Signer::_ext_t{}); // high right regular account
 				auto tx = createSetOptions(app.getNetworkID(), a1, a1seq++, nullptr, &s2);
 				tx->getEnvelope().signatures.clear();
 				tx->addSignature(regularKP);
@@ -95,7 +95,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 		}
         SECTION("can't use master key as alternate signer")
         {
-            Signer sk(a1.getPublicKey(), 100, getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 0, Signer::_ext_t{});
+            Signer sk(a1.getPublicKey(), 100, getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 0, "", Signer::_ext_t{});
             applySetOptions(app, a1, a1seq++, nullptr, &sk, nullptr, SET_OPTIONS_BAD_SIGNER);
         }
 
@@ -116,33 +116,20 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 			REQUIRE(false);
 		};
 
-		SECTION("Only update the version of signer")
-		{
-			SecretKey regularKP = getAccount("regular");
-			auto a1Account = loadAccount(a1, app);
-			Signer regular(regularKP.getPublicKey(), 10, getAnySignerType(), 2, Signer::_ext_t{});
-			applySetOptions(app, a1, a1seq++, nullptr, &regular);
-			checkSignerName(a1.getPublicKey(), regular);
-
-			// update the version
-			regular.ext.v(LedgerVersion::SIGNER_NAME);
-			applySetOptions(app, a1, a1seq++, nullptr, &regular);
-			checkSignerName(a1.getPublicKey(), regular);
-		}
 		SECTION("Can set and update signer name")
 		{
 			SecretKey regularKP = getAccount("regular");
 			auto a1Account = loadAccount(a1, app);
-			Signer regular(regularKP.getPublicKey(), 10, getAnySignerType(), 2, Signer::_ext_t{}); // high right regular account
+			Signer regular(regularKP.getPublicKey(), 10, getAnySignerType(), 2, "", Signer::_ext_t{}); // high right regular account
 
 			std::string name = "Test signer name";
-			regular.ext.v(LedgerVersion::SIGNER_NAME).name() = name;
+			regular.name = name;
 			applySetOptions(app, a1, a1seq++, nullptr, &regular);
 			checkSignerName(a1.getPublicKey(), regular);
 
 			//update signer name
 			name += "New";
-			regular.ext.v(LedgerVersion::SIGNER_NAME).name() = name;
+			regular.name = name;
 			applySetOptions(app, a1, a1seq++, nullptr, &regular);
 			checkSignerName(a1.getPublicKey(), regular);
 
@@ -262,7 +249,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 
             // add signer 2
             SecretKey s2 = getAccount("S2");
-            Signer sk2(s2.getPublicKey(), 100, getAnySignerType(), 2, Signer::_ext_t{});
+            Signer sk2(s2.getPublicKey(), 100, getAnySignerType(), 2, "", Signer::_ext_t{});
             applySetOptions(app, a1, a1seq++, nullptr, &sk2);
 
 			checkSigner(app, sk1, 2, a1);

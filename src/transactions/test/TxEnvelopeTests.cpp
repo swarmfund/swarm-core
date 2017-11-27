@@ -111,7 +111,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
         Salt a1Seq = 1;
 
         SecretKey s1 = getAccount("S1");
-        Signer sk1(s1.getPublicKey(), 5, getAnySignerType(), 1, Signer::_ext_t{}); // below low rights
+        Signer sk1(s1.getPublicKey(), 5, getAnySignerType(), 1, "", Signer::_ext_t{}); // below low rights
 
         ThresholdSetter th;
 
@@ -123,7 +123,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
         applySetOptions(app, a1, a1Seq++, &th, &sk1);
 
         SecretKey s2 = getAccount("S2");
-        Signer sk2(s2.getPublicKey(), 95, getAnySignerType(), 2, Signer::_ext_t{}); // med rights account
+        Signer sk2(s2.getPublicKey(), 95, getAnySignerType(), 2,  "", Signer::_ext_t{}); // med rights account
 
         applySetOptions(app, a1, a1Seq++, nullptr, &sk2);
 
@@ -188,7 +188,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 		SECTION("Same identity can't sign twice")
 		{
 			SecretKey s1Bakup = getAccount("S1Backup");
-			Signer sk1Backup(s1Bakup.getPublicKey(), 95, getAnySignerType(), 1, Signer::_ext_t{}); // med rights
+			Signer sk1Backup(s1Bakup.getPublicKey(), 95, getAnySignerType(), 1, "", Signer::_ext_t{}); // med rights
 			applySetOptions(app, a1, a1Seq++, nullptr, &sk1Backup);
 
 
@@ -316,7 +316,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                     createSetOptions(networkID, a1, a1Seq++,&th, nullptr);
                 SECTION("one invalid tx")
                 {
-					Signer sk(b1.getPublicKey(), 100, getAnySignerType(), 0, Signer::_ext_t{});
+					Signer sk(b1.getPublicKey(), 100, getAnySignerType(), 0, "", Signer::_ext_t{});
 
 					// invalid amount
                     TransactionFramePtr tx_b =
@@ -391,7 +391,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                 SECTION("both success")
                 {
                     auto b1signer = SecretKey::random();
-                    Signer sk(b1signer.getPublicKey(), 100, getAnySignerType(), 0, Signer::_ext_t{});
+                    Signer sk(b1signer.getPublicKey(), 100, getAnySignerType(), 0, "", Signer::_ext_t{});
 
 					// invalid amount
                     TransactionFramePtr tx_b =

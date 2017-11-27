@@ -222,15 +222,7 @@ AccountFrame::loadAccount(AccountID const& accountID, Database& db, LedgerDelta*
     }
 	account.accountType = AccountType(accountType);
 	account.ext.v((LedgerVersion)accountVersion);
-
-	if (accountVersion == LedgerVersion::ACCOUNT_POLICIES)
-	{
-		account.ext.policies() = accountPolicies;
-	}
-	else if (accountPolicies != 0)
-	{
-		throw std::runtime_error("Invalid account version");
-	}
+	account.policies = accountPolicies;
 	
     if (referrer != "")
         account.referrer.activate() = PubKeyUtils::fromStrKey(referrer);
@@ -292,17 +284,7 @@ AccountFrame::loadSigners(Database& db, std::string const& actIDStrKey, LedgerDe
     while (st2.got_data())
     {
         signer.pubKey = PubKeyUtils::fromStrKey(pubKey);
-		if (signerVersion == LedgerVersion::SIGNER_NAME)
-		{
-			signer.ext.v(LedgerVersion::SIGNER_NAME).name() = signerName;
-		}
-		else
-		{
-			if (signerName != "")
-			{
-				throw std::runtime_error("Invalid signer version");
-			}
-		}
+		signer.name = signerName;
         res.push_back(signer);
         st2.fetch();
     }
@@ -395,12 +377,7 @@ AccountFrame::storeUpdate(LedgerDelta& delta, Database& db, bool insert)
         refIDStrKey = PubKeyUtils::toStrKey(*mAccountEntry.referrer);
 
 	int32_t newAccountVersion = mAccountEntry.ext.v();
-	uint32 newAccountPolicies = 0;
-
-	if (mAccountEntry.ext.v() == LedgerVersion::ACCOUNT_POLICIES)
-	{
-		newAccountPolicies = mAccountEntry.ext.policies();
-	}
+	uint32 newAccountPolicies = mAccountEntry.policies;
 
     std::string sql;
 
@@ -491,13 +468,7 @@ void AccountFrame::deleteSigner(Database& db, std::string const& accountID, Acco
 
 void AccountFrame::signerStoreChange(Database& db, LedgerDelta& delta, std::string const& accountID, std::vector<Signer>::iterator const& signer, bool insert) {
 	int32_t newSignerVersion = signer->ext.v();
-	std::string newSignerName = "";
-	// WARN: this leads to checkDB error, however we need to keep it to make sure that history is ok.
-	bool signerNameAllowed = delta.getHeaderFrame().useSignerName();
-	if (signerNameAllowed && newSignerVersion == LedgerVersion::SIGNER_NAME)
-	{
-		newSignerName = signer->ext.name();
-	}
+	std::string newSignerName = signer->name;
 
 	std::string signerStrKey = PubKeyUtils::toStrKey(signer->pubKey);
 	auto timer = insert ? db.getInsertTimer("signer") : db.getUpdateTimer("signer");

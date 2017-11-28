@@ -139,19 +139,6 @@ Database::applySchemaUpgrade(unsigned long vers)
 	case databaseSchemaVersion::DROP_BAN:
         BanManager::dropAll(*this);
         break;
-	case databaseSchemaVersion::ADD_SIGNER_NAME:
-		AccountFrame::addSignerName(*this);
-		break;
-	case databaseSchemaVersion::ADD_SIGNER_VERSION:
-		AccountFrame::addSignerVersion(*this);
-		break;
-	case databaseSchemaVersion::ADD_ACCOUNT_POLICIES:
-		AccountFrame::addAccountPolicies(*this);
-		break;
-	case databaseSchemaVersion::ADD_ACCOUNT_CREATED_AT:
-		AccountFrame::addCreatedAt(*this);
-		break;
-
     default:
         throw std::runtime_error("Unknown DB schema version");
         break;

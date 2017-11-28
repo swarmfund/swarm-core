@@ -59,7 +59,7 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 			if (expectedPolicies != -1)
 				REQUIRE(accountFrame->getAccount().policies == expectedPolicies);
 		};
-		SECTION("Can update created")
+		SECTION("Can update created without policies")
 		{
 			applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::NOT_VERIFIED, nullptr, &validReferrer);
 			checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, -1);

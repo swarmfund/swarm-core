@@ -16,7 +16,7 @@ using namespace soci;
 namespace stellar
 {
 
-ReferenceFrame::ReferenceFrame() : EntryFrame(REFERENCE_ENTRY), mReference(mEntry.data.reference())
+ReferenceFrame::ReferenceFrame() : EntryFrame(LedgerEntryType::REFERENCE_ENTRY), mReference(mEntry.data.reference())
 {
 }
 

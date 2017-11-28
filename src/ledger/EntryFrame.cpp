@@ -355,7 +355,7 @@ namespace stellar {
             case LedgerEntryType::INVOICE:
                 InvoiceFrame::storeDelete(delta, db, key);
                 break;
-            case LedgerrEntryType::REVIEWABLE_REQUEST:
+            case LedgerEntryType::REVIEWABLE_REQUEST:
 				ReviewableRequestFrame::storeDelete(delta, db, key);
 				break;
             default: {

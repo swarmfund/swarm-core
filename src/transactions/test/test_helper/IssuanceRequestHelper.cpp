@@ -50,7 +50,7 @@ namespace txtest
 		CreatePreIssuanceRequestOp& createPreIssuanceRequestOp = op.body.createPreIssuanceRequest();
 		createPreIssuanceRequestOp.request.amount = amount;
 		createPreIssuanceRequestOp.request.asset = assetCode;
-		createPreIssuanceRequestOp.reference = reference;
+		createPreIssuanceRequestOp.request.reference = reference;
 		createPreIssuanceRequestOp.request.signature = createPreIssuanceRequestSignature(preIssuedAssetSigner, assetCode, amount, reference);
 		createPreIssuanceRequestOp.request.ext.v(LedgerVersion::EMPTY_VERSION);
 		createPreIssuanceRequestOp.ext.v(LedgerVersion::EMPTY_VERSION);

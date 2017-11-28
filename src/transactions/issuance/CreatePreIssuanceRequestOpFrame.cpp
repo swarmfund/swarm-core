@@ -33,7 +33,7 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
                             LedgerDelta& delta, LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-	if (ReviewableRequestFrame::isReferenceExist(db, getSourceID(), mCreatePreIssuanceRequest.reference)) {
+	if (ReviewableRequestFrame::isReferenceExist(db, getSourceID(), mCreatePreIssuanceRequest.request.reference)) {
 		innerResult().code(CREATE_PREISSUANCE_REQUEST_REFERENCE_DUPLICATION);
 		return false;
 	}
@@ -59,7 +59,7 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	auto reference = xdr::pointer<stellar::string64>(new stellar::string64(mCreatePreIssuanceRequest.reference));
+	auto reference = xdr::pointer<stellar::string64>(new stellar::string64(mCreatePreIssuanceRequest.request.reference));
 	ReviewableRequestEntry::_body_t requestBody;
 	requestBody.type(ReviewableRequestType::PRE_ISSUANCE_CREATE);
 	requestBody.preIssuanceRequest() = mCreatePreIssuanceRequest.request;
@@ -84,7 +84,7 @@ CreatePreIssuanceRequestOpFrame::doCheckValid(Application& app)
 		return false;
 	}
 
-	if (mCreatePreIssuanceRequest.reference.empty()) {
+	if (mCreatePreIssuanceRequest.request.reference.empty()) {
 		innerResult().code(CREATE_PREISSUANCE_REQUEST_INVALID_REFERENCE);
 		return false;
 	}
@@ -112,7 +112,7 @@ SourceDetails CreatePreIssuanceRequestOpFrame::getSourceAccountDetails(std::unor
 bool CreatePreIssuanceRequestOpFrame::isSignatureValid(AssetFrame::pointer asset)
 {
 	auto& request = mCreatePreIssuanceRequest.request;
-	auto signatureData = getSignatureData(mCreatePreIssuanceRequest.reference, request.amount, request.asset);
+	auto signatureData = getSignatureData(mCreatePreIssuanceRequest.request.reference, request.amount, request.asset);
 	auto signatureValidator = SignatureValidator(signatureData, { request.signature });
 
 	const int VALID_SIGNATURES_REQUIRED = 1;

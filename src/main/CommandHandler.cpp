@@ -26,7 +26,7 @@
 #include "ExternalQueue.h"
 
 #include <regex>
-#include "transactions/TxTests.h"
+#include "transactions/test/TxTests.h"
 using namespace stellar::txtest;
 
 using std::placeholders::_1;
@@ -199,7 +199,7 @@ CommandHandler::testTx(std::string const& params, std::string& retStr)
         TransactionFramePtr txFrame;
         if (create != retMap.end() && create->second == "true")
         {
-            txFrame = createCreateAccountTx(networkID, fromKey, toKey, fromSeq, GENERAL);
+            txFrame = createCreateAccountTx(networkID, fromKey, toKey, fromSeq, AccountType::GENERAL);
         }
         else
         {
@@ -860,7 +860,7 @@ CommandHandler::tx(std::string const& params, std::string& retStr)
                 if (status == Herder::TX_STATUS_PENDING)
                 {
                     StellarMessage msg;
-                    msg.type(TRANSACTION);
+                    msg.type(MessageType::TRANSACTION);
                     msg.transaction() = envelope;
                     mApp.getOverlayManager().broadcastMessage(msg);
                 }

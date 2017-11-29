@@ -423,7 +423,7 @@ OverlayManagerImpl::shutdown()
     auto peersToStop = mPeers;
     for (auto& p : peersToStop)
     {
-        p->drop(ERR_MISC, "peer shutdown");
+        p->drop(ErrorCode::MISC, "peer shutdown");
     }
 }
 

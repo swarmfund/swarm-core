@@ -23,13 +23,15 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> DirectDebitOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{
-		{mDirectDebit.from, CounterpartyDetails({GENERAL, OPERATIONAL, COMMISSION }, false, true)}
+		{mDirectDebit.from, CounterpartyDetails({AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, false, true)}
 	};
 }
 
 SourceDetails DirectDebitOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({ NOT_VERIFIED, GENERAL, OPERATIONAL, COMMISSION }, mSourceAccount->getMediumThreshold(), SIGNER_DIRECT_DEBIT_OPERATOR);
+	return SourceDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION },
+                         mSourceAccount->getMediumThreshold(),
+                         static_cast<int32_t >(SignerType::DIRECT_DEBIT_OPERATOR));
 }
 
 DirectDebitOpFrame::DirectDebitOpFrame(Operation const& op, OperationResult& res,
@@ -49,18 +51,18 @@ DirectDebitOpFrame::doApply(Application& app, LedgerDelta& delta,
         app.getMetrics()
             .NewMeter({"op-direct-debit", "failed", "apply"}, "operation")
             .Mark();
-        innerResult().code(DIRECT_DEBIT_NO_TRUST);
+        innerResult().code(DirectDebitResultCode::NO_TRUST);
         return false;
     }
 
     Operation op;
     op.sourceAccount.activate() = mDirectDebit.from;
-    op.body.type(PAYMENT);
+    op.body.type(OperationType::PAYMENT);
     op.body.paymentOp() = mDirectDebit.paymentOp;
 
     OperationResult opRes;
-    opRes.code(opINNER);
-    opRes.tr().type(PAYMENT);
+    opRes.code(OperationResultCode::opINNER);
+    opRes.tr().type(OperationType::PAYMENT);
     PaymentOpFrame payment(op, opRes, mParentTx);
     
     auto fromAccount = AccountFrame::loadAccount(delta, mDirectDebit.from, db);
@@ -70,7 +72,7 @@ DirectDebitOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (!payment.doCheckValid(app) ||
         !payment.doApply(app, delta, ledgerManager))
     {
-        if (payment.getResultCode() != opINNER)
+        if (payment.getResultCode() != OperationResultCode::opINNER)
         {
             throw std::runtime_error("Unexpected error code from payment");
         }
@@ -81,14 +83,14 @@ DirectDebitOpFrame::doApply(Application& app, LedgerDelta& delta,
     }
 
     assert(PaymentOpFrame::getInnerCode(payment.getResult()) ==
-           PAYMENT_SUCCESS);
+           PaymentResultCode::SUCCESS);
     auto paymentResult = payment.getResult();
     innerResult().success().paymentResponse = paymentResult.tr().paymentResult().paymentResponse();
 
     app.getMetrics()
         .NewMeter({"op-direct-debit", "success", "apply"}, "operation")
         .Mark();
-    innerResult().code(DIRECT_DEBIT_SUCCESS);
+    innerResult().code(DirectDebitResultCode::SUCCESS);
 
     return true;
 }
@@ -102,7 +104,7 @@ DirectDebitOpFrame::doCheckValid(Application& app)
             .NewMeter({"op-direct-debit", "invalid", "malformed-from-self"},
                       "operation")
             .Mark();
-        innerResult().code(DIRECT_DEBIT_MALFORMED);
+        innerResult().code(DirectDebitResultCode::MALFORMED);
         return false;
     }
     return true;

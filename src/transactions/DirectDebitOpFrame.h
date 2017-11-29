@@ -20,19 +20,19 @@ class DirectDebitOpFrame : public OperationFrame
 
     std::map<PaymentResultCode, DirectDebitResultCode> paymentCodeToDebitCode = 
         {
-            {PAYMENT_SUCCESS, DIRECT_DEBIT_SUCCESS},
-            {PAYMENT_MALFORMED, DIRECT_DEBIT_MALFORMED},
-            {PAYMENT_UNDERFUNDED, DIRECT_DEBIT_UNDERFUNDED},
-            {PAYMENT_LINE_FULL, DIRECT_DEBIT_LINE_FULL},
-            {PAYMENT_FEE_MISMATCHED, DIRECT_DEBIT_FEE_MISMATCHED},
-            {PAYMENT_BALANCE_NOT_FOUND, DIRECT_DEBIT_BALANCE_NOT_FOUND},
-            {PAYMENT_BALANCE_ACCOUNT_MISMATCHED, DIRECT_DEBIT_BALANCE_ACCOUNT_MISMATCHED},
-            {PAYMENT_BALANCE_ASSETS_MISMATCHED, DIRECT_DEBIT_BALANCE_ASSETS_MISMATCHED},
-            {PAYMENT_SRC_BALANCE_NOT_FOUND, DIRECT_DEBIT_SRC_BALANCE_NOT_FOUND},
-            {PAYMENT_REFERENCE_DUPLICATION, DIRECT_DEBIT_REFERENCE_DUPLICATION},
-            {PAYMENT_STATS_OVERFLOW, DIRECT_DEBIT_STATS_OVERFLOW},
-            {PAYMENT_LIMITS_EXCEEDED, DIRECT_DEBIT_LIMITS_EXCEEDED},
-            {PAYMENT_NOT_ALLOWED_BY_ASSET_POLICY, DIRECT_DEBIT_NOT_ALLOWED_BY_ASSET_POLICY}
+            {PaymentResultCode::SUCCESS, DirectDebitResultCode::SUCCESS},
+            {PaymentResultCode::MALFORMED, DirectDebitResultCode::MALFORMED},
+            {PaymentResultCode::UNDERFUNDED, DirectDebitResultCode::UNDERFUNDED},
+            {PaymentResultCode::LINE_FULL, DirectDebitResultCode::LINE_FULL},
+            {PaymentResultCode::FEE_MISMATCHED, DirectDebitResultCode::FEE_MISMATCHED},
+            {PaymentResultCode::BALANCE_NOT_FOUND, DirectDebitResultCode::BALANCE_NOT_FOUND},
+            {PaymentResultCode::BALANCE_ACCOUNT_MISMATCHED, DirectDebitResultCode::BALANCE_ACCOUNT_MISMATCHED},
+            {PaymentResultCode::BALANCE_ASSETS_MISMATCHED, DirectDebitResultCode::BALANCE_ASSETS_MISMATCHED},
+            {PaymentResultCode::SRC_BALANCE_NOT_FOUND, DirectDebitResultCode::SRC_BALANCE_NOT_FOUND},
+            {PaymentResultCode::REFERENCE_DUPLICATION, DirectDebitResultCode::REFERENCE_DUPLICATION},
+            {PaymentResultCode::STATS_OVERFLOW, DirectDebitResultCode::STATS_OVERFLOW},
+            {PaymentResultCode::LIMITS_EXCEEDED, DirectDebitResultCode::LIMITS_EXCEEDED},
+            {PaymentResultCode::NOT_ALLOWED_BY_ASSET_POLICY, DirectDebitResultCode::NOT_ALLOWED_BY_ASSET_POLICY}
         };
 
 	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database & db, LedgerDelta * delta) const override;

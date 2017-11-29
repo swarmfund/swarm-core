@@ -3,10 +3,8 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "util/Timer.h"
-#include <chrono>
 #include "main/Application.h"
 #include "util/Logging.h"
-#include <thread>
 #include "util/GlobalChecks.h"
 
 namespace stellar
@@ -109,13 +107,10 @@ int VirtualClock::getDaysPassed(tm& from, tm& to)
 }
 
 bool
-VirtualClock::weekPassed(tm& from, tm& to, bool useImprovedVersion)
+VirtualClock::weekPassed(tm &from, tm &to)
 {
 	if (getDaysPassed(from, to) >= 7)
 		return true;
-
-	if (!useImprovedVersion)
-		return false;
 
 	return to.tm_wday < from.tm_wday;
 }

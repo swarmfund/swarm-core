@@ -13,7 +13,7 @@
 #include "simulation/Simulation.h"
 #include "overlay/OverlayManager.h"
 #include "simulation/Topologies.h"
-#include "transactions/TxTests.h"
+#include "transactions/test/TxTests.h"
 #include "herder/Herder.h"
 #include "ledger/LedgerDelta.h"
 #include "herder/HerderImpl.h"
@@ -136,7 +136,7 @@ TEST_CASE("Flooding", "[flood][overlay]")
             SecretKey dest = SecretKey::random();
 
             auto tx1 = createCreateAccountTx(networkID, sources[i], dest,
-                                             expectedSeq, GENERAL);
+                                             expectedSeq, AccountType::GENERAL);
 
             // round robin
             auto inApp = nodes[i % nodes.size()];
@@ -214,7 +214,7 @@ TEST_CASE("Flooding", "[flood][overlay]")
             SecretKey dest = SecretKey::random();
 
             auto tx1 = createCreateAccountTx(networkID, sources[i], dest,
-                                             expectedSeq, GENERAL);
+                                             expectedSeq, AccountType::GENERAL);
 
             // round robin
             auto inApp = nodes[i % nodes.size()];
@@ -249,7 +249,7 @@ TEST_CASE("Flooding", "[flood][overlay]")
 
             auto& st = envelope.statement;
             st.slotIndex = lcl.header.ledgerSeq + 1;
-            st.pledges.type(SCP_ST_NOMINATE);
+            st.pledges.type(SCPStatementType::NOMINATE);
             auto& nom = st.pledges.nominate();
             nom.votes.emplace_back(xdr::xdr_to_opaque(sv));
             nom.quorumSetHash = qSetHash;
@@ -257,7 +257,7 @@ TEST_CASE("Flooding", "[flood][overlay]")
             // use the sources to sign the message
             st.nodeID = sourcesPub[i];
             envelope.signature = sources[i].sign(xdr::xdr_to_opaque(
-                inApp->getNetworkID(), ENVELOPE_TYPE_SCP, st));
+                inApp->getNetworkID(), EnvelopeType::SCP, st));
 
             // inject the message
             herder.recvSCPEnvelope(envelope);

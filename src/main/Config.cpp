@@ -11,6 +11,7 @@
 #include "crypto/Hex.h"
 #include "scp/LocalNode.h"
 #include <sstream>
+#include "ledger/AssetFrame.h"
 
 namespace stellar
 {
@@ -25,7 +26,7 @@ operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
     // non configurable
     FORCE_SCP = false;
-	LEDGER_PROTOCOL_VERSION = LedgerVersion::USE_IMPROVED_SIGNATURE_CHECK;
+    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::EMPTY_VERSION);
     OVERLAY_PROTOCOL_MIN_VERSION = 5;
     OVERLAY_PROTOCOL_VERSION = 5;
 
@@ -746,7 +747,7 @@ AssetCode Config::getAssetCode(std::shared_ptr<cpptoml::toml_base> rawValue, con
 		throw std::invalid_argument(errorMessage);
 	}
 	auto asset = rawValue->as<std::string>()->value();
-	if (!isAssetValid(asset))
+	if (!AssetFrame::isAssetCodeValid(asset))
 		throw std::invalid_argument(errorMessage);
 	return asset;
 }

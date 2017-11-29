@@ -237,7 +237,7 @@ makeExternalize(SecretKey const& secretKey, Hash const& qSetHash,
                 uint64 slotIndex, SCPBallot const& commitBallot, uint32 nH)
 {
     SCPStatement st;
-    st.pledges.type(SCP_ST_EXTERNALIZE);
+    st.pledges.type(SCPStatementType::EXTERNALIZE);
     auto& ext = st.pledges.externalize();
     ext.commit = commitBallot;
     ext.nH = nH;
@@ -251,7 +251,7 @@ makeConfirm(SecretKey const& secretKey, Hash const& qSetHash, uint64 slotIndex,
             uint32 prepareCounter, SCPBallot const& b, uint32 nC, uint32 nH)
 {
     SCPStatement st;
-    st.pledges.type(SCP_ST_CONFIRM);
+    st.pledges.type(SCPStatementType::CONFIRM);
     auto& con = st.pledges.confirm();
     con.ballot = b;
     con.nPrepared = prepareCounter;
@@ -268,7 +268,7 @@ makePrepare(SecretKey const& secretKey, Hash const& qSetHash, uint64 slotIndex,
             uint32 nC = 0, uint32 nH = 0, SCPBallot* preparedPrime = nullptr)
 {
     SCPStatement st;
-    st.pledges.type(SCP_ST_PREPARE);
+    st.pledges.type(SCPStatementType::PREPARE);
     auto& p = st.pledges.prepare();
     p.ballot = ballot;
     p.quorumSetHash = qSetHash;
@@ -296,7 +296,7 @@ makeNominate(SecretKey const& secretKey, Hash const& qSetHash, uint64 slotIndex,
     std::sort(accepted.begin(), accepted.end());
 
     SCPStatement st;
-    st.pledges.type(SCP_ST_NOMINATE);
+    st.pledges.type(SCPStatementType::NOMINATE);
     auto& nom = st.pledges.nominate();
     nom.quorumSetHash = qSetHash;
     for (auto const& v : votes)

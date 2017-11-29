@@ -41,14 +41,14 @@ PendingEnvelopes::peerDoesntHave(MessageType type, Hash const& itemID,
 {
     switch (type)
     {
-    case TX_SET:
+    case MessageType::TX_SET:
         mTxSetFetcher.doesntHave(itemID, peer);
         break;
-    case SCP_QUORUMSET:
+    case MessageType::SCP_QUORUMSET:
         mQuorumSetFetcher.doesntHave(itemID, peer);
         break;
     default:
-        CLOG(INFO, "Herder") << "Unknown Type in peerDoesntHave: " << type;
+        CLOG(INFO, "Herder") << "Unknown Type in peerDoesntHave: " << static_cast<int32_t >(type);
         break;
     }
 }
@@ -170,14 +170,14 @@ void
 PendingEnvelopes::envelopeReady(SCPEnvelope const& envelope)
 {
     StellarMessage msg;
-    msg.type(SCP_MESSAGE);
+    msg.type(MessageType::SCP_MESSAGE);
     msg.envelope() = envelope;
     mApp.getOverlayManager().broadcastMessage(msg);
 
     mPendingEnvelopes[envelope.statement.slotIndex].push_back(envelope);
 
     CLOG(TRACE, "Herder") << "Envelope ready i:" << envelope.statement.slotIndex
-                          << " t:" << envelope.statement.pledges.type();
+                          << " t:" << static_cast<int32_t >(envelope.statement.pledges.type());
 
     mHerder.processSCPQueue();
 }
@@ -230,7 +230,7 @@ PendingEnvelopes::startFetch(SCPEnvelope const& envelope)
     }
 
     CLOG(TRACE, "Herder") << "StartFetch i:" << envelope.statement.slotIndex
-                          << " t:" << envelope.statement.pledges.type();
+                          << " t:" << static_cast<int32_t >(envelope.statement.pledges.type());
     return ret;
 }
 

@@ -4,7 +4,6 @@
 
 #include "util/asio.h"
 #include "transactions/ManageOfferOpFrame.h"
-#include "transactions/ManageCoinsEmissionRequestOpFrame.h"
 #include "OfferExchange.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
@@ -38,7 +37,7 @@ BalanceFrame::pointer ManageOfferOpFrame::loadBalanceValidForTrading(BalanceID c
 			.NewMeter({ "op-manage-offer", "invalid", "balance-not-found" },
 				"operation")
 			.Mark();
-		innerResult().code(MANAGE_OFFER_BALANCE_NOT_FOUND);
+		innerResult().code(ManageOfferResultCode::BALANCE_NOT_FOUND);
 		return nullptr;
 	}
 
@@ -49,20 +48,20 @@ BalanceFrame::pointer ManageOfferOpFrame::loadBalanceValidForTrading(BalanceID c
 AssetPairFrame::pointer ManageOfferOpFrame::loadTradableAssetPair(medida::MetricsRegistry& metrics, Database& db, LedgerDelta& delta)
 {
 	AssetPairFrame::pointer assetPair = AssetPairFrame::loadAssetPair(mBaseBalance->getAsset(), mQuoteBalance->getAsset(), db, &delta);
-	if (assetPair && assetPair->checkPolicy(ASSET_PAIR_TRADEABLE))
+	if (assetPair && assetPair->checkPolicy(AssetPairPolicy::TRADEABLE))
 		return assetPair;
 
 	metrics
 		.NewMeter({ "op-manage-offer", "invalid", "asset-pair-not-tradable" },
 			"operation")
 		.Mark();
-	innerResult().code(MANAGE_OFFER_ASSET_PAIR_NOT_TRADABLE);
+	innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
 	return nullptr;
 }
 
 bool ManageOfferOpFrame::checkPhysicalPriceRestrictionMet(AssetPairFrame::pointer assetPair, medida::MetricsRegistry& metrics)
 {
-	if (!assetPair->checkPolicy(ASSET_PAIR_PHYSICAL_PRICE_RESTRICTION))
+	if (!assetPair->checkPolicy(AssetPairPolicy::PHYSICAL_PRICE_RESTRICTION))
 		return true;
 
 	int64_t minPriceInTermsOfPhysical = assetPair->getMinPriceInTermsOfPhysical();
@@ -73,14 +72,14 @@ bool ManageOfferOpFrame::checkPhysicalPriceRestrictionMet(AssetPairFrame::pointe
 		.NewMeter({ "op-manage-offer", "invalid", "violates-physical-price-restrictions" },
 			"operation")
 		.Mark();
-	innerResult().code(MANAGE_OFFER_PHYSICAL_PRICE_RESTRICTION);
+	innerResult().code(ManageOfferResultCode::PHYSICAL_PRICE_RESTRICTION);
 	innerResult().physicalPriceRestriction().physicalPrice = minPriceInTermsOfPhysical;
 	return false;
 }
 
 bool ManageOfferOpFrame::checkCurrentPriceRestrictionMet(AssetPairFrame::pointer assetPair, medida::MetricsRegistry& metrics)
 {
-	if (!assetPair->checkPolicy(ASSET_PAIR_CURRENT_PRICE_RESTRICTION))
+	if (!assetPair->checkPolicy(AssetPairPolicy::CURRENT_PRICE_RESTRICTION))
 		return true;
 
 	int64_t minPriceInTermsOfCurrent = assetPair->getMinPriceInTermsOfCurrent();
@@ -91,7 +90,7 @@ bool ManageOfferOpFrame::checkCurrentPriceRestrictionMet(AssetPairFrame::pointer
 		.NewMeter({ "op-manage-offer", "invalid", "violates-current-price-restrictions" },
 			"operation")
 		.Mark();
-	innerResult().code(MAANGE_OFFER_CURRENT_PRICE_RESTRICTION);
+	innerResult().code(ManageOfferResultCode::CURRENT_PRICE_RESTRICTION);
 	innerResult().currentPriceRestriction().currentPrice = minPriceInTermsOfCurrent;
 	return false;
 }
@@ -115,7 +114,7 @@ ManageOfferOpFrame::checkOfferValid(Application& app, LedgerManager& lm, Databas
 			.NewMeter({ "op-manage-offer", "invalid", "can't-trade-same-asset" },
 				"operation")
 			.Mark();
-		innerResult().code(MANAGE_OFFER_ASSET_PAIR_NOT_TRADABLE);
+		innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
 		return false;
 	}
 
@@ -181,15 +180,15 @@ bool ManageOfferOpFrame::deleteOffer(medida::MetricsRegistry& metrics, Database&
 			.NewMeter({ "op-manage-offer", "invalid", "not-found" },
 				"operation")
 			.Mark();
-		innerResult().code(MANAGE_OFFER_NOT_FOUND);
+		innerResult().code(ManageOfferResultCode::NOT_FOUND);
 		return false;
 	}
 
 	deleteOffer(offer, db, delta);
 
 	
-	innerResult().code(MANAGE_OFFER_SUCCESS);
-	innerResult().success().offer.effect(MANAGE_OFFER_DELETED);
+	innerResult().code(ManageOfferResultCode::SUCCESS);
+	innerResult().success().offer.effect(ManageOfferEffect::DELETED);
 
 	metrics.NewMeter({ "op-create-offer", "success", "apply" }, "operation")
 		.Mark();
@@ -221,7 +220,7 @@ bool ManageOfferOpFrame::setFeeToBeCharged(OfferEntry& offer, AssetCode const& q
 	offer.fee = 0;
 	offer.percentFee = 0;
 
-	auto feeFrame = FeeFrame::loadForAccount(OFFER_FEE, quoteAsset, FeeFrame::SUBTYPE_ANY, mSourceAccount, offer.quoteAmount, db);
+	auto feeFrame = FeeFrame::loadForAccount(FeeType::OFFER_FEE, quoteAsset, FeeFrame::SUBTYPE_ANY, mSourceAccount, offer.quoteAmount, db);
 	if (!feeFrame)
 		return true;
 
@@ -243,7 +242,8 @@ SourceDetails ManageOfferOpFrame::getSourceAccountDetails(std::unordered_map<Acc
 	uint32_t allowedBlockedReasons = 0;
 	if (mManageOffer.offerID != 0 && mManageOffer.amount == 0)
 		allowedBlockedReasons = getAnyBlockReason();
-	return SourceDetails({GENERAL, NOT_VERIFIED}, mSourceAccount->getMediumThreshold(), SIGNER_BALANCE_MANAGER, allowedBlockedReasons);
+	return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED}, mSourceAccount->getMediumThreshold(),
+						 static_cast<int32_t >(SignerType::BALANCE_MANAGER), allowedBlockedReasons);
 }
 
 bool
@@ -268,7 +268,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 			.NewMeter({ "op-manage-offer", "invalid", "overflow" },
 				"operation")
 			.Mark();
-		innerResult().code(MANAGE_OFFER_OVERFLOW);
+		innerResult().code(ManageOfferResultCode ::OFFER_OVERFLOW);
 		return false;
 	}
 
@@ -280,7 +280,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 			.NewMeter({ "op-manage-offer", "invalid", "overflow" },
 				"operation")
 			.Mark();
-		innerResult().code(MANAGE_OFFER_OVERFLOW);
+		innerResult().code(ManageOfferResultCode ::OFFER_OVERFLOW);
 		return false;
 	}
 
@@ -292,7 +292,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 			.NewMeter({ "op-manage-offer", "invalid", "calculated-fee-does-not-match-fee" },
 				"operation")
 			.Mark();
-		innerResult().code(MANAGE_OFFER_MALFORMED);
+		innerResult().code(ManageOfferResultCode::MALFORMED);
 		return false;
 	}
 
@@ -304,7 +304,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 			.NewMeter({ "op-manage-offer", "invalid", "fee-exceeds-quote-amount" },
 				"operation")
 			.Mark();
-		innerResult().code(MANAGE_OFFER_MALFORMED);
+		innerResult().code(ManageOfferResultCode::MALFORMED);
 		return false;
 	}
 
@@ -314,11 +314,11 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 			.NewMeter({ "op-manage-offer", "invalid", "underfunded" },
 				"operation")
 			.Mark();
-		innerResult().code(MANAGE_OFFER_UNDERFUNDED);
+		innerResult().code(ManageOfferResultCode::UNDERFUNDED);
 		return false;
 	}
 
-    innerResult().code(MANAGE_OFFER_SUCCESS);
+    innerResult().code(ManageOfferResultCode::SUCCESS);
 
 	BalanceFrame::pointer commissionBalance = BalanceFrame::loadBalance(app.getCommissionID(), mAssetPair->getQuoteAsset(), db, &delta);
 	assert(commissionBalance);
@@ -339,7 +339,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
                 if (o.getOffer().ownerID == getSourceID())
                 {
                     // we are crossing our own offer
-                    innerResult().code(MANAGE_OFFER_CROSS_SELF);
+                    innerResult().code(ManageOfferResultCode::CROSS_SELF);
                     return OfferExchange::eStop;
                 }
                 return OfferExchange::eKeep;
@@ -351,7 +351,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
         case OfferExchange::ePartial:
             break;
         case OfferExchange::eFilterStop:
-            if (innerResult().code() != MANAGE_OFFER_SUCCESS)
+            if (innerResult().code() != ManageOfferResultCode::SUCCESS)
             {
                 return false;
             }
@@ -381,7 +381,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
 
 		offerFrame->mEntry.data.offer().offerID = delta.getHeaderFrame().generateID();
-		innerResult().success().offer.effect(MANAGE_OFFER_CREATED);
+		innerResult().success().offer.effect(ManageOfferEffect::CREATED);
 		offerFrame->storeAdd(delta, db);
 		mSourceAccount->storeChange(delta, db);
         innerResult().success().offer.offer() = offer;
@@ -390,7 +390,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
 
 		OfferExchange::unlockBalancesForTakenOffer(*offerFrame, mBaseBalance, mQuoteBalance);
-        innerResult().success().offer.effect(MANAGE_OFFER_DELETED);
+        innerResult().success().offer.effect(ManageOfferEffect::DELETED);
     }
 
 	innerResult().success().baseAsset = mAssetPair->getBaseAsset();
@@ -418,7 +418,7 @@ ManageOfferOpFrame::doCheckValid(Application& app)
         app.getMetrics()
             .NewMeter({"op-manage-offer", "invalid", "negative-or-zero-values"}, "operation")
             .Mark();
-        innerResult().code(MANAGE_OFFER_MALFORMED);
+        innerResult().code(ManageOfferResultCode::MALFORMED);
         return false;
     }
 
@@ -428,7 +428,7 @@ ManageOfferOpFrame::doCheckValid(Application& app)
             .NewMeter({"op-manage-offer", "invalid", "invalid-balances"},
                       "operation")
             .Mark();
-        innerResult().code(MANAGE_OFFER_ASSET_PAIR_NOT_TRADABLE);
+        innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
         return false;
     }
 
@@ -438,7 +438,7 @@ ManageOfferOpFrame::doCheckValid(Application& app)
             .NewMeter({"op-manage-offer", "invalid", "create-with-zero"},
                       "operation")
             .Mark();
-        innerResult().code(MANAGE_OFFER_NOT_FOUND);
+        innerResult().code(ManageOfferResultCode::NOT_FOUND);
         return false;
     }
 
@@ -478,7 +478,7 @@ ManageOfferOpFrame::buildOffer(ManageOfferOp const& op, AssetCode const& base,
 	o.quoteAmount = getQuoteAmount();
 
 	LedgerEntry le;
-	le.data.type(OFFER_ENTRY);
+	le.data.type(LedgerEntryType::OFFER_ENTRY);
 	le.data.offer() = o;
 	return std::make_shared<OfferFrame>(le);
 }

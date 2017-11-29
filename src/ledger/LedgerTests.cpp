@@ -83,7 +83,7 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
     do
     {
         le = EntryFrame::FromXDR(LedgerTestUtils::generateValidLedgerEntry(3));
-    } while (le->mEntry.data.type() != ACCOUNT);
+    } while (le->mEntry.data.type() != LedgerEntryType::ACCOUNT);
 
     auto key = le->getKey();
 
@@ -109,7 +109,7 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
         REQUIRE(EntryFrame::cachedEntryExists(key, db));
 
         accountType0 = acc->getAccount().accountType;
-        acc->getAccount().accountType = GENERAL;
+        acc->getAccount().accountType = AccountType::GENERAL;
         accountType1 = acc->getAccount().accountType;
 
         acc->storeChange(delta, db);
@@ -123,8 +123,8 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
         // Read-back value should be balance1
         REQUIRE(acc->getAccount().accountType == accountType1);
 
-        LOG(INFO) << "accountType0: " << accountType0;
-        LOG(INFO) << "accountType1: " << accountType1;
+        LOG(INFO) << "accountType0: " << static_cast<int32_t >(accountType0);
+        LOG(INFO) << "accountType1: " << static_cast<int32_t >(accountType1);
 
         // Scope-end will rollback sqltx and delta
     }
@@ -135,7 +135,7 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
     auto acc = AccountFrame::loadAccount(key.account().accountID, db);
     // Read should populate cache
     CHECK(EntryFrame::cachedEntryExists(key, db));
-    LOG(INFO) << "cached accountType: " << acc->getAccount().accountType;
+    LOG(INFO) << "cached accountType: " << static_cast<int32_t >(acc->getAccount().accountType);
 
     CHECK(accountType0 == acc->getAccount().accountType);
 }

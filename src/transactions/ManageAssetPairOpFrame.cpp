@@ -19,7 +19,7 @@ namespace stellar
 
 using namespace std;
 using xdr::operator==;
-    
+
 ManageAssetPairOpFrame::ManageAssetPairOpFrame(Operation const& op,
                                            OperationResult& res,
                                            TransactionFrame& parentTx)
@@ -36,8 +36,10 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageAssetPairOpFrame::getCo
 
 SourceDetails ManageAssetPairOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	int32_t signerType = mManageAssetPair.action == MANAGE_ASSET_PAIR_UPDATE_PRICE ? SIGNER_ASSET_RATE_MANAGER : SIGNER_ASSET_MANAGER;
-	return SourceDetails({MASTER}, mSourceAccount->getHighThreshold(), signerType);
+	int32_t signerType = mManageAssetPair.action == ManageAssetPairAction::UPDATE_PRICE ?
+						 							static_cast<int32_t >(SignerType::ASSET_RATE_MANAGER):
+                                                    static_cast<int32_t >(SignerType::ASSET_MANAGER);
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(), signerType);
 }
 
 bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, AssetPairFrame::pointer assetPair)
@@ -48,7 +50,7 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 	{
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid", "already-exists" },
 			"operation").Mark();
-		innerResult().code(MANAGE_ASSET_PAIR_ALREADY_EXISTS);
+		innerResult().code(ManageAssetPairResultCode::ALREADY_EXISTS);
 		return false;
 	}
 
@@ -58,7 +60,7 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 	{
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid", "asset-not-exists" },
 			"operation").Mark();
-		innerResult().code(MANAGE_ASSET_PAIR_ASSET_NOT_FOUND);
+		innerResult().code(ManageAssetPairResultCode::ASSET_NOT_FOUND);
 		return false;
 	}
 
@@ -68,7 +70,7 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 	assetPair->storeAdd(delta, db);
 	app.getMetrics().NewMeter({ "op-manage-asset-pair", "success", "apply" },
 		"operation").Mark();
-	innerResult().code(MANAGE_ASSET_PAIR_SUCCESS);
+	innerResult().code(ManageAssetPairResultCode::SUCCESS);
 	innerResult().success().currentPrice = assetPair->getCurrentPrice();
 	return true;
 }
@@ -79,7 +81,7 @@ ManageAssetPairOpFrame::doApply(Application& app,
 {
 	Database& db = ledgerManager.getDatabase();
 	AssetPairFrame::pointer assetPair = AssetPairFrame::loadAssetPair(mManageAssetPair.base, mManageAssetPair.quote, db, &delta);
-    if (mManageAssetPair.action == MANAGE_ASSET_PAIR_CREATE)
+    if (mManageAssetPair.action == ManageAssetPairAction::CREATE)
     {
 		return createNewAssetPair(app, delta, ledgerManager, assetPair);
     }
@@ -89,23 +91,23 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid",
 			"not-found" },
 			"operation").Mark();
-		innerResult().code(MANAGE_ASSET_PAIR_NOT_FOUND);
+		innerResult().code(ManageAssetPairResultCode::NOT_FOUND);
 		return false;
 	}
-    
+
 	auto& assetPairEntry = assetPair->getAssetPair();
-	if (mManageAssetPair.action == MANAGE_ASSET_PAIR_UPDATE_POLICIES)
+	if (mManageAssetPair.action == ManageAssetPairAction::UPDATE_POLICIES)
     {
 		assetPairEntry.maxPriceStep = mManageAssetPair.maxPriceStep;
 		assetPairEntry.physicalPriceCorrection = mManageAssetPair.physicalPriceCorrection;
 		assetPairEntry.policies = mManageAssetPair.policies;
 		// if pair not tradable remove all offers
-		if (!assetPair->checkPolicy(ASSET_PAIR_TRADEABLE))
+		if (!assetPair->checkPolicy(AssetPairPolicy::TRADEABLE))
 		{
 			ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, INT64_MAX);
 		}
 	}
-	else 
+	else
 	{
 		int64_t premium = assetPairEntry.currentPrice - assetPairEntry.physicalPrice;
 		if (premium < 0)
@@ -116,12 +118,12 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		assetPairEntry.currentPrice = mManageAssetPair.physicalPrice + premium;
 		ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, assetPair->getMinAllowedPrice());
 	}
-   
+
 	assetPair->storeChange(delta, db);
-    
+
 	app.getMetrics().NewMeter({"op-manage-asset-pair", "success", "apply"},
 	                          "operation").Mark();
-	innerResult().code(MANAGE_ASSET_PAIR_SUCCESS);
+	innerResult().code(ManageAssetPairResultCode::SUCCESS);
 	innerResult().success().currentPrice = assetPair->getCurrentPrice();
 	return true;
 }
@@ -131,12 +133,12 @@ ManageAssetPairOpFrame::doApply(Application& app,
 bool
 ManageAssetPairOpFrame::doCheckValid(Application& app)
 {
-    if (!isAssetValid(mManageAssetPair.base) || !isAssetValid(mManageAssetPair.quote))
+    if (!AssetFrame::isAssetCodeValid(mManageAssetPair.base) || !AssetFrame::isAssetCodeValid(mManageAssetPair.quote))
     {
         app.getMetrics().NewMeter({"op-manage-asset-pair", "invalid",
                           "malformed-invalid-asset-pair"},
                          "operation").Mark();
-        innerResult().code(MANAGE_ASSET_PAIR_INVALID_ASSET);
+        innerResult().code(ManageAssetPairResultCode::INVALID_ASSET);
         return false;
     }
 
@@ -145,16 +147,17 @@ ManageAssetPairOpFrame::doCheckValid(Application& app)
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid",
 			"malformed-invalid-action" },
 			"operation").Mark();
-		innerResult().code(MANAGE_ASSET_PAIR_INVALID_ACTION);
+		innerResult().code(ManageAssetPairResultCode::INVALID_ACTION);
 		return false;
 	}
-    
-	if (mManageAssetPair.physicalPrice < 0 || (mManageAssetPair.action == MANAGE_ASSET_PAIR_UPDATE_PRICE && mManageAssetPair.physicalPrice == 0))
+
+	if (mManageAssetPair.physicalPrice < 0 ||
+            (mManageAssetPair.action == ManageAssetPairAction::UPDATE_PRICE && mManageAssetPair.physicalPrice == 0))
 	{
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid",
 			"malformed-invalid-physical-price" },
 			"operation").Mark();
-		innerResult().code(MANAGE_ASSET_PAIR_MALFORMED);
+		innerResult().code(ManageAssetPairResultCode::MALFORMED);
 		return false;
 	}
 
@@ -163,7 +166,7 @@ ManageAssetPairOpFrame::doCheckValid(Application& app)
 		app.getMetrics().NewMeter({ "op-manage-assetPair", "invalid",
 			"malformed-invalid-policies" },
 			"operation").Mark();
-		innerResult().code(MANAGE_ASSET_PAIR_INVALID_POLICIES);
+		innerResult().code(ManageAssetPairResultCode::INVALID_POLICIES);
 		return false;
 	}
 
@@ -173,16 +176,16 @@ ManageAssetPairOpFrame::doCheckValid(Application& app)
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid",
 			"malformed-invalid-phusical-price-correction" },
 			"operation").Mark();
-		innerResult().code(MANAGE_ASSET_PAIR_MALFORMED);
+		innerResult().code(ManageAssetPairResultCode::MALFORMED);
 		return false;
 	}
 
-	if (mManageAssetPair.maxPriceStep < 0 || mManageAssetPair.maxPriceStep > (100 * ONE))
+	if (mManageAssetPair.maxPriceStep < 0 || mManageAssetPair.maxPriceStep > 100 * ONE)
 	{
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid",
 			"malformed-invalid-max-price-step" },
 			"operation").Mark();
-		innerResult().code(MANAGE_ASSET_PAIR_MALFORMED);
+		innerResult().code(ManageAssetPairResultCode::MALFORMED);
 		return false;
 	}
 

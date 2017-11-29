@@ -9,7 +9,6 @@
 
 namespace stellar
 {
-static std::locale cLocale("C");
 
 using xdr::operator==;
 
@@ -132,7 +131,7 @@ bool isValidManageAssetAction(ManageAssetAction action)
 	auto all = xdr::xdr_traits<ManageAssetAction>::enum_values();
 	for (auto validAction : all)
 	{
-		if (validAction == action)
+		if (validAction == static_cast<int32_t >(action))
 			return true;
 	}
 
@@ -144,7 +143,7 @@ bool isValidManageAssetPairAction(ManageAssetPairAction action)
 	auto all = xdr::xdr_traits<ManageAssetPairAction>::enum_values();
 	for (auto validAction : all)
 	{
-		if (validAction == action)
+		if (validAction == static_cast<int32_t >(action))
 			return true;
 	}
 
@@ -176,7 +175,7 @@ bool isSystemAccountType(AccountType accountType)
 
 std::vector<AccountType> getSystemAccountTypes()
 {
-	return{ MASTER, COMMISSION, OPERATIONAL };
+	return{ AccountType::MASTER, AccountType::COMMISSION, AccountType::OPERATIONAL };
 }
 
 std::vector<SignerType> getAllSignerTypes()
@@ -213,38 +212,21 @@ bool isFeeTypeValid(FeeType feeType)
 	auto allFeeTypes = xdr::xdr_traits<FeeType>::enum_values();
 	for (auto rawFeeType : allFeeTypes)
 	{
-		if (rawFeeType == feeType)
+		if (rawFeeType == static_cast<int32_t>(feeType))
 			return true;
 	}
 
 	return false;
 }
 
-bool isAssetValid(AssetCode asset)
-{
-	return !asset.empty() && isAlNum(asset);
-}
-
-bool isAdminOp(OperationType op)
-{
-	return op == CREATE_ACCOUNT || op == REVIEW_COINS_EMISSION_REQUEST || op == SET_FEES || op == MANAGE_ACCOUNT ||
-        op == RECOVER || op == MANAGE_ASSET_PAIR;
-}
-
-
-bool isTransferOp(OperationType op)
-{
-	return op == PAYMENT;
-}
-
 int32_t getManagerType(AccountType accountType)
 {
 	switch (accountType)
 	{
-	case NOT_VERIFIED:
-		return SIGNER_NOT_VERIFIED_ACC_MANAGER;
-	case GENERAL:
-		return SIGNER_GENERAL_ACC_MANAGER;
+	case AccountType::NOT_VERIFIED:
+		return static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
+	case AccountType::GENERAL:
+		return static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
 	}
 
 	return 0;
@@ -279,6 +261,12 @@ bigDivide(uint64_t& result, uint64_t A, uint64_t B, uint64_t C, Rounding roundin
     result = (uint64_t)x;
 
     return (x <= UINT64_MAX);
+}
+
+bool safeSum(uint64_t a, uint64_t b, uint64_t& result)
+{
+	result = a + b;
+	return result >= a && result >= b;
 }
 
 int64_t

@@ -17,21 +17,21 @@
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/PaymentOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
-#include "transactions/ManageCoinsEmissionRequestOpFrame.h"
-#include "transactions/ReviewCoinsEmissionRequestOpFrame.h"
 #include "transactions/SetFeesOpFrame.h"
 #include "transactions/ManageAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/ManageForfeitRequestOpFrame.h"
 #include "transactions/RecoverOpFrame.h"
-#include "transactions/ReviewPaymentRequestOpFrame.h"
-#include "transactions/ManageAssetOpFrame.h"
-#include "transactions/UploadPreemissionsOpFrame.h"
+#include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
+#include "transactions/manage_asset/ManageAssetOpFrame.h"
+#include "transactions/issuance/CreatePreIssuanceRequestOpFrame.h"
+#include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
 #include "transactions/SetLimitsOpFrame.h"
 #include "transactions/ManageAssetPairOpFrame.h"
 #include "transactions/ManageOfferOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
+#include "transactions/review_request/ReviewRequestOpFrame.h"
 
 #include "database/Database.h"
 
@@ -50,46 +50,45 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
 {
     switch (op.body.type())
     {
-    case CREATE_ACCOUNT:
+    case OperationType::CREATE_ACCOUNT:
         return shared_ptr<OperationFrame>(new CreateAccountOpFrame(op, res, tx));
-    case PAYMENT:
+    case OperationType::PAYMENT:
         return shared_ptr<OperationFrame>(new PaymentOpFrame(op, res, tx));
-    case SET_OPTIONS:
+    case OperationType::SET_OPTIONS:
         return shared_ptr<OperationFrame>(new SetOptionsOpFrame(op, res, tx));
-	case MANAGE_COINS_EMISSION_REQUEST:
-		return shared_ptr<OperationFrame>(new ManageCoinsEmissionRequestOpFrame(op, res, tx));
-	case REVIEW_COINS_EMISSION_REQUEST:
-		return shared_ptr<OperationFrame>(new ReviewCoinsEmissionRequestOpFrame(op, res, tx));
-    case SET_FEES:
+    case OperationType::CREATE_ISSUANCE_REQUEST:
+		return shared_ptr<OperationFrame>(new CreateIssuanceRequestOpFrame(op, res, tx));
+    case OperationType::SET_FEES:
         return shared_ptr<OperationFrame>(new SetFeesOpFrame(op, res, tx));
-	case MANAGE_ACCOUNT:
+	case OperationType::MANAGE_ACCOUNT:
 		return shared_ptr<OperationFrame>(new ManageAccountOpFrame(op, res, tx));
-	case MANAGE_FORFEIT_REQUEST:
+	case OperationType::MANAGE_FORFEIT_REQUEST:
 		return shared_ptr<OperationFrame>(new ManageForfeitRequestOpFrame(op, res, tx));
-    case RECOVER:
+    case OperationType::RECOVER:
 		return shared_ptr<OperationFrame>(new RecoverOpFrame(op, res, tx));
-    case MANAGE_BALANCE:
+    case OperationType::MANAGE_BALANCE:
 		return shared_ptr<OperationFrame>(new ManageBalanceOpFrame(op, res, tx));
-    case REVIEW_PAYMENT_REQUEST:
+    case OperationType::REVIEW_PAYMENT_REQUEST:
 		return shared_ptr<OperationFrame>(new ReviewPaymentRequestOpFrame(op, res, tx));
-    case MANAGE_ASSET:
-		return shared_ptr<OperationFrame>(new ManageAssetOpFrame(op, res, tx));
-    case UPLOAD_PREEMISSIONS:
-		return shared_ptr<OperationFrame>(new UploadPreemissionsOpFrame(op, res, tx));
-    case SET_LIMITS:
+    case OperationType::MANAGE_ASSET:
+		return shared_ptr<OperationFrame>(ManageAssetOpFrame::makeHelper(op, res, tx));
+    case OperationType::CREATE_PREISSUANCE_REQUEST:
+		return shared_ptr<OperationFrame>(new CreatePreIssuanceRequestOpFrame(op, res, tx));
+    case OperationType::SET_LIMITS:
 		return shared_ptr<OperationFrame>(new SetLimitsOpFrame(op, res, tx));
-	case MANAGE_ASSET_PAIR:
+	case OperationType::MANAGE_ASSET_PAIR:
 		return shared_ptr<OperationFrame>(new ManageAssetPairOpFrame(op, res, tx));
-    case DIRECT_DEBIT:
+    case OperationType::DIRECT_DEBIT:
         return shared_ptr<OperationFrame>(new DirectDebitOpFrame(op, res, tx));
-	case MANAGE_OFFER:
+	case OperationType::MANAGE_OFFER:
 		return shared_ptr<OperationFrame>(new ManageOfferOpFrame(op, res, tx));
-    case MANAGE_INVOICE:
+    case OperationType::MANAGE_INVOICE:
         return shared_ptr<OperationFrame>(new ManageInvoiceOpFrame(op, res, tx));
-
+    case OperationType::REVIEW_REQUEST:
+		return shared_ptr<OperationFrame>(ReviewRequestOpFrame::makeHelper(op, res, tx));
     default:
         ostringstream err;
-        err << "Unknown Tx type: " << op.body.type();
+        err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());
         throw std::invalid_argument(err.str());
     }
 }
@@ -107,7 +106,14 @@ OperationFrame::apply(LedgerDelta& delta, Application& app)
     res = checkValid(app, &delta);
     if (!res)
         return res;
-    return doApply(app, delta, app.getLedgerManager());
+    bool isApplied = doApply(app, delta, app.getLedgerManager());
+	app.getMetrics().NewMeter({ "operation", isApplied ? "applied" : "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
+	return isApplied;
+}
+
+std::string OperationFrame::getInnerResultCodeAsStr() {
+	// Default implementation does nothing, make remove this implementation when all operations switched to it
+	return "not_implemented";
 }
 
 bool OperationFrame::isAllowed() const
@@ -131,23 +137,23 @@ OperationFrame::doCheckSignature(Application& app, Database& db, SourceDetails& 
 		return true;
 	case SignatureValidator::Result::INVALID_ACCOUNT_TYPE:
 		app.getMetrics().NewMeter({ "transaction", "invalid", "not-allowed" }, "transaction").Mark();
-		mResult.code(opNOT_ALLOWED);
+		mResult.code(OperationResultCode::opNOT_ALLOWED);
 		return false;
 	case SignatureValidator::Result::NOT_ENOUGH_WEIGHT:
 		app.getMetrics().NewMeter({ "transaction", "invalid", "bad-auth" }, "transaction").Mark();
-		mResult.code(opBAD_AUTH);
+		mResult.code(OperationResultCode::opBAD_AUTH);
 		return false;
 	case SignatureValidator::Result::INVALID_SIGNER_TYPE:
 		app.getMetrics().NewMeter({ "transaction", "invalid", "invalid-signer-type" }, "transaction").Mark();
-		mResult.code(opNOT_ALLOWED);
+		mResult.code(OperationResultCode::opNOT_ALLOWED);
 		return false;
 	case SignatureValidator::Result::ACCOUNT_BLOCKED:
 		app.getMetrics().NewMeter({ "operation", "invalid", "account-is-blocked" }, "operation").Mark();
-		mResult.code(opACCOUNT_BLOCKED);
+		mResult.code(OperationResultCode::opACCOUNT_BLOCKED);
 		return false;
 	case SignatureValidator::Result::EXTRA:
 		app.getMetrics().NewMeter({ "operation", "invalid", "bad-auth-extra" }, "operation").Mark();
-		mResult.code(opBAD_AUTH_EXTRA);
+		mResult.code(OperationResultCode::opBAD_AUTH_EXTRA);
 		return false;
 	}
 
@@ -175,7 +181,7 @@ OperationFrame::createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, 
             Database& db, uint64 createdAt, uint64* invoiceID)
 {
     LedgerEntry le;
-    le.data.type(PAYMENT_REQUEST);
+    le.data.type(LedgerEntryType::PAYMENT_REQUEST);
     PaymentRequestEntry& entry = le.data.paymentRequest();
 
     entry.paymentID = paymentID;
@@ -195,12 +201,13 @@ OperationFrame::createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, 
     return entry;
 }
 
+[[deprecated]]
 void
 OperationFrame::createReferenceEntry(string reference, LedgerDelta* delta, Database& db)
 {
     LedgerEntry le;
-    le.data.type(REFERENCE_ENTRY);
-    ReferenceEntry& entry = le.data.payment();
+    le.data.type(LedgerEntryType::REFERENCE_ENTRY);
+    ReferenceEntry& entry = le.data.reference();
 
     entry.reference = reference;
     auto referenceFrame = std::make_shared<ReferenceFrame>(le);
@@ -226,7 +233,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
     if (!isAllowed())
     {
 		app.getMetrics().NewMeter({ "operation", "invalid", "not-allowed" }, "operation").Mark();
-		mResult.code(opNOT_ALLOWED);
+		mResult.code(OperationResultCode::opNOT_ALLOWED);
 		return false;
     }
 
@@ -239,7 +246,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
             app.getMetrics()
                 .NewMeter({"operation", "invalid", "no-account"}, "operation")
                 .Mark();
-            mResult.code(opNO_ACCOUNT);
+            mResult.code(OperationResultCode::opNO_ACCOUNT);
             return false;
         }
         else
@@ -268,10 +275,15 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
         mSourceAccount.reset();
     }
 
-    mResult.code(opINNER);
+    mResult.code(OperationResultCode::opINNER);
     mResult.tr().type(mOperation.body.type());
     
-    return doCheckValid(app);
+    bool isValid = doCheckValid(app);
+	if (!isValid) {
+		app.getMetrics().NewMeter({ "operation", "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
+	}
+
+	return isValid;
 }
 
 bool
@@ -291,14 +303,14 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
 				continue;
 
             app.getMetrics().NewMeter({ "operation", "invalid", "counterparty-not-found" }, "operation").Mark();
-            mResult.code(opNO_COUNTERPARTY);
+            mResult.code(OperationResultCode::opNO_COUNTERPARTY);
             return false;
         }
 
         if (!counterpartyPair.second.mIsBlockedAllowed && counterpartyPair.second.mAccount->isBlocked())
         {
             app.getMetrics().NewMeter({ "operation", "invalid", "blocked-counterparty" }, "operation").Mark();
-            mResult.code(opCOUNTERPARTY_BLOCKED);
+            mResult.code(OperationResultCode::opCOUNTERPARTY_BLOCKED);
             return false;
         }
         
@@ -306,7 +318,7 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
         if(std::find(allowedTypes.begin(), allowedTypes.end(), counterpartyPair.second.mAccount->getAccountType()) == allowedTypes.end())
         {
             app.getMetrics().NewMeter({ "operation", "invalid", "wrong-counterparty-type" }, "operation").Mark();
-            mResult.code(opCOUNTERPARTY_WRONG_TYPE);
+            mResult.code(OperationResultCode::opCOUNTERPARTY_WRONG_TYPE);
             return false;
         }
 

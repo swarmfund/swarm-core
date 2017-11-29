@@ -22,15 +22,16 @@ using xdr::operator<;
 const char* TrustFrame::kSQLCreateStatement1 =
     "CREATE TABLE trusts"
     "("
-    "allowed_account         VARCHAR(64)  NOT NULL,"
-    "balance_to_use        VARCHAR(64)         NOT NULL,"
-    "lastmodified      INT          NOT NULL,"
+    "allowed_account       VARCHAR(64)  NOT NULL,"
+    "balance_to_use        VARCHAR(64)  NOT NULL,"
+    "lastmodified          INT          NOT NULL,"
+    "version               INT          NOT NULL DEFAULT 0,"
     "PRIMARY KEY (balance_to_use, allowed_account)"
     ");";
 
 
 TrustFrame::TrustFrame()
-    : EntryFrame(TRUST), mTrustEntry(mEntry.data.trust())
+    : EntryFrame(LedgerEntryType::TRUST), mTrustEntry(mEntry.data.trust())
 {
 }
 
@@ -55,7 +56,7 @@ TrustFrame::loadTrust(AccountID const& allowedAccount,
     BalanceID const& balanceToUse, Database& db)
 {
     LedgerKey key;
-    key.type(TRUST);
+    key.type(LedgerEntryType::TRUST);
     key.trust().allowedAccount = allowedAccount;
     key.trust().balanceToUse = balanceToUse;
     if (cachedEntryExists(key, db))
@@ -72,7 +73,8 @@ TrustFrame::loadTrust(AccountID const& allowedAccount,
 
     auto prep =
         db.getPreparedStatement("SELECT lastmodified "
-                                "FROM trusts WHERE allowed_account=:v1 AND balance_to_use=:v2");
+                                "FROM   trusts "
+                                "WHERE  allowed_account=:v1 AND balance_to_use=:v2");
     auto& st = prep.statement();
     st.exchange(into(res->getLastModified()));
     st.exchange(use(actIDStrKey));
@@ -149,7 +151,7 @@ TrustFrame::exists(Database& db, AccountID allowedAccount, BalanceID balanceToUs
 TrustFrame::pointer TrustFrame::createNew(AccountID allowedAccount, BalanceID balanceToUse)
 {
 	LedgerEntry le;
-	le.data.type(TRUST);
+	le.data.type(LedgerEntryType::TRUST);
 	TrustEntry& entry = le.data.trust();
 
 	entry.allowedAccount = allowedAccount;
@@ -230,14 +232,16 @@ TrustFrame::storeUpdate(LedgerDelta& delta, Database& db, bool insert)
     if (insert)
     {
         sql = std::string(
-            "INSERT INTO trusts ( allowed_account, balance_to_use, "
-            "lastmodified) "
-            "VALUES ( :id, :v2, :v3)");
+            "INSERT INTO trusts (allowed_account, balance_to_use, "
+                                "lastmodified, version) "
+            "VALUES ( :id, :v2, :v3, :v4)");
     }
     else
     {
         sql = std::string(
-            "UPDATE trusts SET lastmodified=:v3 WHERE allowed_account=:id AND balance_to_use=:v2");
+            "UPDATE trusts "
+            "SET    lastmodified=:v3 "
+            "WHERE  allowed_account=:id AND balance_to_use=:v2");
     }
 
     auto prep = db.getPreparedStatement(sql);

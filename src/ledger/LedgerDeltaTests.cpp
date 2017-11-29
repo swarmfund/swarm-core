@@ -92,7 +92,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
             for (auto a : aEntries)
             {
                 LedgerEntry le;
-                le.data.type(ACCOUNT);
+                le.data.type(LedgerEntryType::ACCOUNT);
                 le.data.account() = a;
                 le.lastModifiedLedgerSeq = s;
                 auto newA = std::make_shared<AccountFrame>(le);
@@ -182,7 +182,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
             {
                 switch (c.type())
                 {
-                case LEDGER_ENTRY_CREATED:
+                case LedgerEntryChangeType::CREATED:
                 {
                     REQUIRE(!gotState);
                     auto const& createdEntry = c.created();
@@ -191,7 +191,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
                     adds++;
                 }
                 break;
-                case LEDGER_ENTRY_REMOVED:
+                case LedgerEntryChangeType::REMOVED:
                 {
                     auto const& removedEntry = c.removed();
                     if (gotState)
@@ -203,7 +203,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
                     dels++;
                 }
                 break;
-                case LEDGER_ENTRY_UPDATED:
+                case LedgerEntryChangeType::UPDATED:
                 {
                     auto const& updatedEntry = c.updated();
                     auto key = LedgerEntryKey(updatedEntry);
@@ -216,7 +216,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
                     mods++;
                 }
                 break;
-                case LEDGER_ENTRY_STATE:
+                case LedgerEntryChangeType::STATE:
                 {
                     REQUIRE(!gotState);
                     gotState = true;

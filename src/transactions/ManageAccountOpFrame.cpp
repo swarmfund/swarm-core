@@ -3,7 +3,6 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/ManageAccountOpFrame.h"
-#include "ledger/CoinsEmissionRequestFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
 
@@ -20,7 +19,7 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> ManageAccountOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{ 
-		{ mManageAccount.account, CounterpartyDetails({ GENERAL, NOT_VERIFIED }, true, true) }
+		{ mManageAccount.account, CounterpartyDetails({ AccountType::GENERAL, AccountType::NOT_VERIFIED }, true, true) }
 	};
 }
 
@@ -32,19 +31,20 @@ SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
 	// check for account type mismatched performed in doApply
 	switch (mManageAccount.accountType)
 	{
-	case NOT_VERIFIED:
-		allowedSignerClass = SIGNER_NOT_VERIFIED_ACC_MANAGER;
+	case AccountType::NOT_VERIFIED:
+		allowedSignerClass = static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
 		break;
-	case GENERAL:
+	case AccountType::GENERAL:
 		// not verified account manager is needed here to allow automatic account blocking on KYC update
-		allowedSignerClass = SIGNER_NOT_VERIFIED_ACC_MANAGER | SIGNER_GENERAL_ACC_MANAGER;
+		allowedSignerClass = static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER) |
+											static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
 		break;
 	default:
 		// it is not allowed to block/unblock any other account types
 		allowedSignerClass = 0;
 		break;
 	}
-	return SourceDetails({ MASTER }, threshold, allowedSignerClass);
+	return SourceDetails({ AccountType::MASTER }, threshold, allowedSignerClass);
 }
 
 ManageAccountOpFrame::ManageAccountOpFrame(Operation const& op,
@@ -71,7 +71,7 @@ ManageAccountOpFrame::doApply(Application& app,
 	if (account->getAccountType() != mManageAccount.accountType)
 	{
 		app.getMetrics().NewMeter({ "op-manage-account", "failure", "type-mismatch" }, "operation").Mark();
-		innerResult().code(MANAGE_ACCOUNT_TYPE_MISMATCH);
+		innerResult().code(ManageAccountResultCode::TYPE_MISMATCH);
 		return false;
 	}
 
@@ -81,24 +81,24 @@ ManageAccountOpFrame::doApply(Application& app,
 	app.getMetrics().NewMeter({"op-manage-account", "success", "apply"},
 	                          "operation").Mark();
     innerResult().success().blockReasons = account->getBlockReasons();
-	innerResult().code(MANAGE_ACCOUNT_SUCCESS);
+	innerResult().code(ManageAccountResultCode::SUCCESS);
 	return true;
 }
 
 bool
 ManageAccountOpFrame::doCheckValid(Application& app)
 {
-	if (mManageAccount.accountType == MASTER)
+	if (mManageAccount.accountType == AccountType::MASTER)
 	{
 		app.getMetrics().NewMeter({ "op-manage-account", "failure", "not-allowed" }, "operation").Mark();
-		innerResult().code(MANAGE_ACCOUNT_NOT_ALLOWED);
+		innerResult().code(ManageAccountResultCode::NOT_ALLOWED);
 		return false;
 	}
 
 	if ((mManageAccount.blockReasonsToAdd && mManageAccount.blockReasonsToRemove) != 0)
 	{
 		app.getMetrics().NewMeter({ "op-manage-account", "failure", "malformed" }, "operation").Mark();
-		innerResult().code(MANAGE_ACCOUNT_MALFORMED);
+		innerResult().code(ManageAccountResultCode::MALFORMED);
 		return false;
 	}
 

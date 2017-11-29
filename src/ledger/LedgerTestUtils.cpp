@@ -88,19 +88,6 @@ makeValid(AccountEntry& a)
 }
 
 void
-makeValid(CoinsEmissionRequestEntry& o)
-{
-    o.reference = SecretKey::random().getStrKeyPublic();
-	if (o.amount < 0)
-	{
-		o.amount = -o.amount;
-	}
-
-	clampLow<int64_t>(1, o.amount);
-	// to fulfill uniqueness constraint
-}
-
-void
 makeValid(FeeEntry& o)
 {
 	o.fixedFee = mustPositive<int64_t>(o.fixedFee);
@@ -114,32 +101,11 @@ makeValid(FeeEntry& o)
 }
 
 void
-makeValid(CoinsEmissionEntry& o)
-{
-	o.serialNumber = SecretKey::random().getStrKeyPublic();
-	if (o.amount < 0)
-	{
-		o.amount = -o.amount;
-	}
-
-	clampLow<int64_t>(1, o.amount);
-}
-
-void
 makeValid(BalanceEntry& o)
 {
-	if (o.amount < 0)
-	{
-		o.amount = -o.amount;
-	}
 
-	if (o.locked < 0)
-	{
-		o.locked = -o.locked;
-	}
-
-	clampLow<int64_t>(1, o.amount);
-	clampLow<int64_t>(1, o.locked);
+	clampLow<uint64_t>(1, o.amount);
+	clampLow<uint64_t>(1, o.locked);
 }
 
 void
@@ -180,9 +146,6 @@ makeValid(AssetEntry& o)
 {
 	o.code = randomAssetCode();
 	stripControlCharacters(o.code);
-	if (o.policies < 0) {
-		o.policies = -o.policies;
-	}
 }
 
 void
@@ -272,49 +235,43 @@ LedgerEntry makeValid(LedgerEntry& le)
 	auto& led = le.data;
 	switch (led.type())
 	{
-	case ACCOUNT:
+	case LedgerEntryType::ACCOUNT:
 		makeValid(led.account());
 		break;
-	case COINS_EMISSION_REQUEST:
-		makeValid(led.coinsEmissionRequest());
-		break;
-	case FEE:
+    case LedgerEntryType::FEE:
 		makeValid(led.feeState());
 		break;
-	case COINS_EMISSION:
-		makeValid(led.coinsEmission());
-		break;
-	case BALANCE:
+    case LedgerEntryType::BALANCE:
 		makeValid(led.balance());
 		break;
-	case PAYMENT_REQUEST:
+	case LedgerEntryType::PAYMENT_REQUEST:
 		makeValid(led.paymentRequest());
 		break;
-	case ASSET:
+	case LedgerEntryType::ASSET:
 		makeValid(led.asset());
 		break;
-	case REFERENCE_ENTRY:
-		makeValid(led.payment());
+	case LedgerEntryType::REFERENCE_ENTRY:
+		makeValid(led.reference());
 		break;
-	case ACCOUNT_TYPE_LIMITS:
+	case LedgerEntryType::ACCOUNT_TYPE_LIMITS:
 		makeValid(led.accountTypeLimits());
 		break;
-	case STATISTICS:
+	case LedgerEntryType::STATISTICS:
 		makeValid(led.stats());
 		break;
-	case TRUST:
+	case LedgerEntryType::TRUST:
 		makeValid(led.trust());
 		break;
-	case ACCOUNT_LIMITS:
+	case LedgerEntryType::ACCOUNT_LIMITS:
 		makeValid(led.accountLimits());
 		break;
-	case ASSET_PAIR:
+	case LedgerEntryType::ASSET_PAIR:
 		makeValid(led.assetPair());
 		break;
-	case OFFER_ENTRY:
+	case LedgerEntryType::OFFER_ENTRY:
 		makeValid(led.offer());
 		break;
-	case INVOICE:
+	case LedgerEntryType::INVOICE:
 		makeValid(led.invoice());
 		break;
 
@@ -339,22 +296,6 @@ static auto validAccountEntryGenerator = autocheck::map(
         return ae;
     },
     autocheck::generator<AccountEntry>());
-
-static auto validCoinsEmissionRequestEntryGenerator = autocheck::map(
-	[](CoinsEmissionRequestEntry&& o, size_t s)
-	{
-		makeValid(o);
-		return o;
-	},
-	autocheck::generator<CoinsEmissionRequestEntry>());
-
-static auto validCoinsEmissionEntryGenerator = autocheck::map(
-	[](CoinsEmissionEntry&& o, size_t s)
-	{
-		makeValid(o);
-		return o;
-	},
-	autocheck::generator<CoinsEmissionEntry>());
 
 static auto validFeeEntryGenerator = autocheck::map(
 	[](FeeEntry&& o, size_t s)
@@ -388,26 +329,6 @@ generateValidAccountEntries(size_t n)
 {
     static auto vecgen = autocheck::list_of(validAccountEntryGenerator);
     return vecgen(n);
-}
-
-CoinsEmissionRequestEntry generateCoinsEmissionRequestEntry(size_t b)
-{
-	return validCoinsEmissionRequestEntryGenerator(b);
-}
-std::vector<CoinsEmissionRequestEntry> generateCoinsEmissionRequestEntries(size_t n)
-{
-	static auto vecgen = autocheck::list_of(validCoinsEmissionRequestEntryGenerator);
-	return vecgen(n);
-}
-
-CoinsEmissionEntry generateCoinsEmissionEntry(size_t b)
-{
-	return validCoinsEmissionEntryGenerator(b);
-}
-std::vector<CoinsEmissionEntry> generateCoinsEmissionEntries(size_t n)
-{
-	static auto vecgen = autocheck::list_of(validCoinsEmissionEntryGenerator);
-	return vecgen(n);
 }
 
 FeeEntry generateFeeEntry(size_t b)

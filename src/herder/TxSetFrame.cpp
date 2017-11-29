@@ -280,7 +280,7 @@ TxSetFrame::checkValid(Application& app) const
                     << " tx invalid"
                     << " salt:" << salt
                     << " tx: " << xdr::xdr_to_string(tx->getEnvelope())
-                    << " result: " << tx->getResultCode();
+                    << " result: " << static_cast<int32_t >(tx->getResultCode());
 
                 return false;
             }

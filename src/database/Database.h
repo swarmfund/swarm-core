@@ -12,6 +12,7 @@
 #include "util/NonCopyable.h"
 #include "util/lrucache.hpp"
 #include "util/Timer.h"
+#include "database/Marshaler.h"
 
 namespace medida
 {

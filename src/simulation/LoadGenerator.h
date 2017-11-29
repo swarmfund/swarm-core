@@ -6,7 +6,7 @@
 
 #include "main/Application.h"
 #include "crypto/SecretKey.h"
-#include "transactions/TxTests.h"
+#include "transactions/test/TxTests.h"
 #include "xdr/Stellar-types.h"
 #include <vector>
 

@@ -22,16 +22,16 @@ InferredQuorum::noteSCPHistory(SCPHistoryEntry const& hist)
         auto const& pledges = msg.statement.pledges;
         switch (pledges.type())
         {
-        case SCP_ST_PREPARE:
+        case SCPStatementType::PREPARE:
             noteQsetHash(pk, pledges.prepare().quorumSetHash);
             break;
-        case SCP_ST_CONFIRM:
+        case SCPStatementType::CONFIRM:
             noteQsetHash(pk, pledges.confirm().quorumSetHash);
             break;
-        case SCP_ST_EXTERNALIZE:
+        case SCPStatementType::EXTERNALIZE:
             noteQsetHash(pk, pledges.externalize().commitQuorumSetHash);
             break;
-        case SCP_ST_NOMINATE:
+        case SCPStatementType::NOMINATE:
             noteQsetHash(pk, pledges.nominate().quorumSetHash);
             break;
         }

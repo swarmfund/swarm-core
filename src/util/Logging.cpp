@@ -20,6 +20,9 @@ namespace stellar
 {
 el::Configurations Logging::gDefaultConf;
 
+const char* Logging::ENTRY_LOGGER = "EntryFrame";
+const char* Logging::OPERATION_LOGGER = "OperationFrame";
+
 void
 Logging::setFmt(std::string const& peerID, bool timestamps)
 {
@@ -56,7 +59,8 @@ Logging::init()
     el::Loggers::getLogger("Tx");
     el::Loggers::getLogger("LoadGen");
     el::Loggers::getLogger("Work");
-	el::Loggers::getLogger("EntryFrame");
+	el::Loggers::getLogger(ENTRY_LOGGER);
+	el::Loggers::getLogger(OPERATION_LOGGER);
 
     gDefaultConf.setToDefault();
     gDefaultConf.setGlobally(el::ConfigurationType::ToStandardOutput, "true");

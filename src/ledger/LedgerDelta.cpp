@@ -259,7 +259,7 @@ LedgerDelta::addCurrentMeta(LedgerEntryChanges& changes,
         auto const& e = it->second->mEntry;
         if (e.lastModifiedLedgerSeq != mCurrentHeader.mHeader.ledgerSeq)
         {
-            changes.emplace_back(LEDGER_ENTRY_STATE);
+            changes.emplace_back(LedgerEntryChangeType::STATE);
             changes.back().state() = e;
         }
     }
@@ -272,20 +272,20 @@ LedgerDelta::getChanges() const
 
     for (auto const& k : mNew)
     {
-        changes.emplace_back(LEDGER_ENTRY_CREATED);
+        changes.emplace_back(LedgerEntryChangeType::CREATED);
         changes.back().created() = k.second->mEntry;
     }
     for (auto const& k : mMod)
     {
         addCurrentMeta(changes, k.first);
-        changes.emplace_back(LEDGER_ENTRY_UPDATED);
+        changes.emplace_back(LedgerEntryChangeType::UPDATED);
         changes.back().updated() = k.second->mEntry;
     }
 
     for (auto const& k : mDelete)
     {
         addCurrentMeta(changes, k);
-        changes.emplace_back(LEDGER_ENTRY_REMOVED);
+        changes.emplace_back(LedgerEntryChangeType::REMOVED);
         changes.back().removed() = k;
     }
 
@@ -336,141 +336,17 @@ LedgerDelta::markMeters(Application& app) const
 {
     for (auto const& ke : mNew)
     {
-        switch (ke.first.type())
-        {
-        case ACCOUNT:
-            app.getMetrics()
-                .NewMeter({"ledger", "account", "add"}, "entry")
-                .Mark();
-            break;
-		case COINS_EMISSION_REQUEST:
-			app.getMetrics()
-				.NewMeter({ "ledger", "coins-emission-request", "add" }, "entry")
-				.Mark();
-			break;
-        case FEE:
-            app.getMetrics()
-            .NewMeter({"ledger", "fee", "add"},"entry")
-            .Mark();
-            break;
-        case COINS_EMISSION:
-            app.getMetrics()
-            .NewMeter({"ledger", "coins-emission", "add"}, "entry")
-            .Mark();
-            break;
-        case BALANCE:
-            app.getMetrics()
-            .NewMeter({"ledger", "balance", "add"}, "entry")
-            .Mark();
-            break;
-        case PAYMENT_REQUEST:
-            app.getMetrics()
-            .NewMeter({"ledger", "payment-request", "add"}, "entry")
-            .Mark();
-            break;
-        case ASSET:
-            app.getMetrics()
-            .NewMeter({"ledger", "asset", "add"}, "entry")
-            .Mark();
-            break;
-        case ACCOUNT_TYPE_LIMITS:
-            app.getMetrics()
-            .NewMeter({"ledger", "account-type-limits", "add"}, "entry")
-            .Mark();
-            break;
-        case STATISTICS:
-            app.getMetrics()
-            .NewMeter({"ledger", "statistics", "add"}, "entry")
-            .Mark();
-            break;
-        }
+		app.getMetrics().NewMeter({ "ledger", xdr::xdr_traits<LedgerEntryType>::enum_name(ke.first.type()), "add" }, "entry").Mark();
     }
 
     for (auto const& ke : mMod)
     {
-        switch (ke.first.type())
-        {
-        case ACCOUNT:
-            app.getMetrics()
-                .NewMeter({"ledger", "account", "modify"}, "entry")
-                .Mark();
-            break;
-		case COINS_EMISSION_REQUEST:
-			app.getMetrics()
-				.NewMeter({ "ledger", "coins-emission-request", "modify" }, "entry")
-				.Mark();
-			break;
-        case FEE:
-            app.getMetrics()
-                .NewMeter({"ledger", "fee", "modify"}, "entry");
-            break;
-        case COINS_EMISSION:
-            app.getMetrics()
-                .NewMeter({"ledger", "coins-emission", "modify"}, "entry");
-            break;
-        case BALANCE:
-            app.getMetrics()
-                .NewMeter({"ledger", "balance", "modify"}, "entry");
-            break;
-        case PAYMENT_REQUEST:
-            app.getMetrics()
-                .NewMeter({"ledger", "payment-request", "modify"}, "entry");
-            break;
-        case ASSET:
-            app.getMetrics()
-                .NewMeter({"ledger", "asset", "modify"}, "entry");
-            break;
-        case ACCOUNT_TYPE_LIMITS:
-            app.getMetrics()
-                .NewMeter({"ledger", "account-type-limits", "modify"}, "entry");
-            break;
-        case STATISTICS:
-            app.getMetrics()
-                .NewMeter({"ledger", "statistics", "modify"}, "entry");
-            break;
-        }
+		app.getMetrics().NewMeter({ "ledger", xdr::xdr_traits<LedgerEntryType>::enum_name(ke.first.type()), "modify" }, "entry").Mark();
     }
 
     for (auto const& ke : mDelete)
     {
-        switch (ke.type())
-        {
-        case ACCOUNT:
-            app.getMetrics()
-                .NewMeter({"ledger", "account", "delete"}, "entry")
-                .Mark();
-            break;
-		case COINS_EMISSION_REQUEST:
-			app.getMetrics()
-				.NewMeter({ "ledger", "coins-emission-request", "delete" }, "entry")
-				.Mark();
-			break;
-        case FEE:
-            app.getMetrics()
-                .NewMeter({"ledger", "fee", "delete"}, "entry")
-                .Mark();
-            break;
-        case COINS_EMISSION:
-            app.getMetrics()
-                .NewMeter({"ledger", "coins-emission", "delete"}, "entry")
-                .Mark();
-            break;
-        case BALANCE:
-            app.getMetrics()
-                .NewMeter({"ledger", "balance", "delete"}, "entry")
-                .Mark();
-            break;
-        case PAYMENT_REQUEST:
-            app.getMetrics()
-                .NewMeter({"ledger", "payment-request", "delete"}, "entry")
-                .Mark();
-            break;
-        case ASSET:
-            app.getMetrics()
-                .NewMeter({"ledger", "asset", "delete"}, "entry")
-                .Mark();
-            break;
-        }
+		app.getMetrics().NewMeter({ "ledger", xdr::xdr_traits<LedgerEntryType>::enum_name(ke.type()), "delete" }, "entry").Mark();
     }
 }
 

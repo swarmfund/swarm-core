@@ -18,13 +18,14 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> ManageInvoiceOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{
-		{mManageInvoice.sender, CounterpartyDetails({GENERAL, NOT_VERIFIED}, true, true)}
+		{mManageInvoice.sender, CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED}, true, true)}
 	};
 }
 
 SourceDetails ManageInvoiceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({GENERAL, NOT_VERIFIED}, mSourceAccount->getMediumThreshold(), SIGNER_INVOICE_MANAGER, BlockReasons::KYC_UPDATE);
+	return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED}, mSourceAccount->getMediumThreshold(),
+                         static_cast<int32_t >(SignerType::INVOICE_MANAGER), static_cast<int32_t >(BlockReasons::KYC_UPDATE));
 }
 
 ManageInvoiceOpFrame::ManageInvoiceOpFrame(Operation const& op, OperationResult& res,
@@ -40,7 +41,7 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-	innerResult().code(MANAGE_INVOICE_SUCCESS);
+	innerResult().code(ManageInvoiceResultCode::SUCCESS);
 
     auto balance = BalanceFrame::loadBalance(mManageInvoice.receiverBalance, db);
 
@@ -48,7 +49,7 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "balance-not-found" },
                 "operation").Mark();
-        innerResult().code(MANAGE_INVOICE_BALANCE_NOT_FOUND);
+        innerResult().code(ManageInvoiceResultCode::BALANCE_NOT_FOUND);
         return false;
     }
 
@@ -57,7 +58,7 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
 	{
 		app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "sender-balance-not-found" },
 			"operation").Mark();
-		innerResult().code(MANAGE_INVOICE_BALANCE_NOT_FOUND);
+		innerResult().code(ManageInvoiceResultCode::BALANCE_NOT_FOUND);
 		return false;
 	}
 
@@ -69,7 +70,7 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
         {
             app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "too-many-invoices" },
                 "operation").Mark();
-            innerResult().code(MANAGE_INVOICE_TOO_MANY_INVOICES);
+            innerResult().code(ManageInvoiceResultCode::TOO_MANY_INVOICES);
             return false;
         }
         invoiceID = delta.getHeaderFrame().generateID();
@@ -90,14 +91,14 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
         {
             app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "not-found" },
                 "operation").Mark();
-            innerResult().code(MANAGE_INVOICE_NOT_FOUND);
+            innerResult().code(ManageInvoiceResultCode::NOT_FOUND);
             return false;
         }
-        if (invoiceFrame->getState() != INVOICE_NEEDS_PAYMENT)
+        if (invoiceFrame->getState() != InvoiceState::INVOICE_NEEDS_PAYMENT)
         {
             app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "in-progress" },
                 "operation").Mark();
-            innerResult().code(MANAGE_INVOICE_CAN_NOT_DELETE_IN_PROGRESS);
+            innerResult().code(ManageInvoiceResultCode::CAN_NOT_DELETE_IN_PROGRESS);
             return false;
         }
         invoiceFrame->storeDelete(delta, db);
@@ -121,7 +122,7 @@ ManageInvoiceOpFrame::doCheckValid(Application& app)
     {
         app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "malformed-negative-amount"},
                          "operation").Mark();
-        innerResult().code(MANAGE_INVOICE_MALFORMED);
+        innerResult().code(ManageInvoiceResultCode::MALFORMED);
         return false;
     }
 
@@ -129,7 +130,7 @@ ManageInvoiceOpFrame::doCheckValid(Application& app)
     {
         app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "malformed-negative-amount"},
                          "operation").Mark();
-        innerResult().code(MANAGE_INVOICE_MALFORMED);
+        innerResult().code(ManageInvoiceResultCode::MALFORMED);
         return false;
     }
 

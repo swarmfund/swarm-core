@@ -32,7 +32,7 @@ namespace txtest
 		REQUIRE(actualResultCode == expectedResult);
 
 		uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
-		if (expectedResult != CreatePreIssuanceRequestResultCode::CREATE_PREISSUANCE_REQUEST_SUCCESS)
+		if (expectedResult != CreatePreIssuanceRequestResultCode::SUCCESS)
 		{
 			REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
 			return CreatePreIssuanceRequestResult{};
@@ -81,7 +81,7 @@ namespace txtest
 		REQUIRE(actualResultCode == expectedResult);
 
 		uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
-		if (expectedResult != CreateIssuanceRequestResultCode::CREATE_ISSUANCE_REQUEST_SUCCESS)
+		if (expectedResult != CreateIssuanceRequestResultCode::SUCCESS)
 		{
 			REQUIRE(expectedReviewableRequestAfterTx == reviewableRequestCountAfterTx);
 			return CreateIssuanceRequestResult{};

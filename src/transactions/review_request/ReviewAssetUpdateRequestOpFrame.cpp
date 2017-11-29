@@ -30,7 +30,7 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 	Database& db = ledgerManager.getDatabase();
 	auto assetFrame = AssetFrame::loadAsset(assetUpdateRequest.code, db, &delta);
 	if (!assetFrame) {
-		innerResult().code(REVIEW_REQUEST_ASSET_DOES_NOT_EXISTS);
+		innerResult().code(ReviewRequestResultCode::ASSET_DOES_NOT_EXISTS);
 		return false;
 	}
 
@@ -46,13 +46,14 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 	assetEntry.policies = assetUpdateRequest.policies;
 	assetFrame->storeChange(delta, db);
 	request->storeDelete(delta, db);
-	innerResult().code(REVIEW_REQUEST_SUCCESS);
+	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }
 
 SourceDetails ReviewAssetUpdateRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER}, mSourceAccount->getHighThreshold(), SignerType::SIGNER_ASSET_MANAGER);
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
+						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
 ReviewAssetUpdateRequestOpFrame::ReviewAssetUpdateRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :

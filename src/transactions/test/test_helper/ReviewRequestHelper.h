@@ -26,7 +26,7 @@ namespace txtest
 
 		virtual ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
 			ReviewRequestOpAction action, std::string rejectReason, 
-			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::REVIEW_REQUEST_SUCCESS) = 0;
+			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS) = 0;
 
 		TransactionFramePtr createReviewRequestTx(Account& source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType, 
 			ReviewRequestOpAction action, std::string rejectReason);

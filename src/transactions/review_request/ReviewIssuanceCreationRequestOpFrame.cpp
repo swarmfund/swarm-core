@@ -37,12 +37,12 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
 	}
 
 	if (asset->willExceedMaxIssuanceAmount(issuanceCreationRequest.amount)) {
-		innerResult().code(REVIEW_REQUEST_MAX_ISSUANCE_AMOUNT_EXCEEDED);
+		innerResult().code(ReviewRequestResultCode::MAX_ISSUANCE_AMOUNT_EXCEEDED);
 		return false;
 	}
 
 	if (!asset->isAvailableForIssuanceAmountSufficient(issuanceCreationRequest.amount)) {
-		innerResult().code(REVIEW_REQUEST_INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT);
+		innerResult().code(ReviewRequestResultCode::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT);
 		return false;
 	}
 
@@ -60,26 +60,27 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
 	}
 
 	if (!receiver->tryFundAccount(issuanceCreationRequest.amount)) {
-		innerResult().code(REVIEW_REQUEST_FULL_LINE);
+		innerResult().code(ReviewRequestResultCode::FULL_LINE);
 		return false;
 	}
 
 	receiver->storeChange(delta, db);
 	
 	request->storeDelete(delta, db);
-	innerResult().code(REVIEW_REQUEST_SUCCESS);
+	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }
 
 bool ReviewIssuanceCreationRequestOpFrame::handleReject(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager, ReviewableRequestFrame::pointer request)
 {
-	innerResult().code(REVIEW_REQUEST_REJECT_NOT_ALLOWED);
+	innerResult().code(ReviewRequestResultCode::REJECT_NOT_ALLOWED);
 	return false;
 }
 
 SourceDetails ReviewIssuanceCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER}, mSourceAccount->getHighThreshold(), SignerType::SIGNER_ASSET_MANAGER);
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
+						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
 ReviewIssuanceCreationRequestOpFrame::ReviewIssuanceCreationRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :

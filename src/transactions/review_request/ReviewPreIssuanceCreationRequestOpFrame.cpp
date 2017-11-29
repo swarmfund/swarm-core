@@ -42,19 +42,20 @@ bool ReviewPreIssuanceCreationRequestOpFrame::handleApprove(Application & app, L
 
 	asset->storeChange(delta, db);
 	request->storeDelete(delta, db);
-	innerResult().code(REVIEW_REQUEST_SUCCESS);
+	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }
 
 bool ReviewPreIssuanceCreationRequestOpFrame::handleReject(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager, ReviewableRequestFrame::pointer request)
 {
-	innerResult().code(REVIEW_REQUEST_REJECT_NOT_ALLOWED);
+	innerResult().code(ReviewRequestResultCode::REJECT_NOT_ALLOWED);
 	return false;
 }
 
 SourceDetails ReviewPreIssuanceCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER}, mSourceAccount->getHighThreshold(), SignerType::SIGNER_ASSET_MANAGER);
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
+						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
 ReviewPreIssuanceCreationRequestOpFrame::ReviewPreIssuanceCreationRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :

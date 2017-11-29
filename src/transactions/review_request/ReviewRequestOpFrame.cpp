@@ -73,7 +73,7 @@ bool ReviewRequestOpFrame::handleReject(Application & app, LedgerDelta & delta, 
 	request->setRejectReason(mReviewRequest.reason);
 	Database& db = ledgerManager.getDatabase();
 	request->storeChange(delta, db);
-	innerResult().code(REVIEW_REQUEST_SUCCESS);
+	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }
 
@@ -81,7 +81,7 @@ bool ReviewRequestOpFrame::handlePermanentReject(Application & app, LedgerDelta 
 {
 	Database& db = ledgerManager.getDatabase();
 	request->storeDelete(delta, db);
-	innerResult().code(REVIEW_REQUEST_SUCCESS);
+	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }
 
@@ -93,17 +93,17 @@ ReviewRequestOpFrame::doApply(Application& app,
 	Database& db = ledgerManager.getDatabase();
 	auto request = ReviewableRequestFrame::loadRequest(mReviewRequest.requestID, db, &delta);
 	if (!request) {
-		innerResult().code(REVIEW_REQUEST_NOT_FOUND);
+		innerResult().code(ReviewRequestResultCode::NOT_FOUND);
 		return false;
 	}
 
 	if (request->getHash() != mReviewRequest.requestHash) {
-		innerResult().code(REVIEW_REQUEST_HASH_MISMATCHED);
+		innerResult().code(ReviewRequestResultCode::HASH_MISMATCHED);
 		return false;
 	}
 
 	if (request->getRequestType() != mReviewRequest.requestType) {
-		innerResult().code(REVIEW_REQUEST_TYPE_MISMATCHED);
+		innerResult().code(ReviewRequestResultCode::TYPE_MISMATCHED);
 		return false;
 	}
 
@@ -124,12 +124,12 @@ bool
 ReviewRequestOpFrame::doCheckValid(Application& app)
 {
 	if (!isValidEnumValue(mReviewRequest.action)) {
-		innerResult().code(REVIEW_REQUEST_INVALID_ACTION);
+		innerResult().code(ReviewRequestResultCode::INVALID_ACTION);
 		return false;
 	}
 
 	if (!isRejectReasonValid()) {
-		innerResult().code(REVIEW_REQUEST_INVALID_REASON);
+		innerResult().code(ReviewRequestResultCode::INVALID_REASON);
 		return false;
 	}
     

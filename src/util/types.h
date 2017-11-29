@@ -80,7 +80,7 @@ template <typename EnumType>
 bool isValidEnumValue(EnumType value)
 {
 	auto enums = xdr::xdr_traits<EnumType>::enum_values();
-	return std::find(std::begin(enums), std::end(enums), value) != std::end(enums);
+	return std::find(std::begin(enums), std::end(enums), static_cast<int32_t>(value)) != std::end(enums);
 }
 
 // returns true if result is valid (no overflow)

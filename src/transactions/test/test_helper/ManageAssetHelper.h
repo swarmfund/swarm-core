@@ -17,7 +17,7 @@ namespace txtest
 		ManageAssetHelper(TestManager::pointer testManager);
 
 		ManageAssetResult applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request,
-			ManageAssetResultCode expectedResult = ManageAssetResultCode::MANAGE_ASSET_SUCCESS);
+			ManageAssetResultCode expectedResult = ManageAssetResultCode::SUCCESS);
 		TransactionFramePtr createManageAssetTx(Account& source, uint64_t requestID, ManageAssetOp::_request_t request);
 
 		ManageAssetOp::_request_t createAssetCreationRequest(AssetCode code, std::string name, AccountID preissuedAssetSigner,

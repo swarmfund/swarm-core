@@ -29,20 +29,21 @@ bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerD
 	Database& db = ledgerManager.getDatabase();
 	auto isAssetExist = AssetFrame::exists(db, assetCreationRequest.code);
 	if (isAssetExist) {
-		innerResult().code(REVIEW_REQUEST_ASSET_ALREADY_EXISTS);
+		innerResult().code(ReviewRequestResultCode::ASSET_ALREADY_EXISTS);
 		return false;
 	}
 
 	auto assetFrame = AssetFrame::create(assetCreationRequest, request->getRequestor());
 	assetFrame->storeAdd(delta, db);
 	request->storeDelete(delta, db);
-	innerResult().code(REVIEW_REQUEST_SUCCESS);
+	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }
 
 SourceDetails ReviewAssetCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER}, mSourceAccount->getHighThreshold(), SignerType::SIGNER_ASSET_MANAGER);
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
+						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
 ReviewAssetCreationRequestOpFrame::ReviewAssetCreationRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :

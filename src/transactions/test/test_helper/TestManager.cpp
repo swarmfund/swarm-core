@@ -34,7 +34,7 @@ namespace txtest
 		auto const& lastHash = lcl.hash;
 		TxSetFramePtr txSet = std::make_shared<TxSetFrame>(lastHash);
 
-		LedgerUpgrade upgrade(LEDGER_UPGRADE_VERSION);
+		LedgerUpgrade upgrade(LedgerUpgradeType::VERSION);
 		upgrade.newLedgerVersion() = mApp.getConfig().LEDGER_PROTOCOL_VERSION;
 		xdr::xvector<UpgradeType, 6> upgrades;
 		Value v(xdr::xdr_to_opaque(upgrade));
@@ -53,11 +53,11 @@ namespace txtest
 		checkResult(validationResult, isTxValid);
 
 		const auto code = validationResult.result.code();
-		if (code == txDUPLICATION) {
+		if (code == TransactionResultCode::txDUPLICATION) {
 			return false;
 		}
 
-		if (code != txNO_ACCOUNT)
+		if (code != TransactionResultCode::txNO_ACCOUNT)
 		{
 			tx->processSeqNum();
 		}
@@ -83,11 +83,11 @@ namespace txtest
 	void TestManager::checkResult(TransactionResult result, bool mustSuccess)
 	{
 		if (mustSuccess) {
-			REQUIRE(result.result.code() == txSUCCESS);
+			REQUIRE(result.result.code() == TransactionResultCode::txSUCCESS);
 			return;
 		}
 
-		REQUIRE(result.result.code() != txSUCCESS);
+		REQUIRE(result.result.code() != TransactionResultCode::txSUCCESS);
 	}
 
 	bool TestManager::applyCheck(TransactionFramePtr tx)

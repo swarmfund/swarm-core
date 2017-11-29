@@ -31,17 +31,18 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageAssetOpFrame::getCounte
 
 SourceDetails ManageAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER, SYNDICATE}, mSourceAccount->getHighThreshold(), SIGNER_ASSET_MANAGER);
+	return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
+						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
 ManageAssetOpFrame* ManageAssetOpFrame::makeHelper(Operation const & op, OperationResult & res, TransactionFrame & parentTx)
 {
 	switch (op.body.manageAssetOp().request.action()) {
-	case MANAGE_ASSET_CREATE_ASSET_CREATION_REQUEST:
+	case ManageAssetAction::CREATE_ASSET_CREATION_REQUEST:
 		return new CreateAssetOpFrame(op, res, parentTx);
-	case MANAGE_ASSET_CREATE_ASSET_UPDATE_REQUEST:
+	case ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST:
 		return new UpdateAssetOpFrame(op, res, parentTx);
-	case MANAGE_ASSET_CANCEL_ASSET_REQUEST:
+	case ManageAssetAction::CANCEL_ASSET_REQUEST:
 		return new CancelAssetRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpected action in manage asset op");

@@ -161,9 +161,6 @@ checkEntry(LedgerEntry const& le, Application& app)
     case LedgerEntryType::ACCOUNT:
         checkAccount(d.account().accountID, app);
         break;
-    case LedgerEntryType::COINS_EMISSION_REQUEST:
-		checkAccount(d.coinsEmissionRequest().issuer, app);
-		break;
     default:
         break;
     }

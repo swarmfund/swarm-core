@@ -33,19 +33,19 @@ CancelAssetRequestOpFrame::doApply(Application& app,
     Database& db = ledgerManager.getDatabase();
 	auto request = ReviewableRequestFrame::loadRequest(mManageAsset.requestID, getSourceID(), db, &delta);
 	if (!request) {
-		innerResult().code(MANAGE_ASSET_REQUEST_NOT_FOUND);
+		innerResult().code(ManageAssetResultCode::REQUEST_NOT_FOUND);
 		return false;
 	}
 
 	auto requestType = request->getRequestEntry().body.type();
 	if (requestType != ReviewableRequestType::ASSET_CREATE && requestType != ReviewableRequestType::ASSET_UPDATE) {
-		innerResult().code(MANAGE_ASSET_REQUEST_NOT_FOUND);
+		innerResult().code(ManageAssetResultCode::REQUEST_NOT_FOUND);
 		return false;
 	}
 
 	request->storeDelete(delta, db);
 
-	innerResult().code(MANAGE_ASSET_SUCCESS);
+	innerResult().code(ManageAssetResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();
 	return true;
 }
@@ -54,7 +54,7 @@ bool CancelAssetRequestOpFrame::doCheckValid(Application& app)
 {
 	if (mManageAsset.requestID == 0)
 	{
-		innerResult().code(MANAGE_ASSET_REQUEST_NOT_FOUND);
+		innerResult().code(ManageAssetResultCode::REQUEST_NOT_FOUND);
 		return false;
 	}
 

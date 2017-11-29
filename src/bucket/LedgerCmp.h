@@ -145,7 +145,7 @@ case ASSET_PAIR:
 		{
 			auto const& ar = a.reviewableRequest();
 			auto const& br = b.reviewableRequest();
-			return ar.ID < br.ID;
+			return ar.requestID < br.requestID;
 		}
         }
 

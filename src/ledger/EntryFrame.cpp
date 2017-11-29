@@ -164,7 +164,7 @@ namespace stellar {
 			case REVIEWABLE_REQUEST: {
 				auto const &request = key.reviewableRequest();
 				res = std::static_pointer_cast<EntryFrame>(
-					ReviewableRequestFrame::loadRequest(request.ID, db));
+					ReviewableRequestFrame::loadRequest(request.requestID, db));
 				break;
 			}
             default: {
@@ -431,7 +431,7 @@ namespace stellar {
                 break;
 			case REVIEWABLE_REQUEST:
 				k.type(REVIEWABLE_REQUEST);
-				k.reviewableRequest().ID = d.reviewableRequest().ID;
+				k.reviewableRequest().requestID = d.reviewableRequest().requestID;
 				break;
             default:
                 CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on key create: " << d.type();

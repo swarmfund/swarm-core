@@ -55,7 +55,7 @@ ReviewableRequestFrame::pointer ReviewableRequestFrame::createNew(uint64 id, Acc
 	auto& request = entry.data.reviewableRequest();
 	request.requestor = requestor;
 	request.reviewer = reviewer;
-	request.ID = id;
+	request.requestID = id;
 	request.reference = reference;
 	return make_shared<ReviewableRequestFrame>(entry);
 }
@@ -154,7 +154,7 @@ void ReviewableRequestFrame::storeUpdateHelper(LedgerDelta & delta, Database & d
 	auto prep = db.getPreparedStatement(sql);
 	auto& st = prep.statement();
 
-	st.exchange(use(mRequest.ID, "id"));
+	st.exchange(use(mRequest.requestID, "id"));
 	st.exchange(use(hash, "hash"));
 	st.exchange(use(strBody, "body"));
 	st.exchange(use(mRequest.requestor, "requestor"));
@@ -189,7 +189,7 @@ void ReviewableRequestFrame::storeDelete(LedgerDelta & delta, Database & db, Led
 	auto timer = db.getDeleteTimer("reviewable_request");
 	auto prep = db.getPreparedStatement("DELETE FROM reviewable_request WHERE id=:id");
 	auto& st = prep.statement();
-	st.exchange(use(key.reviewableRequest().ID));
+	st.exchange(use(key.reviewableRequest().requestID));
 	st.define_and_bind();
 	st.execute(true);
 	delta.deleteEntry(key);
@@ -219,7 +219,7 @@ void ReviewableRequestFrame::loadRequests(StatementContext & prep, std::function
 	int version;
 
 	statement& st = prep.statement();
-	st.exchange(into(oe.ID));
+	st.exchange(into(oe.requestID));
 	st.exchange(into(hash));
 	st.exchange(into(body));
 	st.exchange(into(oe.requestor));
@@ -265,7 +265,7 @@ bool ReviewableRequestFrame::exists(Database & db, LedgerKey const & key)
 	auto prep =
 		db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM reviewable_request WHERE id=:id)");
 	auto& st = prep.statement();
-	st.exchange(use(key.reviewableRequest().ID));
+	st.exchange(use(key.reviewableRequest().requestID));
 	int exists = 0;
 	st.exchange(into(exists));
 	st.define_and_bind();
@@ -308,7 +308,7 @@ ReviewableRequestFrame::pointer ReviewableRequestFrame::loadRequest(uint64 reque
 {
 	LedgerKey key;
 	key.type(REVIEWABLE_REQUEST);
-	key.reviewableRequest().ID = requestID;
+	key.reviewableRequest().requestID = requestID;
 	if (cachedEntryExists(key, db))
 	{
 		auto p = getCachedEntry(key, db);

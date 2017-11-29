@@ -67,7 +67,7 @@ class ReviewableRequestFrame : public EntryFrame
 	}
 
 	uint64 getRequestID() const {
-		return mRequest.ID;
+		return mRequest.requestID;
 	}
 
 	stellar::string256 const& getRejectReason() const {

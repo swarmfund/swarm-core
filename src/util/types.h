@@ -7,6 +7,8 @@
 #include <vector>
 #include "overlay/StellarXDR.h"
 #include "xdrpp/message.h"
+#include <locale>
+#include <algorithm>
 
 namespace stellar
 {

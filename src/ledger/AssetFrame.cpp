@@ -77,7 +77,7 @@ AssetFrame::pointer AssetFrame::createSystemAsset(AssetCode code, AccountID cons
 	asset.description = "";
 	asset.externalResourceLink = "";
 	asset.issued = 0;
-	asset.maxIssuanceAmount = UINT64_MAX;
+	asset.maxIssuanceAmount = INT64_MAX;
 	asset.name = code;
 	asset.owner = owner;
 	asset.policies = 0;
@@ -252,7 +252,6 @@ AssetFrame::loadAssets(StatementContext& prep,
     AssetEntry& oe = le.data.asset();
     string code, owner, name, preissuedAssetSigner, description, externalResourceLink;
     int32_t assetVersion;
-	uint64_t maxIssuanceAmount = oe.maxIssuanceAmount;
 
     statement& st = prep.statement();
     st.exchange(into(code));
@@ -261,7 +260,7 @@ AssetFrame::loadAssets(StatementContext& prep,
 	st.exchange(into(preissuedAssetSigner));
 	st.exchange(into(description));
 	st.exchange(into(externalResourceLink));
-	st.exchange(into(maxIssuanceAmount));
+	st.exchange(into(oe.maxIssuanceAmount));
 	st.exchange(into(oe.availableForIssueance));
 	st.exchange(into(oe.issued));
     st.exchange(into(oe.policies));

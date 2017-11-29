@@ -198,9 +198,9 @@ LedgerManagerImpl::startNewLedger()
     auto baseAssetCodes = mApp.getBaseAssets();
     for (auto baseAssetCode: baseAssetCodes)
     {
-		// TODO fix ME
-		//auto baseAssetFrame = AssetFrame::create(baseAssetCode, mApp.getConfig().GENESIS_LEDGER_ASSET_POLICIES);
-		//baseAssetFrame->storeAdd(delta, this->getDatabase());
+		// TODO fix me
+		auto baseAssetFrame = AssetFrame::createSystemAsset(baseAssetCode, mApp.getMasterID());
+		baseAssetFrame->storeAdd(delta, this->getDatabase());
 
 		for (auto systemAccount : systemAccounts)
 		{

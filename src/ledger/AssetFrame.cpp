@@ -67,6 +67,24 @@ AssetFrame::pointer AssetFrame::create(AssetCreationRequest const & request, Acc
 	return std::make_shared<AssetFrame>(le);
 }
 
+AssetFrame::pointer AssetFrame::createSystemAsset(AssetCode code, AccountID const & owner)
+{
+	LedgerEntry le;
+	le.data.type(LedgerEntryType::ASSET);
+	AssetEntry& asset = le.data.asset();
+	asset.availableForIssueance = 0;
+	asset.code = code;
+	asset.description = "";
+	asset.externalResourceLink = "";
+	asset.issued = 0;
+	asset.maxIssuanceAmount = UINT64_MAX;
+	asset.name = code;
+	asset.owner = owner;
+	asset.policies = 0;
+	asset.preissuedAssetSigner = owner;
+	return std::make_shared<AssetFrame>(le);
+}
+
 bool AssetFrame::willExceedMaxIssuanceAmount(uint64_t amount) {
 	uint64_t issued;
 	if (!safeSum(mAsset.issued, amount, issued)) {

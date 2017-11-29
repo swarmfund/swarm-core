@@ -39,6 +39,7 @@ public:
     AssetFrame& operator=(AssetFrame const& other);
 
 	static pointer create(AssetCreationRequest const& request, AccountID const& owner);
+	static pointer createSystemAsset(AssetCode code, AccountID const& owner);
 
     EntryFrame::pointer
     copy() const override

@@ -264,11 +264,11 @@ HistoryTests::generateRandomLedger()
 	tm.minTime = 0;
 	tm.maxTime = closeTime + rand();
     txSet->add(
-        txtest::createCreateAccountTx(networkID, mRoot, mAlice, rand(), GENERAL, nullptr, &tm));
+        txtest::createCreateAccountTx(networkID, mRoot, mAlice, rand(), AccountType::GENERAL, nullptr, &tm));
     txSet->add(
-        txtest::createCreateAccountTx(networkID, mRoot, mBob, rand(), GENERAL, nullptr, &tm));
+        txtest::createCreateAccountTx(networkID, mRoot, mBob, rand(), AccountType::GENERAL, nullptr, &tm));
     txSet->add(
-        txtest::createCreateAccountTx(networkID, mRoot, mCarol, rand(), GENERAL, nullptr, &tm));
+        txtest::createCreateAccountTx(networkID, mRoot, mCarol, rand(), AccountType::GENERAL, nullptr, &tm));
 	Salt salt = rand();
     txSet->add(txtest::createFundAccount(networkID, mRoot, mRoot, salt, mAlice.getPublicKey(), big, "XAAU", 1, big));
     txSet->add(txtest::createFundAccount(networkID, mRoot, mRoot, salt, mBob.getPublicKey(), big, "XAAU", 1, big));

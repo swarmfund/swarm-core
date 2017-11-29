@@ -45,9 +45,9 @@ struct LedgerEntryIdCmp
         switch (aty)
         {
 
-        case ACCOUNT:
+        case LedgerEntryType::ACCOUNT:
             return a.account().accountID < b.account().accountID;
-        case FEE:
+        case LedgerEntryType::FEE:
         {
             auto const& af = a.feeState();
             auto const& bf = b.feeState();
@@ -63,43 +63,43 @@ struct LedgerEntryIdCmp
 				return false;
 			return af.upperBound < bf.upperBound;
         }
-		case BALANCE:
+        case LedgerEntryType::BALANCE:
 		{
 			auto const& ab = a.balance();
 			auto const& bb = b.balance();
 			return ab.balanceID < bb.balanceID;
 		}
-		case PAYMENT_REQUEST:
+		case LedgerEntryType::PAYMENT_REQUEST:
 		{
 			auto const& ab = a.paymentRequest();
 			auto const& bb = b.paymentRequest();
 			return ab.paymentID < bb.paymentID;
 		}
-		case ASSET:
+		case LedgerEntryType::ASSET:
 		{
 			auto const& aa = a.asset();
 			auto const& ba = b.asset();
 			return aa.code < ba.code;
         }
-        case ACCOUNT_TYPE_LIMITS:
+        case LedgerEntryType::ACCOUNT_TYPE_LIMITS:
         {
             auto const& aatl = a.accountTypeLimits();
 			auto const& batl = b.accountTypeLimits();
             return aatl.accountType < batl.accountType;
         }
-        case STATISTICS:
+        case LedgerEntryType::STATISTICS:
         {
             auto const& as = a.stats();
 			auto const& bs = b.stats();
             return as.accountID < bs.accountID;
         }
-        case REFERENCE_ENTRY:
+        case LedgerEntryType::REFERENCE_ENTRY:
         {
             auto const& ap = a.reference();
 			auto const& bp = b.reference();
 			return ap.reference < bp.reference;
         }
-		case TRUST:
+		case LedgerEntryType::TRUST:
 		{
 			auto const& at = a.trust();
 			auto const& bt = b.trust();
@@ -109,13 +109,13 @@ struct LedgerEntryIdCmp
 				return false;
 			return at.allowedAccount < bt.allowedAccount;
 		}
-        case ACCOUNT_LIMITS:
+        case LedgerEntryType::ACCOUNT_LIMITS:
         {
             auto const& al = a.accountLimits();
 			auto const& bl = b.accountLimits();
             return al.accountID < bl.accountID;
         }
-case ASSET_PAIR:
+		case LedgerEntryType::ASSET_PAIR:
 		{
 			auto const& ap = a.assetPair();
 			auto const& bp = b.assetPair();
@@ -125,7 +125,7 @@ case ASSET_PAIR:
 				return false;
 			return ap.quote < bp.quote;
 		}
-		case OFFER_ENTRY:
+		case LedgerEntryType::OFFER_ENTRY:
 		{
 			auto const& ap = a.offer();
 			auto const& bp = b.offer();
@@ -135,13 +135,13 @@ case ASSET_PAIR:
 				return false;
 			return ap.ownerID < bp.ownerID;
 		}
-		case INVOICE:
+		case LedgerEntryType::INVOICE:
 		{
 			auto const& ai = a.invoice();
 			auto const& bi = b.invoice();
 			return ai.invoiceID < bi.invoiceID;
 		}
-		case REVIEWABLE_REQUEST:
+        case LedgerEntryType::REVIEWABLE_REQUEST:
 		{
 			auto const& ar = a.reviewableRequest();
 			auto const& br = b.reviewableRequest();
@@ -179,9 +179,9 @@ struct BucketEntryIdCmp
         BucketEntryType aty = a.type();
         BucketEntryType bty = b.type();
 
-        if (aty == LIVEENTRY)
+        if (aty == BucketEntryType::LIVEENTRY)
         {
-            if (bty == LIVEENTRY)
+            if (bty == BucketEntryType::LIVEENTRY)
             {
                 return mCmp(a.liveEntry(), b.liveEntry());
             }
@@ -192,7 +192,7 @@ struct BucketEntryIdCmp
         }
         else
         {
-            if (bty == LIVEENTRY)
+            if (bty == BucketEntryType::LIVEENTRY)
             {
                 return mCmp(a.deadEntry(), b.liveEntry());
             }

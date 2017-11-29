@@ -4,14 +4,11 @@
 
 #include "AccountFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
-#include "crypto/SecretKey.h"
-#include "crypto/Hex.h"
 #include "database/Database.h"
 #include "LedgerDelta.h"
 #include "util/basen.h"
 #include "util/types.h"
 #include "lib/util/format.h"
-#include <algorithm>
 
 using namespace soci;
 using namespace std;
@@ -23,34 +20,35 @@ using xdr::operator<;
 const char* AccountFrame::kSQLCreateStatement1 =
     "CREATE TABLE accounts"
     "("
-    "accountid         VARCHAR(56)  PRIMARY KEY,"
-    "thresholds        TEXT         NOT NULL,"
-    "lastmodified      INT          NOT NULL,"
-	"account_type      INT          NOT NULL,"
-	"block_reasons     INT          NOT NULL,"
-    "referrer       VARCHAR(56) NOT NULL,"
-	"share_for_referrer     BIGINT          NOT NULL"
+    "accountid          VARCHAR(56)  PRIMARY KEY,"
+    "thresholds         TEXT         NOT NULL,"
+    "lastmodified       INT          NOT NULL,"
+	"account_type       INT          NOT NULL,"
+	"block_reasons      INT          NOT NULL,"
+    "referrer           VARCHAR(56)  NOT NULL,"
+	"share_for_referrer BIGINT       NOT NULL,"
+    "policies           INT          NOT NULL           DEFAULT 0,"
+    "version            INT          NOT NULL           DEFAULT 0"
     ");";
 
 const char* AccountFrame::kSQLCreateStatement2 =
     "CREATE TABLE signers"
     "("
-    "accountid       VARCHAR(56) NOT NULL,"
-    "publickey       VARCHAR(56) NOT NULL,"
-    "weight          INT         NOT NULL,"
-	"signer_type     INT         NOT NULL,"
-	"identity_id     INT         NOT NULL,"
+    "accountid       VARCHAR(56)    NOT NULL,"
+    "publickey       VARCHAR(56)    NOT NULL,"
+    "weight          INT            NOT NULL,"
+	"signer_type     INT            NOT NULL,"
+	"identity_id     INT            NOT NULL,"
+    "signer_name     VARCHAR(256)   NOT NULL    DEFAULT '',"
+    "version         INT            NOT NULL    DEFAULT 0,"
     "PRIMARY KEY (accountid, publickey)"
     ");";
 
 const char* AccountFrame::kSQLCreateStatement3 =
     "CREATE INDEX signersaccount ON signers (accountid)";
 
-const char* AccountFrame::kSQLAddSignerName =
-	"ALTER TABLE signers ADD signer_name VARCHAR(256) NOT NULL DEFAULT ''";
-
 AccountFrame::AccountFrame()
-    : EntryFrame(ACCOUNT), mAccountEntry(mEntry.data.account())
+    : EntryFrame(LedgerEntryType::ACCOUNT), mAccountEntry(mEntry.data.account())
 {
     mAccountEntry.thresholds[0] = 1; // by default, master key's weight is 1
     mUpdateSigners = true;
@@ -136,25 +134,25 @@ AccountFrame::getID() const
 uint32_t
 AccountFrame::getMasterWeight() const
 {
-    return mAccountEntry.thresholds[THRESHOLD_MASTER_WEIGHT];
+    return mAccountEntry.thresholds[static_cast<int32_t >(ThresholdIndexes::MASTER_WEIGHT)];
 }
 
 uint32_t
 AccountFrame::getHighThreshold() const
 {
-    return mAccountEntry.thresholds[THRESHOLD_HIGH];
+    return mAccountEntry.thresholds[static_cast<int32_t >(ThresholdIndexes::HIGH)];
 }
 
 uint32_t
 AccountFrame::getMediumThreshold() const
 {
-    return mAccountEntry.thresholds[THRESHOLD_MED];
+    return mAccountEntry.thresholds[static_cast<int32_t >(ThresholdIndexes::MED)];
 }
 
 uint32_t
 AccountFrame::getLowThreshold() const
 {
-    return mAccountEntry.thresholds[THRESHOLD_LOW];
+    return mAccountEntry.thresholds[static_cast<int32_t >(ThresholdIndexes::LOW)];
 }
 
 AccountFrame::pointer
@@ -174,7 +172,7 @@ AccountFrame::pointer
 AccountFrame::loadAccount(AccountID const& accountID, Database& db, LedgerDelta* delta)
 {
     LedgerKey key;
-    key.type(ACCOUNT);
+    key.type(LedgerEntryType::ACCOUNT);
     key.account().accountID = accountID;
     if (cachedEntryExists(key, db))
     {
@@ -194,11 +192,10 @@ AccountFrame::loadAccount(AccountID const& accountID, Database& db, LedgerDelta*
 	uint32 accountPolicies;
 	int32_t accountVersion;
     auto prep =
-        db.getPreparedStatement("SELECT "
-                                "thresholds, "
-                                "lastmodified, account_type, block_reasons,"
-                                "referrer, share_for_referrer, policies, version "
-                                "FROM accounts WHERE accountid=:v1");
+        db.getPreparedStatement("SELECT thresholds, lastmodified, account_type, block_reasons,"
+                                       "referrer, share_for_referrer, policies, version "
+                                "FROM   accounts "
+                                "WHERE  accountid=:v1");
     auto& st = prep.statement();
     st.exchange(into(thresholds));
     st.exchange(into(res->getLastModified()));
@@ -222,16 +219,14 @@ AccountFrame::loadAccount(AccountID const& accountID, Database& db, LedgerDelta*
     }
 	account.accountType = AccountType(accountType);
 	account.ext.v((LedgerVersion)accountVersion);
-	account.policies = accountPolicies;
+    account.policies = accountPolicies;
 	
     if (referrer != "")
         account.referrer.activate() = PubKeyUtils::fromStrKey(referrer);
     bn::decode_b64(thresholds.begin(), thresholds.end(),
                    res->mAccountEntry.thresholds.begin());
 
-
     account.signers.clear();
-
 
     auto signers = loadSigners(db, actIDStrKey, delta);
     account.signers.insert(account.signers.begin(), signers.begin(), signers.end());
@@ -266,8 +261,9 @@ AccountFrame::loadSigners(Database& db, std::string const& actIDStrKey, LedgerDe
 	int32_t signerVersion;
     Signer signer;
 
-    auto prep2 = db.getPreparedStatement("SELECT publickey, weight, signer_type, identity_id, signer_name, version FROM "
-                                         "signers WHERE accountid =:id");
+    auto prep2 = db.getPreparedStatement("SELECT publickey, weight, signer_type, identity_id, signer_name, version "
+                                         "FROM   signers "
+                                         "WHERE  accountid =:id");
     auto& st2 = prep2.statement();
     st2.exchange(use(actIDStrKey));
     st2.exchange(into(pubKey));
@@ -284,7 +280,8 @@ AccountFrame::loadSigners(Database& db, std::string const& actIDStrKey, LedgerDe
     while (st2.got_data())
     {
         signer.pubKey = PubKeyUtils::fromStrKey(pubKey);
-		signer.name = signerName;
+        signer.name = signerName;
+
         res.push_back(signer);
         st2.fetch();
     }
@@ -308,7 +305,7 @@ AccountFrame::exists(Database& db, LedgerKey const& key)
         auto timer = db.getSelectTimer("account-exists");
         auto prep =
             db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM accounts "
-                                    "WHERE accountid=:v1)");
+                                                    "WHERE accountid=:v1)");
         auto& st = prep.statement();
         st.exchange(use(actIDStrKey));
         st.exchange(into(exists));
@@ -341,8 +338,8 @@ AccountFrame::storeDelete(LedgerDelta& delta, Database& db,
     std::string actIDStrKey = PubKeyUtils::toStrKey(key.account().accountID);
     {
         auto timer = db.getDeleteTimer("account");
-        auto prep = db.getPreparedStatement(
-            "DELETE from accounts where accountid= :v1");
+        auto prep = db.getPreparedStatement("DELETE FROM accounts "
+                                            "WHERE       accountid=:v1");
         auto& st = prep.statement();
         st.exchange(soci::use(actIDStrKey));
         st.define_and_bind();
@@ -351,7 +348,8 @@ AccountFrame::storeDelete(LedgerDelta& delta, Database& db,
     {
         auto timer = db.getDeleteTimer("signer");
         auto prep =
-            db.getPreparedStatement("DELETE from signers where accountid= :v1");
+            db.getPreparedStatement("DELETE FROM signers "
+                                    "WHERE       accountid=:v1");
         auto& st = prep.statement();
         st.exchange(soci::use(actIDStrKey));
         st.define_and_bind();
@@ -376,51 +374,45 @@ AccountFrame::storeUpdate(LedgerDelta& delta, Database& db, bool insert)
     if (mAccountEntry.referrer)
         refIDStrKey = PubKeyUtils::toStrKey(*mAccountEntry.referrer);
 
-	int32_t newAccountVersion = mAccountEntry.ext.v();
-	uint32 newAccountPolicies = mAccountEntry.policies;
+	int32_t newAccountVersion = static_cast<int32_t>(mAccountEntry.ext.v());
+	int32_t newAccountPolicies = mAccountEntry.policies;
 
     std::string sql;
 
     if (insert)
     {
         sql = std::string(
-            "INSERT INTO accounts ( accountid, "
-            "thresholds, "
-            "lastmodified, account_type, block_reasons,"
-            "referrer, share_for_referrer, policies, version, created_at) "
-            "VALUES ( :id, :v4, :v5, :v7, :v8, :v9, :v10, :v11, :v12, to_timestamp(:created_at))");
+            "INSERT INTO accounts (accountid, thresholds, lastmodified, account_type, block_reasons,"
+                                  "referrer, share_for_referrer, policies, version) "
+            "VALUES               (:id, :th, :lm, :type, :br, :ref, :sref, :p, :v)");
     }
     else
     {
         sql = std::string(
-            "UPDATE accounts SET "
-            "thresholds = :v4, "
-            "lastmodified = :v5, account_type = :v7, block_reasons = :v8, "
-			"referrer=:v9, share_for_referrer=:v10, policies=:v11, version=:v12 "
-            " WHERE accountid = :id");
+            "UPDATE accounts "
+            "SET    thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
+			"       referrer=:ref, share_for_referrer=:sref, policies=:p, version=:v "
+            "WHERE  accountid=:id");
     }
 
     auto prep = db.getPreparedStatement(sql);
 
-    int32 accountType = mAccountEntry.accountType;
+    int32 accountType = static_cast<int32_t >(mAccountEntry.accountType);
 
     string thresholds(bn::encode_b64(mAccountEntry.thresholds));
 
     {
         soci::statement& st = prep.statement();
         st.exchange(use(actIDStrKey, "id"));
-        st.exchange(use(thresholds, "v4"));
-        st.exchange(use(getLastModified(), "v5"));
-		st.exchange(use(accountType, "v7"));
-		st.exchange(use(mAccountEntry.blockReasons, "v8"));
-		st.exchange(use(refIDStrKey, "v9"));
-        st.exchange(use(mAccountEntry.shareForReferrer, "v10"));
-		st.exchange(use(newAccountPolicies, "v11"));
-		st.exchange(use(newAccountVersion, "v12"));
-		if (insert)
-		{
-			st.exchange(use(delta.getHeader().scpValue.closeTime, "created_at"));
-		}
+        st.exchange(use(thresholds, "th"));
+        st.exchange(use(getLastModified(), "lm"));
+		st.exchange(use(accountType, "type"));
+		st.exchange(use(mAccountEntry.blockReasons, "br"));
+		st.exchange(use(refIDStrKey, "ref"));
+        st.exchange(use(mAccountEntry.shareForReferrer, "sref"));
+		st.exchange(use(newAccountPolicies, "p"));
+		st.exchange(use(newAccountVersion, "v"));
+
         st.define_and_bind();
         {
             auto timer = insert ? db.getInsertTimer("account")
@@ -450,7 +442,8 @@ AccountFrame::storeUpdate(LedgerDelta& delta, Database& db, bool insert)
 
 void AccountFrame::deleteSigner(Database& db, std::string const& accountID, AccountID const& pubKey) {
 	std::string signerStrKey = PubKeyUtils::toStrKey(pubKey);
-	auto prep = db.getPreparedStatement("DELETE from signers WHERE accountid=:v2 AND publickey=:v3");
+	auto prep = db.getPreparedStatement("DELETE FROM signers "
+                                        "WHERE accountid=:v2 AND publickey=:v3");
 	auto& st = prep.statement();
 	st.exchange(use(accountID));
 	st.exchange(use(signerStrKey));
@@ -467,20 +460,27 @@ void AccountFrame::deleteSigner(Database& db, std::string const& accountID, Acco
 }
 
 void AccountFrame::signerStoreChange(Database& db, LedgerDelta& delta, std::string const& accountID, std::vector<Signer>::iterator const& signer, bool insert) {
-	int32_t newSignerVersion = signer->ext.v();
+    int32_t signerVersion = static_cast<int32_t >(signer->ext.v());
 	std::string newSignerName = signer->name;
 
 	std::string signerStrKey = PubKeyUtils::toStrKey(signer->pubKey);
 	auto timer = insert ? db.getInsertTimer("signer") : db.getUpdateTimer("signer");
-	auto prep = insert ? 
-		db.getPreparedStatement("INSERT INTO signers "
-			"(accountid,publickey,weight,signer_type,identity_id,signer_name,version) "
-			"VALUES (:account_id,:pub_key,:weight,:type,:identity_id,:name,:version)")
-		:
-		db.getPreparedStatement(
-		"UPDATE signers set weight=:weight, signer_type=:type, identity_id=:identity_id, signer_name=:name, version=:version WHERE "
-		"accountid=:account_id AND publickey=:pub_key");
 
+    std::string sql;
+    if (insert) {
+        sql = std::string(
+                "INSERT INTO signers (accountid, publickey, weight, signer_type,"
+                                    " identity_id, signer_name, version) "
+                "VALUES (:account_id, :pub_key, :weight, :type, :identity_id, :name, :version)");
+    } else {
+        sql = std::string(
+                "UPDATE signers "
+                "SET    weight=:weight, signer_type=:type, identity_id=:identity_id, "
+                "       signer_name=:name, version=:version "
+                "WHERE  accountid=:account_id AND publickey=:pub_key");
+    }
+
+	auto prep = db.getPreparedStatement(sql);
 	auto& st = prep.statement();
 	st.exchange(use(accountID, "account_id"));
 	st.exchange(use(signerStrKey, "pub_key"));
@@ -488,7 +488,7 @@ void AccountFrame::signerStoreChange(Database& db, LedgerDelta& delta, std::stri
 	st.exchange(use(signer->signerType, "type"));
 	st.exchange(use(signer->identity, "identity_id"));
 	st.exchange(use(newSignerName, "name"));
-	st.exchange(use(newSignerVersion, "version"));
+	st.exchange(use(signerVersion, "version"));
 	st.define_and_bind();
 	st.execute(true);
 
@@ -496,7 +496,6 @@ void AccountFrame::signerStoreChange(Database& db, LedgerDelta& delta, std::stri
 	{
 		throw std::runtime_error("Could not update data in SQL");
 	}
-
 }
 
 
@@ -587,7 +586,7 @@ AccountFrame::checkDB(Database& db)
     {
         std::string id;
         soci::statement st =
-            (db.getSession().prepare << "select accountid from accounts",
+            (db.getSession().prepare << "SELECT accountid FROM accounts",
              soci::into(id));
         st.execute(true);
         while (st.got_data())
@@ -607,8 +606,8 @@ AccountFrame::checkDB(Database& db)
         size_t n;
         // sanity check signers state
         soci::statement st =
-            (db.getSession().prepare << "select count(*), accountid from "
-                                        "signers group by accountid",
+            (db.getSession().prepare << "SELECT count(*), accountid FROM "
+                                        "signers GROUP BY accountid",
              soci::into(n), soci::into(id));
         st.execute(true);
         while (st.got_data())
@@ -642,28 +641,4 @@ AccountFrame::dropAll(Database& db)
     db.getSession() << kSQLCreateStatement3;
 }
 
-void
-AccountFrame::addSignerName(Database& db)
-{
-	db.getSession() << kSQLAddSignerName;
-}
-
-void
-AccountFrame::addSignerVersion(Database& db)
-{
-	db.getSession() << "ALTER TABLE signers ADD version INT NOT NULL DEFAULT 0;";
-	db.getSession() << "UPDATE signers SET version=6 WHERE char_length(signer_name)>0;";
-}
-
-void
-AccountFrame::addAccountPolicies(Database& db)
-{
-	db.getSession() << "ALTER TABLE accounts ADD policies INT NOT NULL DEFAULT 0;";
-	db.getSession() << "ALTER TABLE accounts ADD version INT NOT NULL DEFAULT 0;";
-}
-
-void AccountFrame::addCreatedAt(Database& db)
-{
-	db.getSession() << "ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW();";
-}
 }

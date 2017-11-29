@@ -40,18 +40,18 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 	Database& db = ledgerManager.getDatabase();
 	auto request = getUpdatedOrCreateReviewableRequest(app, db, delta);
 	if (!request) {
-		innerResult().code(MANAGE_ASSET_REQUEST_NOT_FOUND);
+		innerResult().code(ManageAssetResultCode::REQUEST_NOT_FOUND);
 		return false;
 	}
 
 	if (mManageAsset.requestID == 0 && ReviewableRequestFrame::exists(db, getSourceID(), mAssetCreationRequest.code)) {
-		innerResult().code(MANAGE_ASSET_ASSET_ALREADY_EXISTS);
+		innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
 		return false;
 	}
 
 	auto isAssetExist = AssetFrame::exists(db, mAssetCreationRequest.code);
 	if (isAssetExist) {
-		innerResult().code(MANAGE_ASSET_ASSET_ALREADY_EXISTS);
+		innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
 		return false;
 	}
 
@@ -62,7 +62,7 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 		request->storeChange(delta, db);
 	}
 
-	innerResult().code(MANAGE_ASSET_SUCCESS);
+	innerResult().code(ManageAssetResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();
 	return true;
 
@@ -71,17 +71,17 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 bool CreateAssetOpFrame::doCheckValid(Application & app)
 {
 	if (!AssetFrame::isAssetCodeValid(mAssetCreationRequest.code)) {
-		innerResult().code(MANAGE_ASSET_INVALID_CODE);
+		innerResult().code(ManageAssetResultCode::INVALID_CODE);
 		return false;
 	}
 
 	if (mAssetCreationRequest.name.empty()) {
-		innerResult().code(MANAGE_ASSET_INVALID_NAME);
+		innerResult().code(ManageAssetResultCode::INVALID_NAME);
 		return false;
 	}
 
 	if (!isValidXDRFlag<AssetPolicy>(mAssetCreationRequest.policies)) {
-		innerResult().code(MANAGE_ASSET_INVALID_POLICIES);
+		innerResult().code(ManageAssetResultCode::INVALID_POLICIES);
 		return false;
 	}
 

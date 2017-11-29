@@ -23,7 +23,7 @@ class ManageAccountOpFrame : public OperationFrame
 
 	std::vector<AccountType> getAllowedCounterpartyAccountType() const
 	{
-		return{ GENERAL, NOT_VERIFIED};
+		return{ AccountType::GENERAL, AccountType::NOT_VERIFIED};
 	}
 	
   public:

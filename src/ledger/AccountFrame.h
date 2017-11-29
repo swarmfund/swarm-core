@@ -81,7 +81,8 @@ class AccountFrame : public EntryFrame
 
 	bool checkPolicy(AccountPolicies policy) const
 	{
-		return (mAccountEntry.policies & policy) == policy;
+        auto policyValue = static_cast<int32_t >(policy);
+		return (mAccountEntry.policies & policyValue) == policyValue;
 	}
 
     uint32_t getMasterWeight() const;
@@ -165,14 +166,9 @@ class AccountFrame : public EntryFrame
     checkDB(Database& db);
 
     static void dropAll(Database& db);
-	static void addSignerName(Database& db);
-	static void addSignerVersion(Database& db);
-	static void addAccountPolicies(Database& db);
-	static void addCreatedAt(Database& db);
 
     static const char* kSQLCreateStatement1;
     static const char* kSQLCreateStatement2;
     static const char* kSQLCreateStatement3;
-	static const char* kSQLAddSignerName;
 };
 }

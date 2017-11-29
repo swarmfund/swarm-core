@@ -42,32 +42,40 @@ TEST_CASE("manage asset pair", "[dep_tx][manage_asset_pair]")
 		SECTION("Invalid asset")
 		{
 			base = "''asd";
-			applyManageAssetPairTx(app, root, rootSalt, base, quote, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_INVALID_ASSET);
-			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_INVALID_ASSET);
+			applyManageAssetPairTx(app, root, rootSalt, base, quote, physicalPrice, physicalPriceCorrection,
+								   maxPriceStep, policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::INVALID_ASSET);
+			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+								   maxPriceStep, policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::INVALID_ASSET);
 		}
 		SECTION("Invalid action")
 		{
-			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, ManageAssetPairAction(1201), MANAGE_ASSET_PAIR_INVALID_ACTION);
+			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+								   maxPriceStep, policies, ManageAssetPairAction(1201), ManageAssetPairResultCode::INVALID_ACTION);
 		}
 		SECTION("Invalid physical price")
 		{
-			applyManageAssetPairTx(app, root, rootSalt, quote, base, -physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_MALFORMED);
+			applyManageAssetPairTx(app, root, rootSalt, quote, base, -physicalPrice, physicalPriceCorrection,
+								   maxPriceStep, policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::MALFORMED);
 		}
 		SECTION("Invalid physical price correction")
 		{
-			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, -physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_MALFORMED);
+			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, -physicalPriceCorrection,
+								   maxPriceStep, policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::MALFORMED);
 		}
 		SECTION("Invalid max price step")
 		{
-			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, -maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_MALFORMED);
+			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+								   -maxPriceStep, policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::MALFORMED);
 		}
 		SECTION("Invalid policies")
 		{
-			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, -policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_INVALID_POLICIES);
+			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+								   maxPriceStep, -policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::INVALID_POLICIES);
 		}
 		SECTION("Asset does not exists")
 		{
-			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_ASSET_NOT_FOUND);
+			applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+								   maxPriceStep, policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::ASSET_NOT_FOUND);
 		}
 		SECTION("Asset created")
 		{
@@ -75,28 +83,37 @@ TEST_CASE("manage asset pair", "[dep_tx][manage_asset_pair]")
 			applyManageAssetTx(app, root, rootSalt, quote);
 			SECTION("Pair already exists")
 			{
-				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies);
-				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_ALREADY_EXISTS);
+				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+									   maxPriceStep, policies);
+				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+									   maxPriceStep, policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::ALREADY_EXISTS);
 				// reverse pair already exists
-				applyManageAssetPairTx(app, root, rootSalt, base, quote, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE, MANAGE_ASSET_PAIR_ALREADY_EXISTS);
+				applyManageAssetPairTx(app, root, rootSalt, base, quote, physicalPrice, physicalPriceCorrection,
+									   maxPriceStep, policies, ManageAssetPairAction::CREATE, ManageAssetPairResultCode::ALREADY_EXISTS);
 			}
 			SECTION("Pair does not exists")
 			{
-				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_UPDATE_POLICIES, MANAGE_ASSET_PAIR_NOT_FOUND);
-				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_UPDATE_PRICE, MANAGE_ASSET_PAIR_NOT_FOUND);
+				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+									   maxPriceStep, policies, ManageAssetPairAction::UPDATE_POLICIES, ManageAssetPairResultCode::NOT_FOUND);
+				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+									   maxPriceStep, policies, ManageAssetPairAction::UPDATE_PRICE, ManageAssetPairResultCode::NOT_FOUND);
 			}
 			SECTION("Create -> update policies -> update price")
 			{
 				// create
-				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_CREATE);
+				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+									   maxPriceStep, policies, ManageAssetPairAction::CREATE);
 				// update policies
 				physicalPriceCorrection = physicalPriceCorrection + 100 * ONE;
 				maxPriceStep = maxPriceStep + 1 * ONE;
-				policies = ASSET_PAIR_TRADEABLE | ASSET_PAIR_CURRENT_PRICE_RESTRICTION;
-				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_UPDATE_POLICIES);
+				policies = static_cast<int32_t >(AssetPairPolicy::TRADEABLE) |
+						   static_cast<int32_t >(AssetPairPolicy::CURRENT_PRICE_RESTRICTION);
+				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+									   maxPriceStep, policies, ManageAssetPairAction::UPDATE_POLICIES);
 				// update price
 				physicalPrice = physicalPrice + 125 * ONE;
-				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, MANAGE_ASSET_PAIR_UPDATE_PRICE);
+				applyManageAssetPairTx(app, root, rootSalt, quote, base, physicalPrice, physicalPriceCorrection,
+									   maxPriceStep, policies, ManageAssetPairAction::UPDATE_PRICE);
 			}
 		}
 	}

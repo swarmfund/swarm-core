@@ -19,12 +19,12 @@ typedef std::unique_ptr<Application> appPtr;
 
 void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& assetOwner, Account& root) {
 	auto issuanceRequestHelper = IssuanceRequestHelper(testManager);
-	AssetCode assetCode = "USD";
+	AssetCode assetCode = "EUR";
 	uint64_t preIssuedAmount = 10000;
 	issuanceRequestHelper.createAssetWithPreIssuedAmount(assetOwner, assetCode, preIssuedAmount, root);
 	// create new account with balance 
 	auto newAccountKP = SecretKey::random();
-	applyCreateAccountTx(testManager->getApp(), root.key, newAccountKP, root.getNextSalt(), GENERAL);
+	applyCreateAccountTx(testManager->getApp(), root.key, newAccountKP, root.getNextSalt(), AccountType::GENERAL);
 	auto newAccountBalance = BalanceFrame::loadBalance(newAccountKP.getPublicKey(), assetCode, testManager->getDB(), nullptr);
 	REQUIRE(newAccountBalance);
 
@@ -48,7 +48,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 		// try to review request
 		auto reviewIssuanceRequestHelper = ReviewIssuanceRequestHelper(testManager);
 		reviewIssuanceRequestHelper.applyReviewRequestTx(assetOwner, issuanceRequestResult.success().requestID,
-			ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::REVIEW_REQUEST_INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT);
+			ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT);
 
 		// authorized more asset to be issued & review request
 		issuanceRequestHelper.authorizePreIssuedAmount(assetOwner, assetOwner, assetCode, issuanceRequestAmount, root);

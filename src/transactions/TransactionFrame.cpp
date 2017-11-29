@@ -57,7 +57,7 @@ TransactionFrame::getContentsHash() const
     if (isZero(mContentsHash))
     {
         mContentsHash = sha256(
-            xdr::xdr_to_opaque(mNetworkID, ENVELOPE_TYPE_TX, mEnvelope.tx));
+            xdr::xdr_to_opaque(mNetworkID, EnvelopeType::TX, mEnvelope.tx));
     }
     return (mContentsHash);
 }
@@ -148,7 +148,7 @@ void
 TransactionFrame::resetResults()
 {
     // pre-allocates the results for all operations
-    getResult().result.code(txSUCCESS);
+    getResult().result.code(TransactionResultCode::txSUCCESS);
     getResult().result.results().resize(
         (uint32_t)mEnvelope.tx.operations.size());
 
@@ -170,7 +170,8 @@ bool TransactionFrame::doCheckSignature(Application& app, Database& db, AccountF
 {
 	auto signatureValidator = getSignatureValidator();
 	// block reasons are handeled on operation level
-	auto sourceDetails = SourceDetails(getAllAccountTypes(), mSigningAccount->getLowThreshold(), getAnySignerType() ^ SIGNER_READER, getAnyBlockReason());
+	auto sourceDetails = SourceDetails(getAllAccountTypes(), mSigningAccount->getLowThreshold(),
+                                       getAnySignerType() ^ static_cast<int32_t>(SignerType::READER), getAnyBlockReason());
 	SignatureValidator::Result result = signatureValidator->check(app, db, account, sourceDetails);
 	switch (result)
 	{
@@ -180,16 +181,16 @@ bool TransactionFrame::doCheckSignature(Application& app, Database& db, AccountF
 		throw runtime_error("Did not expect INVALID_ACCOUNT_TYPE error for tx");
 	case SignatureValidator::Result::NOT_ENOUGH_WEIGHT:
 		app.getMetrics().NewMeter({ "transaction", "invalid", "bad-auth" }, "transaction").Mark();
-		getResult().result.code(txBAD_AUTH);
+		getResult().result.code(TransactionResultCode::txBAD_AUTH);
 		return false;
 	case SignatureValidator::Result::EXTRA:
 	case SignatureValidator::Result::INVALID_SIGNER_TYPE:
 		app.getMetrics().NewMeter({ "transaction", "invalid", "bad-auth-extra" }, "transaction").Mark();
-		getResult().result.code(txBAD_AUTH_EXTRA);
+		getResult().result.code(TransactionResultCode::txBAD_AUTH_EXTRA);
 		return false;
 	case SignatureValidator::Result::ACCOUNT_BLOCKED:
 		app.getMetrics().NewMeter({ "transaction", "invalid", "account-blocked" }, "transaction").Mark();
-		getResult().result.code(txACCOUNT_BLOCKED);
+		getResult().result.code(TransactionResultCode::txACCOUNT_BLOCKED);
 		return false;
 	}
 
@@ -205,7 +206,7 @@ TransactionFrame::commonValid(Application& app, LedgerDelta* delta)
             .NewMeter({"transaction", "invalid", "missing-operation"},
                       "transaction")
             .Mark();
-        getResult().result.code(txMISSING_OPERATION);
+        getResult().result.code(TransactionResultCode::txMISSING_OPERATION);
         return false;
     }
     
@@ -219,7 +220,7 @@ TransactionFrame::commonValid(Application& app, LedgerDelta* delta)
             .NewMeter({"transaction", "invalid", "too-early"},
                         "transaction")
             .Mark();
-        getResult().result.code(txTOO_EARLY);
+        getResult().result.code(TransactionResultCode::txTOO_EARLY);
         return false;
     }
     if (mEnvelope.tx.timeBounds.maxTime < closeTime ||
@@ -228,7 +229,7 @@ TransactionFrame::commonValid(Application& app, LedgerDelta* delta)
         app.getMetrics()
             .NewMeter({"transaction", "invalid", "too-late"}, "transaction")
             .Mark();
-        getResult().result.code(txTOO_LATE);
+        getResult().result.code(TransactionResultCode::txTOO_LATE);
         return false;
     }
 
@@ -239,7 +240,7 @@ TransactionFrame::commonValid(Application& app, LedgerDelta* delta)
         app.getMetrics()
             .NewMeter({"transaction", "invalid", "no-account"}, "transaction")
             .Mark();
-        getResult().result.code(txNO_ACCOUNT);
+        getResult().result.code(TransactionResultCode::txNO_ACCOUNT);
         return false;
     }
 
@@ -280,7 +281,7 @@ TransactionFrame::checkAllSignaturesUsed()
 	if (signatureValidator->checkAllSignaturesUsed())
 		return true;
 
-	getResult().result.code(txBAD_AUTH_EXTRA);
+	getResult().result.code(TransactionResultCode::txBAD_AUTH_EXTRA);
 	return false;
 }
 
@@ -326,7 +327,7 @@ TransactionFrame::checkValid(Application& app)
 		app.getMetrics()
 			.NewMeter({ "transaction", "invalid", "duplication" }, "transaction")
 			.Mark();
-		getResult().result.code(txDUPLICATION);
+		getResult().result.code(TransactionResultCode::txDUPLICATION);
 		return false;
 	}
 
@@ -342,7 +343,7 @@ TransactionFrame::markResultFailed()
     // mOperations are still valid (they have pointers to the individual
     // results elements)
     xdr::xvector<OperationResult> t(std::move(getResult().result.results()));
-    getResult().result.code(txFAILED);
+    getResult().result.code(TransactionResultCode::txFAILED);
     getResult().result.results() = std::move(t);
 
     // sanity check in case some implementations decide
@@ -425,7 +426,7 @@ StellarMessage
 TransactionFrame::toStellarMessage() const
 {
     StellarMessage msg;
-    msg.type(TRANSACTION);
+    msg.type(MessageType::TRANSACTION);
     msg.transaction() = mEnvelope;
     return msg;
 }

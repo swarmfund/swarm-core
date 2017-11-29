@@ -48,24 +48,24 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
 
     Salt rootSeq = 1;
 
-    applyCreateAccountTx(app, root, a1, rootSeq++, GENERAL);
+    applyCreateAccountTx(app, root, a1, rootSeq++, AccountType::GENERAL);
 
     Salt a1seq = 1;
 
 
     Limits limits;
     AccountID account = a1.getPublicKey();
-    AccountType accountType = GENERAL;
+    AccountType accountType = AccountType::GENERAL;
     limits.dailyOut = 100;
     limits.weeklyOut = 200;
     limits.monthlyOut = 300;
     limits.annualOut = 300;
     SECTION("malformed")
     {
-        applySetLimits(app, root, rootSeq++, nullptr, nullptr, limits, SET_LIMITS_MALFORMED);
-        applySetLimits(app, root, rootSeq++, &account, &accountType, limits, SET_LIMITS_MALFORMED);
+        applySetLimits(app, root, rootSeq++, nullptr, nullptr, limits, SetLimitsResultCode::MALFORMED);
+        applySetLimits(app, root, rootSeq++, &account, &accountType, limits, SetLimitsResultCode::MALFORMED);
         limits.annualOut = 0;
-        applySetLimits(app, root, rootSeq++, &account, nullptr, limits, SET_LIMITS_MALFORMED);
+        applySetLimits(app, root, rootSeq++, &account, nullptr, limits, SetLimitsResultCode::MALFORMED);
     }
     SECTION("success account limits setting")
     {
@@ -114,16 +114,16 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
                     account2Seq++, limits.dailyOut / 2, getNoPaymentFee(), false);
 
                 applyPaymentTx(app, a2, receiver,
-                    account2Seq++, limits.dailyOut, getNoPaymentFee(), false, "", "", PAYMENT_LIMITS_EXCEEDED);
+                    account2Seq++, limits.dailyOut, getNoPaymentFee(), false, "", "", PaymentResultCode::LIMITS_EXCEEDED);
 
                 applyManageForfeitRequestTx(app, a2,
                                             a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut / 2 + 1, 0, "",
-                                            MANAGE_FORFEIT_REQUEST_LIMITS_EXCEEDED);
+                                            ManageForfeitRequestResultCode::LIMITS_EXCEEDED);
 
                 auto result = applyManageForfeitRequestTx(app, a2, a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut / 2);
 
                 applyPaymentTx(app, a2, receiver,
-                    account2Seq++, 1, getNoPaymentFee(), false, "", "", PAYMENT_LIMITS_EXCEEDED);
+                    account2Seq++, 1, getNoPaymentFee(), false, "", "", PaymentResultCode::LIMITS_EXCEEDED);
 
 				auto statistics = StatisticsFrame::loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
 				REQUIRE(statistics.dailyOutcome == limits.dailyOut);
@@ -147,7 +147,7 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
 				// limis exceeded because of weekly limit
                 applyManageForfeitRequestTx(app, a2,
                                             a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut, 0, "",
-                                            MANAGE_FORFEIT_REQUEST_LIMITS_EXCEEDED);
+                                            ManageForfeitRequestResultCode::LIMITS_EXCEEDED);
 
 				// week passed
 				closeLedgerOn(app, 6, 7, 8, 2017);

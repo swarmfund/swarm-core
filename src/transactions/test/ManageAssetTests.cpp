@@ -18,7 +18,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager, Account& account
 	{
 		auto preissuedSigner = SecretKey::random();
 		auto manageAssetHelper = ManageAssetHelper(testManager);
-		AssetCode assetCode = "USD";
+		AssetCode assetCode = "EURT";
 		auto creationRequest = manageAssetHelper.createAssetCreationRequest(assetCode, "New USD token", preissuedSigner.getPublicKey(), "Description can be quiete long", "https://testusd.usd", 0, 0);
 		auto creationResult = manageAssetHelper.applyManageAssetTx(account, 0, creationRequest);
 		SECTION("Can cancel creation request")

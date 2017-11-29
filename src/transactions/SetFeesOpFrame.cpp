@@ -41,7 +41,7 @@ namespace stellar
 		{
 			if (!feeFrame)
 			{
-				innerResult().code(SET_FEES_NOT_FOUND);
+				innerResult().code(SetFeesResultCode::NOT_FOUND);
 				metrics.NewMeter({ "op-set-fees", "invalid", "fee-not-found" }, "operation").Mark();
 				return false;
 			}
@@ -63,24 +63,24 @@ namespace stellar
 		// create 
 		if (!AssetFrame::exists(db, mSetFees.fee->asset))
 		{
-			innerResult().code(SET_FEES_ASSET_NOT_FOUND);
+			innerResult().code(SetFeesResultCode::ASSET_NOT_FOUND);
 			metrics.NewMeter({ "op-set-fees", "invalid", "asset-not-found" }, "operation").Mark();
 			return false;
 		}
 
 		// for fererral fee and storage fee it is only allowed  to have full range, so we can update them without check for range overlap
-		if (mSetFees.fee->feeType != REFERRAL_FEE)
+		if (mSetFees.fee->feeType != FeeType::REFERRAL_FEE)
 		{
 			if (FeeFrame::isBoundariesOverlap(hash, mSetFees.fee->lowerBound, mSetFees.fee->upperBound, db))
 			{
-				innerResult().code(SET_FEES_RANGE_OVERLAP);
+				innerResult().code(SetFeesResultCode::RANGE_OVERLAP);
 				metrics.NewMeter({ "op-set-fees", "invalid", "boundaries-overlap" }, "operation").Mark();
 				return false;
 			}
 		}
 
 		LedgerEntry le;
-		le.data.type(FEE);
+		le.data.type(LedgerEntryType::FEE);
 		le.data.feeState() = *mSetFees.fee;
 		feeFrame = make_shared<FeeFrame>(le);
 		feeFrame->storeAdd(delta, db);
@@ -92,7 +92,7 @@ namespace stellar
 		auto asset = AssetFrame::loadAsset(mSetFees.fee->asset, db);
 		if (!asset)
 		{
-			innerResult().code(SET_FEES_ASSET_NOT_FOUND);
+			innerResult().code(SetFeesResultCode::ASSET_NOT_FOUND);
 			metrics.NewMeter({ "op-set-fees", "invalid", "asset-not-exist" }, "operation").Mark();
 			return false;
 		}
@@ -105,7 +105,7 @@ namespace stellar
                                   LedgerDelta& d, LedgerManager& ledgerManager)
     {
         Database& db = ledgerManager.getDatabase();
-        innerResult().code(SET_FEES_SUCCESS);
+        innerResult().code(SetFeesResultCode::SUCCESS);
 
 		LedgerDelta setFeesDelta(d);
 
@@ -133,7 +133,7 @@ namespace stellar
 			return true;
 		}
 
-		innerResult().code(SET_FEES_MALFORMED_RANGE);
+		innerResult().code(SetFeesResultCode::MALFORMED_RANGE);
 		metrics.NewMeter({ "op-set-fees", "invalid", "invalid-range" }, "operation").Mark();
 		return false;
 	}
@@ -143,7 +143,7 @@ namespace stellar
 		if (fee.subtype == 0)
 			return true;
 
-		innerResult().code(SET_FEES_SUB_TYPE_NOT_EXIST);
+		innerResult().code(SetFeesResultCode::SUB_TYPE_NOT_EXIST);
 		metrics.NewMeter({ "op-set-fees", "invalid", "invalid-sub-type-not-exist" }, "operation").Mark();
 		return false;
 	}
@@ -153,7 +153,7 @@ namespace stellar
 		if (fee.asset == app.getBaseAsset())
 			return true;
 
-		innerResult().code(SET_FEES_SUB_TYPE_NOT_EXIST);
+		innerResult().code(SetFeesResultCode::SUB_TYPE_NOT_EXIST);
 		app.getMetrics().NewMeter({ "op-set-fees", "invalid", "must-be-base-asset" }, "operation").Mark();
 		return false;
 	}
@@ -162,7 +162,7 @@ namespace stellar
 	{
 		if (fee.fixedFee >= 0 && fee.percentFee >= 0 && fee.percentFee <= 100 * ONE)
 		{
-			if (fee.feeType == REFERRAL_FEE)
+			if (fee.feeType == FeeType::REFERRAL_FEE)
 			{
 				if (fee.percentFee == 100 * ONE)
 				{
@@ -172,14 +172,14 @@ namespace stellar
 			return true;
 		}
 
-		innerResult().code(SET_FEES_INVALID_AMOUNT);
+		innerResult().code(SetFeesResultCode::INVALID_AMOUNT);
 		metrics.NewMeter({ "op-set-fees", "invalid", "invalid-fee-amount" }, "operation").Mark();
 		return false;
 	}
 
 	bool SetFeesOpFrame::isPaymentFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics)
 	{
-		assert(fee.feeType == PAYMENT_FEE);
+		assert(fee.feeType == FeeType::PAYMENT_FEE);
 		if (!mustValidFeeAmounts(fee, metrics))
 			return false;
 
@@ -191,7 +191,7 @@ namespace stellar
 
 	bool SetFeesOpFrame::isForfeitFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics)
 	{
-		assert(fee.feeType == FORFEIT_FEE);
+		assert(fee.feeType == FeeType::FORFEIT_FEE);
 		if (!mustValidFeeAmounts(fee, metrics))
 			return false;
 
@@ -200,7 +200,7 @@ namespace stellar
 
 	bool SetFeesOpFrame::isOfferFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics)
 	{
-		assert(fee.feeType == OFFER_FEE);
+		assert(fee.feeType == FeeType::OFFER_FEE);
 
 		if (!mustValidFeeAmounts(fee, metrics))
 			return false;
@@ -216,7 +216,7 @@ namespace stellar
 
 	bool SetFeesOpFrame::isEmissionFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics)
 	{
-		assert(fee.feeType == EMISSION_FEE);
+		assert(fee.feeType == FeeType::EMISSION_FEE);
 
 		if (!mustValidFeeAmounts(fee, metrics))
 			return false;
@@ -224,9 +224,10 @@ namespace stellar
 		if (!mustEmptyFixed(fee, metrics))
 			return false;
 
-		if (fee.subtype != EmissionFeeType::PRIMARY_MARKET && fee.subtype != EmissionFeeType::SECONDARY_MARKET)
+		if (fee.subtype != static_cast<int32_t>(EmissionFeeType::PRIMARY_MARKET) &&
+				fee.subtype != static_cast<int32_t>(EmissionFeeType::SECONDARY_MARKET))
 		{
-			innerResult().code(SET_FEES_MALFORMED);
+			innerResult().code(SetFeesResultCode::MALFORMED);
 			metrics.NewMeter({ "op-set-fees", "invalid", "invalid-sub-type" }, "operation").Mark();
 			return false;
 		}
@@ -237,7 +238,7 @@ namespace stellar
 
 	bool SetFeesOpFrame::isReferralFeeValid(FeeEntry const& fee, Application& app)
 	{
-		assert(fee.feeType == REFERRAL_FEE);
+		assert(fee.feeType == FeeType::REFERRAL_FEE);
 		auto& metrics = app.getMetrics();
 
 		if (!mustValidFeeAmounts(fee, metrics))
@@ -270,7 +271,7 @@ namespace stellar
 
 	SourceDetails SetFeesOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 	{
-		return SourceDetails({ MASTER }, mSourceAccount->getHighThreshold(), SIGNER_ASSET_MANAGER);
+		return SourceDetails({ AccountType::MASTER }, mSourceAccount->getHighThreshold(), static_cast<int32_t>(SignerType::ASSET_MANAGER));
 	}
 
 	bool SetFeesOpFrame::mustEmptyFixed(FeeEntry const& fee, medida::MetricsRegistry& metrics)
@@ -278,7 +279,7 @@ namespace stellar
 		if (fee.fixedFee == 0)
 			return true;
 		
-		innerResult().code(SET_FEES_INVALID_AMOUNT);
+		innerResult().code(SetFeesResultCode::INVALID_AMOUNT);
 		metrics.NewMeter({ "op-set-fees", "invalid", "fixed-fee-must-be-emoty" }, "operation").Mark();
 		return false;
 	}
@@ -293,21 +294,21 @@ namespace stellar
 
 		if (!AssetFrame::isAssetCodeValid(mSetFees.fee->asset))
 		{
-			innerResult().code(SET_FEES_INVALID_ASSET);
+			innerResult().code(SetFeesResultCode::INVALID_ASSET);
 			app.getMetrics().NewMeter({ "op-set-fees", "invalid", "invalid-asset" }, "operation").Mark();
 			return false;
 		}
 
 		if (mSetFees.fee->accountID && mSetFees.fee->accountType)
 		{
-			innerResult().code(SET_FEES_MALFORMED);
+			innerResult().code(SetFeesResultCode::MALFORMED);
 			app.getMetrics().NewMeter({ "op-set-fees", "invalid", "malformed-both-set" }, "operation").Mark();
 			return false;
 		}
 
 		if (mSetFees.fee->lowerBound > mSetFees.fee->upperBound)
 		{
-			innerResult().code(SET_FEES_MALFORMED);
+			innerResult().code(SetFeesResultCode::MALFORMED);
 			app.getMetrics().NewMeter({ "op-set-fees", "invalid", "malformed-boundaries" }, "operation").Mark();
 			return false;
 		}
@@ -315,31 +316,27 @@ namespace stellar
 		bool isValidFee;
 		switch (mSetFees.fee->feeType)
 		{
-		case PAYMENT_FEE:
+		case FeeType::PAYMENT_FEE:
 			isValidFee = isPaymentFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
-		case OFFER_FEE:
+		case FeeType::OFFER_FEE:
 			isValidFee = isOfferFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
-		case REFERRAL_FEE:
+		case FeeType::REFERRAL_FEE:
 			isValidFee = isReferralFeeValid(*mSetFees.fee, app);
 			break;
-		case FORFEIT_FEE:
+		case FeeType::FORFEIT_FEE:
 			isValidFee = isForfeitFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
-		case EMISSION_FEE:
+		case FeeType::EMISSION_FEE:
 			isValidFee = isEmissionFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
 		default:
-			innerResult().code(SET_FEES_INVALID_FEE_TYPE);
+			innerResult().code(SetFeesResultCode::INVALID_FEE_TYPE);
 			app.getMetrics().NewMeter({ "op-set-fees", "invalid", "invalid-operation-type" }, "operation").Mark();
 			return false;
 		}
 
-		if (!isValidFee)
-			return false;
-
-
-        return true;
+		return isValidFee;
     }
 }

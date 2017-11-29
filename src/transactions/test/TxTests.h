@@ -99,7 +99,7 @@ void
 applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
                      Salt seq, AccountType accountType,
                      SecretKey* signer = nullptr, AccountID* referrer = nullptr,
-                     CreateAccountResultCode result = CREATE_ACCOUNT_SUCCESS, int32 policies = -1);
+                     CreateAccountResultCode result = CreateAccountResultCode::SUCCESS, int32 policies = -1);
 
 
 TransactionFramePtr createManageOffer(Hash const& networkID,
@@ -109,7 +109,7 @@ TransactionFramePtr createManageOffer(Hash const& networkID,
 ManageOfferResult
 applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offerID,
     BalanceID const& baseBalance, BalanceID const& quoteBalance, int64_t amount, int64_t price, bool isBuy,
-    int64_t fee = 0, ManageOfferResultCode result = MANAGE_OFFER_SUCCESS);
+    int64_t fee = 0, ManageOfferResultCode result = ManageOfferResultCode::SUCCESS);
 
 OfferFrame::pointer
 loadOffer(SecretKey const& k, uint64 offerID, Application& app, bool mustExist = true);
@@ -123,7 +123,7 @@ TransactionFramePtr createManageBalanceTx(Hash const& networkID,
 ManageBalanceResult
 applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account, Salt seq, BalanceID balanceID,
         AssetCode asset = "AETH",
-        ManageBalanceAction action  = MANAGE_BALANCE_CREATE, ManageBalanceResultCode result = MANAGE_BALANCE_SUCCESS);
+        ManageBalanceAction action  = ManageBalanceAction::CREATE, ManageBalanceResultCode result = ManageBalanceResultCode::SUCCESS);
 
 
 TransactionFramePtr createManageAssetTx(Hash const& networkID, SecretKey& source,
@@ -133,8 +133,8 @@ TransactionFramePtr createManageAssetTx(Hash const& networkID, SecretKey& source
 void
 applyManageAssetTx(Application& app, SecretKey& source, Salt seq,
 				   AssetCode asset, int32 policies = 1,
-				   ManageAssetAction action  = MANAGE_ASSET_CREATE_ASSET_CREATION_REQUEST,
-				   ManageAssetResultCode result = MANAGE_ASSET_SUCCESS);
+				   ManageAssetAction action  = ManageAssetAction::CREATE_ASSET_CREATION_REQUEST,
+				   ManageAssetResultCode result = ManageAssetResultCode::SUCCESS);
 
 TransactionFramePtr createManageAssetPairTx(Hash const& networkID, SecretKey& source,
 	Salt seq, AssetCode base, AssetCode quote,
@@ -143,8 +143,8 @@ TransactionFramePtr createManageAssetPairTx(Hash const& networkID, SecretKey& so
 void
 applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode base, AssetCode quote,
 	int64_t physicalPrice, int64_t physicalPriceCorrection, int64_t maxPriceStep, int32 policies,
-	ManageAssetPairAction action = MANAGE_ASSET_PAIR_CREATE,
-	ManageAssetPairResultCode result = MANAGE_ASSET_PAIR_SUCCESS);
+	ManageAssetPairAction action = ManageAssetPairAction::CREATE,
+	ManageAssetPairResultCode result = ManageAssetPairResultCode::SUCCESS);
 
 TransactionFramePtr createDirectDebitTx(Hash const& networkID, SecretKey& source,
                                           Salt seq, AccountID from, PaymentOp paymentOp);
@@ -152,7 +152,7 @@ TransactionFramePtr createDirectDebitTx(Hash const& networkID, SecretKey& source
 DirectDebitResult
 applyDirectDebitTx(Application& app, SecretKey& source, Salt seq,
         AccountID from, PaymentOp paymentOp,
-        DirectDebitResultCode result = DIRECT_DEBIT_SUCCESS);
+        DirectDebitResultCode result = DirectDebitResultCode::SUCCESS);
 
 
 TransactionFramePtr createPaymentTx(Hash const& networkID, SecretKey& from,
@@ -169,12 +169,12 @@ TransactionFramePtr createPaymentTx(Hash const& networkID, SecretKey& from, Secr
 
 PaymentResult applyPaymentTx(Application& app, SecretKey& from, BalanceID fromBalanceID, BalanceID toBalanceID, Salt seq, int64_t amount, PaymentFeeData paymentFee, bool isSourceFee,
     std::string subject = "", std::string reference="",
-    PaymentResultCode result = PAYMENT_SUCCESS, InvoiceReference* invoiceReference = nullptr);
+    PaymentResultCode result = PaymentResultCode::SUCCESS, InvoiceReference* invoiceReference = nullptr);
 
 PaymentResult applyPaymentTx(Application& app, SecretKey& from, SecretKey& to,
                     Salt seq, int64_t amount, PaymentFeeData paymentFee, bool isSourceFee,
                     std::string subject = "", std::string reference="",
-                    PaymentResultCode result = PAYMENT_SUCCESS,
+                    PaymentResultCode result = PaymentResultCode::SUCCESS,
                     InvoiceReference* invoiceReference = nullptr);
 
 
@@ -185,7 +185,7 @@ createManageForfeitRequestTx(Hash const &networkID, SecretKey &from, BalanceID f
 ManageForfeitRequestResult
 applyManageForfeitRequestTx(Application &app, SecretKey &from, BalanceID fromBalance, Salt seq, AccountID reviewer,
 							int64_t amount = 0, int64_t totalFee = 0, std::string details = "",
-							ManageForfeitRequestResultCode result = MANAGE_FORFEIT_REQUEST_SUCCESS);
+							ManageForfeitRequestResultCode result = ManageForfeitRequestResultCode::SUCCESS);
 
 TransactionFramePtr
 createManageInvoice(Hash const& networkID, SecretKey& from, AccountID sender,
@@ -194,7 +194,7 @@ createManageInvoice(Hash const& networkID, SecretKey& from, AccountID sender,
 ManageInvoiceResult
 applyManageInvoice(Application& app, SecretKey& from, AccountID sender,
                 BalanceID receiverBalance, int64_t amount = 0, uint64_t invoiceID = 0,
-                ManageInvoiceResultCode result = MANAGE_INVOICE_SUCCESS);
+                ManageInvoiceResultCode result = ManageInvoiceResultCode::SUCCESS);
 
 TransactionFramePtr
 createReviewPaymentRequestTx(Hash const& networkID, SecretKey& exchange,
@@ -203,7 +203,7 @@ createReviewPaymentRequestTx(Hash const& networkID, SecretKey& exchange,
 int32
 applyReviewPaymentRequestTx(Application& app, SecretKey& from, 
             Salt seq, int64 paymentID, 
-            bool accept = true, ReviewPaymentRequestResultCode result = REVIEW_PAYMENT_REQUEST_SUCCESS);
+            bool accept = true, ReviewPaymentRequestResultCode result = ReviewPaymentRequestResultCode::SUCCESS);
 
 
 TransactionFramePtr createRecover(Hash const& networkID, SecretKey& source,
@@ -211,7 +211,7 @@ TransactionFramePtr createRecover(Hash const& networkID, SecretKey& source,
                                      PublicKey oldSigner, PublicKey newSigner);
 
 void applyRecover(Application& app, SecretKey& source, Salt seq, AccountID account,
-                    PublicKey oldSigner, PublicKey newSigner, RecoverResultCode targetResult = RECOVER_SUCCESS);
+                    PublicKey oldSigner, PublicKey newSigner, RecoverResultCode targetResult = RecoverResultCode::SUCCESS);
 
 
 TransactionFramePtr createSetOptions(Hash const& networkID, SecretKey& source, Salt seq,
@@ -220,7 +220,7 @@ TransactionFramePtr createSetOptions(Hash const& networkID, SecretKey& source, S
 
 void applySetOptions(Application& app, SecretKey& source, Salt seq, ThresholdSetter* thrs,
                      Signer* signer, TrustData* trustData = nullptr,
-                     SetOptionsResultCode targetResult = SET_OPTIONS_SUCCESS, SecretKey* txSiger = nullptr);
+                     SetOptionsResultCode targetResult = SetOptionsResultCode::SUCCESS, SecretKey* txSiger = nullptr);
 
 TransactionFramePtr createSetLimits(Hash const& networkID, SecretKey& source,
                                      Salt seq,AccountID* account,
@@ -228,7 +228,7 @@ TransactionFramePtr createSetLimits(Hash const& networkID, SecretKey& source,
 
 void applySetLimits(Application& app, SecretKey& source, Salt seq,
     AccountID* account, AccountType* accountType, Limits limits,  
-    SetLimitsResultCode targetResult = SET_LIMITS_SUCCESS);
+    SetLimitsResultCode targetResult = SetLimitsResultCode::SUCCESS);
 
 /*TransactionFramePtr createUploadPreemissions(Hash const& networkID, SecretKey& source, Salt seq,
 	std::vector<PreEmission> preEmissions);
@@ -240,18 +240,19 @@ void applyUploadPreemissions(Application& app, SecretKey& source, Salt seq,
 
 TransactionFramePtr createManageAccount(Hash const& networkID,
 	SecretKey& source, SecretKey& account,
-	Salt seq, uint32 blockReasonsToAdd, uint32 blockReasonsToRemove, AccountType accountType = GENERAL);
+	Salt seq, uint32 blockReasonsToAdd, uint32 blockReasonsToRemove, AccountType accountType = AccountType::GENERAL);
 
 void
 applyManageAccountTx(Application& app, SecretKey& source, SecretKey& account,
 	Salt seq, uint32 blockReasonsToAdd = 0, uint32 blockReasonsToRemove = 0,
-    AccountType accountType = GENERAL,
-    ManageAccountResultCode result = MANAGE_ACCOUNT_SUCCESS);
+    AccountType accountType = AccountType::GENERAL,
+    ManageAccountResultCode result = ManageAccountResultCode::SUCCESS);
 
 TransactionFramePtr createSetFees(Hash const& networkID,
 	SecretKey& source, Salt seq, FeeEntry* fee, bool isDelete);
 
-void applySetFees(Application& app, SecretKey& source, Salt seq, FeeEntry* fees, bool isDelete, SecretKey* signer = nullptr, SetFeesResultCode result = SET_FEES_SUCCESS);
+void applySetFees(Application& app, SecretKey& source, Salt seq, FeeEntry* fees, bool isDelete, SecretKey* signer = nullptr,
+				  SetFeesResultCode result = SetFeesResultCode::SUCCESS);
 
 void uploadPreemissions(Application& app, SecretKey& source, SecretKey& issuance,
 	Salt sourceSeq, int64 amount, AssetCode asset);

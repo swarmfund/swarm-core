@@ -45,14 +45,15 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 
     Salt rootSeq = 1;
 
-    applyCreateAccountTx(app, root, a1, rootSeq++, GENERAL);
+    applyCreateAccountTx(app, root, a1, rootSeq++, AccountType::GENERAL);
 
     Salt a1seq = 1;
 
     SECTION("Signers")
     {
         SecretKey s1 = getAccount("S1");
-        Signer sk1(s1.getPublicKey(), 1, getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 1, "", Signer::_ext_t{}); // low right account
+        Signer sk1(s1.getPublicKey(), 1, getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER),
+				   1, "", Signer::_ext_t{}); // low right account
 
         ThresholdSetter th;
 
@@ -67,7 +68,8 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 
 			SecretKey regularKP = getAccount("regular");
 			auto a1Account = loadAccount(a1, app);
-			Signer regular(regularKP.getPublicKey(), a1Account->getHighThreshold(), getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 2, "", Signer::_ext_t{}); // high right regular account
+			Signer regular(regularKP.getPublicKey(), a1Account->getHighThreshold(),
+						   getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), 2, "", Signer::_ext_t{}); // high right regular account
 			applySetOptions(app, a1, a1seq++, nullptr, &regular);
 
 			LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
@@ -76,12 +78,13 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 			SECTION("Can't add new signer")
 			{
 				SecretKey s2KP = getAccount("s2");
-				Signer s2(s2KP.getPublicKey(), a1Account->getHighThreshold(), getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 2, "", Signer::_ext_t{}); // high right regular account
+				Signer s2(s2KP.getPublicKey(), a1Account->getHighThreshold(),
+						  getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), 2, "", Signer::_ext_t{}); // high right regular account
 				auto tx = createSetOptions(app.getNetworkID(), a1, a1seq++, nullptr, &s2);
 				tx->getEnvelope().signatures.clear();
 				tx->addSignature(regularKP);
 				applyCheck(tx, delta, app);
-				REQUIRE(getFirstResult(*tx).code() == opNOT_ALLOWED);
+				REQUIRE(getFirstResult(*tx).code() == OperationResultCode::opNOT_ALLOWED);
 			}
 			SECTION("Can't change threshold")
 			{
@@ -89,14 +92,15 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 				tx->getEnvelope().signatures.clear();
 				tx->addSignature(regularKP);
 				applyCheck(tx, delta, app);
-				REQUIRE(getFirstResult(*tx).code() == opNOT_ALLOWED);
+				REQUIRE(getFirstResult(*tx).code() == OperationResultCode::opNOT_ALLOWED);
 			}
 
 		}
         SECTION("can't use master key as alternate signer")
         {
-            Signer sk(a1.getPublicKey(), 100, getAnySignerType() & ~SIGNER_ACCOUNT_MANAGER, 0, "", Signer::_ext_t{});
-            applySetOptions(app, a1, a1seq++, nullptr, &sk, nullptr, SET_OPTIONS_BAD_SIGNER);
+            Signer sk(a1.getPublicKey(), 100, getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER),
+					  0, "", Signer::_ext_t{});
+            applySetOptions(app, a1, a1seq++, nullptr, &sk, nullptr, SetOptionsResultCode::BAD_SIGNER);
         }
 
 		LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
@@ -142,13 +146,13 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
             trust.balanceToUse = a1.getPublicKey();
             trustData.trust = trust;
             applySetOptions(app, a1, a1seq++, nullptr, nullptr, &trustData,
-                SET_OPTIONS_TRUST_MALFORMED);
+                SetOptionsResultCode::TRUST_MALFORMED);
         }
 
         SECTION("can not add Trust if no balance")
         {
             auto newAccount = SecretKey::random();
-            applyCreateAccountTx(app, root, newAccount, rootSeq++, GENERAL);
+            applyCreateAccountTx(app, root, newAccount, rootSeq++, AccountType::GENERAL);
 
             TrustData trustData;
             TrustEntry trust;
@@ -157,12 +161,12 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
             trustData.trust = trust;
 
             applySetOptions(app, a1, a1seq++, nullptr, nullptr, &trustData,
-                SET_OPTIONS_BALANCE_NOT_FOUND);
+                SetOptionsResultCode::BALANCE_NOT_FOUND);
         }
         SECTION("can not add Trust if balance from wrong account")
         {
             auto newAccount = SecretKey::random();
-            applyCreateAccountTx(app, root, newAccount, rootSeq++, GENERAL);
+            applyCreateAccountTx(app, root, newAccount, rootSeq++, AccountType::GENERAL);
 
             TrustData trustData;
             TrustEntry trust;
@@ -171,7 +175,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
             trustData.trust = trust;
 
             applySetOptions(app, a1, a1seq++, nullptr, nullptr, &trustData,
-                SET_OPTIONS_BALANCE_NOT_FOUND);
+                SetOptionsResultCode::BALANCE_NOT_FOUND);
         }
 
 
@@ -181,14 +185,14 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
             REQUIRE(!TrustFrame::exists(app.getDatabase(),
                 trustAccount.getPublicKey(), a1.getPublicKey()));
 
-            applyCreateAccountTx(app, root, trustAccount, rootSeq++, GENERAL);
+            applyCreateAccountTx(app, root, trustAccount, rootSeq++, AccountType::GENERAL);
 
             TrustData trustData;
             TrustEntry trust;
             trust.allowedAccount = trustAccount.getPublicKey();
             trust.balanceToUse = a1.getPublicKey();
             trustData.trust = trust;
-            trustData.action = TRUST_ADD;
+            trustData.action = ManageTrustAction::TRUST_ADD;
             applySetOptions(app, a1, a1seq++, nullptr, nullptr, &trustData);
             
             REQUIRE(TrustFrame::exists(app.getDatabase(),
@@ -196,7 +200,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 
             SECTION("can delete")
             {
-                trustData.action = TRUST_REMOVE;
+                trustData.action = ManageTrustAction::TRUST_REMOVE;
                 applySetOptions(app, a1, a1seq++, nullptr, nullptr, &trustData);
 
                 REQUIRE(!TrustFrame::exists(app.getDatabase(),
@@ -236,7 +240,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 			checkSigner(app, sk1, 1, a1);
 
 			// update type
-			sk1.signerType = SignerType::SIGNER_ACCOUNT_MANAGER;
+			sk1.signerType = static_cast<int32_t>(SignerType::ACCOUNT_MANAGER);
 			applySetOptions(app, a1, a1seq++, &th, &sk1);
 			checkSigner(app, sk1, 1, a1);
 

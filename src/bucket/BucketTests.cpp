@@ -243,13 +243,13 @@ TEST_CASE("bucket list shadowing", "[bucket]")
         auto liveBatch = LedgerTestUtils::generateValidLedgerEntries(5);
 
         BucketEntry BucketEntryAlice, BucketEntryBob;
-        BucketEntryAlice.type(LIVEENTRY);
-        BucketEntryAlice.liveEntry().data.type(ACCOUNT);
+        BucketEntryAlice.type(BucketEntryType::LIVEENTRY);
+        BucketEntryAlice.liveEntry().data.type(LedgerEntryType::ACCOUNT);
         BucketEntryAlice.liveEntry().data.account() = alice;
         liveBatch.push_back(BucketEntryAlice.liveEntry());
 
-        BucketEntryBob.type(LIVEENTRY);
-        BucketEntryBob.liveEntry().data.type(ACCOUNT);
+        BucketEntryBob.type(BucketEntryType::LIVEENTRY);
+        BucketEntryBob.liveEntry().data.type(LedgerEntryType::ACCOUNT);
         BucketEntryBob.liveEntry().data.account() = bob;
         liveBatch.push_back(BucketEntryBob.liveEntry());
 
@@ -864,7 +864,7 @@ TEST_CASE("bucket apply", "[bucket]")
 
     for (auto& e : live)
     {
-        e.data.type(ACCOUNT);
+        e.data.type(LedgerEntryType::ACCOUNT);
         auto& a = e.data.account();
         a = LedgerTestUtils::generateValidAccountEntry(5);
         dead.emplace_back(LedgerEntryKey(e));
@@ -905,7 +905,7 @@ TEST_CASE("bucket apply bench", "[bucketbench][hide]")
 
     for (auto& l : live)
     {
-        l.data.type(ACCOUNT);
+        l.data.type(LedgerEntryType::ACCOUNT);
         auto& a = l.data.account();
         a = LedgerTestUtils::generateValidAccountEntry(5);
     }

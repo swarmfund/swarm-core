@@ -33,7 +33,7 @@ namespace txtest
 		REQUIRE(actualResultCode == expectedResult);
 
 		auto reviewResult = opResult.tr().reviewRequestResult();
-		if (expectedResult != MANAGE_ASSET_SUCCESS)
+		if (expectedResult != ReviewRequestResultCode::SUCCESS)
 		{
 			uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
 			REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
@@ -62,7 +62,7 @@ namespace txtest
 	TransactionFramePtr ReviewRequestHelper::createReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType, ReviewRequestOpAction action, std::string rejectReason)
 	{
 		Operation op;
-		op.body.type(REVIEW_REQUEST);
+		op.body.type(OperationType::REVIEW_REQUEST);
 		ReviewRequestOp& reviewRequestOp = op.body.reviewRequestOp();
 		reviewRequestOp.action = action;
 		reviewRequestOp.reason = rejectReason;

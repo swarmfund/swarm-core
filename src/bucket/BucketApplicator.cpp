@@ -34,7 +34,7 @@ BucketApplicator::advance()
     {
         LedgerHeader lh;
         LedgerDelta delta(lh, mDb, false);
-        if (entry.type() == LIVEENTRY)
+        if (entry.type() == BucketEntryType::LIVEENTRY)
         {
             EntryFrame::pointer ep = EntryFrame::FromXDR(entry.liveEntry());
             ep->storeAddOrChange(delta, mDb);

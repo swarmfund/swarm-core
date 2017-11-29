@@ -44,7 +44,7 @@ TEST_CASE("direct_debit", "[dep_tx][direct_debit]")
 
     // aWM stends for account with money
     auto aWM = SecretKey::random();
-    applyCreateAccountTx(app, root, aWM, rootSeq++, GENERAL);
+    applyCreateAccountTx(app, root, aWM, rootSeq++, AccountType::GENERAL);
     fundAccount(app, root, issuance, rootSeq, aWM.getPublicKey(), emissionAmount);
 
     auto secondAsset = "AETH";
@@ -52,7 +52,7 @@ TEST_CASE("direct_debit", "[dep_tx][direct_debit]")
 	SECTION("basic tests")
 	{
 		auto account = SecretKey::random();
-		applyCreateAccountTx(app, root, account, rootSeq++, GENERAL);
+		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
 		REQUIRE(getBalance(account.getPublicKey(), app) == 0);
 		REQUIRE(getBalance(aWM.getPublicKey(), app) ==
             emissionAmount);
@@ -67,26 +67,26 @@ TEST_CASE("direct_debit", "[dep_tx][direct_debit]")
         paymentOp.reference = "";
     
         auto paymentResult = applyDirectDebitTx(app, account, 0, aWM.getPublicKey(),
-            paymentOp, DIRECT_DEBIT_NO_TRUST);  
+            paymentOp, DirectDebitResultCode::NO_TRUST);
 
         TrustData trustData;
         TrustEntry trust;
         trust.allowedAccount = account.getPublicKey();
         trust.balanceToUse = aWM.getPublicKey();
         trustData.trust = trust;
-        trustData.action = TRUST_ADD;
+        trustData.action = ManageTrustAction::TRUST_ADD;
         applySetOptions(app, aWM, rootSeq++, nullptr, nullptr, &trustData);
 
         applyDirectDebitTx(app, account, rootSeq++, account.getPublicKey(),
-            paymentOp, DIRECT_DEBIT_MALFORMED);
+            paymentOp, DirectDebitResultCode::MALFORMED);
 
 		SECTION("Balance mismatched")
 		{
 			paymentOp.sourceBalanceID = aWM.getPublicKey();
 			auto randomAccount = SecretKey::random();
-			applyCreateAccountTx(app, root, randomAccount, 0, GENERAL);
+			applyCreateAccountTx(app, root, randomAccount, 0, AccountType::GENERAL);
 			applyDirectDebitTx(app, account, rootSeq++, randomAccount.getPublicKey(),
-				paymentOp, DIRECT_DEBIT_BALANCE_ACCOUNT_MISMATCHED);
+				paymentOp, DirectDebitResultCode::BALANCE_ACCOUNT_MISMATCHED);
 		}
 
 

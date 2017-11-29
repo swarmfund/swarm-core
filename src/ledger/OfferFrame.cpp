@@ -18,7 +18,7 @@ namespace stellar
 	const char* OfferFrame::kSQLCreateStatement1 =
 		"CREATE TABLE offer"
 		"("
-		"owner_id          VARCHAR(56)      NOT NULL,"
+		"owner_id          	VARCHAR(56)      NOT NULL,"
 		"offer_id           BIGINT           NOT NULL CHECK (offer_id >= 0),"
 		"base_asset_code    VARCHAR(16)      NOT NULL,"
 		"quote_asset_code   VARCHAR(16)      NOT NULL,"
@@ -27,11 +27,12 @@ namespace stellar
 		"quote_amount       BIGINT           NOT NULL CHECK (quote_amount > 0),"
 		"price              BIGINT           NOT NULL CHECK (price > 0),"
 		"fee                BIGINT           NOT NULL CHECK (fee >= 0),"
-        "percent_fee                BIGINT           NOT NULL CHECK (percent_fee >= 0),"
+        "percent_fee        BIGINT           NOT NULL CHECK (percent_fee >= 0),"
 		"base_balance_id    VARCHAR(56)      NOT NULL,"
 		"quote_balance_id   VARCHAR(56)      NOT NULL,"
 		"created_at         BIGINT           NOT NULL,"
 		"lastmodified       INT              NOT NULL,"
+		"version			INT				 NOT NULL DEFAULT 0,"
 		"PRIMARY KEY      (offer_id)"
 		");";
 
@@ -40,10 +41,10 @@ namespace stellar
 
 	static const char* offerColumnSelector =
 		"SELECT owner_id, offer_id, base_asset_code, quote_asset_code, base_amount, quote_amount,"
-		"price, fee, percent_fee, is_buy, base_balance_id, quote_balance_id, created_at, lastmodified "
+				"price, fee, percent_fee, is_buy, base_balance_id, quote_balance_id, created_at, lastmodified, version "
 		"FROM offer";
 
-	OfferFrame::OfferFrame() : EntryFrame(OFFER_ENTRY), mOffer(mEntry.data.offer())
+	OfferFrame::OfferFrame() : EntryFrame(LedgerEntryType::OFFER_ENTRY), mOffer(mEntry.data.offer())
 	{
 	}
 
@@ -125,9 +126,10 @@ namespace stellar
 	{
 		std::string actIDStrKey, baseAssetCode, quoteAssetCode, baseBalanceID, quoteBalanceID;
 		int isBuy;
+		int32_t offerVersion = 0;
 
 		LedgerEntry le;
-		le.data.type(OFFER_ENTRY);
+		le.data.type(LedgerEntryType::OFFER_ENTRY);
 		OfferEntry& oe = le.data.offer();
 
 		statement& st = prep.statement();
@@ -145,6 +147,7 @@ namespace stellar
 		st.exchange(into(quoteBalanceID));
 		st.exchange(into(oe.createdAt));
 		st.exchange(into(le.lastModifiedLedgerSeq));
+		st.exchange(into(offerVersion));
 		st.define_and_bind();
 		st.execute(true);
 		while (st.got_data())
@@ -155,6 +158,7 @@ namespace stellar
 			oe.isBuy = isBuy > 0;
 			oe.baseBalance = BalanceKeyUtils::fromStrKey(baseBalanceID);
 			oe.quoteBalance = BalanceKeyUtils::fromStrKey(quoteBalanceID);
+			oe.ext.v((LedgerVersion)offerVersion);
 			if (!isValid(oe))
 			{
 				throw std::runtime_error("Invalid offer");
@@ -304,18 +308,20 @@ void OfferFrame::loadBestOffers(size_t numOffers, size_t offset, AssetCode const
 		if (insert)
 		{
 			sql = "INSERT INTO offer (owner_id, offer_id,"
-				"base_asset_code, quote_asset_code, base_amount, quote_amount,"
-				"price, fee, percent_fee, is_buy, "
-				"base_balance_id, quote_balance_id, created_at, lastmodified) VALUES "
-				"(:sid, :oid, :sac, :bac, :ba, :qa, :p, :f, :pf, :ib, :sbi, :bbi, :ca, :l)";
+									"base_asset_code, quote_asset_code, base_amount, quote_amount,"
+									"price, fee, percent_fee, is_buy, "
+									"base_balance_id, quote_balance_id, created_at, lastmodified, version) "
+				  "VALUES "
+				  "(:sid, :oid, :sac, :bac, :ba, :qa, :p, :f, :pf, :ib, :sbi, :bbi, :ca, :l, :v)";
 		}
 		else
 		{
-			sql = "UPDATE offer SET base_asset_code=:sac "
-				", quote_asset_code=:bac, base_amount=:ba, quote_amount=:qa,"
-				"price=:p, fee=:f, percent_fee=:pf, is_buy=:ib,"
-				"base_balance_id=:sbi, quote_balance_id=:bbi, created_at=:ca,"
-				"lastmodified=:l WHERE offer_id=:oid";
+			sql = "UPDATE offer "
+				  "SET 	  base_asset_code=:sac, quote_asset_code=:bac, base_amount=:ba, quote_amount=:qa,"
+						 "price=:p, fee=:f, percent_fee=:pf, is_buy=:ib,"
+						 "base_balance_id=:sbi, quote_balance_id=:bbi, created_at=:ca,"
+		 				 "lastmodified=:l, version=:v "
+				  "WHERE  offer_id=:oid";
 		}
 
 		auto prep = db.getPreparedStatement(sql);
@@ -326,6 +332,7 @@ void OfferFrame::loadBestOffers(size_t numOffers, size_t offset, AssetCode const
 		std::string quoteAssetCode = mOffer.quote;
 		std::string quoteBalanceID = BalanceKeyUtils::toStrKey(mOffer.quoteBalance);
 		std::string baseBalanceID = BalanceKeyUtils::toStrKey(mOffer.baseBalance);
+		int32_t offerVersion = static_cast<int32_t >(mOffer.ext.v());
 
 		if (insert)
 		{
@@ -345,6 +352,7 @@ void OfferFrame::loadBestOffers(size_t numOffers, size_t offset, AssetCode const
 		st.exchange(use(quoteBalanceID, "bbi"));
 		st.exchange(use(mOffer.createdAt, "ca"));
 		st.exchange(use(getLastModified(), "l"));
+		st.exchange(use(offerVersion, "v"));
 		st.define_and_bind();
 
 		auto timer =

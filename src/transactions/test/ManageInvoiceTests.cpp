@@ -43,32 +43,32 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
     SecretKey account = SecretKey::random();
     
     SecretKey a1 = SecretKey::random();
-    applyCreateAccountTx(app, root, a1, rootSeq++, GENERAL);
+    applyCreateAccountTx(app, root, a1, rootSeq++, AccountType::GENERAL);
 
     SecretKey a2 = SecretKey::random();
-    applyCreateAccountTx(app, root, a2, rootSeq++, GENERAL);
+    applyCreateAccountTx(app, root, a2, rootSeq++, AccountType::GENERAL);
 
     SecretKey a3 = SecretKey::random();
-    applyCreateAccountTx(app, root, a3, rootSeq++, GENERAL);
+    applyCreateAccountTx(app, root, a3, rootSeq++, AccountType::GENERAL);
 
     auto asset = app.getBaseAsset();
 	SECTION("Malformed")
 	{
         applyManageInvoice(app, a1, a2.getPublicKey(),
             a1.getPublicKey(), -100, 0,
-            MANAGE_INVOICE_MALFORMED);
+            ManageInvoiceResultCode::MALFORMED);
         applyManageInvoice(app, a1, a2.getPublicKey(),
             a1.getPublicKey(), 0, 0,
-            MANAGE_INVOICE_MALFORMED);
+            ManageInvoiceResultCode::MALFORMED);
         applyManageInvoice(app, a1, a2.getPublicKey(),
             a1.getPublicKey(), 100, 100,
-            MANAGE_INVOICE_MALFORMED);
+            ManageInvoiceResultCode::MALFORMED);
 	}
     SECTION("WRONG BALANCE")
     {
         applyManageInvoice(app, a1, a2.getPublicKey(),
             SecretKey::random().getPublicKey(), 100, 0,
-            MANAGE_INVOICE_BALANCE_NOT_FOUND);
+            ManageInvoiceResultCode::BALANCE_NOT_FOUND);
     }
     SECTION("Created not required review")
     {
@@ -89,35 +89,35 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
         SECTION("Random invoice ID not fulfilled")
         {
             invoiceReference.invoiceID = 123;
-            applyPaymentTx(app, a2, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PAYMENT_INVOICE_NOT_FOUND, &invoiceReference);
+            applyPaymentTx(app, a2, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PaymentResultCode::INVOICE_NOT_FOUND, &invoiceReference);
         }
         SECTION("Not equal amount paid for invoice")
         {
-            applyPaymentTx(app, a2, a1, rootSeq++, amount * 2, getNoPaymentFee(), false, "", "", PAYMENT_INVOICE_WRONG_AMOUNT, &invoiceReference);
+            applyPaymentTx(app, a2, a1, rootSeq++, amount * 2, getNoPaymentFee(), false, "", "", PaymentResultCode::INVOICE_WRONG_AMOUNT, &invoiceReference);
         }
         SECTION("real invoice ID fulfilling by wrong account")
         {
-            applyPaymentTx(app, a3, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PAYMENT_INVOICE_ACCOUNT_MISMATCH, &invoiceReference);
+            applyPaymentTx(app, a3, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PaymentResultCode::INVOICE_ACCOUNT_MISMATCH, &invoiceReference);
         }
         SECTION("real invoice ID fulfilling for wrong balance")
         {
-            applyPaymentTx(app, a2, a3, rootSeq++, amount, getNoPaymentFee(), false, "", "", PAYMENT_INVOICE_BALANCE_MISMATCH, &invoiceReference);
+            applyPaymentTx(app, a2, a3, rootSeq++, amount, getNoPaymentFee(), false, "", "", PaymentResultCode::INVOICE_BALANCE_MISMATCH, &invoiceReference);
         }
         SECTION("Paid")
         {
             auto invoiceFrame = InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()); 
             REQUIRE(invoiceFrame);
-            REQUIRE(invoiceFrame->getState() == INVOICE_NEEDS_PAYMENT);
+            REQUIRE(invoiceFrame->getState() == InvoiceState::INVOICE_NEEDS_PAYMENT);
             auto emissionAmount = 100 * ONE;
             fundAccount(app, root, issuance, rootSeq, a2.getPublicKey(), emissionAmount);
-            applyPaymentTx(app, a2, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PAYMENT_SUCCESS, &invoiceReference);
+            applyPaymentTx(app, a2, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PaymentResultCode::SUCCESS, &invoiceReference);
             REQUIRE(!InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()));
         }
         SECTION("rejected")
         {
             REQUIRE(InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()));
             invoiceReference.accept = false;
-            applyPaymentTx(app, a2, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PAYMENT_SUCCESS, &invoiceReference);
+            applyPaymentTx(app, a2, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PaymentResultCode::SUCCESS, &invoiceReference);
             REQUIRE(!InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()));
         }
 		SECTION("unverified")
@@ -133,7 +133,7 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
 			invoiceReference.accept = false;
 			SECTION("Can reject")
 			{
-				applyPaymentTx(app, notverifiedKP, a1, 0, amount, getNoPaymentFee(), false, "", "", PAYMENT_SUCCESS, &invoiceReference);
+				applyPaymentTx(app, notverifiedKP, a1, 0, amount, getNoPaymentFee(), false, "", "", PaymentResultCode::SUCCESS, &invoiceReference);
 			}
 			SECTION("Can't pay")
 			{
@@ -150,7 +150,7 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
     SECTION("Can not delete if not found")
     {
         applyManageInvoice(app, a1, a2.getPublicKey(),
-            a1.getPublicKey(), 0, 88, MANAGE_INVOICE_NOT_FOUND);
+            a1.getPublicKey(), 0, 88, ManageInvoiceResultCode::NOT_FOUND);
     }
     SECTION("Can not go over invoice limits")
     {
@@ -160,6 +160,6 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
                 a1.getPublicKey(), 100, 0);
         }
         applyManageInvoice(app, a1, a2.getPublicKey(),
-            a1.getPublicKey(), 100, 0, MANAGE_INVOICE_TOO_MANY_INVOICES);
+            a1.getPublicKey(), 100, 0, ManageInvoiceResultCode::TOO_MANY_INVOICES);
     }
 }

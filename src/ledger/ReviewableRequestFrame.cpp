@@ -138,7 +138,7 @@ void ReviewableRequestFrame::storeUpdateHelper(LedgerDelta & delta, Database & d
 	std::string strBody = bn::encode_b64(bodyBytes);
 	std::string requestor = PubKeyUtils::toStrKey(mRequest.requestor);
 	std::string rejectReason = mRequest.rejectReason;
-	int32_t version = mRequest.ext.v();
+	int32_t version = static_cast<int32_t>(mRequest.ext.v());
 
 	if (insert)
 	{
@@ -213,7 +213,7 @@ void ReviewableRequestFrame::storeAdd(LedgerDelta & delta, Database & db)
 void ReviewableRequestFrame::loadRequests(StatementContext & prep, std::function<void(LedgerEntry const&)> requestsProcessor)
 {
 	LedgerEntry le;
-	le.data.type(REVIEWABLE_REQUEST);
+	le.data.type(LedgerEntryType::REVIEWABLE_REQUEST);
 	ReviewableRequestEntry& oe = le.data.reviewableRequest();
 	std::string hash, body, rejectReason;
 	int version;
@@ -307,7 +307,7 @@ bool ReviewableRequestFrame::isReferenceExist(Database & db, AccountID const & r
 ReviewableRequestFrame::pointer ReviewableRequestFrame::loadRequest(uint64 requestID, Database & db, LedgerDelta * delta)
 {
 	LedgerKey key;
-	key.type(REVIEWABLE_REQUEST);
+	key.type(LedgerEntryType::REVIEWABLE_REQUEST);
 	key.reviewableRequest().requestID = requestID;
 	if (cachedEntryExists(key, db))
 	{

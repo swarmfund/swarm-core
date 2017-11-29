@@ -53,7 +53,7 @@ bool SignatureValidator::isAccountTypeAllowed(AccountFrame& account, vector<Acco
 vector<Signer> SignatureValidator::getSigners(Application& app, Database& db, AccountFrame& account)
 {
 	// system accounts use master's signers
-	if (account.getAccountType() != MASTER && isSystemAccountType(account.getAccountType()))
+	if (account.getAccountType() != AccountType::MASTER && isSystemAccountType(account.getAccountType()))
 	{
 		auto master = AccountFrame::loadAccount(app.getMasterID(), db);
 		assert(master);
@@ -91,7 +91,9 @@ SignatureValidator::Result SignatureValidator::check(std::vector<PublicKey> keys
 	return NOT_ENOUGH_WEIGHT;
 }
 
-SignatureValidator::Result SignatureValidator::checkSignatureV1(Application& app, Database& db, AccountFrame& account, SourceDetails& sourceDetails)
+
+	SignatureValidator::Result SignatureValidator::checkSignature(Application &app, Database &db, AccountFrame &account,
+																  SourceDetails &sourceDetails)
 {
 	auto signers = getSigners(app, db, account);
 
@@ -106,54 +108,8 @@ SignatureValidator::Result SignatureValidator::checkSignatureV1(Application& app
 
 		for (auto const& signer : signers)
 		{
-			if (!(signer.signerType & sourceDetails.mNeededSignedClass))
-			{
-				continue;
-			}
-
-			if (usedIdentities.find(signer.identity) != usedIdentities.end())
-			{
-				continue;
-			}
-
-			if (PubKeyUtils::hasHint(signer.pubKey, sig.hint) &&
-				PubKeyUtils::verifySig(signer.pubKey, sig.signature,
-					mContentHash))
-			{
-				mUsedSignatures[i] = true;
-				usedIdentities.insert(signer.identity);
-				totalWeight += signer.weight;
-				if (totalWeight >= sourceDetails.mNeeededTheshold)
-					return SUCCESS;
-
-				break;
-			}
-		}
-	}
-
-	if (!checkAllSignaturesUsed())
-		return INVALID_SIGNER_TYPE;
-
-	return NOT_ENOUGH_WEIGHT;
-}
-
-
-SignatureValidator::Result SignatureValidator::checkSignatureV2(Application& app, Database& db, AccountFrame& account, SourceDetails& sourceDetails)
-{
-	auto signers = getSigners(app, db, account);
-
-	set<uint32> usedIdentities;
-
-	// calculate the weight of the signatures
-	int totalWeight = 0;
-
-	for (size_t i = 0; i < mSignatures.size(); i++)
-	{
-		auto const& sig = mSignatures[i];
-
-		for (auto const& signer : signers)
-		{
-			bool isSignatureValid = PubKeyUtils::hasHint(signer.pubKey, sig.hint) && PubKeyUtils::verifySig(signer.pubKey, sig.signature, mContentHash);
+			bool isSignatureValid = PubKeyUtils::hasHint(signer.pubKey, sig.hint) &&
+									PubKeyUtils::verifySig(signer.pubKey, sig.signature, mContentHash);
 			if (!isSignatureValid)
 				continue;
 
@@ -187,8 +143,6 @@ SignatureValidator::Result SignatureValidator::check(Application& app, Database&
 	if (!isAccountTypeAllowed(account, sourceDetails.mAllowedSourceAccountTypes))
 		return INVALID_ACCOUNT_TYPE;
 
-	if (app.getLedgerManager().useImprovedSignatureCheck())
-		return checkSignatureV2(app, db, account, sourceDetails);
-	return checkSignatureV1(app, db, account, sourceDetails);	
+	return checkSignature(app, db, account, sourceDetails);
 }
 }

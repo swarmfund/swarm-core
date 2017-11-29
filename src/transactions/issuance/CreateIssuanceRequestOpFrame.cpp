@@ -39,23 +39,23 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 
 	auto reviewResultCode = approveIssuanceRequest(app, delta, ledgerManager, request);
 	switch (reviewResultCode) {
-	case ReviewRequestResultCode::REVIEW_REQUEST_SUCCESS: 
+	case ReviewRequestResultCode::SUCCESS:
 	{
-		innerResult().code(CREATE_ISSUANCE_REQUEST_SUCCESS);
+		innerResult().code(CreateIssuanceRequestResultCode::SUCCESS);
 		innerResult().success().requestID = request->getRequestID();
 		innerResult().success().fulfilled = true;
 		return true;
 	}
-	case ReviewRequestResultCode::REVIEW_REQUEST_INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT:
+	case ReviewRequestResultCode::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT:
 	{
-		innerResult().code(CREATE_ISSUANCE_REQUEST_SUCCESS);
+		innerResult().code(CreateIssuanceRequestResultCode::SUCCESS);
 		innerResult().success().requestID = request->getRequestID();
 		innerResult().success().fulfilled = false;
 		return true;
 	}
-	case ReviewRequestResultCode::REVIEW_REQUEST_FULL_LINE:
+	case ReviewRequestResultCode::FULL_LINE:
 	{
-		innerResult().code(CREATE_ISSUANCE_REQUEST_RECEIVER_FULL_LINE);
+		innerResult().code(CreateIssuanceRequestResultCode::RECEIVER_FULL_LINE);
 		return false;
 	}
 	default: {
@@ -71,17 +71,17 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 {
     
     if (!AssetFrame::isAssetCodeValid(mCreateIssuanceRequest.request.asset)) {
-        innerResult().code(CREATE_ISSUANCE_REQUEST_ASSET_NOT_FOUND);
+        innerResult().code(CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
         return false;
     }
 
 	if (mCreateIssuanceRequest.request.amount == 0) {
-		innerResult().code(CREATE_ISSUANCE_REQUEST_INVALID_AMOUNT);
+		innerResult().code(CreateIssuanceRequestResultCode::INVALID_AMOUNT);
 		return false;
 	}
 
 	if (mCreateIssuanceRequest.reference.empty()) {
-		innerResult().code(CREATE_ISSUANCE_REQUEST_REFERENCE_DUPLICATION);
+		innerResult().code(CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
 		return false;
 	}
 	
@@ -96,7 +96,8 @@ std::unordered_map<AccountID, CounterpartyDetails> CreateIssuanceRequestOpFrame:
 
 SourceDetails CreateIssuanceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER, SYNDICATE}, mSourceAccount->getHighThreshold(), SIGNER_ISSUANCE_MANAGER);
+	return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
+                         static_cast<int32_t>(SignerType::ISSUANCE_MANAGER));
 }
 
 bool CreateIssuanceRequestOpFrame::isAuthorizedToRequestIssuance(AssetFrame::pointer assetFrame)
@@ -108,28 +109,28 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 {
 	Database& db = ledgerManager.getDatabase();
 	if (ReviewableRequestFrame::isReferenceExist(db, getSourceID(), mCreateIssuanceRequest.reference)) {
-		innerResult().code(CREATE_ISSUANCE_REQUEST_REFERENCE_DUPLICATION);
+		innerResult().code(CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
 		return nullptr;
 	}
 
 	auto asset = AssetFrame::loadAsset(mCreateIssuanceRequest.request.asset, db);
 	if (!asset) {
-		innerResult().code(CREATE_ISSUANCE_REQUEST_ASSET_NOT_FOUND);
+		innerResult().code(CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
 		return nullptr;
 	}
 
 	if (!isAuthorizedToRequestIssuance(asset)) {
-		innerResult().code(CREATE_ISSUANCE_REQUEST_NOT_AUTHORIZED);
+		innerResult().code(CreateIssuanceRequestResultCode::NOT_AUTHORIZED);
 		return nullptr;
 	}
 
 	if (asset->willExceedMaxIssuanceAmount(mCreateIssuanceRequest.request.amount)) {
-		innerResult().code(CREATE_ISSUANCE_REQUEST_EXCEEDS_MAX_ISSUANCE_AMOUNT);
+		innerResult().code(CreateIssuanceRequestResultCode::EXCEEDS_MAX_ISSUANCE_AMOUNT);
 		return nullptr;
 	}
 
 	if (!BalanceFrame::exists(db, mCreateIssuanceRequest.request.receiver)) {
-		innerResult().code(CREATE_ISSUANCE_REQUEST_NO_COUNTERPARTY);
+		innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
 		return nullptr;
 	}
 
@@ -156,7 +157,7 @@ std::pair<bool, ReviewRequestResult>  CreateIssuanceRequestOpFrame::tryReviewIss
 	reviewRequestOp.requestType = request->getRequestType();
 
 	OperationResult opRes;
-	opRes.code(opINNER);
+	opRes.code(OperationResultCode::opINNER);
 	opRes.tr().type(OperationType::REVIEW_REQUEST);
 	Database& db = ledgerManager.getDatabase();
 	auto reviewerFrame = AccountFrame::loadAccount(reviewer, db);
@@ -168,7 +169,7 @@ std::pair<bool, ReviewRequestResult>  CreateIssuanceRequestOpFrame::tryReviewIss
 	auto reviewRequestOpFrame = std::make_shared<ReviewIssuanceCreationRequestOpFrame>(op, opRes, mParentTx);
 	reviewRequestOpFrame->setSourceAccountPtr(reviewerFrame);
 	bool isApplied = reviewRequestOpFrame->doCheckValid(app) && reviewRequestOpFrame->doApply(app, delta, ledgerManager);
-	if (reviewRequestOpFrame->getResultCode() != opINNER)
+	if (reviewRequestOpFrame->getResultCode() != OperationResultCode::opINNER)
 	{
 		throw std::runtime_error("Unexpected error code from review issuance creation request");
 	}
@@ -194,7 +195,7 @@ ReviewRequestResultCode CreateIssuanceRequestOpFrame::approveIssuanceRequest(App
 	}
 
 	auto resultCode = reviewRequestResult.code();
-	if (resultCode != ReviewRequestResultCode::REVIEW_REQUEST_SUCCESS) {
+	if (resultCode != ReviewRequestResultCode::SUCCESS) {
 		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: doApply returned true, but result code is not success: " << xdr::xdr_to_string(request->getRequestEntry());
 		throw std::runtime_error("Unexpected state: doApply returned true, but result code is not success:  for review create issuance request");
 	}

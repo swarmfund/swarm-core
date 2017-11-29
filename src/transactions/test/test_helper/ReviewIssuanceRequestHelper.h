@@ -28,10 +28,10 @@ namespace txtest
 
 		ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
 			ReviewRequestOpAction action, std::string rejectReason,
-			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::REVIEW_REQUEST_SUCCESS) override;
+			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS) override;
 
 		ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason,
-			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::REVIEW_REQUEST_SUCCESS);
+			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS);
 
 		void checkApproval(IssuanceRequest issuanceRequest, AssetFrame::pointer assetFrameBeforeTx, BalanceFrame::pointer balanceBeforeTx);
 	};

@@ -32,7 +32,7 @@ namespace txtest
 		REQUIRE(actualResultCode == expectedResult);
 
 		uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
-		if (expectedResult != MANAGE_ASSET_SUCCESS)
+		if (expectedResult != ManageAssetResultCode::SUCCESS)
 		{
 			REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
 			return ManageAssetResult{};
@@ -45,7 +45,7 @@ namespace txtest
 
 		auto manageAssetResult = opResult.tr().manageAssetResult();
 		auto requestAfterTx = ReviewableRequestFrame::loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
-		if (request.action() == ManageAssetAction::MANAGE_ASSET_CANCEL_ASSET_REQUEST) {
+		if (request.action() == ManageAssetAction::CANCEL_ASSET_REQUEST) {
 			REQUIRE(!requestAfterTx);
 			return manageAssetResult;
 		}
@@ -54,10 +54,10 @@ namespace txtest
 		REQUIRE(requestAfterTx->getRequestEntry().rejectReason.empty());
 
 		switch (request.action()) {
-		case ManageAssetAction::MANAGE_ASSET_CREATE_ASSET_CREATION_REQUEST:
+		case ManageAssetAction::CREATE_ASSET_CREATION_REQUEST:
 			REQUIRE(requestAfterTx->getRequestEntry().body.assetCreationRequest() == request.createAsset());
 			break;
-		case  ManageAssetAction::MANAGE_ASSET_CREATE_ASSET_UPDATE_REQUEST:
+		case  ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST:
 			REQUIRE(requestAfterTx->getRequestEntry().body.assetUpdateRequest() == request.updateAsset());
 			break;
 		default:
@@ -70,7 +70,7 @@ namespace txtest
 	TransactionFramePtr ManageAssetHelper::createManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request)
 	{
 		Operation op;
-		op.body.type(MANAGE_ASSET);
+		op.body.type(OperationType::MANAGE_ASSET);
 		ManageAssetOp& manageAssetOp = op.body.manageAssetOp();
 		manageAssetOp.requestID = requestID;
 		manageAssetOp.request = request;
@@ -80,7 +80,7 @@ namespace txtest
 	ManageAssetOp::_request_t ManageAssetHelper::createAssetCreationRequest(AssetCode code, std::string name, AccountID preissuedAssetSigner, std::string description, std::string externalResourceLink, uint64_t maxIssuanceAmount, uint32_t policies)
 	{
 		ManageAssetOp::_request_t request;
-		request.action(ManageAssetAction::MANAGE_ASSET_CREATE_ASSET_CREATION_REQUEST);
+		request.action(ManageAssetAction::CREATE_ASSET_CREATION_REQUEST);
 		AssetCreationRequest& assetCreationRequest = request.createAsset();
 		assetCreationRequest.code = code;
 		assetCreationRequest.description = description;
@@ -95,7 +95,7 @@ namespace txtest
 	ManageAssetOp::_request_t ManageAssetHelper::createAssetUpdateRequest(AssetCode code, std::string description, std::string externalResourceLink, uint32_t policies)
 	{
 		ManageAssetOp::_request_t request;
-		request.action(ManageAssetAction::MANAGE_ASSET_CREATE_ASSET_UPDATE_REQUEST);
+		request.action(ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST);
 		AssetUpdateRequest& assetUpdateRequest = request.updateAsset();
 		assetUpdateRequest.code = code;
 		assetUpdateRequest.description = description;
@@ -107,13 +107,13 @@ namespace txtest
 	ManageAssetOp::_request_t ManageAssetHelper::createCancelRequest()
 	{
 		ManageAssetOp::_request_t request;
-		request.action(ManageAssetAction::MANAGE_ASSET_CANCEL_ASSET_REQUEST);
+		request.action(ManageAssetAction::CANCEL_ASSET_REQUEST);
 		return request;
 	}
 	void ManageAssetHelper::createAsset(Account & assetOwner, SecretKey & preIssuedSigner, AssetCode assetCode, Account & root)
 	{
 		auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(), 
-			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0);
+			"Description can be quiete long", "https://testusd.usd", INT64_MAX, 0);
 		auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 		LedgerDelta& delta = mTestManager->getLedgerDelta();
 		auto approvingRequest = ReviewableRequestFrame::loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);

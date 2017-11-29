@@ -25,7 +25,7 @@ static const char* assetColumnSelector =
 "SELECT code, owner, name, preissued_asset_signer, description, external_resource_link, max_issuance_amount, available_for_issueance,"
 " issued, policies, lastmodified, version FROM asset";
 
-AssetFrame::AssetFrame() : EntryFrame(ASSET), mAsset(mEntry.data.asset())
+AssetFrame::AssetFrame() : EntryFrame(LedgerEntryType::ASSET), mAsset(mEntry.data.asset())
 {
 }
 
@@ -194,7 +194,7 @@ AssetFrame::loadAsset(AssetCode code, Database& db,
                       LedgerDelta* delta)
 {
 	LedgerKey key;
-	key.type(ASSET);
+	key.type(LedgerEntryType::ASSET);
 	key.asset().code = code;
 	if (cachedEntryExists(key, db))
 	{
@@ -248,7 +248,7 @@ AssetFrame::loadAssets(StatementContext& prep,
                        std::function<void(LedgerEntry const&)> assetProcessor)
 {
     LedgerEntry le;
-    le.data.type(ASSET);
+    le.data.type(LedgerEntryType::ASSET);
     AssetEntry& oe = le.data.asset();
     string code, owner, name, preissuedAssetSigner, description, externalResourceLink;
     int32_t assetVersion;
@@ -350,7 +350,7 @@ AssetFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
 	string preissuedAssetSigner = PubKeyUtils::toStrKey(mAsset.preissuedAssetSigner);
 	string desc = mAsset.description;
 	string externalLink = mAsset.externalResourceLink;
-    int32_t assetVersion = mAsset.ext.v();
+    int32_t assetVersion = static_cast<int32_t>(mAsset.ext.v());
 
     string sql;
 

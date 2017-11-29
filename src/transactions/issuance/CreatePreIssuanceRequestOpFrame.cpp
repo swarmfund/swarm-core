@@ -34,28 +34,28 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 {
     Database& db = ledgerManager.getDatabase();
 	if (ReviewableRequestFrame::isReferenceExist(db, getSourceID(), mCreatePreIssuanceRequest.request.reference)) {
-		innerResult().code(CREATE_PREISSUANCE_REQUEST_REFERENCE_DUPLICATION);
+		innerResult().code(CreatePreIssuanceRequestResultCode::REFERENCE_DUPLICATION);
 		return false;
 	}
 
 	auto asset = AssetFrame::loadAsset(mCreatePreIssuanceRequest.request.asset, db);
 	if (!asset) {
-		innerResult().code(CREATE_PREISSUANCE_REQUEST_ASSET_NOT_FOUND);
+		innerResult().code(CreatePreIssuanceRequestResultCode::ASSET_NOT_FOUND);
 		return false;
 	}
 
 	if (!(asset->getOwner() == getSourceID())) {
-		innerResult().code(CREATE_PREISSUANCE_REQUEST_NOT_AUTHORIZED_UPLOAD);
+		innerResult().code(CreatePreIssuanceRequestResultCode::NOT_AUTHORIZED_UPLOAD);
 		return false;
 	}
 
 	if (!isSignatureValid(asset)) {
-		innerResult().code(CREATE_PREISSUANCE_REQUEST_INVALID_SIGNATURE);
+		innerResult().code(CreatePreIssuanceRequestResultCode::INVALID_SIGNATURE);
 		return false;
 	}
 
 	if (!asset->canAddAvailableForIssuance(mCreatePreIssuanceRequest.request.amount)) {
-		innerResult().code(CREATE_PREISSUANCE_REQUEST_EXCEEDED_MAX_AMOUNT);
+		innerResult().code(CreatePreIssuanceRequestResultCode::EXCEEDED_MAX_AMOUNT);
 		return false;
 	}
 
@@ -65,7 +65,7 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 	requestBody.preIssuanceRequest() = mCreatePreIssuanceRequest.request;
 	auto request = ReviewableRequestFrame::createNewWithHash(delta.getHeaderFrame().generateID(), getSourceID(), app.getMasterID(), reference, requestBody);
 	request->storeAdd(delta, db);
-	innerResult().code(CREATE_PREISSUANCE_REQUEST_SUCCESS);
+	innerResult().code(CreatePreIssuanceRequestResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();
 	return true;
 }
@@ -75,17 +75,17 @@ CreatePreIssuanceRequestOpFrame::doCheckValid(Application& app)
 {
     
     if (!AssetFrame::isAssetCodeValid(mCreatePreIssuanceRequest.request.asset)) {
-        innerResult().code(CREATE_PREISSUANCE_REQUEST_ASSET_NOT_FOUND);
+        innerResult().code(CreatePreIssuanceRequestResultCode::ASSET_NOT_FOUND);
         return false;
     }
 
 	if (mCreatePreIssuanceRequest.request.amount == 0) {
-		innerResult().code(CREATE_PREISSUANCE_REQUEST_INVALID_AMOUNT);
+		innerResult().code(CreatePreIssuanceRequestResultCode::INVALID_AMOUNT);
 		return false;
 	}
 
 	if (mCreatePreIssuanceRequest.request.reference.empty()) {
-		innerResult().code(CREATE_PREISSUANCE_REQUEST_INVALID_REFERENCE);
+		innerResult().code(CreatePreIssuanceRequestResultCode::INVALID_REFERENCE);
 		return false;
 	}
 	
@@ -106,7 +106,8 @@ std::unordered_map<AccountID, CounterpartyDetails> CreatePreIssuanceRequestOpFra
 
 SourceDetails CreatePreIssuanceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER, SYNDICATE}, mSourceAccount->getHighThreshold(), SIGNER_ISSUANCE_MANAGER);
+	return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
+						 static_cast<int32_t>(SignerType::ISSUANCE_MANAGER));
 }
 
 bool CreatePreIssuanceRequestOpFrame::isSignatureValid(AssetFrame::pointer asset)

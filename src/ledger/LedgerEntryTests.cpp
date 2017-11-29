@@ -41,7 +41,7 @@ TEST_CASE("Ledger Entry tests", "[ledgerentry]")
 
         for (auto& l : accounts)
         {
-            l.data.type(ACCOUNT);
+            l.data.type(LedgerEntryType::ACCOUNT);
             auto& a = l.data.account();
             a = LedgerTestUtils::generateValidAccountEntry(5);
             accountsMap.insert(std::make_pair(a.accountID, l));

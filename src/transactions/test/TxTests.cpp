@@ -95,24 +95,24 @@ bool applyCheck(TransactionFramePtr tx, LedgerDelta& delta, Application& app)
 	tx->clearCached();
     bool check = tx->checkValid(app);
     TransactionResult checkResult = tx->getResult();
-    REQUIRE((!check || checkResult.result.code() == txSUCCESS));
+    REQUIRE((!check || checkResult.result.code() == TransactionResultCode::txSUCCESS));
     
     bool res;
     auto code = checkResult.result.code();
 
-    if (code != txNO_ACCOUNT && code != txDUPLICATION)
+    if (code != TransactionResultCode::txNO_ACCOUNT && code != TransactionResultCode::txDUPLICATION)
     {
         tx->processSeqNum();
     }
 
-    bool doApply = (code != txDUPLICATION);
+    bool doApply = (code != TransactionResultCode::txDUPLICATION);
 
     if (doApply)
     {
         res = tx->apply(delta, app);
 
 
-        REQUIRE((!res || tx->getResultCode() == txSUCCESS));
+        REQUIRE((!res || tx->getResultCode() == TransactionResultCode::txSUCCESS));
 
         if (!check)
         {
@@ -135,10 +135,10 @@ bool applyCheck(TransactionFramePtr tx, LedgerDelta& delta, Application& app)
     {
         switch (c.type())
         {
-        case LEDGER_ENTRY_CREATED:
+        case LedgerEntryChangeType::CREATED:
             checkEntry(c.created(), app);
             break;
-        case LEDGER_ENTRY_UPDATED:
+        case LedgerEntryChangeType::UPDATED:
             checkEntry(c.updated(), app);
             break;
         default:
@@ -158,9 +158,9 @@ checkEntry(LedgerEntry const& le, Application& app)
     auto& d = le.data;
     switch (d.type())
     {
-    case ACCOUNT:
+    case LedgerEntryType::ACCOUNT:
         checkAccount(d.account().accountID, app);
-		break;
+        break;
     default:
         break;
     }
@@ -346,8 +346,8 @@ void
 checkTransaction(TransactionFrame& txFrame)
 {
     REQUIRE(txFrame.getResult().feeCharged == 0); // default fee
-    REQUIRE((txFrame.getResultCode() == txSUCCESS ||
-             txFrame.getResultCode() == txFAILED));
+    REQUIRE((txFrame.getResultCode() == TransactionResultCode::txSUCCESS ||
+             txFrame.getResultCode() == TransactionResultCode::txFAILED));
 }
 
 void
@@ -393,7 +393,7 @@ createCreateAccountTx(Hash const& networkID, SecretKey& from, SecretKey& to,
 					  TimeBounds* timeBounds, int32 policies)
 {
     Operation op;
-    op.body.type(CREATE_ACCOUNT);
+    op.body.type(OperationType::CREATE_ACCOUNT);
     op.body.createAccountOp().destination = to.getPublicKey();
 	op.body.createAccountOp().accountType = accountType;
 
@@ -443,7 +443,7 @@ applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
     AccountFrame::pointer toAccountAfter;
     toAccountAfter = loadAccount(to, app, false);
 
-    if (innerCode != CREATE_ACCOUNT_SUCCESS)
+    if (innerCode != CreateAccountResultCode::SUCCESS)
     {
         // check that the target account didn't change
         REQUIRE(!!toAccount == !!toAccountAfter);
@@ -482,7 +482,7 @@ applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
 				auto referrerFrame = AccountFrame::loadAccount(referrerAccountID, app.getDatabase());
 				if (referrerFrame && !(referrerFrame->getID() == app.getMasterID()))
 				{
-					auto feeShare = FeeFrame::loadForAccount(REFERRAL_FEE, app.getBaseAsset(), 0, referrerFrame, 0, app.getDatabase());
+					auto feeShare = FeeFrame::loadForAccount(FeeType::REFERRAL_FEE, app.getBaseAsset(), 0, referrerFrame, 0, app.getDatabase());
 					feeSharePercent = feeShare ? feeShare->getPercentFee() : 0;
 				}
 			}
@@ -497,7 +497,7 @@ TransactionFramePtr createManageOffer(Hash const& networkID,
 	BalanceID const& quoteBalance, int64_t amount, int64_t price, bool isBuy, int64_t fee)
 {
 	Operation op;
-	op.body.type(MANAGE_OFFER);
+	op.body.type(OperationType::MANAGE_OFFER);
 	op.body.manageOfferOp().amount = amount;
 	op.body.manageOfferOp().baseBalance = baseBalance;
 	op.body.manageOfferOp().isBuy = isBuy;
@@ -553,7 +553,7 @@ applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offer
 
 	REQUIRE(manageOfferResult.code() == result);
 
-	if (manageOfferResult.code() == MANAGE_OFFER_SUCCESS)
+	if (manageOfferResult.code() == ManageOfferResultCode::SUCCESS)
 	{
 		OfferFrame::pointer offer;
 
@@ -569,8 +569,8 @@ applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offer
 
 		switch (offerResult.effect())
 		{
-		case MANAGE_OFFER_CREATED:
-		case MANAGE_OFFER_UPDATED:
+		case ManageOfferEffect::CREATED:
+		case ManageOfferEffect::UPDATED:
 		{
 			offer = loadOffer(source, expectedOfferID, app);
 			auto& offerEntry = offer->getOffer();
@@ -580,7 +580,7 @@ applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offer
 			REQUIRE(offerEntry.quoteBalance == quoteBalance);
 		}
 		break;
-		case MANAGE_OFFER_DELETED:
+		case ManageOfferEffect::DELETED:
 			REQUIRE(!loadOffer(source, expectedOfferID, app, false));
 			break;
 		default:
@@ -596,7 +596,7 @@ createManageBalanceTx(Hash const& networkID, SecretKey& from, SecretKey& account
                       Salt seq, BalanceID balanceID, AssetCode asset, ManageBalanceAction action)
 {
     Operation op;
-    op.body.type(MANAGE_BALANCE);
+    op.body.type(OperationType::MANAGE_BALANCE);
     op.body.manageBalanceOp().destination = account.getPublicKey();
     op.body.manageBalanceOp().balanceID = balanceID;
     op.body.manageBalanceOp().action = action;
@@ -634,13 +634,13 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
 
     auto opResult = txResult.result.results()[0].tr().manageBalanceResult();
 
-    if (innerCode != MANAGE_BALANCE_SUCCESS)
+    if (innerCode != ManageBalanceResultCode::SUCCESS)
     {
         REQUIRE(balances.size() == balancesAfter.size());
     }
     else
     {
-        if (action == MANAGE_BALANCE_CREATE)
+        if (action == ManageBalanceAction::CREATE)
         {
             auto assetFrame = AssetFrame::loadAsset(asset, app.getDatabase());
             REQUIRE(balances.size() == balancesAfter.size() - 1);
@@ -676,7 +676,7 @@ TransactionFramePtr createManageAssetPairTx(Hash const& networkID, SecretKey& so
 	int64_t physicalPrice, int64_t physicalPriceCorrection, int64_t maxPriceStep, int32 policies, ManageAssetPairAction action)
 {
 	Operation op;
-	op.body.type(MANAGE_ASSET_PAIR);
+	op.body.type(OperationType::MANAGE_ASSET_PAIR);
 	auto& manageAssetPair = op.body.manageAssetPairOp();
 	manageAssetPair.action = action;
 	manageAssetPair.base = base;
@@ -715,11 +715,11 @@ applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode 
 
 	auto opResult = txResult.result.results()[0].tr().manageAssetPairResult();
 
-	bool isCreate = action == MANAGE_ASSET_PAIR_CREATE;
+	bool isCreate = action == ManageAssetPairAction::CREATE;
 	auto countAfter = AssetPairFrame::countObjects(app.getDatabase().getSession());
 	auto assetPairFrameAfter = AssetPairFrame::loadAssetPair(base, quote, app.getDatabase());
 
-	if (innerCode != MANAGE_ASSET_PAIR_SUCCESS)
+	if (innerCode != ManageAssetPairResultCode::SUCCESS)
 	{
 		REQUIRE(countBefore == countAfter);
 		if (assetPairFrameBefore)
@@ -734,7 +734,7 @@ applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode 
 	AssetPairEntry assetPairBefore;
 	switch (action)
 	{
-	case MANAGE_ASSET_PAIR_CREATE:
+	case ManageAssetPairAction::CREATE:
 		REQUIRE(countBefore == (countAfter - 1));
 		assetPairBefore.base = base;
 		assetPairBefore.quote = quote;
@@ -744,7 +744,7 @@ applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode 
 		assetPairBefore.physicalPriceCorrection = physicalPriceCorrection;
 		assetPairBefore.policies = policies;
 		break;
-	case MANAGE_ASSET_PAIR_UPDATE_PRICE:
+	case ManageAssetPairAction::UPDATE_PRICE:
 	{
 		REQUIRE(assetPairFrameBefore);
 		int64_t premium = assetPairFrameBefore->getCurrentPrice() - assetPairFrameBefore->getAssetPair().physicalPrice;
@@ -753,7 +753,7 @@ applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode 
 		assetPairBefore.currentPrice = physicalPrice + premium;
 		break;
 	}
-	case MANAGE_ASSET_PAIR_UPDATE_POLICIES:
+	case ManageAssetPairAction::UPDATE_POLICIES:
 		REQUIRE(assetPairFrameBefore);
 		assetPairBefore = assetPairFrameBefore->getAssetPair();
 		assetPairBefore.policies = policies;
@@ -785,7 +785,7 @@ createPaymentTx(Hash const& networkID, SecretKey& from, BalanceID fromBalanceID,
                     InvoiceReference* invoiceReference)
 {
     Operation op;
-    op.body.type(PAYMENT);
+    op.body.type(OperationType::PAYMENT);
     op.body.paymentOp().amount = amount;
 	op.body.paymentOp().feeData = paymentFee;
     op.body.paymentOp().subject = subject;
@@ -840,7 +840,7 @@ createManageForfeitRequestTx(Hash const &networkID, SecretKey &from, BalanceID f
                              AccountID reviewer, int64_t amount, int64_t totalFee, std::string details)
 {
     Operation op;
-    op.body.type(MANAGE_FORFEIT_REQUEST);
+    op.body.type(OperationType::MANAGE_FORFEIT_REQUEST);
     op.body.manageForfeitRequestOp().amount = amount;
     op.body.manageForfeitRequestOp().balance = fromBalance;
     op.body.manageForfeitRequestOp().details = details;
@@ -881,7 +881,7 @@ applyManageForfeitRequestTx(Application &app, SecretKey &from, BalanceID fromBal
 
     auto accountFrame = loadAccount(from, app, true);
 
-    if (innerCode != MANAGE_FORFEIT_REQUEST_SUCCESS)
+    if (innerCode != ManageForfeitRequestResultCode::SUCCESS)
     {
 		REQUIRE(fromBalanceFrame->getAmount() == fromBalanceAfterFrame->getAmount());            
     }
@@ -899,7 +899,7 @@ createManageInvoice(Hash const& networkID, SecretKey& from, AccountID sender,
                 BalanceID receiverBalance, int64_t amount, uint64_t invoiceID)
 {
     Operation op;
-    op.body.type(MANAGE_INVOICE);
+    op.body.type(OperationType::MANAGE_INVOICE);
     op.body.manageInvoiceOp().amount = amount;
     op.body.manageInvoiceOp().receiverBalance = receiverBalance;
     op.body.manageInvoiceOp().sender = sender;
@@ -934,7 +934,7 @@ applyManageInvoice(Application& app, SecretKey& from, AccountID sender,
 
     auto opResult = txResult.result.results()[0].tr().manageInvoiceResult();
 
-    if (innerCode == MANAGE_INVOICE_SUCCESS)
+    if (innerCode == ManageInvoiceResultCode::SUCCESS)
     {
         if (invoiceID == 0)
         {
@@ -961,7 +961,7 @@ createReviewPaymentRequestTx(Hash const& networkID, SecretKey& exchange,
                 Salt seq, int64 paymentID, bool accept)
 {
     Operation op;
-    op.body.type(REVIEW_PAYMENT_REQUEST);
+    op.body.type(OperationType::REVIEW_PAYMENT_REQUEST);
     op.body.reviewPaymentRequestOp().paymentID = paymentID;
     op.body.reviewPaymentRequestOp().accept = accept;
 
@@ -994,17 +994,17 @@ applyReviewPaymentRequestTx(Application& app, SecretKey& from, Salt seq,
 
     auto newRequests = PaymentRequestFrame::countObjects(app.getDatabase().getSession());
 
-    if (innerCode == REVIEW_PAYMENT_REQUEST_SUCCESS)
+    if (innerCode == ReviewPaymentRequestResultCode::SUCCESS)
     {
         if (accept)
             REQUIRE(requests == newRequests + 1);
         REQUIRE(!PaymentRequestFrame::loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
-        return txResult.result.results()[0].tr().reviewPaymentRequestResult().reviewPaymentResponse().state;
+        return (int32_t)txResult.result.results()[0].tr().reviewPaymentRequestResult().reviewPaymentResponse().state;
     }
     else
     {
         REQUIRE(requests == newRequests);
-        if (innerCode != REVIEW_PAYMENT_REQUEST_NOT_FOUND)
+        if (innerCode != ReviewPaymentRequestResultCode::NOT_FOUND)
             REQUIRE(PaymentRequestFrame::loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
         return -1;
     }
@@ -1015,7 +1015,7 @@ TransactionFramePtr createRecover(Hash const& networkID, SecretKey& source,
                                      PublicKey oldSigner, PublicKey newSigner)
 {
     Operation op;
-    op.body.type(RECOVER);
+    op.body.type(OperationType::RECOVER);
     op.body.recoverOp().account = account;
     op.body.recoverOp().oldSigner = oldSigner;
     op.body.recoverOp().newSigner = newSigner;
@@ -1052,7 +1052,7 @@ void applyRecover(Application& app, SecretKey& source, Salt seq, AccountID accou
     auto accAfter = AccountFrame::loadAccount(account, app.getDatabase());
     signersSizeAfter = accAfter->getAccount().signers.size();
 
-    if (innerCode == RECOVER_SUCCESS)
+    if (innerCode == RecoverResultCode::SUCCESS)
     {
 		REQUIRE(signersSizeAfter == 1);
 		REQUIRE(accAfter->getMasterWeight() == 0);
@@ -1068,7 +1068,7 @@ TransactionFramePtr
 createSetOptions(Hash const& networkID, SecretKey& source, Salt seq, ThresholdSetter* thrs, Signer* signer, TrustData* trustData)
 {
     Operation op;
-    op.body.type(SET_OPTIONS);
+    op.body.type(OperationType::SET_OPTIONS);
 
     SetOptionsOp& setOp = op.body.setOptionsOp();
 
@@ -1133,7 +1133,7 @@ createDirectDebitTx(Hash const& networkID, SecretKey& source, Salt seq, AccountI
 	PaymentOp paymentOp)
 {
 	Operation op;
-	op.body.type(DIRECT_DEBIT);
+	op.body.type(OperationType::DIRECT_DEBIT);
 	op.body.directDebitOp().paymentOp = paymentOp;
 	op.body.directDebitOp().from = from;
 
@@ -1173,7 +1173,7 @@ createSetLimits(Hash const& networkID, SecretKey& source, Salt seq,
     AccountID* account, AccountType* accountType, Limits limits)
 {
     Operation op;
-    op.body.type(SET_LIMITS);
+    op.body.type(OperationType::SET_LIMITS);
 
     SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
 
@@ -1209,7 +1209,7 @@ applySetLimits(Application& app, SecretKey& source, Salt seq,
 TransactionFramePtr createManageAccount(Hash const& networkID, SecretKey& source, SecretKey& account, Salt seq, uint32 blockReasonsToAdd, uint32 blockReasonsToRemove, AccountType accountType)
 {
 	Operation op;
-	op.body.type(MANAGE_ACCOUNT);
+	op.body.type(OperationType::MANAGE_ACCOUNT);
 	auto& opBody = op.body.manageAccountOp();
 	opBody.account = account.getPublicKey();
 	opBody.blockReasonsToAdd = blockReasonsToAdd;
@@ -1233,7 +1233,7 @@ applyManageAccountTx(Application& app, SecretKey& source, SecretKey& account, Sa
 
 	auto result = txFrame->getResult().result.results()[0].tr().manageAccountResult();
 	REQUIRE(result.code() == targetResult);
-	if (result.code() == MANAGE_ACCOUNT_SUCCESS && accountFrameBefore)
+	if (result.code() == ManageAccountResultCode::SUCCESS && accountFrameBefore)
 	{
 		auto accountFrameAfter = loadAccount(account, app);
         uint32 expectedReasons = (accountFrameBefore->getBlockReasons() | blockReasonsToAdd) & ~blockReasonsToRemove; 
@@ -1246,7 +1246,7 @@ applyManageAccountTx(Application& app, SecretKey& source, SecretKey& account, Sa
 TransactionFramePtr createSetFees(Hash const& networkID, SecretKey& source, Salt seq, FeeEntry* fee, bool isDelete)
 {
 	Operation op;
-	op.body.type(SET_FEES);
+	op.body.type(OperationType::SET_FEES);
 	auto& opBody = op.body.setFeesOp();
 	if (fee)
 		opBody.fee.activate() = *fee;
@@ -1271,7 +1271,7 @@ void applySetFees(Application& app, SecretKey& source, Salt seq, FeeEntry* fee, 
 
 	auto result = txFrame->getResult().result.results()[0].tr().setFeesResult();
 	REQUIRE(result.code() == targetResult);
-	if (result.code() == SET_FEES_SUCCESS)
+	if (result.code() == SetFeesResultCode::SUCCESS)
 	{
 		if (fee)
 		{

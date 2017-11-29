@@ -57,7 +57,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		for (auto blockReason : xdr::xdr_traits<BlockReasons>::enum_values())
 		{
 			auto buyer = SecretKey::random();
-			applyCreateAccountTx(app, root, buyer, rootSeq, GENERAL);
+			applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
 			auto quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, &delta);
 			fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
 			auto baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, &delta);
@@ -71,13 +71,13 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 			auto orderTx = createManageOffer(app.getNetworkID(), buyer, 0, 0, baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), 2, ONE, true, 0);
 			REQUIRE(!applyCheck(orderTx, delta, app));
 			auto opResult = getFirstResultCode(*orderTx);
-			REQUIRE(opResult == opACCOUNT_BLOCKED);
+			REQUIRE(opResult == OperationResultCode::opACCOUNT_BLOCKED);
 		}
 	}
 	SECTION("basics")
 	{
 		auto buyer = SecretKey::random();
-		applyCreateAccountTx(app, root, buyer, rootSeq, GENERAL);
+		applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
 		auto baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, &delta);
 		REQUIRE(baseBuyerBalance);
 		auto quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, &delta);
@@ -85,7 +85,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		auto quoteAssetAmount = 1000 * ONE;
 		fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
 		auto seller = SecretKey::random();
-		applyCreateAccountTx(app, root, seller, rootSeq, GENERAL);
+		applyCreateAccountTx(app, root, seller, rootSeq, AccountType::GENERAL);
 		auto baseSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), base, db, &delta);
 		REQUIRE(baseBuyerBalance);
 		auto quoteSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), quote, db, &delta);
@@ -126,7 +126,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		SECTION("base*price = quote")
 		{
 			auto buyerAccountID = buyer.getPublicKey();
-			auto offerFeeFrame = FeeFrame::create(OFFER_FEE, 0, int64_t(0.2*ONE), quote, &buyerAccountID);
+			auto offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(0.2*ONE), quote, &buyerAccountID);
 			auto offerFee = offerFeeFrame->getFee();
 
 			applySetFees(app, root, rootSeq, &offerFee, false, nullptr);
@@ -150,7 +150,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		{
 			
 			auto buyerAccountID = buyer.getPublicKey();
-			auto offerFeeFrame = FeeFrame::create(OFFER_FEE, 0, 0.2*ONE, quote, &buyerAccountID);
+			auto offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, 0.2*ONE, quote, &buyerAccountID);
 			auto offerFee = offerFeeFrame->getFee();
 
 			applySetFees(app, root, rootSeq, &offerFee, false, nullptr);
@@ -219,59 +219,74 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		}
 		SECTION("Physical price restrictions")
 		{
-			applyManageAssetPairTx(app, root, rootSeq, base, quote, 100 * ONE, 105 * ONE, 0, ASSET_PAIR_TRADEABLE | ASSET_PAIR_PHYSICAL_PRICE_RESTRICTION, MANAGE_ASSET_PAIR_UPDATE_POLICIES);
-			auto offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 106 * ONE, false);
+			applyManageAssetPairTx(app, root, rootSeq, base, quote, 100 * ONE, 105 * ONE, 0,
+								   static_cast<int32_t >(AssetPairPolicy::TRADEABLE) | static_cast<int32_t >(AssetPairPolicy::PHYSICAL_PRICE_RESTRICTION),
+								   ManageAssetPairAction::UPDATE_POLICIES);
+			auto offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+												  quoteSellerBalance->getBalanceID(), baseAssetAmount, 106 * ONE, false);
 			auto offer = loadOffer(seller, offerResult.success().offer.offer().offerID, app, true);
 			REQUIRE(offer);
-			applyManageAssetPairTx(app, root, rootSeq, base, quote, 101 * ONE, 0, 0, 0, MANAGE_ASSET_PAIR_UPDATE_PRICE);
+			applyManageAssetPairTx(app, root, rootSeq, base, quote, 101 * ONE, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
 			// offer was deleted
 			offer = loadOffer(seller, offerResult.success().offer.offer().offerID, app, false);
 			REQUIRE(!offer);
 			// can't place offer
-			applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 106 * ONE, false, 0, MANAGE_OFFER_PHYSICAL_PRICE_RESTRICTION);
+			applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+							   quoteSellerBalance->getBalanceID(), baseAssetAmount, 106 * ONE, false, 0, ManageOfferResultCode::PHYSICAL_PRICE_RESTRICTION);
 		}
 		SECTION("Current pirce restriction")
 		{
-			applyManageAssetPairTx(app, root, rootSeq, base, quote, 100 * ONE, 105 * ONE, 5*ONE, ASSET_PAIR_TRADEABLE | ASSET_PAIR_CURRENT_PRICE_RESTRICTION, MANAGE_ASSET_PAIR_UPDATE_POLICIES);
-			auto offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 95 * ONE, false);
+			applyManageAssetPairTx(app, root, rootSeq, base, quote, 100 * ONE, 105 * ONE, 5*ONE,
+								   static_cast<int32_t >(AssetPairPolicy::TRADEABLE) | static_cast<int32_t >(AssetPairPolicy::CURRENT_PRICE_RESTRICTION),
+								   ManageAssetPairAction::UPDATE_POLICIES);
+			auto offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+												  quoteSellerBalance->getBalanceID(), baseAssetAmount, 95 * ONE, false);
 			auto offer = loadOffer(seller, offerResult.success().offer.offer().offerID, app, true);
 			REQUIRE(offer);
-			applyManageAssetPairTx(app, root, rootSeq, base, quote, 101 * ONE, 0, 0, 0, MANAGE_ASSET_PAIR_UPDATE_PRICE);
+			applyManageAssetPairTx(app, root, rootSeq, base, quote, 101 * ONE, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
 			// offer was not delete deleted
 			offer = loadOffer(seller, offerResult.success().offer.offer().offerID, app, false);
 			REQUIRE(offer);
 			// can't place offer
-			applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 95 * ONE, false, 0, MAANGE_OFFER_CURRENT_PRICE_RESTRICTION);
+			applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(),
+							   baseAssetAmount, 95 * ONE, false, 0, ManageOfferResultCode::CURRENT_PRICE_RESTRICTION);
 		}
 		SECTION("No price restrictions")
 		{
-			applyManageAssetPairTx(app, root, rootSeq, base, quote, 100 * ONE, 0, 0, ASSET_PAIR_TRADEABLE, MANAGE_ASSET_PAIR_UPDATE_POLICIES);
-			auto offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 1, false);
+			applyManageAssetPairTx(app, root, rootSeq, base, quote, 100 * ONE, 0, 0,
+								   static_cast<int32_t >(AssetPairPolicy::TRADEABLE), ManageAssetPairAction::UPDATE_POLICIES);
+			auto offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+												  quoteSellerBalance->getBalanceID(), baseAssetAmount, 1, false);
 			auto offer = loadOffer(seller, offerResult.success().offer.offer().offerID, app, true);
 			REQUIRE(offer);
-			applyManageAssetPairTx(app, root, rootSeq, base, quote, 101 * ONE, 0, 0, 0, MANAGE_ASSET_PAIR_UPDATE_PRICE);
+			applyManageAssetPairTx(app, root, rootSeq, base, quote, 101 * ONE, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
 			offer = loadOffer(seller, offerResult.success().offer.offer().offerID, app, false);
 			REQUIRE(offer);
 		}
 		SECTION("Asset pair is not tradable")
 		{
-			applyManageAssetPairTx(app, root, rootSeq, base, quote, 100 * ONE, 0, 0, ASSET_PAIR_TRADEABLE , MANAGE_ASSET_PAIR_UPDATE_POLICIES);
-			auto offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 95 * ONE, false);
+			applyManageAssetPairTx(app, root, rootSeq, base, quote, 100 * ONE, 0, 0,
+								   static_cast<int32_t >(AssetPairPolicy::TRADEABLE) , ManageAssetPairAction::UPDATE_POLICIES);
+			auto offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+												  quoteSellerBalance->getBalanceID(), baseAssetAmount, 95 * ONE, false);
 			auto offer = loadOffer(seller, offerResult.success().offer.offer().offerID, app, true);
 			REQUIRE(offer);
-			applyManageAssetPairTx(app, root, rootSeq, base, quote, 101 * ONE, 0, 0, 0, MANAGE_ASSET_PAIR_UPDATE_POLICIES);
+			applyManageAssetPairTx(app, root, rootSeq, base, quote, 101 * ONE, 0, 0, 0, ManageAssetPairAction::UPDATE_POLICIES);
 			// offer was deleted
 			offer = loadOffer(seller, offerResult.success().offer.offer().offerID, app, false);
 			REQUIRE(!offer);
 			// can place offer
-			applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 95 * ONE, false, 0, MANAGE_OFFER_ASSET_PAIR_NOT_TRADABLE);
+			applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+							   quoteSellerBalance->getBalanceID(), baseAssetAmount, 95 * ONE, false, 0, ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
 		}
 		SECTION("Seller can receive more then we expected based on base amount and price")
 		{
 			int64_t sellPrice = int64_t(45.76 * ONE);
 			int64_t buyPrice = int64_t(45.77 * ONE);
-			applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), ONE, buyPrice, true);
-			auto offerMatch = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), ONE, sellPrice, false);
+			applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(),
+							   quoteBuyerBalance->getBalanceID(), ONE, buyPrice, true);
+			auto offerMatch = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+												 quoteSellerBalance->getBalanceID(), ONE, sellPrice, false);
 			int64_t baseAmount = ONE;
 			int64_t quoteAmount = buyPrice;
 			REQUIRE(offerMatch.success().offersClaimed[0].baseAmount == baseAmount);
@@ -283,8 +298,10 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 			int64_t sellAmount = buyAmount;
 			int64_t buyPrice = 3 * ONE;
 			int64_t sellPrice = ONE;
-			applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), buyAmount, buyPrice, true);
-			auto offerMatch = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), sellAmount, sellPrice, false);
+			applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(),
+							   quoteBuyerBalance->getBalanceID(), buyAmount, buyPrice, true);
+			auto offerMatch = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+												 quoteSellerBalance->getBalanceID(), sellAmount, sellPrice, false);
 			REQUIRE(offerMatch.success().offersClaimed[0].currentPrice == buyPrice);
 		}
 		SECTION("buy amount > sell amount - buy price")
@@ -293,8 +310,10 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 			int64_t sellAmount = buyAmount - 1;
 			int64_t buyPrice = 3 * ONE;
 			int64_t sellPrice = ONE;
-			applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), buyAmount, buyPrice, true);
-			auto offerMatch = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), sellAmount, sellPrice, false);
+			applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(),
+							   quoteBuyerBalance->getBalanceID(), buyAmount, buyPrice, true);
+			auto offerMatch = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+												 quoteSellerBalance->getBalanceID(), sellAmount, sellPrice, false);
 			REQUIRE(offerMatch.success().offersClaimed[0].currentPrice == buyPrice);
 		}
 		SECTION("buy amount < sell amount - sell price")
@@ -303,13 +322,15 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 			int64_t buyAmount = sellAmount - 1;
 			int64_t buyPrice = 3 * ONE;
 			int64_t sellPrice = ONE;
-			applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), sellAmount, sellPrice, false);
-			auto offerMatch = applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), buyAmount, buyPrice, true);
+			applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+							   quoteSellerBalance->getBalanceID(), sellAmount, sellPrice, false);
+			auto offerMatch = applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(),
+												 quoteBuyerBalance->getBalanceID(), buyAmount, buyPrice, true);
 			REQUIRE(offerMatch.success().offersClaimed[0].currentPrice == sellPrice);
 		}
 		SECTION("Offer fees")
 		{
-            auto offerFeeFrame = FeeFrame::create(OFFER_FEE, 0, ONE, quote);
+            auto offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, ONE, quote);
             auto offerFee = offerFeeFrame->getFee();
             
 			applySetFees(app, root, rootSeq, &offerFee, false, nullptr);
@@ -321,16 +342,17 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 				applyManageOfferTx(app, buyer, rootSeq, 0,
 					baseBuyerBalance->getBalanceID(),
 					quoteBuyerBalance->getBalanceID(), quoteAssetAmount/offerPrice*ONE, offerPrice, true, feeToPay,
-                    MANAGE_OFFER_UNDERFUNDED);
+                    ManageOfferResultCode::UNDERFUNDED);
 			}
 			SECTION("Not 0 percent fee")
 			{
-				applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 1 * ONE, false, 0, MANAGE_OFFER_MALFORMED);
+				applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+								   quoteSellerBalance->getBalanceID(), baseAssetAmount, 1 * ONE, false, 0, ManageOfferResultCode::MALFORMED);
 			}
 			SECTION("Success")
 			{
 				auto buyerAccountID = baseBuyerBalance->getAccountID();
-				offerFeeFrame = FeeFrame::create(OFFER_FEE, 0, 2 * ONE, quote, &buyerAccountID);
+				offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, 2 * ONE, quote, &buyerAccountID);
 				offerFee = offerFeeFrame->getFee();
 				applySetFees(app, root, rootSeq, &offerFee, false, nullptr);
 				int64_t matchAmount = baseAssetAmount;
@@ -376,12 +398,12 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 	{
 
 		int64_t fee = int64_t(0.75 * ONE);
-        auto offerFeeFrame = FeeFrame::create(OFFER_FEE, 0, fee, quote);
+        auto offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, fee, quote);
         auto offerFee = offerFeeFrame->getFee();
 		applySetFees(app, root, rootSeq, &offerFee, false, nullptr);
 
 		auto buyer = SecretKey::random();
-		applyCreateAccountTx(app, root, buyer, rootSeq, GENERAL);
+		applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
 		auto baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, &delta);
 		REQUIRE(baseBuyerBalance);
 		auto quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, &delta);
@@ -390,7 +412,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
 
 		auto seller = SecretKey::random();
-		applyCreateAccountTx(app, root, seller, rootSeq, GENERAL);
+		applyCreateAccountTx(app, root, seller, rootSeq, AccountType::GENERAL);
 		auto baseSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), base, db, &delta);
 		REQUIRE(baseSellerBalance);
 		auto quoteSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), quote, db, &delta);
@@ -430,7 +452,8 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 				fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), buyerOfferAmount + buyerFee, quote);
 			}
 
-			auto offerResult = applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), buyerAmount, buyerPrice, true, buyerFee);
+			auto offerResult = applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(),
+												  quoteBuyerBalance->getBalanceID(), buyerAmount, buyerPrice, true, buyerFee);
 			matchesLeft -= offerResult.success().offersClaimed.size();
 
 			int64_t sellerAmount = randomAmount();
@@ -446,7 +469,8 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 			int64_t sellerPrice = randomPrice();
 			int64_t sellerFee = 0;
 			REQUIRE(OfferExchange::setFeeToPay(sellerFee, bigDivide(sellerAmount, sellerPrice, int64_t(ONE), ROUND_UP), fee));
-			offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), sellerAmount, sellerPrice, false, sellerFee);
+			offerResult = applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(),
+											 quoteSellerBalance->getBalanceID(), sellerAmount, sellerPrice, false, sellerFee);
 			matchesLeft -= offerResult.success().offersClaimed.size();
 			LOG(INFO) << "matches left: " << matchesLeft;
 		}
@@ -456,14 +480,16 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		auto buyersOffers = offersByAccount[buyer.getPublicKey()];
 		for (auto buyerOffer : buyersOffers)
 		{
-			applyManageOfferTx(app, buyer, rootSeq, buyerOffer->getOfferID(), baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), 0, 1, true);
+			applyManageOfferTx(app, buyer, rootSeq, buyerOffer->getOfferID(), baseBuyerBalance->getBalanceID(),
+							   quoteBuyerBalance->getBalanceID(), 0, 1, true);
 		}
 
 		// delete all seller offers
 		auto sellerOffers = offersByAccount[seller.getPublicKey()];
 		for (auto sellerOffer : sellerOffers)
 		{
-			applyManageOfferTx(app, seller, rootSeq, sellerOffer->getOfferID(), baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), 0, 1, false);
+			applyManageOfferTx(app, seller, rootSeq, sellerOffer->getOfferID(), baseSellerBalance->getBalanceID(),
+							   quoteSellerBalance->getBalanceID(), 0, 1, false);
 		}
 
 		offersByAccount = OfferFrame::loadAllOffers(app.getDatabase());

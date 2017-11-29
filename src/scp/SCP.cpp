@@ -301,7 +301,7 @@ SCP::envToStr(SCPStatement const& st) const
         << " i: " << st.slotIndex;
     switch (st.pledges.type())
     {
-    case SCPStatementType::SCP_ST_PREPARE:
+    case SCPStatementType::PREPARE:
     {
         auto const& p = st.pledges.prepare();
         oss << " | PREPARE"
@@ -312,7 +312,7 @@ SCP::envToStr(SCPStatement const& st) const
             << " | h.n: " << p.nH;
     }
     break;
-    case SCPStatementType::SCP_ST_CONFIRM:
+    case SCPStatementType::CONFIRM:
     {
         auto const& c = st.pledges.confirm();
         oss << " | CONFIRM"
@@ -321,7 +321,7 @@ SCP::envToStr(SCPStatement const& st) const
             << " | c.n: " << c.nCommit << " | h.n: " << c.nH;
     }
     break;
-    case SCPStatementType::SCP_ST_EXTERNALIZE:
+    case SCPStatementType::EXTERNALIZE:
     {
         auto const& ex = st.pledges.externalize();
         oss << " | EXTERNALIZE"
@@ -329,7 +329,7 @@ SCP::envToStr(SCPStatement const& st) const
             << " | (lastD): " << hexAbbrev(qSetHash);
     }
     break;
-    case SCPStatementType::SCP_ST_NOMINATE:
+    case SCPStatementType::NOMINATE:
     {
         auto const& nom = st.pledges.nominate();
         oss << " | NOMINATE"

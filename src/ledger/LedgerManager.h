@@ -175,8 +175,6 @@ class LedgerManager
     // checks the database for inconsistencies between objects
     virtual void checkDbState() = 0;
 
-	virtual bool useImprovedSignatureCheck() const = 0;
-
     virtual ~LedgerManager()
     {
     }

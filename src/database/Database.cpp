@@ -66,13 +66,9 @@ enum databaseSchemaVersion : unsigned long {
 	DROP_SCP = 2,
 	INITIAL = 3,
 	DROP_BAN = 4,
-	ADD_SIGNER_NAME = 5,
-	ADD_SIGNER_VERSION = 6,
-	ADD_ACCOUNT_POLICIES = 7,
-	ADD_ACCOUNT_CREATED_AT = 8
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ACCOUNT_CREATED_AT;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::DROP_BAN;
 
 static void
 setSerializable(soci::session& sess)
@@ -132,26 +128,11 @@ Database::applySchemaUpgrade(unsigned long vers)
 	case databaseSchemaVersion::DROP_SCP:
         Herder::dropAll(*this);
         break;
-
 	case databaseSchemaVersion::INITIAL:
         break;
-
 	case databaseSchemaVersion::DROP_BAN:
         BanManager::dropAll(*this);
         break;
-	case databaseSchemaVersion::ADD_SIGNER_NAME:
-		AccountFrame::addSignerName(*this);
-		break;
-	case databaseSchemaVersion::ADD_SIGNER_VERSION:
-		AccountFrame::addSignerVersion(*this);
-		break;
-	case databaseSchemaVersion::ADD_ACCOUNT_POLICIES:
-		AccountFrame::addAccountPolicies(*this);
-		break;
-	case databaseSchemaVersion::ADD_ACCOUNT_CREATED_AT:
-		AccountFrame::addCreatedAt(*this);
-		break;
-
     default:
         throw std::runtime_error("Unknown DB schema version");
         break;

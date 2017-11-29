@@ -17,16 +17,16 @@ namespace stellar
 const char* AccountLimitsFrame::kSQLCreateStatement1 =
     "CREATE TABLE account_limits"
     "("
-    "accountid       VARCHAR(56) PRIMARY KEY,"
+    "accountid          VARCHAR(56)    PRIMARY KEY,"
     "daily_out          BIGINT         NOT NULL,"
 	"weekly_out         BIGINT         NOT NULL,"
 	"monthly_out        BIGINT         NOT NULL,"
     "annual_out         BIGINT         NOT NULL,"
-    "lastmodified   INT    NOT NULL"
+    "lastmodified       INT            NOT NULL,"
+    "version            INT            NOT NULL     DEFAULT 0"
     ");";
 
-
-AccountLimitsFrame::AccountLimitsFrame() : EntryFrame(ACCOUNT_TYPE_LIMITS), mAccountLimits(mEntry.data.accountLimits())
+AccountLimitsFrame::AccountLimitsFrame() : EntryFrame(LedgerEntryType::ACCOUNT_TYPE_LIMITS), mAccountLimits(mEntry.data.accountLimits())
 {
 }
 
@@ -119,28 +119,30 @@ AccountLimitsFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool ins
     {
         sql = std::string(
             "INSERT INTO account_limits ( accountid, daily_out, weekly_out, "
-            "monthly_out, annual_out, lastmodified) "
-            "VALUES ( :id, :v2, :v3, :v4, :v6, :v7)");
+            "monthly_out, annual_out, lastmodified, version) "
+            "VALUES ( :id, :v2, :v3, :v4, :v6, :v7, :v8)");
     }
     else
     {
         sql = std::string(
-            "UPDATE account_limits SET daily_out = :v2, "
-            "weekly_out = :v3, "
-            "monthly_out = :v4, "
-            "annual_out = :v6, lastmodified=:v7 WHERE accountid = :id");
+            "UPDATE account_limits "
+            "SET    daily_out=:v2, weekly_out=:v3, monthly_out=:v4, annual_out=:v6, "
+            "       lastmodified=:v7, version=:v8 "
+            "WHERE  accountid = :id");
     }
     
     auto prep = db.getPreparedStatement(sql);
     auto& st = prep.statement();
     std::string actIDStrKey = PubKeyUtils::toStrKey(mAccountLimits.accountID);
     auto limits = mAccountLimits.limits;
+    int32_t limitsVersion = static_cast<int32_t >(mAccountLimits.ext.v());
     st.exchange(use(actIDStrKey, "id"));
     st.exchange(use(limits.dailyOut, "v2"));
     st.exchange(use(limits.weeklyOut, "v3"));
     st.exchange(use(limits.monthlyOut, "v4"));
     st.exchange(use(limits.annualOut, "v6"));
     st.exchange(use(getLastModified(), "v7"));
+    st.exchange(use(limitsVersion, "v8"));
 
     st.define_and_bind();
     
@@ -167,7 +169,7 @@ AccountLimitsFrame::pointer AccountLimitsFrame::loadLimits(AccountID accountID,
     Database& db, LedgerDelta* delta)
 {
     LedgerKey key;
-    key.type(ACCOUNT_LIMITS);
+    key.type(LedgerEntryType::ACCOUNT_LIMITS);
     key.accountLimits().accountID = accountID;
     if (cachedEntryExists(key, db))
     {
@@ -176,14 +178,18 @@ AccountLimitsFrame::pointer AccountLimitsFrame::loadLimits(AccountID accountID,
     }
 
     LedgerEntry le;
-    le.data.type(ACCOUNT_LIMITS);
+    le.data.type(LedgerEntryType::ACCOUNT_LIMITS);
     le.data.accountLimits().accountID = accountID;
     
     std::string actIDStrKey = PubKeyUtils::toStrKey(accountID);
     
     Limits limits;
+    int32_t limitsVersion = 0;
     
-    auto prep = db.getPreparedStatement("SELECT daily_out, weekly_out, monthly_out, annual_out, lastmodified FROM account_limits WHERE accountid =:id");
+    auto prep = db.getPreparedStatement("SELECT daily_out, weekly_out, monthly_out, annual_out, "
+                                               "lastmodified, version "
+                                        "FROM   account_limits "
+                                        "WHERE  accountid=:id");
     auto& st = prep.statement();
     st.exchange(use(actIDStrKey));
     st.exchange(into(limits.dailyOut));
@@ -191,6 +197,7 @@ AccountLimitsFrame::pointer AccountLimitsFrame::loadLimits(AccountID accountID,
     st.exchange(into(limits.monthlyOut));
     st.exchange(into(limits.annualOut));
     st.exchange(into(le.lastModifiedLedgerSeq));
+    st.exchange(into(limitsVersion));
 
     st.define_and_bind();
     {
@@ -205,6 +212,7 @@ AccountLimitsFrame::pointer AccountLimitsFrame::loadLimits(AccountID accountID,
     }
 
     le.data.accountLimits().limits = limits;
+    le.ext.v((LedgerVersion)limitsVersion);
     auto res = make_shared<AccountLimitsFrame>(le);
     assert(res->isValid());
     res->mKeyCalculated = false;
@@ -220,7 +228,7 @@ AccountLimitsFrame::pointer
 AccountLimitsFrame::createNew(AccountID accountID, Limits limits)
 {
     LedgerEntry le;
-    le.data.type(ACCOUNT_LIMITS);
+    le.data.type(LedgerEntryType::ACCOUNT_LIMITS);
     AccountLimitsEntry& entry = le.data.accountLimits();
 
     entry.accountID = accountID;

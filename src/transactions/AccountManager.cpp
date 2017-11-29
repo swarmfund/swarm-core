@@ -3,15 +3,11 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/AccountManager.h"
-#include "util/types.h"
 #include "main/Application.h"
 #include "ledger/AssetPairFrame.h"
-#include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountLimitsFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
-#include "util/types.h"
-#include "util/Logging.h"
 
 namespace stellar
 {
@@ -61,7 +57,7 @@ namespace stellar
 		auto stats = StatisticsFrame::mustLoadStatistics(balance->getAccountID(), mDb, &mDelta);
 
 		auto now = mLm.getCloseTime();		
-		if (!stats->add(universalAmount, now, now, mDelta.getHeaderFrame().useImprovedStatsCalculation()))
+		if (!stats->add(universalAmount, now, now))
 		{
 			return STATS_OVERFLOW;
 		}
@@ -87,7 +83,7 @@ namespace stellar
 		uint64_t now = mLm.getCloseTime();
 
 		auto accIdStrKey = PubKeyUtils::toStrKey(balance->getAccountID());
-		if (!stats->add(-universalAmount, now, timePerformed, mDelta.getHeaderFrame().useImprovedStatsCalculation()))
+		if (!stats->add(-universalAmount, now, timePerformed))
 		{
 			CLOG(ERROR, "AccountManager") << "Failed to revert statistics on revert request";
 			throw std::runtime_error("Failed to rever statistics");

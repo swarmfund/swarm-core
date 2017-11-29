@@ -26,17 +26,18 @@ const char* BalanceFrame::kSQLCreateStatement1 =
     "("
     "balance_id               VARCHAR(56) NOT NULL,"
 	"account_id               VARCHAR(56) NOT NULL,"
-    "asset                    VARCHAR(16)  NOT NULL,"
+    "asset                    VARCHAR(16) NOT NULL,"
     "amount                   BIGINT      NOT NULL CHECK (amount >= 0),"
     "locked                   BIGINT      NOT NULL CHECK (locked >= 0),"
     "lastmodified             INT         NOT NULL, "
+    "version                  INT         NOT NULL DEFAULT 0,"
     "PRIMARY KEY (balance_id)"
     ");";
 static const char* balanceColumnSelector =
-"SELECT balance_id, asset, amount, locked, account_id, lastmodified "
+"SELECT balance_id, asset, amount, locked, account_id, lastmodified, version "
 "FROM balance";
 
-BalanceFrame::BalanceFrame() : EntryFrame(BALANCE), mBalance(mEntry.data.balance())
+BalanceFrame::BalanceFrame() : EntryFrame(LedgerEntryType::BALANCE), mBalance(mEntry.data.balance())
 {
 }
 
@@ -64,7 +65,7 @@ BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, Ass
     uint64 initialAmount)
 {
 	LedgerEntry le;
-	le.data.type(BALANCE);
+	le.data.type(LedgerEntryType::BALANCE);
 	BalanceEntry& entry = le.data.balance();
 
 	entry.balanceID = id;
@@ -206,8 +207,9 @@ BalanceFrame::loadBalances(StatementContext& prep,
     string accountID, balanceID, asset;
 
     LedgerEntry le;
-    le.data.type(BALANCE);
+    le.data.type(LedgerEntryType::BALANCE);
     BalanceEntry& oe = le.data.balance();
+    int32_t balanceVersion = 0;
 
 	// SELECT balance_id, asset, amount, locked, account_id, lastmodified 
 
@@ -218,6 +220,7 @@ BalanceFrame::loadBalances(StatementContext& prep,
     st.exchange(into(oe.locked));
     st.exchange(into(accountID));
     st.exchange(into(le.lastModifiedLedgerSeq));
+    st.exchange(into(balanceVersion));
     st.define_and_bind();
     st.execute(true);
     while (st.got_data())
@@ -225,6 +228,7 @@ BalanceFrame::loadBalances(StatementContext& prep,
         oe.accountID = PubKeyUtils::fromStrKey(accountID);
         oe.balanceID = BalanceKeyUtils::fromStrKey(balanceID);
         oe.asset = asset;
+        oe.ext.v((LedgerVersion)balanceVersion);
         
         if (!isValid(oe))
         {
@@ -371,20 +375,22 @@ BalanceFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
 	std::string accountID = PubKeyUtils::toStrKey(mBalance.accountID);
     std::string balanceID = BalanceKeyUtils::toStrKey(mBalance.balanceID);
     std::string asset = mBalance.asset;
+    int32_t balanceVersion = static_cast<int32_t >(mBalance.ext.v());
 
     string sql;
 
     if (insert)
     {
-		sql = "INSERT INTO balance (balance_id, asset,"
-			"amount, locked, account_id, lastmodified)"
-			"VALUES (:id, :as, :am, :ld, :aid, :lm)";
+		sql = "INSERT INTO balance (balance_id, asset, amount, locked, account_id, "
+                                    " lastmodified, version) "
+			  "VALUES (:id, :as, :am, :ld, :aid, :lm, :v)";
     }
     else
     {
-        sql = "UPDATE balance SET "
-			"asset = :as, amount=:am, locked=:ld, account_id=:aid, lastmodified=:lm "
-              "WHERE balance_id = :id";
+        sql = "UPDATE balance "
+              "SET    asset = :as, amount=:am, locked=:ld, account_id=:aid, "
+                        "lastmodified=:lm, version=:v "
+              "WHERE  balance_id = :id";
     }
 
     auto prep = db.getPreparedStatement(sql);
@@ -397,6 +403,7 @@ BalanceFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
     st.exchange(use(mBalance.locked, "ld"));
     st.exchange(use(accountID, "aid"));
 	st.exchange(use(mEntry.lastModifiedLedgerSeq, "lm"));
+    st.exchange(use(balanceVersion, "v"));
     st.define_and_bind();
 
     auto timer =

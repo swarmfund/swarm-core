@@ -54,8 +54,8 @@ class StatisticsFrame : public EntryFrame
         return mStatistics;
     }
 
-	void clearObsolete(time_t rawCurrentTime, bool useImprovedVersion);
-	bool add(int64 outcome, time_t currentTime, time_t timePerformed, bool useImprovedVersion);
+	void clearObsolete(time_t rawCurrentTime);
+	bool add(int64 outcome, time_t currentTime, time_t timePerformed);
 
     static bool isValid(StatisticsEntry const& oe);
     bool isValid() const;

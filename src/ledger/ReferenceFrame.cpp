@@ -16,7 +16,7 @@ using namespace soci;
 namespace stellar
 {
 
-ReferenceFrame::ReferenceFrame() : EntryFrame(REFERENCE_ENTRY), mReference(mEntry.data.reference())
+ReferenceFrame::ReferenceFrame() : EntryFrame(LedgerEntryType::REFERENCE_ENTRY), mReference(mEntry.data.reference())
 {
 }
 
@@ -93,7 +93,7 @@ ReferenceFrame::loadReferences(StatementContext& prep,
                        std::function<void(LedgerEntry const&)> referenceProcessor)
 {
     LedgerEntry le;
-    le.data.type(REFERENCE_ENTRY);
+    le.data.type(LedgerEntryType::REFERENCE_ENTRY);
     ReferenceEntry& oe = le.data.reference();
 
 

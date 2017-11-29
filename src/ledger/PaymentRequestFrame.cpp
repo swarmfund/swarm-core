@@ -35,7 +35,7 @@ static const char* PaymentRequestColumnSelector =
        "created_at, invoice_id, lastmodified, version "
 "FROM payment_request";
 
-PaymentRequestFrame::PaymentRequestFrame() : EntryFrame(PAYMENT_REQUEST), mPaymentRequest(mEntry.data.paymentRequest())
+PaymentRequestFrame::PaymentRequestFrame() : EntryFrame(LedgerEntryType::PAYMENT_REQUEST), mPaymentRequest(mEntry.data.paymentRequest())
 {
 }
 
@@ -103,7 +103,7 @@ PaymentRequestFrame::loadPaymentRequests(StatementContext& prep,
     string sourceBalance, destBalance;
 
     LedgerEntry le;
-    le.data.type(PAYMENT_REQUEST);
+    le.data.type(LedgerEntryType::PAYMENT_REQUEST);
     PaymentRequestEntry& oe = le.data.paymentRequest();
 
 	uint64 invoiceID = 0;
@@ -200,7 +200,7 @@ PaymentRequestFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool in
     std::string sourceBalance = BalanceKeyUtils::toStrKey(mPaymentRequest.sourceBalance);
 	std::string destBalance = mPaymentRequest.destinationBalance ? BalanceKeyUtils::toStrKey(*mPaymentRequest.destinationBalance) : "";
 	uint64_t invoiceID = mPaymentRequest.invoiceID ? *mPaymentRequest.invoiceID : 0;
-    int paymentRequestVersion = mPaymentRequest.ext.v();
+    int paymentRequestVersion = static_cast<int32_t >(mPaymentRequest.ext.v());
 
     string sql;
 

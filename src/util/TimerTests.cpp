@@ -8,9 +8,7 @@
 #include "main/Config.h"
 #include "main/test.h"
 #include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "util/make_unique.h"
-#include <chrono>
 
 using namespace stellar;
 
@@ -60,16 +58,16 @@ TEST_CASE("VirtualClock::weekPassed", "[timer]")
     time2 += std::chrono::hours(24 * 3);
     auto tm_time2 = VirtualClock::pointToTm(time2);
     
-    REQUIRE(!VirtualClock::weekPassed(tm_time1, tm_time2, true));
+    REQUIRE(!VirtualClock::weekPassed(tm_time1, tm_time2));
 
     time2 += std::chrono::hours(24 * 3);
     tm_time2 = VirtualClock::pointToTm(time2);
     
-    REQUIRE(!VirtualClock::weekPassed(tm_time1, tm_time2, true));
+    REQUIRE(!VirtualClock::weekPassed(tm_time1, tm_time2));
     
     time2 += std::chrono::hours(24 * 3);
     tm_time2 = VirtualClock::pointToTm(time2);
-    REQUIRE(VirtualClock::weekPassed(tm_time1, tm_time2, true));
+    REQUIRE(VirtualClock::weekPassed(tm_time1, tm_time2));
 
 
     // 365 days in year
@@ -80,7 +78,7 @@ TEST_CASE("VirtualClock::weekPassed", "[timer]")
     std::tm tm2;
     tm2.tm_yday = 4;
     tm2.tm_year = 2004;
-    REQUIRE(!VirtualClock::weekPassed(tm1, tm2, true));
+    REQUIRE(!VirtualClock::weekPassed(tm1, tm2));
 
 
 
@@ -92,7 +90,7 @@ TEST_CASE("VirtualClock::weekPassed", "[timer]")
     std::tm tm4;
     tm3.tm_yday = 4;
     tm4.tm_year = 2005;
-    REQUIRE(VirtualClock::weekPassed(tm3, tm4, true));
+    REQUIRE(VirtualClock::weekPassed(tm3, tm4));
 
 }
 

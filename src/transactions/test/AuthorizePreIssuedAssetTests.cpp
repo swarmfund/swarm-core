@@ -19,7 +19,7 @@ typedef std::unique_ptr<Application> appPtr;
 
 void testAuthPreissuedAssetHappyPath(TestManager::pointer testManager, Account& account, Account& root) {
 	auto preissuedSigner = SecretKey::random();
-	AssetCode assetCode = "USD";
+	AssetCode assetCode = "EUR";
 	auto manageAssetHelper = ManageAssetHelper(testManager);
 	manageAssetHelper.createAsset(account, preissuedSigner, assetCode, root);
 	auto issuanceRequestHelper = IssuanceRequestHelper(testManager);

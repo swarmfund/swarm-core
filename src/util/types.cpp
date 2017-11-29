@@ -131,7 +131,7 @@ bool isValidManageAssetAction(ManageAssetAction action)
 	auto all = xdr::xdr_traits<ManageAssetAction>::enum_values();
 	for (auto validAction : all)
 	{
-		if (validAction == action)
+		if (validAction == static_cast<int32_t >(action))
 			return true;
 	}
 
@@ -143,7 +143,7 @@ bool isValidManageAssetPairAction(ManageAssetPairAction action)
 	auto all = xdr::xdr_traits<ManageAssetPairAction>::enum_values();
 	for (auto validAction : all)
 	{
-		if (validAction == action)
+		if (validAction == static_cast<int32_t >(action))
 			return true;
 	}
 
@@ -175,7 +175,7 @@ bool isSystemAccountType(AccountType accountType)
 
 std::vector<AccountType> getSystemAccountTypes()
 {
-	return{ MASTER, COMMISSION, OPERATIONAL };
+	return{ AccountType::MASTER, AccountType::COMMISSION, AccountType::OPERATIONAL };
 }
 
 std::vector<SignerType> getAllSignerTypes()
@@ -212,7 +212,7 @@ bool isFeeTypeValid(FeeType feeType)
 	auto allFeeTypes = xdr::xdr_traits<FeeType>::enum_values();
 	for (auto rawFeeType : allFeeTypes)
 	{
-		if (rawFeeType == feeType)
+		if (rawFeeType == static_cast<int32_t>(feeType))
 			return true;
 	}
 
@@ -223,10 +223,10 @@ int32_t getManagerType(AccountType accountType)
 {
 	switch (accountType)
 	{
-	case NOT_VERIFIED:
-		return SIGNER_NOT_VERIFIED_ACC_MANAGER;
-	case GENERAL:
-		return SIGNER_GENERAL_ACC_MANAGER;
+	case AccountType::NOT_VERIFIED:
+		return static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
+	case AccountType::GENERAL:
+		return static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
 	}
 
 	return 0;

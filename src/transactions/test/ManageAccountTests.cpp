@@ -36,7 +36,7 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
     SecretKey rootKP = getRoot();
 	Salt rootSeq = 1;
 	auto account = SecretKey::random();
-	applyCreateAccountTx(app, rootKP, account, rootSeq++, GENERAL);
+	applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::GENERAL);
 
 	SECTION("Common")
 	{
@@ -50,20 +50,21 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
 			auto sourceDetails = op->getSourceAccountDetails({});
 			auto allowedSources = sourceDetails.mAllowedSourceAccountTypes;
 			REQUIRE(allowedSources.size() == 1);
-			REQUIRE(allowedSources[0] == MASTER);
+			REQUIRE(allowedSources[0] == AccountType::MASTER);
 			//Only account creator can sign
 			auto requiredSigner = sourceDetails.mNeededSignedClass;
-			REQUIRE(requiredSigner == (SIGNER_NOT_VERIFIED_ACC_MANAGER | SIGNER_GENERAL_ACC_MANAGER));
+			REQUIRE(requiredSigner == (static_cast<int32_t >(SignerType::NOT_VERIFIED_ACC_MANAGER) |
+									   static_cast<int32_t >(SignerType::GENERAL_ACC_MANAGER)));
 		}
 		SECTION("Account does not exists")
 		{
 			auto randomAccount = SecretKey::random();
-			TransactionFramePtr txFrame = createManageAccount(app.getNetworkID(), rootKP, randomAccount, rootSeq++, 1, 0, GENERAL);
+			TransactionFramePtr txFrame = createManageAccount(app.getNetworkID(), rootKP, randomAccount, rootSeq++, 1, 0, AccountType::GENERAL);
             checkTransactionForOpResult(txFrame, app, OperationResultCode::opNO_COUNTERPARTY);
 		}
 		SECTION("Can't manage master")
 		{
-			auto tx = createManageAccount(app.getNetworkID(), rootKP, rootKP, rootSeq++, 0, 0, MASTER);
+			auto tx = createManageAccount(app.getNetworkID(), rootKP, rootKP, rootSeq++, 0, 0, AccountType::MASTER);
 			tx->checkValid(app);
 			auto op = tx->getOperations()[0];
 			op->checkValid(app, &delta);
@@ -74,25 +75,25 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
 		}
 		SECTION("Success on empty manage account")
 		{
-			applyManageAccountTx(app, rootKP, account, rootSeq++, 0, 0, GENERAL, MANAGE_ACCOUNT_SUCCESS);
+			applyManageAccountTx(app, rootKP, account, rootSeq++, 0, 0, AccountType::GENERAL, ManageAccountResultCode::SUCCESS);
 		}
 		SECTION("Block and unblock the same flag should crash")
 		{
-			applyManageAccountTx(app, rootKP, account, rootSeq++, 1, 1, GENERAL, MANAGE_ACCOUNT_MALFORMED);
+			applyManageAccountTx(app, rootKP, account, rootSeq++, 1, 1, AccountType::GENERAL, ManageAccountResultCode::MALFORMED);
 		}
 	}
 	SECTION("Block account")
 	{
 		// unblock not blocked
-		applyManageAccountTx(app, rootKP, account, rootSeq++, 0, 1, GENERAL);
+		applyManageAccountTx(app, rootKP, account, rootSeq++, 0, 1, AccountType::GENERAL);
 		// account type mismatched
-		applyManageAccountTx(app, rootKP, account, rootSeq++, 0, 1, NOT_VERIFIED, MANAGE_ACCOUNT_TYPE_MISMATCH);
+		applyManageAccountTx(app, rootKP, account, rootSeq++, 0, 1, AccountType::NOT_VERIFIED, ManageAccountResultCode::TYPE_MISMATCH);
 		// block not blocked
-		applyManageAccountTx(app, rootKP, account, rootSeq++, 1, 0, GENERAL);
+		applyManageAccountTx(app, rootKP, account, rootSeq++, 1, 0, AccountType::GENERAL);
 		// block blocked
-		applyManageAccountTx(app, rootKP, account, rootSeq++, 1, 0, GENERAL);
+		applyManageAccountTx(app, rootKP, account, rootSeq++, 1, 0, AccountType::GENERAL);
 		// unblock
-		applyManageAccountTx(app, rootKP, account, rootSeq++, 0, 1, GENERAL);
+		applyManageAccountTx(app, rootKP, account, rootSeq++, 0, 1, AccountType::GENERAL);
 	}
 
 }

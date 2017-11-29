@@ -1,0 +1,112 @@
+before_script:
+  # Run ssh-agent (inside the build environment)
+  - eval $(ssh-agent -s)
+  # Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
+  - echo "$SSH_PRIVATE_KEY" | ssh-add -
+  - mkdir -p ~/.ssh
+  - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  - 'echo -e "Host gitlab\n\tHostName gitlab.com\n\tIdentityFile ~/.ssh/id_rsa\n\tUser git\n" >> ~/.ssh/config'
+  -  git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/
+
+stages:
+  - prebuild
+  - build
+  - test
+  - delivery
+  - deploy
+  - postdeploy
+
+build:
+  stage: build
+  image: shebgregor/ubuntu-autotools 
+  script:
+    - git submodule init
+    - git submodule update
+    - ./autogen.sh
+    - ./configure
+    - make -j 2
+  artifacts:
+      expire_in: 1 week
+      paths:
+        - src/stellar-core
+  only:
+    - master
+    - staging
+    - dev
+
+tx-test:
+  stage: test
+  image: shebgregor/ubuntu-autotools
+  services:
+    - postgres:9.5
+  variables:
+    POSTGRES_DB: core_test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: "password"
+    STELLAR_TX_TEST_DB: "postgresql://dbname=core_test user=postgres password=password host=postgres"
+  before_script:
+    - echo "replace default"
+  script:
+    - ./src/stellar-core --test [tx]
+  only:
+    - master
+    - staging
+    - dev
+
+delivery:dev:
+  image: shebgregor/alpine-rsync-git
+  stage: delivery
+  script:
+    - rsync src/stellar-core ubuntu@$HOST_DEV:artifacts/core/${CI_COMMIT_SHA:0:8}/
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh core dev ${CI_COMMIT_SHA:0:8}"
+  only:
+    - dev
+    # TODO: remove this when the dev branch is added
+    - master
+
+delivery:staging:
+  image: shebgregor/alpine-rsync-git
+  stage: delivery
+  script:
+    - rsync src/stellar-core ubuntu@$HOST_DEV:artifacts/core/${CI_COMMIT_SHA:0:8}/
+    - ssh ubuntu@$HOST_DEV "artifacts/update.shcore staging ${CI_COMMIT_SHA:0:8}"
+  only:
+    - staging
+
+# delivery:prod:
+#   image: shebgregor/alpine-rsync-git
+#   stage: delivery
+#   script:
+#     - rsync src/stellar-core ubuntu@$HOST_DEV:artifacts/core/${CI_COMMIT_SHA:0:8}/
+#     - ssh ubuntu@$HOST_DEV "artifacts/update.sh core prod ${CI_COMMIT_SHA:0:8}"
+#   only:
+#     - master
+
+# ----- /-----/ ----- DEPLOY ----- \-----\ ----- #
+deploy:dev:
+  image: shebgregor/alpine-rsync-git
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh core dev ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST http://139.59.113.110:8842/RCzMigpWTlPaAitOCjpfDw
+  when: manual
+  only:
+    - dev
+    # TODO: remove this when the dev branch is added
+    - master
+
+deploy:staging:
+  image: shebgregor/alpine-rsync-git
+  stage: deploy
+  script:
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh core staging ${CI_COMMIT_SHA:0:8}"
+    - curl -X POST http://128.199.229.140:8842/zEoJOfpLSmTxYGYaopmlNg
+  environment:
+    name: staging
+    url: https://dev.api.bullioncoin.io
+  when: manual
+  only:
+    - staging
+

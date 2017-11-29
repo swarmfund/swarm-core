@@ -24,7 +24,7 @@
 #include "transactions/RecoverOpFrame.h"
 #include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
-#include "transactions/issuance/CreatePreissuanceRequestOpFrame.h"
+#include "transactions/issuance/CreatePreIssuanceRequestOpFrame.h"
 #include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
 #include "transactions/SetLimitsOpFrame.h"
 #include "transactions/ManageAssetPairOpFrame.h"

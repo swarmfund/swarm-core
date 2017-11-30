@@ -87,10 +87,7 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
 	default:
 		break;
 	}
-	std::vector<AccountType> allowedAccountTypes = { AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION };
-	if (mPayment.invoiceReference && !mPayment.invoiceReference->accept) {
-		allowedAccountTypes.push_back(AccountType::NOT_VERIFIED);
-	}
+	std::vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION };
 
 	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType);
 }

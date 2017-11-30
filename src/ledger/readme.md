@@ -61,7 +61,7 @@ header after applying the transaction set.
 
 Supported upgrades are encoded using LedgerUpgradeType.
 An upgrade typically encodes both a set of conditions and an update to perform
-on the ledger header. For example, LEDGER_UPGRADE_BASE_FEE used to change the
+on the ledger header. For example, LedgerUpgradeType::BASE_FEE used to change the
 value of `baseFee`, will only accept values for `baseFee` that are within a
 range defined in the nodes configuration file.
 

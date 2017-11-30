@@ -82,7 +82,8 @@ class AssetPairFrame : public EntryFrame
 
 	bool checkPolicy(AssetPairPolicy policy) const
 	{
-		return (mAssetPair.policies & policy) == policy;
+		auto policyValue = static_cast<int32_t >(policy);
+		return (mAssetPair.policies & policyValue) == policyValue;
 	}
 
     static bool isValid(AssetPairEntry const& oe);
@@ -109,7 +110,7 @@ class AssetPairFrame : public EntryFrame
 		auto result = loadAssetPair(base, quote, db, delta);
 		if (!result)
 		{
-			CLOG(ERROR, "EntryFrame") << "Unexpected db state. Expected asset pair to exists. Base " << base << " Quote " << quote;
+			CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected db state. Expected asset pair to exists. Base " << base << " Quote " << quote;
 			throw std::runtime_error("Unexpected db state. Expected asset pair to exist");
 		}
 

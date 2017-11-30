@@ -12,14 +12,13 @@
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetPairFrame.h"
 #include "ledger/BalanceFrame.h"
-#include "ledger/CoinsEmissionRequestFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
-#include "ledger/CoinsEmissionFrame.h"
 #include "ledger/PaymentRequestFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/ReviewableRequestFrame.h"
 #include "xdrpp/printer.h"
 #include "xdrpp/marshal.h"
 #include "crypto/Hex.h"
@@ -33,53 +32,50 @@ namespace stellar {
         EntryFrame::pointer res;
 
         switch (from.data.type()) {
-            case ACCOUNT:
+            case LedgerEntryType::ACCOUNT:
                 res = std::make_shared<AccountFrame>(from);
                 break;
-            case COINS_EMISSION_REQUEST:
-                res = std::make_shared<CoinsEmissionRequestFrame>(from);
-                break;
-            case FEE:
+            case LedgerEntryType::FEE:
                 res = std::make_shared<FeeFrame>(from);
                 break;
-            case COINS_EMISSION:
-                res = std::make_shared<CoinsEmissionFrame>(from);
-                break;
-            case BALANCE:
+            case LedgerEntryType::BALANCE:
                 res = std::make_shared<BalanceFrame>(from);
                 break;
-            case PAYMENT_REQUEST:
+            case LedgerEntryType::PAYMENT_REQUEST:
                 res = std::make_shared<PaymentRequestFrame>(from);
                 break;
-            case ASSET:
+            case LedgerEntryType::ASSET:
                 res = std::make_shared<AssetFrame>(from);
                 break;
-            case REFERENCE_ENTRY:
+            case LedgerEntryType::REFERENCE_ENTRY:
                 res = std::make_shared<ReferenceFrame>(from);
                 break;
-            case ACCOUNT_TYPE_LIMITS:
+            case LedgerEntryType::ACCOUNT_TYPE_LIMITS:
                 res = std::make_shared<AccountTypeLimitsFrame>(from);
                 break;
-            case STATISTICS:
+            case LedgerEntryType::STATISTICS:
                 res = std::make_shared<StatisticsFrame>(from);
                 break;
-            case TRUST:
+            case LedgerEntryType::TRUST:
                 res = std::make_shared<TrustFrame>(from);
                 break;
-            case ACCOUNT_LIMITS:
+            case LedgerEntryType::ACCOUNT_LIMITS:
                 res = std::make_shared<AccountLimitsFrame>(from);
                 break;
-            case ASSET_PAIR:
+            case LedgerEntryType::ASSET_PAIR:
                 res = std::make_shared<AssetPairFrame>(from);
                 break;
-            case OFFER_ENTRY:
+            case LedgerEntryType::OFFER_ENTRY:
                 res = std::make_shared<OfferFrame>(from);
                 break;
-            case INVOICE:
+            case LedgerEntryType::INVOICE:
                 res = std::make_shared<InvoiceFrame>(from);
                 break;
+            case LedgerEntryType::REVIEWABLE_REQUEST:
+				res = std::make_shared<ReviewableRequestFrame>(from);
+				break;
             default:
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on construct: " << from.data.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on construct: " << static_cast<int32_t>(from.data.type());
                 throw std::runtime_error("Unexpected entry type on costruct");
         }
         return res;
@@ -90,95 +86,89 @@ namespace stellar {
         EntryFrame::pointer res;
 
         switch (key.type()) {
-            case ACCOUNT: {
+            case LedgerEntryType::ACCOUNT: {
                 res = std::static_pointer_cast<EntryFrame>(
                         AccountFrame::loadAccount(key.account().accountID, db));
                 break;
             }
-            case COINS_EMISSION_REQUEST: {
-                auto const &request = key.coinsEmissionRequest();
-                res = std::static_pointer_cast<EntryFrame>(
-                        CoinsEmissionRequestFrame::loadCoinsEmissionRequest(request.requestID, db));
-                break;
-            }
-            case FEE: {
+            case LedgerEntryType::FEE: {
                 auto const &fee = key.feeState();
                 res = std::static_pointer_cast<EntryFrame>(
                         FeeFrame::loadFee(fee.hash, fee.lowerBound, fee.upperBound, db));
                 break;
             }
-            case COINS_EMISSION: {
-                auto const &emission = key.coinsEmission();
-                res = std::static_pointer_cast<EntryFrame>(
-                        CoinsEmissionFrame::loadCoinsEmission(emission.serialNumber, db));
-                break;
-            }
-            case BALANCE: {
+            case LedgerEntryType::BALANCE: {
                 auto const &balance = key.balance();
                 res = std::static_pointer_cast<EntryFrame>(BalanceFrame::loadBalance(balance.balanceID, db));
                 break;
             }
-            case PAYMENT_REQUEST: {
+            case LedgerEntryType::PAYMENT_REQUEST: {
                 auto const &request = key.paymentRequest();
                 res = std::static_pointer_cast<EntryFrame>(PaymentRequestFrame::loadPaymentRequest(request.paymentID,
                                                                                                    db));
                 break;
             }
-            case ASSET: {
+            case LedgerEntryType::ASSET: {
                 auto const &asset = key.asset();
                 res = std::static_pointer_cast<EntryFrame>(AssetFrame::loadAsset(asset.code, db));
                 break;
             }
-            case ACCOUNT_TYPE_LIMITS: {
+            case LedgerEntryType::ACCOUNT_TYPE_LIMITS: {
                 auto const &accountTypeLimits = key.accountTypeLimits();
                 res = std::static_pointer_cast<EntryFrame>(
                         AccountTypeLimitsFrame::loadLimits(accountTypeLimits.accountType, db));
                 break;
             }
-            case STATISTICS: {
+            case LedgerEntryType::STATISTICS: {
                 auto const &stats = key.stats();
                 res = std::static_pointer_cast<EntryFrame>(
                         StatisticsFrame::loadStatistics(stats.accountID, db));
                 break;
             }
-            case REFERENCE_ENTRY: {
-                auto const &payment = key.payment();
-                res = std::static_pointer_cast<EntryFrame>(ReferenceFrame::loadPayment(payment.sender, payment.reference, db));
+            case LedgerEntryType::REFERENCE_ENTRY: {
+                auto const &payment = key.reference();
+                res = std::static_pointer_cast<EntryFrame>(ReferenceFrame::loadReference(payment.sender, payment.reference, db));
                 break;
             }
-            case TRUST: {
+            case LedgerEntryType::TRUST: {
                 auto const &trust = key.trust();
                 res = std::static_pointer_cast<EntryFrame>(
                         TrustFrame::loadTrust(
                                 trust.allowedAccount, trust.balanceToUse, db));
                 break;
             }
-            case ACCOUNT_LIMITS: {
+            case LedgerEntryType::ACCOUNT_LIMITS: {
                 auto const &accountLimits = key.accountLimits();
                 res = std::static_pointer_cast<EntryFrame>(
                         AccountLimitsFrame::loadLimits(accountLimits.accountID, db));
                 break;
             }
-            case ASSET_PAIR: {
+            case LedgerEntryType::ASSET_PAIR: {
                 auto const &assetPair = key.assetPair();
                 res = std::static_pointer_cast<EntryFrame>(
                         AssetPairFrame::loadAssetPair(assetPair.base, assetPair.quote, db));
                 break;
             }
-            case OFFER_ENTRY: {
+            case LedgerEntryType::OFFER_ENTRY: {
                 auto const &offer = key.offer();
                 res = std::static_pointer_cast<EntryFrame>(
                         OfferFrame::loadOffer(offer.ownerID, offer.offerID, db));
                 break;
             }
-            case INVOICE: {
+            case LedgerEntryType::INVOICE: {
                 auto const &invoice = key.invoice();
                 res = std::static_pointer_cast<EntryFrame>(
                         InvoiceFrame::loadInvoice(invoice.invoiceID, db));
                 break;
             }
+            case LedgerEntryType::REVIEWABLE_REQUEST: {
+				auto const &request = key.reviewableRequest();
+				res = std::static_pointer_cast<EntryFrame>(
+					ReviewableRequestFrame::loadRequest(request.requestID, db));
+				break;
+			}
             default: {
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on load: " << key.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on load: " << static_cast<int32_t>(key.type());
                 throw std::runtime_error("Unexpected entry type on load");
             }
 
@@ -250,10 +240,10 @@ namespace stellar {
         auto key = LedgerEntryKey(entry);
         flushCachedEntry(key, db);
         auto const &fromDb = EntryFrame::storeLoad(key, db);
-        if (!(fromDb->mEntry == entry)) {
+        if (!fromDb || !(fromDb->mEntry == entry)) {
             std::string s;
             s = "Inconsistent state between objects: ";
-            s += xdr::xdr_to_string(fromDb->mEntry, "db");
+            s += !!fromDb ? xdr::xdr_to_string(fromDb->mEntry, "db") : "db: nullptr\n";
             s += xdr::xdr_to_string(entry, "live");
             throw std::runtime_error(s);
         }
@@ -288,38 +278,36 @@ namespace stellar {
     bool
     EntryFrame::exists(Database &db, LedgerKey const &key) {
         switch (key.type()) {
-            case ACCOUNT:
+            case LedgerEntryType::ACCOUNT:
                 return AccountFrame::exists(db, key);
-            case COINS_EMISSION_REQUEST:
-                return CoinsEmissionRequestFrame::exists(db, key);
-            case FEE:
+            case LedgerEntryType::FEE:
                 return FeeFrame::exists(db, key);
-            case COINS_EMISSION:
-                return CoinsEmissionFrame::exists(db, key);
-            case BALANCE:
+            case LedgerEntryType::BALANCE:
                 return BalanceFrame::exists(db, key);
-            case PAYMENT_REQUEST:
+            case LedgerEntryType::PAYMENT_REQUEST:
                 return PaymentRequestFrame::exists(db, key);
-            case ASSET:
+            case LedgerEntryType::ASSET:
                 return AssetFrame::exists(db, key);
-            case REFERENCE_ENTRY:
+            case LedgerEntryType::REFERENCE_ENTRY:
                 return ReferenceFrame::exists(db, key);
-            case ACCOUNT_TYPE_LIMITS:
+            case LedgerEntryType::ACCOUNT_TYPE_LIMITS:
                 return AccountTypeLimitsFrame::exists(db, key);
-            case STATISTICS:
+            case LedgerEntryType::STATISTICS:
                 return StatisticsFrame::exists(db, key);
-            case TRUST:
+            case LedgerEntryType::TRUST:
                 return TrustFrame::exists(db, key);
-            case ACCOUNT_LIMITS:
+            case LedgerEntryType::ACCOUNT_LIMITS:
                 return AccountLimitsFrame::exists(db, key);
-            case ASSET_PAIR:
+            case LedgerEntryType::ASSET_PAIR:
                 return AssetPairFrame::exists(db, key);
-            case OFFER_ENTRY:
+            case LedgerEntryType::OFFER_ENTRY:
                 return OfferFrame::exists(db, key);
-            case INVOICE:
+            case LedgerEntryType::INVOICE:
                 return InvoiceFrame::exists(db, key);
+            case LedgerEntryType::REVIEWABLE_REQUEST:
+				return ReviewableRequestFrame::exists(db, key);
             default: {
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on exists: " << key.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on exists: " << static_cast<int32_t>(key.type());
                 throw std::runtime_error("Unexpected entry type on exists");
             }
         }
@@ -328,53 +316,50 @@ namespace stellar {
     void
     EntryFrame::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key) {
         switch (key.type()) {
-            case ACCOUNT:
+            case LedgerEntryType::ACCOUNT:
                 AccountFrame::storeDelete(delta, db, key);
                 break;
-            case COINS_EMISSION_REQUEST:
-                CoinsEmissionRequestFrame::storeDelete(delta, db, key);
-                break;
-            case FEE:
+            case LedgerEntryType::FEE:
                 FeeFrame::storeDelete(delta, db, key);
                 break;
-            case COINS_EMISSION:
-                CoinsEmissionFrame::storeDelete(delta, db, key);
-                break;
-            case BALANCE:
+            case LedgerEntryType::BALANCE:
                 BalanceFrame::storeDelete(delta, db, key);
                 break;
-            case PAYMENT_REQUEST:
+            case LedgerEntryType::PAYMENT_REQUEST:
                 PaymentRequestFrame::storeDelete(delta, db, key);
                 break;
-            case ASSET:
+            case LedgerEntryType::ASSET:
                 AssetFrame::storeDelete(delta, db, key);
                 break;
-            case ASSET_PAIR:
+            case LedgerEntryType::ASSET_PAIR:
                 AssetPairFrame::storeDelete(delta, db, key);
                 break;
-            case REFERENCE_ENTRY:
+            case LedgerEntryType::REFERENCE_ENTRY:
                 ReferenceFrame::storeDelete(delta, db, key);
                 break;
-            case ACCOUNT_TYPE_LIMITS:
+            case LedgerEntryType::ACCOUNT_TYPE_LIMITS:
                 AccountTypeLimitsFrame::storeDelete(delta, db, key);
                 break;
-            case STATISTICS:
+            case LedgerEntryType::STATISTICS:
                 StatisticsFrame::storeDelete(delta, db, key);
                 break;
-            case TRUST:
+            case LedgerEntryType::TRUST:
                 TrustFrame::storeDelete(delta, db, key);
                 break;
-            case ACCOUNT_LIMITS:
+            case LedgerEntryType::ACCOUNT_LIMITS:
                 AccountLimitsFrame::storeDelete(delta, db, key);
                 break;
-            case OFFER_ENTRY:
+            case LedgerEntryType::OFFER_ENTRY:
                 OfferFrame::storeDelete(delta, db, key);
                 break;
-            case INVOICE:
+            case LedgerEntryType::INVOICE:
                 InvoiceFrame::storeDelete(delta, db, key);
                 break;
+            case LedgerEntryType::REVIEWABLE_REQUEST:
+				ReviewableRequestFrame::storeDelete(delta, db, key);
+				break;
             default: {
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on delete: " << key.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on delete: " << static_cast<int32_t>(key.type());
                 throw std::runtime_error("Unexpected entry type on delete");
             }
         }
@@ -386,74 +371,70 @@ namespace stellar {
         LedgerKey k;
         switch (d.type()) {
 
-            case ACCOUNT:
-                k.type(ACCOUNT);
+            case LedgerEntryType::ACCOUNT:
+                k.type(LedgerEntryType::ACCOUNT);
                 k.account().accountID = d.account().accountID;
                 break;
-            case COINS_EMISSION_REQUEST:
-                k.type(COINS_EMISSION_REQUEST);
-                k.coinsEmissionRequest().issuer = d.coinsEmissionRequest().issuer;
-                k.coinsEmissionRequest().requestID = d.coinsEmissionRequest().requestID;
-                break;
-            case FEE:
-                k.type(FEE);
+            case LedgerEntryType::FEE:
+                k.type(LedgerEntryType::FEE);
                 k.feeState().hash = d.feeState().hash;
                 k.feeState().lowerBound = d.feeState().lowerBound;
                 k.feeState().upperBound = d.feeState().upperBound;
                 break;
-            case COINS_EMISSION:
-                k.type(COINS_EMISSION);
-                k.coinsEmission().serialNumber = d.coinsEmission().serialNumber;
-                break;
-            case BALANCE:
-                k.type(BALANCE);
+            case LedgerEntryType::BALANCE:
+                k.type(LedgerEntryType::BALANCE);
                 k.balance().balanceID = d.balance().balanceID;
                 break;
-            case PAYMENT_REQUEST:
-                k.type(PAYMENT_REQUEST);
+            case LedgerEntryType::PAYMENT_REQUEST:
+                k.type(LedgerEntryType::PAYMENT_REQUEST);
                 k.paymentRequest().paymentID = d.paymentRequest().paymentID;
                 break;
-            case ASSET:
-                k.type(ASSET);
+            case LedgerEntryType::ASSET:
+                k.type(LedgerEntryType::ASSET);
                 k.asset().code = d.asset().code;
                 break;
-            case REFERENCE_ENTRY:
-                k.type(REFERENCE_ENTRY);
-                k.payment().reference = d.payment().reference;
+            case LedgerEntryType::REFERENCE_ENTRY:
+                k.type(LedgerEntryType::REFERENCE_ENTRY);
+                k.reference().reference = d.reference().reference;
+				k.reference().sender = d.reference().sender;
                 break;
-            case ACCOUNT_TYPE_LIMITS:
-                k.type(ACCOUNT_TYPE_LIMITS);
+            case LedgerEntryType::ACCOUNT_TYPE_LIMITS:
+                k.type(LedgerEntryType::ACCOUNT_TYPE_LIMITS);
                 k.accountTypeLimits().accountType = d.accountTypeLimits().accountType;
                 break;
-            case STATISTICS:
-                k.type(STATISTICS);
+            case LedgerEntryType::STATISTICS:
+                k.type(LedgerEntryType::STATISTICS);
                 k.stats().accountID = d.stats().accountID;
                 break;
-            case TRUST:
-                k.type(TRUST);
+            case LedgerEntryType::TRUST:
+                k.type(LedgerEntryType::TRUST);
                 k.trust().allowedAccount = d.trust().allowedAccount;
                 k.trust().balanceToUse = d.trust().balanceToUse;
                 break;
-            case ACCOUNT_LIMITS:
-                k.type(ACCOUNT_LIMITS);
+            case LedgerEntryType::ACCOUNT_LIMITS:
+                k.type(LedgerEntryType::ACCOUNT_LIMITS);
                 k.accountLimits().accountID = d.accountLimits().accountID;
                 break;
-            case ASSET_PAIR:
-                k.type(ASSET_PAIR);
+            case LedgerEntryType::ASSET_PAIR:
+                k.type(LedgerEntryType::ASSET_PAIR);
                 k.assetPair().base = d.assetPair().base;
                 k.assetPair().quote = d.assetPair().quote;
                 break;
-            case OFFER_ENTRY:
-                k.type(OFFER_ENTRY);
+            case LedgerEntryType::OFFER_ENTRY:
+                k.type(LedgerEntryType::OFFER_ENTRY);
                 k.offer().offerID = d.offer().offerID;
                 k.offer().ownerID = d.offer().ownerID;
                 break;
-            case INVOICE:
-                k.type(INVOICE);
+            case LedgerEntryType::INVOICE:
+                k.type(LedgerEntryType::INVOICE);
                 k.invoice().invoiceID = d.invoice().invoiceID;
                 break;
+            case LedgerEntryType::REVIEWABLE_REQUEST:
+				k.type(LedgerEntryType::REVIEWABLE_REQUEST);
+				k.reviewableRequest().requestID = d.reviewableRequest().requestID;
+				break;
             default:
-                CLOG(ERROR, "EntryFrame") << "Unexpected entry type on key create: " << d.type();
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on key create: " << static_cast<int32_t>(d.type());
                 throw std::runtime_error("Unexpected ledger entry type");
         }
 

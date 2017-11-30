@@ -3,9 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/PaymentOpFrame.h"
-#include "transactions/ManageCoinsEmissionRequestOpFrame.h"
 #include "ledger/ReferenceFrame.h"
-#include "ledger/CoinsEmissionRequestFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
 #include "medida/meter.h"
@@ -31,14 +29,14 @@ bool PaymentOpFrame::tryLoadBalances(Application& app, Database& db, LedgerDelta
 	if (!mSourceBalance)
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "src-balance-not-found-fee" }, "operation").Mark();
-		innerResult().code(PAYMENT_SRC_BALANCE_NOT_FOUND);
+		innerResult().code(PaymentResultCode::SRC_BALANCE_NOT_FOUND);
 		return false;
 	}
 
 	if (!(mSourceBalance->getAccountID() == getSourceID()))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "account-mismatch" }, "operation").Mark();
-		innerResult().code(PAYMENT_BALANCE_ACCOUNT_MISMATCHED);
+		innerResult().code(PaymentResultCode::BALANCE_ACCOUNT_MISMATCHED);
 		return false;
 	}
 
@@ -46,14 +44,14 @@ bool PaymentOpFrame::tryLoadBalances(Application& app, Database& db, LedgerDelta
 	if (!mDestBalance)
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "balance-not-found" }, "operation").Mark();
-		innerResult().code(PAYMENT_BALANCE_NOT_FOUND);
+		innerResult().code(PaymentResultCode::BALANCE_NOT_FOUND);
 		return false;
 	}
 
 	if (!(mSourceBalance->getAsset() == mDestBalance->getAsset()))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "assets-mismatch" }, "operation").Mark();
-		innerResult().code(PAYMENT_BALANCE_ASSETS_MISMATCHED);
+		innerResult().code(PaymentResultCode::BALANCE_ASSETS_MISMATCHED);
 		return false;
 	}
 
@@ -71,35 +69,32 @@ std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpar
 	if (!targetBalance)
 		return{};
 	return{
-		{ targetBalance->getAccountID(), CounterpartyDetails({ NOT_VERIFIED, GENERAL, OPERATIONAL, COMMISSION }, true, false) }
+		{ targetBalance->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, true, false) }
 	};
 }
 
 SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	int32_t signerType = SIGNER_BALANCE_MANAGER;
+	int32_t signerType = static_cast<int32_t >(SignerType::BALANCE_MANAGER);
 	switch (mSourceAccount->getAccountType())
 	{
-	case OPERATIONAL:
-		signerType = SIGNER_OPERATIONAL_BALANCE_MANAGER;
+	case AccountType::OPERATIONAL:
+		signerType = static_cast<int32_t >(SignerType::OPERATIONAL_BALANCE_MANAGER);
 		break;
-	case COMMISSION:
-		signerType = SIGNER_COMMISSION_BALANCE_MANAGER;
+	case AccountType::COMMISSION:
+		signerType = static_cast<int32_t >(SignerType::COMMISSION_BALANCE_MANAGER);
 		break;
 	default:
 		break;
 	}
-	std::vector<AccountType> allowedAccountTypes = { GENERAL, OPERATIONAL, COMMISSION };
-	if (mPayment.invoiceReference && !mPayment.invoiceReference->accept) {
-		allowedAccountTypes.push_back(NOT_VERIFIED);
-	}
+	std::vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION };
 
 	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType);
 }
 
 bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)
 {
-	if (mSourceAccount->getAccountType() == COMMISSION)
+	if (mSourceAccount->getAccountType() == AccountType::COMMISSION)
 		return true;
 
 	return false;
@@ -107,9 +102,6 @@ bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)
 
 bool PaymentOpFrame::checkFees(Application& app, Database& db, LedgerDelta& delta)
 {
-	if (!delta.getHeaderFrame().useImprovedTransferFeesCalc())
-		return checkFeesV1(app, db, delta);
-
 	bool areFeesNotRequired = isSystemAccountType(mSourceAccount->getAccountType());
 	if (areFeesNotRequired)
 		return true;
@@ -118,7 +110,7 @@ bool PaymentOpFrame::checkFees(Application& app, Database& db, LedgerDelta& delt
 	if (!isTransferFeeMatch(mSourceAccount, asset, mPayment.feeData.sourceFee, mPayment.amount, db, delta))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "source-mismatched-fee" }, "operation").Mark();
-		innerResult().code(PAYMENT_FEE_MISMATCHED);
+		innerResult().code(PaymentResultCode::FEE_MISMATCHED);
 		return false;
 	}
 
@@ -130,7 +122,7 @@ bool PaymentOpFrame::checkFees(Application& app, Database& db, LedgerDelta& delt
 	if (!isTransferFeeMatch(mDestAccount, asset, mPayment.feeData.destinationFee, mPayment.amount, db, delta))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "dest-mismatched-fee" }, "operation").Mark();
-		innerResult().code(PAYMENT_FEE_MISMATCHED);
+		innerResult().code(PaymentResultCode::FEE_MISMATCHED);
 		return false;
 	}
 
@@ -149,14 +141,14 @@ bool PaymentOpFrame::checkFeesV1(Application& app, Database& db, LedgerDelta& de
     if (!isTransferFeeMatch(mSourceAccount, asset, mPayment.feeData.sourceFee, mPayment.amount, db, delta))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "source-mismatched-fee" }, "operation").Mark();
-		innerResult().code(PAYMENT_FEE_MISMATCHED);
+		innerResult().code(PaymentResultCode::FEE_MISMATCHED);
         return false;
 	}
 
     if (!isTransferFeeMatch(mDestAccount, asset, mPayment.feeData.destinationFee, mPayment.amount, db, delta))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "dest-mismatched-fee" }, "operation").Mark();
-		innerResult().code(PAYMENT_FEE_MISMATCHED);
+		innerResult().code(PaymentResultCode::FEE_MISMATCHED);
         return false;
 	}
 
@@ -165,7 +157,7 @@ bool PaymentOpFrame::checkFeesV1(Application& app, Database& db, LedgerDelta& de
 
 bool PaymentOpFrame::isTransferFeeMatch(AccountFrame::pointer accountFrame, AssetCode const& assetCode, FeeData const& feeData, int64_t const& amount, Database& db, LedgerDelta& delta)
 {
-	auto feeFrame = FeeFrame::loadForAccount(PAYMENT_FEE, assetCode, FeeFrame::SUBTYPE_ANY, accountFrame, amount, db, &delta);
+	auto feeFrame = FeeFrame::loadForAccount(FeeType::PAYMENT_FEE, assetCode, FeeFrame::SUBTYPE_ANY, accountFrame, amount, db, &delta);
 	// if we do not have any fee frame - any fee is valid
 	if (!feeFrame)
 		return true;
@@ -223,10 +215,9 @@ bool PaymentOpFrame::calculateSourceDestAmount()
 
 bool PaymentOpFrame::isAllowedToTransfer(Database& db, AssetFrame::pointer asset)
 {
-	if (asset->checkPolicy(ASSET_TRANSFERABLE))
-		return true;
-
-	return false;
+	// TODO fix me
+	//asset->checkPolicy(AssetPolicy::TRANSFERABLE);
+	return true;
 }
 
 bool
@@ -234,7 +225,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
                         LedgerManager& ledgerManager)
 {
     app.getMetrics().NewMeter({"op-payment", "success", "apply"}, "operation").Mark();
-    innerResult().code(PAYMENT_SUCCESS);
+    innerResult().code(PaymentResultCode::SUCCESS);
     
     Database& db = ledgerManager.getDatabase();
     
@@ -249,7 +240,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (!isAllowedToTransfer(db, assetFrame))
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "not-allowed-by-asset-policy" }, "operation").Mark();
-        innerResult().code(PAYMENT_NOT_ALLOWED_BY_ASSET_POLICY);
+        innerResult().code(PaymentResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
         return false;
     }
 
@@ -282,7 +273,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
         if (ReferenceFrame::exists(db, mPayment.reference, sourceAccountID))
         {
             app.getMetrics().NewMeter({ "op-payment", "failure", "reference-duplication" }, "operation").Mark();
-            innerResult().code(PAYMENT_REFERENCE_DUPLICATION);
+            innerResult().code(PaymentResultCode::REFERENCE_DUPLICATION);
             return false;
         }
         createReferenceEntry(mPayment.reference, &delta, db);
@@ -301,7 +292,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 	if (!mDestBalance->addBalance(destReceived))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "full-line" }, "operation").Mark();
-		innerResult().code(PAYMENT_LINE_FULL);
+		innerResult().code(PaymentResultCode::LINE_FULL);
 		return false;
 	}
 
@@ -316,7 +307,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 	if (!commissionBalanceFrame->addBalance(totalFee))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "commission-full-line" }, "operation").Mark();
-		innerResult().code(PAYMENT_LINE_FULL);
+		innerResult().code(PaymentResultCode::LINE_FULL);
 		return false;
 	}
 	commissionBalanceFrame->storeChange(delta, db);
@@ -341,21 +332,21 @@ PaymentOpFrame::processInvoice(Application& app, LedgerDelta& delta, Database& d
     if (!invoiceFrame)
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-not-found" }, "operation").Mark();
-        innerResult().code(PAYMENT_INVOICE_NOT_FOUND);
+        innerResult().code(PaymentResultCode::INVOICE_NOT_FOUND);
         return false;
     }
 
-    if (invoiceFrame->getState() != INVOICE_NEEDS_PAYMENT)
+    if (invoiceFrame->getState() != InvoiceState::INVOICE_NEEDS_PAYMENT)
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-already-paid" }, "operation").Mark();
-        innerResult().code(PAYMENT_INVOICE_ALREADY_PAID);
+        innerResult().code(PaymentResultCode::INVOICE_ALREADY_PAID);
         return false;
     }
     
     if (!(invoiceFrame->getSender() == getSourceID()))
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-account-mismatch" }, "operation").Mark();
-        innerResult().code(PAYMENT_INVOICE_ACCOUNT_MISMATCH);
+        innerResult().code(PaymentResultCode::INVOICE_ACCOUNT_MISMATCH);
         return false;
     }
 
@@ -364,13 +355,13 @@ PaymentOpFrame::processInvoice(Application& app, LedgerDelta& delta, Database& d
         if (invoiceFrame->getAmount() != destReceived)
         {
             app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-wrong-amount" }, "operation").Mark();
-            innerResult().code(PAYMENT_INVOICE_WRONG_AMOUNT);
+            innerResult().code(PaymentResultCode::INVOICE_WRONG_AMOUNT);
             return false;
         }
         if (!(invoiceFrame->getReceiverBalance() == mPayment.destinationBalanceID))
         {
             app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-balance-mismatch" }, "operation").Mark();
-            innerResult().code(PAYMENT_INVOICE_BALANCE_MISMATCH);
+            innerResult().code(PaymentResultCode::INVOICE_BALANCE_MISMATCH);
             return false;
         }
     }
@@ -384,21 +375,21 @@ PaymentOpFrame::processBalanceChange(Application& app, AccountManager::Result ba
     if (balanceChangeResult == AccountManager::Result::UNDERFUNDED)
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "underfunded" }, "operation").Mark();
-        innerResult().code(PAYMENT_UNDERFUNDED);
+        innerResult().code(PaymentResultCode::UNDERFUNDED);
         return false;
     }
 
     if (balanceChangeResult == AccountManager::Result::STATS_OVERFLOW)
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "stats-overflow" }, "operation").Mark();
-        innerResult().code(PAYMENT_STATS_OVERFLOW);
+        innerResult().code(PaymentResultCode::STATS_OVERFLOW);
         return false;
     }
 
     if (balanceChangeResult == AccountManager::Result::LIMITS_EXCEEDED)
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "limits-exceeded" }, "operation").Mark();
-        innerResult().code(PAYMENT_LIMITS_EXCEEDED);
+        innerResult().code(PaymentResultCode::LIMITS_EXCEEDED);
         return false;
     }
     return true;
@@ -411,7 +402,7 @@ PaymentOpFrame::doCheckValid(Application& app)
     {
         app.getMetrics().NewMeter({"op-payment", "invalid", "malformed-negative-amount"},
                          "operation").Mark();
-        innerResult().code(PAYMENT_MALFORMED);
+        innerResult().code(PaymentResultCode::MALFORMED);
         return false;
     }
 
@@ -420,7 +411,7 @@ PaymentOpFrame::doCheckValid(Application& app)
     {
         app.getMetrics().NewMeter({"op-payment", "invalid", "malformed-invalid-fee"},
                          "operation").Mark();
-        innerResult().code(PAYMENT_MALFORMED);
+        innerResult().code(PaymentResultCode::MALFORMED);
         return false;
     }
 
@@ -428,7 +419,7 @@ PaymentOpFrame::doCheckValid(Application& app)
 	{
 		app.getMetrics().NewMeter({ "op-payment", "invalid", "malformed-overflow-amount" },
 			"operation").Mark();
-		innerResult().code(PAYMENT_MALFORMED);
+		innerResult().code(PaymentResultCode::MALFORMED);
 		return false;
 	}
 
@@ -436,7 +427,7 @@ PaymentOpFrame::doCheckValid(Application& app)
 	{
 		app.getMetrics().NewMeter({ "op-payment", "invalid", "sending-to-self" }, "operation")
 			.Mark();
-		innerResult().code(PAYMENT_MALFORMED);
+		innerResult().code(PaymentResultCode::MALFORMED);
 		return false;
 	}
 

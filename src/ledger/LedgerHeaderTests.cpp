@@ -73,7 +73,7 @@ TEST_CASE("ledgerheader", "[ledger][header]")
         {
             StellarValue sv(txSet->getContentsHash(), 2, emptyUpgradeSteps, StellarValue::_ext_t(LedgerVersion::EMPTY_VERSION));
             {
-                LedgerUpgrade up(LEDGER_UPGRADE_MAX_TX_SET_SIZE);
+                LedgerUpgrade up(LedgerUpgradeType::MAX_TX_SET_SIZE);
                 up.newMaxTxSetSize() = 1300;
                 Value v(xdr::xdr_to_opaque(up));
                 sv.upgrades.emplace_back(v.begin(), v.end());
@@ -92,7 +92,7 @@ TEST_CASE("ledgerheader", "[ledger][header]")
             SecretKey issuanceKey = SecretKey::random();
             StellarValue sv(txSet->getContentsHash(), 2, emptyUpgradeSteps, StellarValue::_ext_t(LedgerVersion::EMPTY_VERSION));
             {
-                LedgerUpgrade up(LEDGER_UPGRADE_ISSUANCE_KEYS);
+                LedgerUpgrade up(LedgerUpgradeType::ISSUANCE_KEYS);
                 up.newIssuanceKeys().push_back(issuanceKey.getPublicKey());
                 Value v(xdr::xdr_to_opaque(up));
                 sv.upgrades.emplace_back(v.begin(), v.end());
@@ -111,7 +111,7 @@ TEST_CASE("ledgerheader", "[ledger][header]")
         {
             StellarValue sv(txSet->getContentsHash(), 2, emptyUpgradeSteps, StellarValue::_ext_t(LedgerVersion::EMPTY_VERSION));
             {
-                LedgerUpgrade up(LEDGER_UPGRADE_TX_EXPIRATION_PERIOD);
+                LedgerUpgrade up(LedgerUpgradeType::TX_EXPIRATION_PERIOD);
                 up.newTxExpirationPeriod() = 100;
                 Value v(xdr::xdr_to_opaque(up));
                 sv.upgrades.emplace_back(v.begin(), v.end());

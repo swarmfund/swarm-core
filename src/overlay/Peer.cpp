@@ -172,7 +172,7 @@ Peer::sendHello()
 {
     CLOG(DEBUG, "Overlay") << "Peer::sendHello to " << toString();
     StellarMessage msg;
-    msg.type(HELLO);
+    msg.type(MessageType::HELLO);
     Hello& elo = msg.hello();
     elo.ledgerVersion = mApp.getConfig().LEDGER_PROTOCOL_VERSION;
     elo.overlayMinVersion = mApp.getConfig().OVERLAY_PROTOCOL_MIN_VERSION;
@@ -259,7 +259,7 @@ void
 Peer::sendAuth()
 {
     StellarMessage msg;
-    msg.type(AUTH);
+    msg.type(MessageType::AUTH);
     sendMessage(msg);
 }
 
@@ -275,7 +275,7 @@ void
 Peer::drop(ErrorCode err, std::string const& msg)
 {
     StellarMessage m;
-    m.type(ERROR_MSG);
+    m.type(MessageType::ERROR_MSG);
     m.error().code = err;
     m.error().msg = msg;
     sendMessage(m);
@@ -308,7 +308,7 @@ void
 Peer::sendDontHave(MessageType type, uint256 const& itemID)
 {
     StellarMessage msg;
-    msg.type(DONT_HAVE);
+    msg.type(MessageType::DONT_HAVE);
     msg.dontHave().reqHash = itemID;
     msg.dontHave().type = type;
 
@@ -319,7 +319,7 @@ void
 Peer::sendSCPQuorumSet(SCPQuorumSetPtr qSet)
 {
     StellarMessage msg;
-    msg.type(SCP_QUORUMSET);
+    msg.type(MessageType::SCP_QUORUMSET);
     msg.qSet() = *qSet;
 
     sendMessage(msg);
@@ -328,7 +328,7 @@ void
 Peer::sendGetTxSet(uint256 const& setID)
 {
     StellarMessage newMsg;
-    newMsg.type(GET_TX_SET);
+    newMsg.type(MessageType::GET_TX_SET);
     newMsg.txSetHash() = setID;
 
     sendMessage(newMsg);
@@ -340,7 +340,7 @@ Peer::sendGetQuorumSet(uint256 const& setID)
         CLOG(TRACE, "Overlay") << "Get quorum set: " << hexAbbrev(setID);
 
     StellarMessage newMsg;
-    newMsg.type(GET_SCP_QUORUMSET);
+    newMsg.type(MessageType::GET_SCP_QUORUMSET);
     newMsg.qSetHash() = setID;
 
     sendMessage(newMsg);
@@ -352,7 +352,7 @@ Peer::sendGetPeers()
     CLOG(TRACE, "Overlay") << "Get peers";
 
     StellarMessage newMsg;
-    newMsg.type(GET_PEERS);
+    newMsg.type(MessageType::GET_PEERS);
 
     sendMessage(newMsg);
 }
@@ -363,7 +363,7 @@ Peer::sendGetScpState(uint32 ledgerSeq)
     CLOG(TRACE, "Overlay") << "Get SCP State for " << ledgerSeq;
 
     StellarMessage newMsg;
-    newMsg.type(GET_SCP_STATE);
+    newMsg.type(MessageType::GET_SCP_STATE);
     newMsg.getSCPLedgerSeq() = ledgerSeq;
 
     sendMessage(newMsg);
@@ -377,7 +377,7 @@ Peer::sendPeers()
     PeerRecord::loadPeerRecords(mApp.getDatabase(), 50, mApp.getClock().now(),
                                 peerList);
     StellarMessage newMsg;
-    newMsg.type(PEERS);
+    newMsg.type(MessageType::PEERS);
     newMsg.peers().reserve(peerList.size());
     for (auto const& pr : peerList)
     {
@@ -398,43 +398,43 @@ msgSummary(StellarMessage const& msg)
 {
     switch (msg.type())
     {
-    case ERROR_MSG:
+    case MessageType::ERROR_MSG:
         return "ERROR";
-    case HELLO:
+    case MessageType::HELLO:
         return "HELLO";
-    case AUTH:
+    case MessageType::AUTH:
         return "AUTH";
-    case DONT_HAVE:
+    case MessageType::DONT_HAVE:
         return "DONTHAVE";
-    case GET_PEERS:
+    case MessageType::GET_PEERS:
         return "GETPEERS";
-    case PEERS:
+    case MessageType::PEERS:
         return "PEERS";
 
-    case GET_TX_SET:
+    case MessageType::GET_TX_SET:
         return "GETTXSET";
-    case TX_SET:
+    case MessageType::TX_SET:
         return "TXSET";
 
-    case TRANSACTION:
+    case MessageType::TRANSACTION:
         return "TRANSACTION";
 
-    case GET_SCP_QUORUMSET:
+    case MessageType::GET_SCP_QUORUMSET:
         return "GET_SCP_QSET";
-    case SCP_QUORUMSET:
+    case MessageType::SCP_QUORUMSET:
         return "SCP_QSET";
-    case SCP_MESSAGE:
+    case MessageType::SCP_MESSAGE:
         switch (msg.envelope().statement.pledges.type()) {
-        case SCP_ST_PREPARE:
+        case SCPStatementType::PREPARE:
             return "SCP::PREPARE";
-        case SCP_ST_CONFIRM:
+        case SCPStatementType::CONFIRM:
             return "SCP::CONFIRM";
-        case SCP_ST_EXTERNALIZE:
+        case SCPStatementType::EXTERNALIZE:
             return "SCP::EXTERNALIZE";
-        case SCP_ST_NOMINATE:
+        case SCPStatementType::NOMINATE:
             return "SCP::NOMINATE";
         }
-    case GET_SCP_STATE:
+    case MessageType::GET_SCP_STATE:
         return "GET_SCP_STATE";
     }
     return "UNKNOWN";
@@ -452,50 +452,50 @@ Peer::sendMessage(StellarMessage const& msg)
 
     switch (msg.type())
     {
-    case ERROR_MSG:
+    case MessageType::ERROR_MSG:
         mSendErrorMeter.Mark();
         break;
-    case HELLO:
+    case MessageType::HELLO:
         mSendHelloMeter.Mark();
         break;
-    case AUTH:
+    case MessageType::AUTH:
         mSendAuthMeter.Mark();
         break;
-    case DONT_HAVE:
+    case MessageType::DONT_HAVE:
         mSendDontHaveMeter.Mark();
         break;
-    case GET_PEERS:
+    case MessageType::GET_PEERS:
         mSendGetPeersMeter.Mark();
         break;
-    case PEERS:
+    case MessageType::PEERS:
         mSendPeersMeter.Mark();
         break;
-    case GET_TX_SET:
+    case MessageType::GET_TX_SET:
         mSendGetTxSetMeter.Mark();
         break;
-    case TX_SET:
+    case MessageType::TX_SET:
         mSendTxSetMeter.Mark();
         break;
-    case TRANSACTION:
+    case MessageType::TRANSACTION:
         mSendTransactionMeter.Mark();
         break;
-    case GET_SCP_QUORUMSET:
+    case MessageType::GET_SCP_QUORUMSET:
         mSendGetSCPQuorumSetMeter.Mark();
         break;
-    case SCP_QUORUMSET:
+    case MessageType::SCP_QUORUMSET:
         mSendSCPQuorumSetMeter.Mark();
         break;
-    case SCP_MESSAGE:
+    case MessageType::SCP_MESSAGE:
         mSendSCPMessageSetMeter.Mark();
         break;
-    case GET_SCP_STATE:
+    case MessageType::GET_SCP_STATE:
         mSendGetSCPStateMeter.Mark();
         break;
     };
 
     AuthenticatedMessage amsg;
     amsg.v0().message = msg;
-    if (msg.type() != HELLO && msg.type() != ERROR_MSG)
+    if (msg.type() != MessageType::HELLO && msg.type() != MessageType::ERROR_MSG)
     {
         amsg.v0().sequence = mSendMacSeq;
         amsg.v0().mac =
@@ -558,14 +558,14 @@ Peer::recvMessage(AuthenticatedMessage const& msg)
         return;
     }
 
-    if (mState >= GOT_HELLO && msg.v0().message.type() != ERROR_MSG)
+    if (mState >= GOT_HELLO && msg.v0().message.type() != MessageType::ERROR_MSG)
     {
         if (msg.v0().sequence != mRecvMacSeq)
         {
             CLOG(ERROR, "Overlay") << "Unexpected message-auth sequence";
             mDropInRecvMessageSeqMeter.Mark();
             ++mRecvMacSeq;
-            drop(ERR_AUTH, "unexpected auth sequence");
+            drop(ErrorCode::AUTH, "unexpected auth sequence");
             return;
         }
 
@@ -576,7 +576,7 @@ Peer::recvMessage(AuthenticatedMessage const& msg)
             CLOG(ERROR, "Overlay") << "Message-auth check failed";
             mDropInRecvMessageMacMeter.Mark();
             ++mRecvMacSeq;
-            drop(ERR_AUTH, "unexpected MAC");
+            drop(ErrorCode::AUTH, "unexpected MAC");
             return;
         }
         ++mRecvMacSeq;
@@ -599,106 +599,106 @@ Peer::recvMessage(StellarMessage const& stellarMsg)
                                << ") recv: " << msgSummary(stellarMsg) << " from:"
                                << mApp.getConfig().toShortString(mPeerID);
 
-    if (!isAuthenticated() && (stellarMsg.type() != HELLO) &&
-        (stellarMsg.type() != AUTH) && (stellarMsg.type() != ERROR_MSG))
+    if (!isAuthenticated() && (stellarMsg.type() != MessageType::HELLO) &&
+        (stellarMsg.type() != MessageType::AUTH) && (stellarMsg.type() != MessageType::ERROR_MSG))
     {
-        CLOG(WARNING, "Overlay") << "recv: " << stellarMsg.type()
+        CLOG(WARNING, "Overlay") << "recv: " << static_cast<int32_t >(stellarMsg.type())
                                  << " before completed handshake";
         mDropInRecvMessageUnauthMeter.Mark();
         drop();
         return;
     }
 
-    assert(isAuthenticated() || stellarMsg.type() == HELLO ||
-           stellarMsg.type() == AUTH || stellarMsg.type() == ERROR_MSG);
+    assert(isAuthenticated() || stellarMsg.type() == MessageType::HELLO ||
+           stellarMsg.type() == MessageType::AUTH || stellarMsg.type() == MessageType::ERROR_MSG);
 
     switch (stellarMsg.type())
     {
-    case ERROR_MSG:
+    case MessageType::ERROR_MSG:
     {
         auto t = mRecvErrorTimer.TimeScope();
         recvError(stellarMsg);
     }
     break;
 
-    case HELLO:
+    case MessageType::HELLO:
     {
         auto t = mRecvHelloTimer.TimeScope();
         this->recvHello(stellarMsg.hello());
     }
     break;
 
-    case AUTH:
+    case MessageType::AUTH:
     {
         auto t = mRecvAuthTimer.TimeScope();
         this->recvAuth(stellarMsg);
     }
     break;
 
-    case DONT_HAVE:
+    case MessageType::DONT_HAVE:
     {
         auto t = mRecvDontHaveTimer.TimeScope();
         recvDontHave(stellarMsg);
     }
     break;
 
-    case GET_PEERS:
+    case MessageType::GET_PEERS:
     {
         auto t = mRecvGetPeersTimer.TimeScope();
         recvGetPeers(stellarMsg);
     }
     break;
 
-    case PEERS:
+    case MessageType::PEERS:
     {
         auto t = mRecvPeersTimer.TimeScope();
         recvPeers(stellarMsg);
     }
     break;
 
-    case GET_TX_SET:
+    case MessageType::GET_TX_SET:
     {
         auto t = mRecvGetTxSetTimer.TimeScope();
         recvGetTxSet(stellarMsg);
     }
     break;
 
-    case TX_SET:
+    case MessageType::TX_SET:
     {
         auto t = mRecvTxSetTimer.TimeScope();
         recvTxSet(stellarMsg);
     }
     break;
 
-    case TRANSACTION:
+    case MessageType::TRANSACTION:
     {
         auto t = mRecvTransactionTimer.TimeScope();
         recvTransaction(stellarMsg);
     }
     break;
 
-    case GET_SCP_QUORUMSET:
+    case MessageType::GET_SCP_QUORUMSET:
     {
         auto t = mRecvGetSCPQuorumSetTimer.TimeScope();
         recvGetSCPQuorumSet(stellarMsg);
     }
     break;
 
-    case SCP_QUORUMSET:
+    case MessageType::SCP_QUORUMSET:
     {
         auto t = mRecvSCPQuorumSetTimer.TimeScope();
         recvSCPQuorumSet(stellarMsg);
     }
     break;
 
-    case SCP_MESSAGE:
+    case MessageType::SCP_MESSAGE:
     {
         auto t = mRecvSCPMessageTimer.TimeScope();
         recvSCPMessage(stellarMsg);
     }
     break;
 
-    case GET_SCP_STATE:
+    case MessageType::GET_SCP_STATE:
     {
         auto t = mRecvGetSCPStateTimer.TimeScope();
         recvGetSCPState(stellarMsg);
@@ -721,14 +721,14 @@ Peer::recvGetTxSet(StellarMessage const& msg)
     if (auto txSet = mApp.getHerder().getTxSet(msg.txSetHash()))
     {
         StellarMessage newMsg;
-        newMsg.type(TX_SET);
+        newMsg.type(MessageType::TX_SET);
         txSet->toXDR(newMsg.txSet());
 
         self->sendMessage(newMsg);
     }
     else
     {
-        sendDontHave(TX_SET, msg.txSetHash());
+        sendDontHave(MessageType::TX_SET, msg.txSetHash());
     }
 }
 
@@ -779,7 +779,7 @@ Peer::recvGetSCPQuorumSet(StellarMessage const& msg)
         if (Logging::logTrace("Overlay"))
             CLOG(TRACE, "Overlay")
                 << "No quorum set: " << hexAbbrev(msg.qSetHash());
-        sendDontHave(SCP_QUORUMSET, msg.qSetHash());
+        sendDontHave(MessageType::SCP_QUORUMSET, msg.qSetHash());
         // do we want to ask other people for it?
     }
 }
@@ -803,9 +803,9 @@ Peer::recvSCPMessage(StellarMessage const& msg)
 
     auto type = msg.envelope().statement.pledges.type();
     auto t =
-        (type == SCP_ST_PREPARE ? mRecvSCPPrepareTimer.TimeScope() :
-         (type == SCP_ST_CONFIRM ? mRecvSCPConfirmTimer.TimeScope() :
-          (type == SCP_ST_EXTERNALIZE ? mRecvSCPExternalizeTimer.TimeScope() :
+        (type == SCPStatementType::PREPARE ? mRecvSCPPrepareTimer.TimeScope() :
+         (type == SCPStatementType::CONFIRM ? mRecvSCPConfirmTimer.TimeScope() :
+          (type == SCPStatementType::EXTERNALIZE ? mRecvSCPExternalizeTimer.TimeScope() :
            (mRecvSCPNominateTimer.TimeScope()))));
 
     mApp.getHerder().recvSCPEnvelope(envelope);
@@ -825,19 +825,19 @@ Peer::recvError(StellarMessage const& msg)
     std::string codeStr = "UNKNOWN";
     switch (msg.error().code)
     {
-    case ERR_MISC:
+    case ErrorCode::MISC:
         codeStr = "ERR_MISC";
         break;
-    case ERR_DATA:
+    case ErrorCode::DATA:
         codeStr = "ERR_DATA";
         break;
-    case ERR_CONF:
+    case ErrorCode::CONF:
         codeStr = "ERR_CONF";
         break;
-    case ERR_AUTH:
+    case ErrorCode::AUTH:
         codeStr = "ERR_AUTH";
         break;
-    case ERR_LOAD:
+    case ErrorCode::LOAD:
         codeStr = "ERR_LOAD";
         break;
     default:
@@ -936,7 +936,7 @@ Peer::recvHello(Hello const& elo)
             << mApp.getConfig().OVERLAY_PROTOCOL_VERSION << ","
             << mApp.getConfig().OVERLAY_PROTOCOL_VERSION << "]";
         mDropInRecvHelloVersionMeter.Mark();
-        drop(ERR_CONF, "wrong protocol version");
+        drop(ErrorCode::CONF, "wrong protocol version");
         return;
     }
 
@@ -944,7 +944,7 @@ Peer::recvHello(Hello const& elo)
     {
         CLOG(WARNING, "Overlay") << "connecting to self";
         mDropInRecvHelloSelfMeter.Mark();
-        drop(ERR_CONF, "connecting to self");
+        drop(ErrorCode::CONF, "connecting to self");
         return;
     }
 
@@ -956,7 +956,7 @@ Peer::recvHello(Hello const& elo)
             << "NetworkID = " << hexAbbrev(elo.networkID)
             << " expected: " << hexAbbrev(mApp.getNetworkID());
         mDropInRecvHelloNetMeter.Mark();
-        drop(ERR_CONF, "wrong network passphrase");
+        drop(ErrorCode::CONF, "wrong network passphrase");
         return;
     }
 
@@ -972,7 +972,7 @@ Peer::recvHello(Hello const& elo)
                 << "connection from already-connected peerID "
                 << mApp.getConfig().toShortString(mPeerID);
             mDropInRecvHelloPeerIDMeter.Mark();
-            drop(ERR_CONF, "connecting already-connected peer");
+            drop(ErrorCode::CONF, "connecting already-connected peer");
             return;
         }
     }
@@ -981,7 +981,7 @@ Peer::recvHello(Hello const& elo)
     {
         CLOG(WARNING, "Overlay") << "bad port in recvHello";
         mDropInRecvHelloPortMeter.Mark();
-        drop(ERR_CONF, "bad port number");
+        drop(ErrorCode::CONF, "bad port number");
         return;
     }
 
@@ -998,7 +998,7 @@ Peer::recvAuth(StellarMessage const& msg)
     {
         CLOG(ERROR, "Overlay") << "Unexpected AUTH message";
         mDropInRecvAuthUnexpectedMeter.Mark();
-        drop(ERR_MISC, "out-of-order AUTH message");
+        drop(ErrorCode::MISC, "out-of-order AUTH message");
         return;
     }
 
@@ -1010,7 +1010,7 @@ Peer::recvAuth(StellarMessage const& msg)
     {
         CLOG(WARNING, "Overlay") << "New peer rejected, all slots taken";
         mDropInRecvAuthRejectMeter.Mark();
-        drop(ERR_LOAD, "peer rejected");
+        drop(ErrorCode::LOAD, "peer rejected");
         return;
     }
 
@@ -1045,7 +1045,7 @@ Peer::recvPeers(StellarMessage const& msg)
                                      << peer.port;
             continue;
         }
-        if (peer.ip.type() == IPv6)
+        if (peer.ip.type() == IPAddrType::IPv6)
         {
             CLOG(WARNING, "Overlay") << "ignoring received IPv6 address"
                                      << " (not yet supported)";

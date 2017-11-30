@@ -21,7 +21,8 @@ std::unordered_map<AccountID, CounterpartyDetails> SetOptionsOpFrame::getCounter
 
 SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({MASTER, GENERAL, NOT_VERIFIED}, mSourceAccount->getHighThreshold(), SIGNER_ACCOUNT_MANAGER, BlockReasons::KYC_UPDATE);
+	return SourceDetails({AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED}, mSourceAccount->getHighThreshold(),
+                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), static_cast<int32_t>(BlockReasons::KYC_UPDATE));
 }
 
 SetOptionsOpFrame::SetOptionsOpFrame(Operation const& op, OperationResult& res,
@@ -36,13 +37,13 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 	if (!mSetOptions.signer)
 		return true;
 
-	int32_t signerVersion = mSetOptions.signer->ext.v();
+	int32_t signerVersion = static_cast<int32_t>(mSetOptions.signer->ext.v());
 	if (ledgerManager.getCurrentLedgerHeader().ledgerVersion < signerVersion)
 	{
 		app.getMetrics().NewMeter({ "op-set-options", "failure",
 									"invalid_signer_version" },
 									"operation").Mark();
-		innerResult().code(SET_OPTIONS_INVALID_SIGNER_VERSION);
+		innerResult().code(SetOptionsResultCode::INVALID_SIGNER_VERSION);
 		return false;
 	}
 
@@ -89,7 +90,7 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 		app.getMetrics().NewMeter({ "op-set-options", "failure",
 			"too-many-signers" },
 			"operation").Mark();
-		innerResult().code(SET_OPTIONS_TOO_MANY_SIGNERS);
+		innerResult().code(SetOptionsResultCode::TOO_MANY_SIGNERS);
 		return false;
 	}
 	signers.push_back(*mSetOptions.signer);
@@ -108,25 +109,25 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     if (mSetOptions.masterWeight)
     {
-        account.thresholds[THRESHOLD_MASTER_WEIGHT] =
+        account.thresholds[static_cast<int32_t>(ThresholdIndexes::MASTER_WEIGHT)] =
             *mSetOptions.masterWeight & UINT8_MAX;
     }
 
     if (mSetOptions.lowThreshold)
     {
-        account.thresholds[THRESHOLD_LOW] =
+        account.thresholds[static_cast<int32_t>(ThresholdIndexes::LOW)] =
             *mSetOptions.lowThreshold & UINT8_MAX;
     }
 
     if (mSetOptions.medThreshold)
     {
-        account.thresholds[THRESHOLD_MED] =
+        account.thresholds[static_cast<int32_t>(ThresholdIndexes::MED)] =
             *mSetOptions.medThreshold & UINT8_MAX;
     }
 
     if (mSetOptions.highThreshold)
     {
-        account.thresholds[THRESHOLD_HIGH] =
+        account.thresholds[static_cast<int32_t>(ThresholdIndexes::HIGH)] =
             *mSetOptions.highThreshold & UINT8_MAX;
     }
 
@@ -142,11 +143,11 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
             app.getMetrics().NewMeter({"op-set-options", "failure",
                                 "balance-not-found"},
                                 "operation").Mark();
-            innerResult().code(SET_OPTIONS_BALANCE_NOT_FOUND);
+            innerResult().code(SetOptionsResultCode::BALANCE_NOT_FOUND);
             return false;
         }        
 
-        if (mSetOptions.trustData->action == TRUST_ADD)
+        if (mSetOptions.trustData->action == ManageTrustAction::TRUST_ADD)
         {
 			auto trustLines = TrustFrame::countForBalance(db, trust.balanceToUse);
 			// TODO move to config
@@ -155,7 +156,7 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
 				app.getMetrics().NewMeter({ "op-set-options", "failure",
 					"too-many-trust-lines" },
 					"operation").Mark();
-				innerResult().code(SET_OPTIONS_TRUST_TOO_MANY);
+				innerResult().code(SetOptionsResultCode::TRUST_TOO_MANY);
 				return false;
 			}
 
@@ -163,7 +164,7 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
                 trust.allowedAccount, trust.balanceToUse);
             trustFrame->storeAdd(delta, db);
         }
-        else if (mSetOptions.trustData->action == TRUST_REMOVE)
+        else if (mSetOptions.trustData->action == ManageTrustAction::TRUST_REMOVE)
         {
             auto trustFrame = TrustFrame::loadTrust(trust.allowedAccount,
                 trust.balanceToUse, db);
@@ -173,7 +174,7 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     app.getMetrics().NewMeter({"op-set-options", "success", "apply"}, "operation")
         .Mark();
-    innerResult().code(SET_OPTIONS_SUCCESS);
+    innerResult().code(SetOptionsResultCode::SUCCESS);
     mSourceAccount->storeChange(delta, db);
     return true;
 }
@@ -188,7 +189,7 @@ SetOptionsOpFrame::doCheckValid(Application& app)
             app.getMetrics().NewMeter(
                         {"op-set-options", "invalid", "threshold-out-of-range"},
                         "operation").Mark();
-            innerResult().code(SET_OPTIONS_THRESHOLD_OUT_OF_RANGE);
+            innerResult().code(SetOptionsResultCode::THRESHOLD_OUT_OF_RANGE);
             return false;
         }
     }
@@ -200,7 +201,7 @@ SetOptionsOpFrame::doCheckValid(Application& app)
             app.getMetrics().NewMeter(
                         {"op-set-options", "invalid", "threshold-out-of-range"},
                         "operation").Mark();
-            innerResult().code(SET_OPTIONS_THRESHOLD_OUT_OF_RANGE);
+            innerResult().code(SetOptionsResultCode::THRESHOLD_OUT_OF_RANGE);
             return false;
         }
     }
@@ -212,7 +213,7 @@ SetOptionsOpFrame::doCheckValid(Application& app)
             app.getMetrics().NewMeter(
                         {"op-set-options", "invalid", "threshold-out-of-range"},
                         "operation").Mark();
-            innerResult().code(SET_OPTIONS_THRESHOLD_OUT_OF_RANGE);
+            innerResult().code(SetOptionsResultCode::THRESHOLD_OUT_OF_RANGE);
             return false;
         }
     }
@@ -224,7 +225,7 @@ SetOptionsOpFrame::doCheckValid(Application& app)
             app.getMetrics().NewMeter(
                         {"op-set-options", "invalid", "threshold-out-of-range"},
                         "operation").Mark();
-            innerResult().code(SET_OPTIONS_THRESHOLD_OUT_OF_RANGE);
+            innerResult().code(SetOptionsResultCode::THRESHOLD_OUT_OF_RANGE);
             return false;
         }
     }
@@ -235,7 +236,7 @@ SetOptionsOpFrame::doCheckValid(Application& app)
         {
             app.getMetrics().NewMeter({"op-set-options", "invalid", "bad-signer"},
                              "operation").Mark();
-            innerResult().code(SET_OPTIONS_BAD_SIGNER);
+            innerResult().code(SetOptionsResultCode::BAD_SIGNER);
             return false;
         }
     }
@@ -246,7 +247,7 @@ SetOptionsOpFrame::doCheckValid(Application& app)
         {
             app.getMetrics().NewMeter({"op-set-options", "invalid", "bad-Trust-account"},
                              "operation").Mark();
-            innerResult().code(SET_OPTIONS_TRUST_MALFORMED);
+            innerResult().code(SetOptionsResultCode::TRUST_MALFORMED);
             return false;
         }
     }

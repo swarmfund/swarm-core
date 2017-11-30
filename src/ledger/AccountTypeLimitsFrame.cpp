@@ -28,7 +28,7 @@ const char* AccountTypeLimitsFrame::kSQLCreateStatement1 =
 
 
 
-AccountTypeLimitsFrame::AccountTypeLimitsFrame() : EntryFrame(ACCOUNT_TYPE_LIMITS), mAccountTypeLimits(mEntry.data.accountTypeLimits())
+AccountTypeLimitsFrame::AccountTypeLimitsFrame() : EntryFrame(LedgerEntryType::ACCOUNT_TYPE_LIMITS), mAccountTypeLimits(mEntry.data.accountTypeLimits())
 {
 }
 
@@ -128,7 +128,7 @@ AccountTypeLimitsFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool
     
     auto prep = db.getPreparedStatement(sql);
     auto& st = prep.statement();
-    int accountType = mAccountTypeLimits.accountType;
+    int accountType = static_cast<int32_t >(mAccountTypeLimits.accountType);
     auto limits = mAccountTypeLimits.limits;
     st.exchange(use(accountType, "at"));
     st.exchange(use(limits.dailyOut, "do"));
@@ -160,7 +160,7 @@ AccountTypeLimitsFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool
 AccountTypeLimitsFrame::pointer AccountTypeLimitsFrame::loadLimits(AccountType accountType, Database& db, LedgerDelta* delta)
     {
 		LedgerKey key;
-		key.type(ACCOUNT_TYPE_LIMITS);
+		key.type(LedgerEntryType::ACCOUNT_TYPE_LIMITS);
 		key.accountTypeLimits().accountType = accountType;
 		if (cachedEntryExists(key, db))
 		{
@@ -169,7 +169,7 @@ AccountTypeLimitsFrame::pointer AccountTypeLimitsFrame::loadLimits(AccountType a
 		}
 
 		LedgerEntry le;
-		le.data.type(ACCOUNT_TYPE_LIMITS);
+		le.data.type(LedgerEntryType::ACCOUNT_TYPE_LIMITS);
 		le.data.accountTypeLimits().accountType = accountType;
         
 		auto prep =

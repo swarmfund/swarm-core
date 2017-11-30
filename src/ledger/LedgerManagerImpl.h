@@ -94,9 +94,6 @@ class LedgerManagerImpl : public LedgerManager
     LedgerHeader const& getCurrentLedgerHeader() const override;
     LedgerHeader& getCurrentLedgerHeader() override;
 
-
-	bool useImprovedSignatureCheck() const override;
-
     Database& getDatabase() override;
 
     void startCatchUp(uint32_t initLedger, HistoryManager::CatchupMode resume,

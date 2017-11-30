@@ -33,7 +33,7 @@ std::unordered_map<AccountID, CounterpartyDetails> SetLimitsOpFrame::getCounterp
 
 SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	int32_t signerType = SIGNER_LIMITS_MANAGER;
+	int32_t signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
 	int32_t threshold = mSourceAccount->getHighThreshold();
 	if (mSetLimits.account)
 	{
@@ -41,13 +41,13 @@ SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<Accou
 		if (account == counterpartiesDetails.end() || !account->second.mAccount)
 			throw std::invalid_argument("Unexpected counterpartiesDetails. Expected counterparty to be included");
 
-		if (account->second.mAccount->getAccountType() == GENERAL)
+		if (account->second.mAccount->getAccountType() == AccountType::GENERAL)
 		{
-			signerType |= SIGNER_GENERAL_ACC_MANAGER;
+			signerType |= static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
 			threshold = mSourceAccount->getLowThreshold();
 		}
 	}
-	return SourceDetails({ MASTER }, threshold, signerType);
+	return SourceDetails({ AccountType::MASTER }, threshold, signerType);
 }
 
 bool
@@ -82,7 +82,7 @@ SetLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
         else
         {
             LedgerEntry le;
-            le.data.type(ACCOUNT_TYPE_LIMITS);
+            le.data.type(LedgerEntryType::ACCOUNT_TYPE_LIMITS);
             AccountTypeLimitsEntry& entry = le.data.accountTypeLimits();
 
             entry.accountType = *mSetLimits.accountType;
@@ -94,7 +94,7 @@ SetLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     app.getMetrics().NewMeter({"op-set-limits", "success", "apply"}, "operation")
         .Mark();
-    innerResult().code(SET_LIMITS_SUCCESS);
+    innerResult().code(SetLimitsResultCode::SUCCESS);
     return true;
 }
 
@@ -106,7 +106,7 @@ SetLimitsOpFrame::doCheckValid(Application& app)
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},
                     "operation").Mark();
-        innerResult().code(SET_LIMITS_MALFORMED);
+        innerResult().code(SetLimitsResultCode::MALFORMED);
         return false;
     }
 
@@ -115,7 +115,7 @@ SetLimitsOpFrame::doCheckValid(Application& app)
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},
                     "operation").Mark();
-        innerResult().code(SET_LIMITS_MALFORMED);
+        innerResult().code(SetLimitsResultCode::MALFORMED);
         return false;
     }
     
@@ -124,7 +124,7 @@ SetLimitsOpFrame::doCheckValid(Application& app)
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},
                     "operation").Mark();
-        innerResult().code(SET_LIMITS_MALFORMED);
+        innerResult().code(SetLimitsResultCode::MALFORMED);
         return false;
     }
 

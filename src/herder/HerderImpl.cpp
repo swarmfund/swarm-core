@@ -299,13 +299,13 @@ HerderImpl::validateUpgradeStep(uint64 slotIndex, UpgradeType const& upgrade,
     bool res;
     switch (lupgrade.type())
     {
-    case LEDGER_UPGRADE_VERSION:
+    case LedgerUpgradeType::VERSION:
     {
         uint32 newVersion = lupgrade.newLedgerVersion();
         res = (newVersion == mApp.getConfig().LEDGER_PROTOCOL_VERSION);
         break;
     }
-    case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
+    case LedgerUpgradeType::MAX_TX_SET_SIZE:
     {
         // allow max to be within 30% of the config value
         uint32 newMax = lupgrade.newMaxTxSetSize();
@@ -313,13 +313,13 @@ HerderImpl::validateUpgradeStep(uint64 slotIndex, UpgradeType const& upgrade,
               (newMax <= mApp.getConfig().DESIRED_MAX_TX_PER_LEDGER * 13 / 10);
         break;
     }
-    case LEDGER_UPGRADE_ISSUANCE_KEYS:
+    case LedgerUpgradeType::ISSUANCE_KEYS:
     {
         auto newKeys = lupgrade.newIssuanceKeys();
         res = (newKeys == mApp.getConfig().ISSUANCE_KEYS);
         break;
     }
-    case LEDGER_UPGRADE_TX_EXPIRATION_PERIOD:
+    case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
     {
         auto newPeriod = lupgrade.newTxExpirationPeriod();
         res = (newPeriod == mApp.getConfig().TX_EXPIRATION_PERIOD);
@@ -340,7 +340,7 @@ HerderImpl::signEnvelope(SCPEnvelope& envelope)
 {
     mSCPMetrics.mEnvelopeSign.Mark();
     envelope.signature = mSCP.getSecretKey().sign(xdr::xdr_to_opaque(
-        mApp.getNetworkID(), ENVELOPE_TYPE_SCP, envelope.statement));
+        mApp.getNetworkID(), EnvelopeType::SCP, envelope.statement));
 }
 
 bool
@@ -348,7 +348,7 @@ HerderImpl::verifyEnvelope(SCPEnvelope const& envelope)
 {
     bool b = PubKeyUtils::verifySig(
         envelope.statement.nodeID, envelope.signature,
-        xdr::xdr_to_opaque(mApp.getNetworkID(), ENVELOPE_TYPE_SCP,
+        xdr::xdr_to_opaque(mApp.getNetworkID(), EnvelopeType::SCP,
                            envelope.statement));
     if (b)
     {
@@ -379,7 +379,7 @@ HerderImpl::validateValue(uint64 slotIndex, Value const& value)
     SCPDriver::ValidationLevel res = validateValueHelper(slotIndex, b);
     if (res != SCPDriver::kInvalidValue)
     {
-        LedgerUpgradeType lastUpgradeType = LEDGER_UPGRADE_VERSION;
+        LedgerUpgradeType lastUpgradeType = LedgerUpgradeType::VERSION;
         // check upgrades
         for (size_t i = 0; i < b.upgrades.size(); i++)
         {
@@ -700,7 +700,7 @@ HerderImpl::combineCandidates(uint64 slotIndex,
                 LedgerUpgrade& clUpgrade = it->second;
                 switch (lupgrade.type())
                 {
-                case LEDGER_UPGRADE_VERSION:
+                case LedgerUpgradeType::VERSION:
                     // pick the highest version
                     if (clUpgrade.newLedgerVersion() <
                         lupgrade.newLedgerVersion())
@@ -709,7 +709,7 @@ HerderImpl::combineCandidates(uint64 slotIndex,
                             lupgrade.newLedgerVersion();
                     }
                     break;
-                case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
+                case LedgerUpgradeType::MAX_TX_SET_SIZE:
                     // take the max tx set size
                     if (clUpgrade.newMaxTxSetSize() <
                         lupgrade.newMaxTxSetSize())
@@ -718,7 +718,7 @@ HerderImpl::combineCandidates(uint64 slotIndex,
                             lupgrade.newMaxTxSetSize();
                     }
                     break;
-                case LEDGER_UPGRADE_ISSUANCE_KEYS:
+                case LedgerUpgradeType::ISSUANCE_KEYS:
                     // take the max tx set size
                     if (!(clUpgrade.newIssuanceKeys() ==
                         lupgrade.newIssuanceKeys()))
@@ -727,7 +727,7 @@ HerderImpl::combineCandidates(uint64 slotIndex,
                             lupgrade.newIssuanceKeys();
                     }
                     break;
-                case LEDGER_UPGRADE_TX_EXPIRATION_PERIOD:
+                case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
                     // take the max tx set size
                     if (!(clUpgrade.newTxExpirationPeriod() ==
                         lupgrade.newTxExpirationPeriod()))
@@ -843,12 +843,12 @@ HerderImpl::broadcast(SCPEnvelope const& e)
     if (!mApp.getConfig().MANUAL_CLOSE)
     {
         StellarMessage m;
-        m.type(SCP_MESSAGE);
+        m.type(MessageType::SCP_MESSAGE);
         m.envelope() = e;
 
         CLOG(DEBUG, "Herder") << "broadcast "
-                              << " s:" << e.statement.pledges.type()
-                              << " i:" << e.statement.slotIndex;
+                              << " s:" << static_cast<int32_t >(e.statement.pledges.type())
+                              << " i:" << static_cast<int32_t >(e.statement.slotIndex);
 
         mSCPMetrics.mEnvelopeEmit.Mark();
         mApp.getOverlayManager().broadcastMessage(m, true);
@@ -871,7 +871,7 @@ HerderImpl::emitEnvelope(SCPEnvelope const& envelope)
 
     if (Logging::logDebug("Herder"))
         CLOG(DEBUG, "Herder") << "emitEnvelope"
-                              << " s:" << envelope.statement.pledges.type()
+                              << " s:" << static_cast<int32_t >(envelope.statement.pledges.type())
                               << " i:" << slotIndex
                               << " a:" << mApp.getStateHuman();
 
@@ -978,7 +978,7 @@ HerderImpl::recvSCPEnvelope(SCPEnvelope const& envelope)
                               << " from: "
                               << mApp.getConfig().toShortString(
                                   envelope.statement.nodeID)
-                              << " s:" << envelope.statement.pledges.type()
+                              << " s:" << static_cast<int32_t >(envelope.statement.pledges.type())
                               << " i:" << envelope.statement.slotIndex
                               << " a:" << mApp.getStateHuman();
 
@@ -1062,7 +1062,7 @@ HerderImpl::sendSCPStateToPeer(uint32 ledgerSeq, PeerPtr peer)
             for (auto const& e : envelopes)
             {
                 StellarMessage m;
-                m.type(SCP_MESSAGE);
+                m.type(MessageType::SCP_MESSAGE);
                 m.envelope() = e;
                 peer->sendMessage(m);
             }
@@ -1357,7 +1357,7 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger)
     auto issuanceKeys = mApp.getConfig().ISSUANCE_KEYS;
     if (lcl.header.issuanceKeys != mApp.getConfig().ISSUANCE_KEYS)
     {
-        upgrades.emplace_back(LEDGER_UPGRADE_ISSUANCE_KEYS);
+        upgrades.emplace_back(LedgerUpgradeType::ISSUANCE_KEYS);
         for (int i = 0; i < mApp.getConfig().ISSUANCE_KEYS.size(); i++)
         {
             upgrades.back().newIssuanceKeys().push_back(mApp.getConfig().ISSUANCE_KEYS[i]);
@@ -1366,20 +1366,20 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger)
 
     if (lcl.header.txExpirationPeriod != mApp.getConfig().TX_EXPIRATION_PERIOD)
     {
-        upgrades.emplace_back(LEDGER_UPGRADE_TX_EXPIRATION_PERIOD);
+        upgrades.emplace_back(LedgerUpgradeType::TX_EXPIRATION_PERIOD);
         upgrades.back().newTxExpirationPeriod() =
             mApp.getConfig().TX_EXPIRATION_PERIOD;
     }
 
     if (lcl.header.ledgerVersion != mApp.getConfig().LEDGER_PROTOCOL_VERSION)
     {
-        upgrades.emplace_back(LEDGER_UPGRADE_VERSION);
+        upgrades.emplace_back(LedgerUpgradeType::VERSION);
         upgrades.back().newLedgerVersion() =
             mApp.getConfig().LEDGER_PROTOCOL_VERSION;
     }
     if (lcl.header.maxTxSetSize != mApp.getConfig().DESIRED_MAX_TX_PER_LEDGER)
     {
-        upgrades.emplace_back(LEDGER_UPGRADE_MAX_TX_SET_SIZE);
+        upgrades.emplace_back(LedgerUpgradeType::MAX_TX_SET_SIZE);
         upgrades.back().newMaxTxSetSize() =
             mApp.getConfig().DESIRED_MAX_TX_PER_LEDGER;
     }
@@ -1392,7 +1392,7 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger)
             CLOG(ERROR, "Herder") << "HerderImpl::triggerNextLedger"
                                   << " exceeded size for upgrade step (got "
                                   << v.size() << " ) for upgrade type "
-                                  << std::to_string(upgrade.type());
+                                  << std::to_string(static_cast<int32_t>(upgrade.type()));
         }
         else
         {

@@ -17,20 +17,21 @@ namespace stellar
 const char* InvoiceFrame::kSQLCreateStatement1 =
     "CREATE TABLE invoice"
     "("
-	"invoice_id  BIGINT       PRIMARY KEY,"
-	"sender       VARCHAR(64) NOT NULL,"
-	"receiver_account       VARCHAR(64) NOT NULL,"
-    "receiver_balance       VARCHAR(64) NOT NULL,"
-    "amount BIGINT NOT NULL CHECK (amount >= 0),"
-    "state INT NOT NULL CHECK (state >= 0),"
-    "lastmodified INT         NOT NULL"
+	"invoice_id         BIGINT      PRIMARY KEY,"
+	"sender             VARCHAR(64) NOT NULL,"
+	"receiver_account   VARCHAR(64) NOT NULL,"
+    "receiver_balance   VARCHAR(64) NOT NULL,"
+    "amount             BIGINT      NOT NULL CHECK (amount >= 0),"
+    "state              INT         NOT NULL CHECK (state >= 0),"
+    "lastmodified       INT         NOT NULL,"
+    "version            INT         NOT NULL DEFAULT 0"
     ");";
 
 static const char* invoiceColumnSelector =
-"SELECT invoice_id, sender, receiver_account, receiver_balance, amount, state, lastmodified "
-    "FROM invoice";
+"SELECT invoice_id, sender, receiver_account, receiver_balance, amount, state, lastmodified, version "
+"FROM   invoice";
 
-InvoiceFrame::InvoiceFrame() : EntryFrame(INVOICE), mInvoice(mEntry.data.invoice())
+InvoiceFrame::InvoiceFrame() : EntryFrame(LedgerEntryType::INVOICE), mInvoice(mEntry.data.invoice())
 {
 }
 
@@ -97,9 +98,9 @@ InvoiceFrame::loadInvoices(StatementContext& prep,
     string sender, receiverAccount, receiverBalance;
     int32 state;
     LedgerEntry le;
-    le.data.type(INVOICE);
+    le.data.type(LedgerEntryType::INVOICE);
     InvoiceEntry& oe = le.data.invoice();
-
+    int32_t invoiceVersion = 0;
 
     statement& st = prep.statement();
 	st.exchange(into(oe.invoiceID));
@@ -109,6 +110,7 @@ InvoiceFrame::loadInvoices(StatementContext& prep,
     st.exchange(into(oe.amount));
     st.exchange(into(state));
     st.exchange(into(le.lastModifiedLedgerSeq));
+    st.exchange(into(invoiceVersion));
     st.define_and_bind();
     st.execute(true);
     while (st.got_data())
@@ -117,6 +119,7 @@ InvoiceFrame::loadInvoices(StatementContext& prep,
         oe.receiverBalance = BalanceKeyUtils::fromStrKey(receiverBalance);
         oe.receiverAccount = PubKeyUtils::fromStrKey(receiverAccount);
         oe.state = InvoiceState(state);
+        oe.ext.v((LedgerVersion)invoiceVersion);
         if (!isValid(oe))
         {
             throw std::runtime_error("Invalid payment request");
@@ -155,7 +158,7 @@ InvoiceFrame::countForReceiverAccount(Database& db, AccountID account)
 	auto timer = db.getSelectTimer("invoice-count");
 	auto prep =
 		db.getPreparedStatement("SELECT COUNT(*) FROM invoice "
-			"WHERE receiver_account=:receiver;");
+                    			"WHERE receiver_account=:receiver;");
 	auto& st = prep.statement();
 
     std::string actIDStrKey;
@@ -223,25 +226,27 @@ InvoiceFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
     std::string sender = PubKeyUtils::toStrKey(mInvoice.sender);
     std::string receiverAccount = PubKeyUtils::toStrKey(mInvoice.receiverAccount);
     std::string receiverBalance = BalanceKeyUtils::toStrKey(mInvoice.receiverBalance);
+    int32_t invoiceVersion = static_cast<int32_t >(mInvoice.ext.v());
 
     string sql;
 
     if (insert)
     {
-		sql = "INSERT INTO invoice (invoice_id,"
-			"sender, receiver_account, receiver_balance, amount, state, lastmodified)"
-			"VALUES (:id, :s, :ra, :rb, :am, :st, :lm)";
+		sql = "INSERT INTO invoice (invoice_id, sender, receiver_account, receiver_balance, amount, state, "
+                                    "lastmodified, version) "
+		      "VALUES (:id, :s, :ra, :rb, :am, :st, :lm, :v)";
     }
     else
     {
-		sql = "UPDATE invoice SET sender=:s, receiver_account = :ra,"
-			"receiver_balance=:rb, amount=:am, state=:st, lastmodified=:lm "
-			"WHERE invoice_id=:id";
+		sql = "UPDATE invoice "
+              "SET    sender=:s, receiver_account = :ra, receiver_balance=:rb, amount=:am, state=:st, "
+                     "lastmodified=:lm, version=:v "
+   			  "WHERE  invoice_id=:id";
     }
 
     auto prep = db.getPreparedStatement(sql);
     auto& st = prep.statement();
-	int32 state = mInvoice.state;
+	int32 state = static_cast<int32_t >(mInvoice.state);
 
     st.exchange(use(mInvoice.invoiceID, "id"));
     st.exchange(use(sender, "s"));
@@ -250,6 +255,7 @@ InvoiceFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
     st.exchange(use(mInvoice.amount, "am"));
     st.exchange(use(state, "st"));
     st.exchange(use(getLastModified(), "lm"));
+    st.exchange(use(invoiceVersion, "v"));
     st.define_and_bind();
 
     auto timer =

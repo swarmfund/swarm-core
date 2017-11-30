@@ -5,11 +5,17 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <vector>
+#include <algorithm>
+#include <locale>
 #include "overlay/StellarXDR.h"
 #include "xdrpp/message.h"
+#include <locale>
+#include <algorithm>
 
 namespace stellar
 {
+
+const std::locale cLocale("C");
 
 const int64 ONE = 10000LL;
 
@@ -57,13 +63,30 @@ std::vector<FeeType> getAllFeeTypes();
 
 bool isFeeValid(FeeData const& fee);
 bool isFeeTypeValid(FeeType feeType);
-bool isAssetValid(AssetCode asset);
-// returns true if source of the op must be master account
-bool isAdminOp(OperationType op);
-// returns true if percent fee can be charged
-bool isTransferOp(OperationType op);
 
 int32_t getManagerType(AccountType accountType);
+
+// Returns true, if flag value is valid. (Does not contains any values which do not belongs to FlagType)
+template <typename FlagType>
+bool isValidXDRFlag(int32 value)
+{
+	for (auto flagElem : xdr::xdr_traits<FlagType>::enum_values()) {
+		value &= ~flagElem;
+	}
+
+	return value == 0;
+}
+
+// Returns true, if enum value valid
+template <typename EnumType>
+bool isValidEnumValue(EnumType value)
+{
+	auto enums = xdr::xdr_traits<EnumType>::enum_values();
+	return std::find(std::begin(enums), std::end(enums), static_cast<int32_t>(value)) != std::end(enums);
+}
+
+// returns true if result is valid (no overflow)
+bool safeSum(uint64_t a, uint64_t b, uint64_t& result);
 
 // calculates A*B/C when A*B overflows 64bits
 int64_t bigDivide(int64_t A, int64_t B, int64_t C, Rounding rounding);

@@ -9,5 +9,4 @@
 	url = https://gitlab.com/tokend/medida.git
 [submodule "src/xdr"]
 	path = src/xdr
-url=git@gitlab.com:tokend/xdr.git
-
+	url = git@gitlab.com:swarmfund/xdr.git

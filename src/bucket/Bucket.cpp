@@ -22,12 +22,10 @@
 #include "ledger/EntryFrame.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/BalanceFrame.h"
-#include "ledger/CoinsEmissionRequestFrame.h"
 #include "ledger/AssetPairFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/OfferFrame.h"
-#include "ledger/CoinsEmissionFrame.h"
 #include "ledger/PaymentRequestFrame.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/ReferenceFrame.h"
@@ -36,6 +34,7 @@
 #include "ledger/AccountLimitsFrame.h"
 #include "ledger/StatisticsFrame.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/ReviewableRequestFrame.h"
 #include "medida/medida.h"
 #include "lib/util/format.h"
 #include <cassert>
@@ -201,7 +200,7 @@ class Bucket::OutputIterator
     void
     put(BucketEntry const& e)
     {
-        if (!mKeepDeadEntries && e.type() == DEADENTRY)
+        if (!mKeepDeadEntries && e.type() == BucketEntryType::DEADENTRY)
         {
             return;
         }
@@ -278,7 +277,7 @@ Bucket::countLiveAndDeadEntries() const
     Bucket::InputIterator iter(shared_from_this());
     while (iter)
     {
-        if ((*iter).type() == LIVEENTRY)
+        if ((*iter).type() == BucketEntryType::LIVEENTRY)
         {
             ++live;
         }
@@ -313,7 +312,7 @@ Bucket::fresh(BucketManager& bucketManager,
     for (auto const& e : liveEntries)
     {
         BucketEntry ce;
-        ce.type(LIVEENTRY);
+        ce.type(BucketEntryType::LIVEENTRY);
         ce.liveEntry() = e;
         live.push_back(ce);
     }
@@ -321,7 +320,7 @@ Bucket::fresh(BucketManager& bucketManager,
     for (auto const& e : deadEntries)
     {
         BucketEntry ce;
-        ce.type(DEADENTRY);
+        ce.type(BucketEntryType::DEADENTRY);
         ce.deadEntry() = e;
         dead.push_back(ce);
     }
@@ -506,21 +505,20 @@ checkDBAgainstBuckets(medida::MetricsRegistry& metrics,
     // counting objects along the way.
 
 	std::map<LedgerEntryType, BucketCounter::pointer> counters = {
-		{ACCOUNT, BucketCounter::create(AccountFrame::countObjects)},
-		{ COINS_EMISSION_REQUEST, BucketCounter::create(CoinsEmissionRequestFrame::countObjects) },
-		{ FEE, BucketCounter::create(FeeFrame::countObjects) },
-		{ COINS_EMISSION, BucketCounter::create(CoinsEmissionFrame::countObjects) },
-		{ BALANCE, BucketCounter::create(BalanceFrame::countObjects) },
-		{ PAYMENT_REQUEST, BucketCounter::create(PaymentRequestFrame::countObjects) },
-		{ ASSET, BucketCounter::create(AssetFrame::countObjects) },
-		{ REFERENCE_ENTRY, BucketCounter::create(ReferenceFrame::countObjects) },
-		{ ACCOUNT_TYPE_LIMITS, BucketCounter::create(AccountTypeLimitsFrame::countObjects) },
-		{ STATISTICS, BucketCounter::create(StatisticsFrame::countObjects) },
-		{ TRUST, BucketCounter::create(TrustFrame::countObjects) },
-		{ ACCOUNT_LIMITS, BucketCounter::create(AccountLimitsFrame::countObjects) },
-		{ ASSET_PAIR, BucketCounter::create(AssetPairFrame::countObjects) },
-		{ OFFER_ENTRY, BucketCounter::create(OfferFrame::countObjects) },
-		{ INVOICE, BucketCounter::create(InvoiceFrame::countObjects) },
+        { LedgerEntryType::ACCOUNT, BucketCounter::create(AccountFrame::countObjects)},
+		{ LedgerEntryType::FEE, BucketCounter::create(FeeFrame::countObjects) },
+		{ LedgerEntryType::BALANCE, BucketCounter::create(BalanceFrame::countObjects) },
+		{ LedgerEntryType::PAYMENT_REQUEST, BucketCounter::create(PaymentRequestFrame::countObjects) },
+		{ LedgerEntryType::ASSET, BucketCounter::create(AssetFrame::countObjects) },
+		{ LedgerEntryType::REFERENCE_ENTRY, BucketCounter::create(ReferenceFrame::countObjects) },
+		{ LedgerEntryType::ACCOUNT_TYPE_LIMITS, BucketCounter::create(AccountTypeLimitsFrame::countObjects) },
+		{ LedgerEntryType::STATISTICS, BucketCounter::create(StatisticsFrame::countObjects) },
+		{ LedgerEntryType::TRUST, BucketCounter::create(TrustFrame::countObjects) },
+		{ LedgerEntryType::ACCOUNT_LIMITS, BucketCounter::create(AccountLimitsFrame::countObjects) },
+		{ LedgerEntryType::ASSET_PAIR, BucketCounter::create(AssetPairFrame::countObjects) },
+		{ LedgerEntryType::OFFER_ENTRY, BucketCounter::create(OfferFrame::countObjects) },
+		{ LedgerEntryType::INVOICE, BucketCounter::create(InvoiceFrame::countObjects) },
+		{ LedgerEntryType::REVIEWABLE_REQUEST, BucketCounter::create(ReviewableRequestFrame::countObjects)},
 	};
     {
         auto& meter = metrics.NewMeter({"bucket", "checkdb", "object-compare"},
@@ -531,14 +529,14 @@ checkDBAgainstBuckets(medida::MetricsRegistry& metrics,
         {
             meter.Mark();
             auto& e = *iter;
-            if (e.type() == LIVEENTRY)
+            if (e.type() == BucketEntryType::LIVEENTRY)
             {
 				
 				auto entryType = e.liveEntry().data.type();
 				auto counter = counters.find(entryType);
 				if (counter == counters.end())
 				{
-					CLOG(ERROR, "Bucket") << "Unexpected live entry type " << entryType << " while counting entries";
+					CLOG(ERROR, "Bucket") << "Unexpected live entry type " << static_cast<int32_t >(entryType) << " while counting entries";
 					throw std::runtime_error("Unexpected live entry type");
 				}
 

@@ -74,15 +74,16 @@ LedgerHeaderFrame::storeInsert(LedgerManager& ledgerManager) const
 
     std::string headerEncoded;
     headerEncoded = bn::encode_b64(headerBytes);
+    int32_t headerVersion = static_cast<int32_t >(mHeader.ext.v());
 
     auto& db = ledgerManager.getDatabase();
 
     // note: columns other than "data" are there to faciliate lookup/processing
     auto prep = db.getPreparedStatement(
         "INSERT INTO ledgerheaders "
-        "(ledgerhash, prevhash, bucketlisthash, ledgerseq, closetime, data) "
+        "(ledgerhash, prevhash, bucketlisthash, ledgerseq, closetime, data, version) "
         "VALUES "
-        "(:h,        :ph,      :blh,            :seq,     :ct,       :data)");
+        "(:h,        :ph,      :blh,            :seq,     :ct,       :data, :v)");
     auto& st = prep.statement();
     st.exchange(use(hash));
     st.exchange(use(prevHash));
@@ -90,6 +91,7 @@ LedgerHeaderFrame::storeInsert(LedgerManager& ledgerManager) const
     st.exchange(use(mHeader.ledgerSeq));
     st.exchange(use(mHeader.scpValue.closeTime));
     st.exchange(use(headerEncoded));
+    st.exchange(use(headerVersion));
     st.define_and_bind();
     {
         auto timer = db.getInsertTimer("ledger-header");
@@ -228,9 +230,10 @@ LedgerHeaderFrame::dropAll(Database& db)
                        "ledgerhash      CHARACTER(64) PRIMARY KEY,"
                        "prevhash        CHARACTER(64) NOT NULL,"
                        "bucketlisthash  CHARACTER(64) NOT NULL,"
-                       "ledgerseq       INT UNIQUE CHECK (ledgerseq >= 0),"
-                       "closetime       BIGINT NOT NULL CHECK (closetime >= 0),"
-                       "data            TEXT NOT NULL"
+                       "ledgerseq       INT           UNIQUE    CHECK (ledgerseq >= 0),"
+                       "closetime       BIGINT        NOT NULL  CHECK (closetime >= 0),"
+                       "data            TEXT          NOT NULL,"
+                       "version         INT           NOT NULL  DEFAULT 0"
                        ");";
 
     db.getSession()

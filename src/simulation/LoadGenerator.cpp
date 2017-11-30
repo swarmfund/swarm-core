@@ -4,7 +4,7 @@
 
 #include "simulation/LoadGenerator.h"
 #include "main/Config.h"
-#include "transactions/TxTests.h"
+#include "transactions/test/TxTests.h"
 #include "herder/Herder.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
@@ -593,7 +593,7 @@ LoadGenerator::TxInfo::execute(Application& app)
         txm.mTxnAttempted.Mark();
         {
             StellarMessage msg;
-            msg.type(TRANSACTION);
+            msg.type(MessageType::TRANSACTION);
             msg.transaction() = f->getEnvelope();
             txm.mTxnBytes.Mark(xdr::xdr_argpack_size(msg));
         }
@@ -631,7 +631,8 @@ LoadGenerator::TxInfo::toTransactionFrames(
         txm.mAccountCreated.Mark();
         {
 
-			auto resultingEnvelope = txtest::createCreateAccountTx(app.getNetworkID(), mFrom->mKey, mTo->mKey, 1, GENERAL, nullptr, &timeBounds)->getEnvelope();
+			auto resultingEnvelope = txtest::createCreateAccountTx(app.getNetworkID(), mFrom->mKey, mTo->mKey, 1,
+                                                                   AccountType::GENERAL, nullptr, &timeBounds)->getEnvelope();
 			Salt seq = 1;
 			auto issuenceKey = mFrom->mKey;
 			auto fundAccountTx = txtest::createFundAccount(app.getNetworkID(), mFrom->mKey, issuenceKey, seq, mTo->mKey.getPublicKey(),

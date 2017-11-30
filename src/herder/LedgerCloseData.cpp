@@ -44,16 +44,16 @@ stellarValueToString(StellarValue const& sv)
                 xdr::xdr_from_opaque(upgrade, lupgrade);
                 switch (lupgrade.type())
                 {
-                case LEDGER_UPGRADE_VERSION:
+                case LedgerUpgradeType::VERSION:
                     res << "VERSION=" << lupgrade.newLedgerVersion();
                     break;
-                case LEDGER_UPGRADE_MAX_TX_SET_SIZE:
+                case LedgerUpgradeType::MAX_TX_SET_SIZE:
                     res << "MAX_TX_SET_SIZE=" << lupgrade.newMaxTxSetSize();
                     break;
-                case LEDGER_UPGRADE_ISSUANCE_KEYS:
+                case LedgerUpgradeType::ISSUANCE_KEYS:
                     res << "ISSUANCE_KEYS=" << lupgrade.newIssuanceKeys().size();
                     break;
-                case LEDGER_UPGRADE_TX_EXPIRATION_PERIOD:
+                case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
                     res << "TX_EXPIRATION_PERIOD=" << lupgrade.newTxExpirationPeriod();
                     break;
                 default:

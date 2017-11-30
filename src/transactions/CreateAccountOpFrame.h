@@ -24,7 +24,6 @@ class CreateAccountOpFrame : public OperationFrame
 	bool createAccount(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager);
 
 	void trySetReferrer(Application& app, Database& db, AccountFrame::pointer destAccount);
-	void trySetPolicies(AccountEntry& account);
 
 
   public:

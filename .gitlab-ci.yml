@@ -24,6 +24,8 @@ build:
   script:
     - git submodule init
     - git submodule update
+    - chmod +x ./autogen.sh
+    - chmod +x ./make-mks
     - ./autogen.sh
     - ./configure
     - make -j 2
@@ -90,23 +92,9 @@ deploy:dev:
   stage: deploy
   script:
     - ssh ubuntu@$HOST_DEV "artifacts/update.sh core dev ${CI_COMMIT_SHA:0:8}"
-    - curl -X POST http://139.59.113.110:8842/RCzMigpWTlPaAitOCjpfDw
+    - curl -X POST http://$HOST_DEV:8842/RCzMigpWTlPaAitOCjpfDw
   when: manual
   only:
     - dev
     # TODO: remove this when the dev branch is added
     - master
-
-deploy:staging:
-  image: shebgregor/alpine-rsync-git
-  stage: deploy
-  script:
-    - ssh ubuntu@$HOST_DEV "artifacts/update.sh core staging ${CI_COMMIT_SHA:0:8}"
-    - curl -X POST http://128.199.229.140:8842/zEoJOfpLSmTxYGYaopmlNg
-  environment:
-    name: staging
-    url: https://dev.api.bullioncoin.io
-  when: manual
-  only:
-    - staging
-

@@ -43,13 +43,13 @@ namespace soci
 	};
 
 	template <>
-	struct type_conversion<stellar::uint64>
+	struct type_conversion<unsigned long int>
 	{
         typedef unsigned long long int base_type;
 
-        static void from_base(unsigned long long int number, indicator ind, uint64& result);
+        static void from_base(unsigned long long int number, indicator ind, unsigned long int& result);
 
-        static void to_base(const uint64& number, unsigned long long int& result, indicator& ind);
+        static void to_base(const unsigned long int& number, unsigned long long int& result, indicator& ind);
 	};
 
 }

@@ -38,20 +38,17 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 	}
 
 	auto reviewResultCode = approveIssuanceRequest(app, delta, ledgerManager, request);
+	bool isFulfilled = false;
 	switch (reviewResultCode) {
 	case ReviewRequestResultCode::SUCCESS:
 	{
-		innerResult().code(CreateIssuanceRequestResultCode::SUCCESS);
-		innerResult().success().requestID = request->getRequestID();
-		innerResult().success().fulfilled = true;
-		return true;
+		isFulfilled = true;
+		break;
 	}
 	case ReviewRequestResultCode::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT:
 	{
-		innerResult().code(CreateIssuanceRequestResultCode::SUCCESS);
-		innerResult().success().requestID = request->getRequestID();
-		innerResult().success().fulfilled = false;
-		return true;
+		isFulfilled = false;
+		break;
 	}
 	case ReviewRequestResultCode::FULL_LINE:
 	{
@@ -64,6 +61,14 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 		throw std::runtime_error("Unexpected result received on review of just created issuance request");
 	}
 	}
+
+	innerResult().code(CreateIssuanceRequestResultCode::SUCCESS);
+	innerResult().success().requestID = request->getRequestID();
+	innerResult().success().fulfilled = isFulfilled;
+	auto& db = app.getDatabase();
+	auto receiver = BalanceFrame::mustLoadBalance(mCreateIssuanceRequest.request.receiver, db);
+	innerResult().success().receiver = receiver->getAccountID();
+	return true;
 }
 
 bool

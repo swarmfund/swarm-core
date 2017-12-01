@@ -77,7 +77,7 @@ namespace soci
                 result = number;
                 break;
             case i_null:
-				throw soci_error("Null value not allowed for AccountID type");
+				throw soci_error("Null value not allowed for uint64 type");
             default:
                 throw std::runtime_error("Unexpected indicator type for uint64");
         }

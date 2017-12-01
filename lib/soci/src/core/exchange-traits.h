@@ -98,10 +98,11 @@ struct exchange_traits<long int>
     enum { x_type = long_traits_helper<sizeof(long int)>::x_type };
 };
 
-template <>
+//ISSUE: UINT64_MAX overflows long int
+/*template <>
 struct exchange_traits<unsigned long> : exchange_traits<long>
 {
-};
+};*/
 
 template <>
 struct exchange_traits<double>

@@ -70,8 +70,8 @@ namespace soci
 		result = raw;
 	}
 
-    void type_conversion<unsigned long int>::from_base(unsigned long long int number,
-													   indicator ind, uint64 &result) {
+    void type_conversion<stellar::uint64>::from_base(unsigned long long int number,
+													   indicator ind, stellar::uint64 &result) {
         switch (ind) {
             case i_ok:
                 result = number;
@@ -83,7 +83,7 @@ namespace soci
         }
     }
 
-    void type_conversion<unsigned long int>::to_base(const uint64& number,
+    void type_conversion<stellar::uint64>::to_base(const stellar::uint64& number,
 													 unsigned long long int &result, indicator &ind) {
         ind = i_ok;
         result = number;

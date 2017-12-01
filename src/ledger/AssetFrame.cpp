@@ -77,7 +77,7 @@ AssetFrame::pointer AssetFrame::createSystemAsset(AssetCode code, AccountID cons
 	asset.description = "";
 	asset.externalResourceLink = "";
 	asset.issued = 0;
-	asset.maxIssuanceAmount = INT64_MAX;
+	asset.maxIssuanceAmount = UINT64_MAX;
 	asset.name = code;
 	asset.owner = owner;
 	asset.policies = 0;

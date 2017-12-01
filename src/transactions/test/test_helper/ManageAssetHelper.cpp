@@ -113,7 +113,7 @@ namespace txtest
 	void ManageAssetHelper::createAsset(Account & assetOwner, SecretKey & preIssuedSigner, AssetCode assetCode, Account & root)
 	{
 		auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(), 
-			"Description can be quiete long", "https://testusd.usd", INT64_MAX, 0);
+			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0);
 		auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 		LedgerDelta& delta = mTestManager->getLedgerDelta();
 		auto approvingRequest = ReviewableRequestFrame::loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);

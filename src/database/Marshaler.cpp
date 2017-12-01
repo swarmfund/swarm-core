@@ -69,4 +69,23 @@ namespace soci
 		ind = soci::i_ok;
 		result = raw;
 	}
+
+    void type_conversion<stellar::uint64>::from_base(unsigned long long int number,
+													   indicator ind, stellar::uint64 &result) {
+        switch (ind) {
+            case i_ok:
+                result = number;
+                break;
+            case i_null:
+				throw soci_error("Null value not allowed for uint64 type");
+            default:
+                throw std::runtime_error("Unexpected indicator type for uint64");
+        }
+    }
+
+    void type_conversion<stellar::uint64>::to_base(const stellar::uint64& number,
+													 unsigned long long int &result, indicator &ind) {
+        ind = i_ok;
+        result = number;
+    }
 }

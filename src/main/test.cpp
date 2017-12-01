@@ -101,8 +101,6 @@ getTestConfig(int instanceNumber, Config::TestDbMode mode)
         thisConfig.UNSAFE_QUORUM = true;
 
         thisConfig.NETWORK_PASSPHRASE = "(V) (;,,;) (V)";
-		thisConfig.STATS_QUOTE_ASSET = "USD";
-        thisConfig.BASE_ASSETS = { "XAAU", "XAAG", thisConfig.STATS_QUOTE_ASSET };
         thisConfig.BASE_EXCHANGE_NAME = "Base exchange";
         thisConfig.TX_EXPIRATION_PERIOD = INT64_MAX / 2;
         thisConfig.MAX_INVOICES_FOR_RECEIVER_ACCOUNT = 100;

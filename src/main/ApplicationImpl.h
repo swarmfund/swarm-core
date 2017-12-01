@@ -138,8 +138,6 @@ namespace stellar {
 
         virtual std::vector<PublicKey> getSystemAccounts() const override;
 
-        virtual std::vector<AssetCode> getBaseAssets() const override;
-
         virtual AssetCode getBaseAsset() const override;
 
         virtual std::string getBaseExchangeName() const override;

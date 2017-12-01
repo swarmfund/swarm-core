@@ -101,9 +101,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta, L
 	std::vector<AssetFrame::pointer> assets;
 	AssetFrame::loadAssets(assets, db);
 	for (auto baseAsset : assets) {
-		BalanceID balanceID = mCreateAccount.destination;
-		if (!(baseAsset->getCode() == app.getBaseAsset()))
-			balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination, delta.getHeaderFrame().generateID());
+		BalanceID balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination, delta.getHeaderFrame().generateID());
 		auto balanceFrame = BalanceFrame::createNew(balanceID, mCreateAccount.destination, baseAsset->getCode(), ledgerManager.getCloseTime());
 		balanceFrame->storeAdd(delta, db);
 	}

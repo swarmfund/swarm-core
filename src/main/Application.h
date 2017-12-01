@@ -256,11 +256,13 @@ class Application
 	virtual AccountID getCommissionID() const = 0;
 	virtual AccountID getOperationalID() const = 0;
 	virtual std::vector<PublicKey> getSystemAccounts() const = 0;
+    [[deprecated]]
     virtual AssetCode getBaseAsset() const = 0;
-    virtual std::vector<AssetCode> getBaseAssets() const = 0;
+
     virtual std::string getBaseExchangeName() const = 0;
     virtual uint64 getTxExpirationPeriod() const = 0;
     virtual uint64 getWithdrawalDetailsMaxLength() const = 0;
+    [[deprecated]]
 	virtual AssetCode getStatsQuoteAsset() const = 0;
     virtual int64 getMaxInvoicesForReceiverAccount() const = 0;
 

@@ -9,6 +9,7 @@
 #include "test_helper/TestManager.h"
 #include "test_helper/ManageAssetHelper.h"
 #include "test_helper/ReviewAssetRequestHelper.h"
+#include "test_helper/IssuanceRequestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -63,9 +64,32 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
 
 	auto root = Account{ getRoot(), Salt(0) };
 
-	// TODO add better coverage
 	SECTION("Root happy path")
 	{
 		testManageAssetHappyPath(testManager, root, root);
+	}
+	SECTION("Cancel asset request")
+	{
+		auto manageAssetHelper = ManageAssetHelper(testManager);
+		SECTION("Invalid ID")
+		{
+			manageAssetHelper.applyManageAssetTx(root, 0, manageAssetHelper.createCancelRequest(), ManageAssetResultCode::REQUEST_NOT_FOUND);
+		}
+		SECTION("Request not found")
+		{
+			manageAssetHelper.applyManageAssetTx(root, 12, manageAssetHelper.createCancelRequest(), ManageAssetResultCode::REQUEST_NOT_FOUND);
+		}
+		SECTION("Request has invalid type")
+		{
+			// 1. create asset
+			// 2. create pre issuance request for it
+			// 3. try to cancel it with asset request
+			AssetCode asset = "USDT";
+			manageAssetHelper.createAsset(root, root.key, asset, root);
+			auto issuanceHelper = IssuanceRequestHelper(testManager);
+			auto requestResult = issuanceHelper.applyCreatePreIssuanceRequest(root, root.key, asset, 10000, SecretKey::random().getStrKeyPublic());
+			auto cancelRequest = manageAssetHelper.createCancelRequest();
+			manageAssetHelper.applyManageAssetTx(root, requestResult.success().requestID, cancelRequest, ManageAssetResultCode::REQUEST_NOT_FOUND);
+		}
 	}
 }

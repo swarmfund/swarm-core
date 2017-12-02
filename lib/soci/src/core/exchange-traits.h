@@ -99,10 +99,10 @@ struct exchange_traits<long int>
 };
 
 //ISSUE: UINT64_MAX overflows long int
-/*template <>
-struct exchange_traits<unsigned long> : exchange_traits<long>
+template <>
+struct exchange_traits<unsigned long> : exchange_traits<unsigned long long>
 {
-};*/
+};
 
 template <>
 struct exchange_traits<double>

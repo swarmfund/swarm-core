@@ -108,6 +108,17 @@ class BalanceFrame : public EntryFrame
     static uint64_t countObjects(soci::session& sess);
 
     // database utilities
+	// tries to load balance, throw exception if fails
+	static pointer mustLoadBalance(BalanceID balanceID, Database& db, LedgerDelta* delta = nullptr) {
+		auto result = loadBalance(balanceID, db, delta);
+		if (!!result) {
+			return result;
+		}
+
+		CLOG(ERROR, Logging::ENTRY_LOGGER) << "expected balance " << BalanceKeyUtils::toStrKey(balanceID) << " to exist";
+		throw std::runtime_error("expected balance to exist");
+	}
+
     static pointer loadBalance(BalanceID balanceID,
                              Database& db, LedgerDelta* delta = nullptr);
 

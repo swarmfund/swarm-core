@@ -20,15 +20,9 @@ class StatementContext;
 
 class AssetPairFrame : public EntryFrame
 {
-    static void
-    loadAssetPairs(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> AssetPairProcessor);
-
     AssetPairEntry& mAssetPair;
 
     AssetPairFrame(AssetPairFrame const& from);
-
-    void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
 
 	bool getPhysicalPriceWithCorrection(int64_t& result) const;
 	bool getCurrentPriceCoridor(int64_t& min, int64_t& max) const;
@@ -89,40 +83,6 @@ class AssetPairFrame : public EntryFrame
     static bool isValid(AssetPairEntry const& oe);
     bool isValid() const;
 
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-
-    // Static helpers that don't assume an instance.
-    static void storeDelete(LedgerDelta& delta, Database& db,
-                            LedgerKey const& key);
-	static bool exists(Database& db, LedgerKey const& key);
-	static bool exists(Database& db, AssetCode base, AssetCode quote);
-    static uint64_t countObjects(soci::session& sess);
-
-    // database utilities
-    static pointer loadAssetPair(AssetCode base, AssetCode quote,
-                             Database& db, LedgerDelta* delta = nullptr);
-	static pointer mustLoadAssetPair(AssetCode base, AssetCode quote,
-		Database& db, LedgerDelta* delta = nullptr)
-	{
-		auto result = loadAssetPair(base, quote, db, delta);
-		if (!result)
-		{
-			CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected db state. Expected asset pair to exists. Base " << base << " Quote " << quote;
-			throw std::runtime_error("Unexpected db state. Expected asset pair to exist");
-		}
-
-		return result;
-	}
-
-	static void loadAssetPairsByQuote(AssetCode quoteAsset, Database& db, std::vector<AssetPairFrame::pointer>& retAssetPairs);
-
 	static pointer create(AssetCode base, AssetCode quote, int64_t currentPrice, int64_t physicalPrice, int64_t physicalPriceCorrection, int64_t maxPriceStep, int32_t policies);
-
-
-    static void dropAll(Database& db);
-    static const char* kSQLCreateStatement1;
 };
 }

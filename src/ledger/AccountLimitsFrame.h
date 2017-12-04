@@ -19,15 +19,9 @@ class StatementContext;
 
 class AccountLimitsFrame : public EntryFrame
 {
-    static void
-    loadAccountLimits(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> AccountLimitsProcessor);
-
     AccountLimitsEntry& mAccountLimits;
 
     AccountLimitsFrame(AccountLimitsFrame const& from);
-
-    void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
 
   public:
     typedef std::shared_ptr<AccountLimitsFrame> pointer;
@@ -65,30 +59,10 @@ class AccountLimitsFrame : public EntryFrame
         mAccountLimits.limits = limits;
     }
     
-
     static bool isValid(AccountLimitsEntry const& oe);
     bool isValid() const;
-
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-
-    // Static helpers that don't assume an instance.
-    static void storeDelete(LedgerDelta& delta, Database& db,
-                            LedgerKey const& key);
-	
-    static AccountLimitsFrame::pointer loadLimits(AccountID accountID,
-        Database& db, LedgerDelta* delta = nullptr);
     
     static AccountLimitsFrame::pointer createNew(AccountID accountID, Limits limits);
-    
-    static bool exists(Database& db, LedgerKey const& key);
-    static uint64_t countObjects(soci::session& sess);
 
-    // database utilities
-
-    static void dropAll(Database& db);
-    static const char* kSQLCreateStatement1;
 };
 }

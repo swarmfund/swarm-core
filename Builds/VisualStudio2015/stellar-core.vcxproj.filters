@@ -1364,6 +1364,9 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\lib\catcher.cpp">
+      <Filter>lib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />

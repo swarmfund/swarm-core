@@ -41,6 +41,7 @@ SourceDetails CreateAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
 		allowedSignerClass = static_cast<int32_t >(SignerType::NOT_VERIFIED_ACC_MANAGER);
 		break;
 	case AccountType::GENERAL:
+	case AccountType::SYNDICATE:
 		if (mCreateAccount.policies != 0)
 		{
 			allowedSignerClass = static_cast<int32_t >(SignerType::GENERAL_ACC_MANAGER);

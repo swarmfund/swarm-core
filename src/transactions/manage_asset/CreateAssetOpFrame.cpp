@@ -22,7 +22,7 @@ CreateAssetOpFrame::CreateAssetOpFrame(Operation const& op,
 }
 
 
-ReviewableRequestFrame::pointer CreateAssetOpFrame::getUpdatedOrCreateReviewableRequest(Application& app, Database & db, LedgerDelta & delta)
+ReviewableRequestFrame::pointer CreateAssetOpFrame::getUpdatedOrCreateReviewableRequest(Application& app, Database & db, LedgerDelta & delta) const
 {
 	ReviewableRequestFrame::pointer request = getOrCreateReviewableRequest(app, db, delta, ReviewableRequestType::ASSET_CREATE);
 	if (!request)
@@ -45,11 +45,11 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 	}
 
 	if (mManageAsset.requestID == 0 && ReviewableRequestFrame::exists(db, getSourceID(), mAssetCreationRequest.code)) {
-		innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
+		innerResult().code(ManageAssetResultCode::REQUEST_ALREADY_EXISTS);
 		return false;
 	}
 
-	auto isAssetExist = AssetFrame::exists(db, mAssetCreationRequest.code);
+    const auto isAssetExist = AssetFrame::exists(db, mAssetCreationRequest.code);
 	if (isAssetExist) {
 		innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
 		return false;
@@ -86,5 +86,10 @@ bool CreateAssetOpFrame::doCheckValid(Application & app)
 	}
 
 	return true;
+}
+
+string CreateAssetOpFrame::getAssetCode() const
+{
+    return mAssetCreationRequest.code;
 }
 }

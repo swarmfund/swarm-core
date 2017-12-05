@@ -37,8 +37,8 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	auto reviewResultCode = approveIssuanceRequest(app, delta, ledgerManager, request);
-	bool isFulfilled = false;
+        const auto reviewResultCode = approveIssuanceRequest(app, delta, ledgerManager, request);
+	bool isFulfilled;
 	switch (reviewResultCode) {
 	case ReviewRequestResultCode::SUCCESS:
 	{

@@ -166,7 +166,7 @@ SecretKey getAccountSecret(const char* n)
 }
 
 int
-test(int argc, char* const* argv, el::Level ll,
+test(int argc, char* argv[], el::Level ll,
      std::vector<std::string> const& metrics)
 {
     gTestMetrics = metrics;

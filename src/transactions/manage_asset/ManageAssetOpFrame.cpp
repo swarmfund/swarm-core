@@ -45,14 +45,15 @@ ManageAssetOpFrame* ManageAssetOpFrame::makeHelper(Operation const & op, Operati
 	case ManageAssetAction::CANCEL_ASSET_REQUEST:
 		return new CancelAssetRequestOpFrame(op, res, parentTx);
 	default:
-		throw std::runtime_error("Unexpected action in manage asset op");
+		throw runtime_error("Unexpected action in manage asset op");
 	}
 }	
 
-ReviewableRequestFrame::pointer ManageAssetOpFrame::getOrCreateReviewableRequest(Application& app, Database& db, LedgerDelta& delta, ReviewableRequestType requestType)
+ReviewableRequestFrame::pointer ManageAssetOpFrame::getOrCreateReviewableRequest(Application& app, Database& db, LedgerDelta& delta, const ReviewableRequestType requestType) const
 {
 	if (mManageAsset.requestID == 0) {
-		return ReviewableRequestFrame::createNew(delta.getHeaderFrame().generateID(), getSourceID(), app.getMasterID(), nullptr);
+	        const auto reference = xdr::pointer<string64>(new string64(getAssetCode()));
+		return ReviewableRequestFrame::createNew(delta.getHeaderFrame().generateID(), getSourceID(), app.getMasterID(), reference);
 	}
 
 	return ReviewableRequestFrame::loadRequest(mManageAsset.requestID, getSourceID(), requestType, db, &delta);

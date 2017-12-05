@@ -75,15 +75,19 @@ namespace stellar {
     }
 
     LedgerKey ReferenceHelper::getLedgerKey(LedgerEntry const &from) {
-        return LedgerKey();
+        LedgerKey ledgerKey;
+        ledgerKey.type(from.data.type());
+        ledgerKey.reference().reference = from.data.reference().reference;
+        ledgerKey.reference().sender = from.data.reference().sender;
+        return ledgerKey;
     }
 
     EntryFrame::pointer ReferenceHelper::storeLoad(LedgerKey const &key, Database &db) {
-        return EntryFrame::pointer();
+        return loadReference(key.reference().sender,key.reference().reference, db);
     }
 
     EntryFrame::pointer ReferenceHelper::fromXDR(LedgerEntry const &from) {
-        return EntryFrame::pointer();
+        return std::make_shared<ReferenceFrame>(from);
     }
 
     uint64_t ReferenceHelper::countObjects(soci::session &sess) {

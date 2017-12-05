@@ -19,10 +19,6 @@ class StatementContext;
 
 class InvoiceFrame : public EntryFrame
 {
-    static void
-    loadInvoices(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> InvoiceProcessor);
-
     InvoiceEntry& mInvoice;
 
     InvoiceFrame(InvoiceFrame const& from);
@@ -78,6 +74,12 @@ class InvoiceFrame : public EntryFrame
         return mInvoice.receiverBalance;
     }
 
+    AccountID
+    getReceiverAccount()
+    {
+        return mInvoice.receiverAccount;
+    }
+
     InvoiceState
     getState()
     {
@@ -93,27 +95,7 @@ class InvoiceFrame : public EntryFrame
     static bool isValid(InvoiceEntry const& oe);
     bool isValid() const;
 
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-
-    // Static helpers that don't assume an instance.
-    static void storeDelete(LedgerDelta& delta, Database& db,
-                            LedgerKey const& key);
-
     static int64 countForReceiverAccount(Database& db, AccountID account);
-
-	static bool exists(Database& db, LedgerKey const& key);
-	static bool exists(Database& db, int64 paymentID, AccountID exchange);
-    static uint64_t countObjects(soci::session& sess);
-
     // database utilities
-    static pointer loadInvoice(int64 invoiceID, Database& db, LedgerDelta* delta = nullptr);
-    static void loadInvoices(AccountID const& accountID,
-                       std::vector<InvoiceFrame::pointer>& retInvoices,
-                       Database& db);
-    static void dropAll(Database& db);
-    static const char* kSQLCreateStatement1;
 };
 }

@@ -61,30 +61,4 @@ ReferenceFrame::isValid() const
 {
     return isValid(mReference);
 }
-
-ReferenceFrame::pointer
-ReferenceFrame::loadReference(AccountID sender, string reference, Database& db,
-                      LedgerDelta* delta)
-{
-    std::string sql = "SELECT sender, reference, lastmodified FROM reference";
-    sql += " WHERE reference = :ref AND sender = :sender";
-    auto prep = db.getPreparedStatement(sql);
-    auto& st = prep.statement();
-    st.exchange(use(reference, "ref"));
-    st.exchange(use(sender, "sender"));
-
-    auto timer = db.getSelectTimer("reference");
-	ReferenceFrame::pointer retReference;
-    loadReferences(prep, [&retReference](LedgerEntry const& Reference)
-               {
-                   retReference = make_shared<ReferenceFrame>(Reference);
-               });
-
-    if (delta && retReference)
-    {
-        delta->recordEntry(*retReference);
-    }
-
-    return retReference;
-}
 }

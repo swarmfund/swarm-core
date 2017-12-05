@@ -14,7 +14,8 @@ using namespace std;
 namespace stellar {
     using xdr::operator<;
 
-    const char* selectorReviewableRequest = "SELECT id, hash, body, requestor, reviewer, reference, reject_reason, version, lastmodified FROM reviewable_request";
+    const char* selectorReviewableRequest = "SELECT id, hash, body, requestor, reviewer, reference, "
+            "reject_reason, version, lastmodified FROM reviewable_request";
 
     void ReviewableRequestHelper::dropAll(Database &db) {
         db.getSession() << "DROP TABLE IF EXISTS reviewable_request;";
@@ -73,15 +74,14 @@ namespace stellar {
     }
 
     LedgerKey ReviewableRequestHelper::getLedgerKey(LedgerEntry const &from) {
-        return LedgerKey();
-    }
-
-    EntryFrame::pointer ReviewableRequestHelper::storeLoad(LedgerKey const &key, Database &db) {
-        return stellar::EntryFrame::pointer();
+        LedgerKey ledgerKey;
+        ledgerKey.type(from.data.type());
+        ledgerKey.reviewableRequest().requestID = from.data.reviewableRequest().requestID;
+        return ledgerKey;
     }
 
     EntryFrame::pointer ReviewableRequestHelper::fromXDR(LedgerEntry const &from) {
-        return stellar::EntryFrame::pointer();
+        return std::make_shared<ReviewableRequestFrame>(from);
     }
 
     uint64_t ReviewableRequestHelper::countObjects(soci::session &sess) {
@@ -222,8 +222,11 @@ namespace stellar {
     ReviewableRequestHelper::isReferenceExist(Database &db, AccountID const &requestor, stellar::string64 reference) {
         if (exists(db, requestor, reference))
             return true;
-        //TODO: rewrite to helper
-        return ReferenceFrame::exists(db, reference, requestor);
+        LedgerKey key;
+        key.type(LedgerEntryType::REFERENCE_ENTRY);
+        key.reference().reference = reference;
+        key.reference().sender = requestor;
+        return EntryHelper::exists(db, key);
     }
 
     ReviewableRequestFrame::pointer
@@ -291,5 +294,9 @@ namespace stellar {
             return request;
 
         return nullptr;
+    }
+
+    EntryFrame::pointer ReviewableRequestHelper::storeLoad(LedgerKey const &key, Database &db) {
+        return loadRequest(key.reviewableRequest().requestID, db);
     }
 }

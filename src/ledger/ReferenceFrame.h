@@ -19,9 +19,6 @@ class StatementContext;
 
 class ReferenceFrame : public EntryFrame
 {
-    static void
-    loadReferences(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> referenceProcessor);
 
     ReferenceEntry& mReference;
 
@@ -64,9 +61,5 @@ class ReferenceFrame : public EntryFrame
 
     static bool isValid(ReferenceEntry const& oe);
     bool isValid() const;
-=
-    // database utilities
-    static pointer loadReference(AccountID exchange, std::string reference,
-                             Database& db, LedgerDelta* delta = nullptr);
 };
 }

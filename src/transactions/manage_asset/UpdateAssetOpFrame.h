@@ -26,5 +26,7 @@ public:
     bool doApply(Application& app, LedgerDelta& delta,
                  LedgerManager& ledgerManager) override;
     bool doCheckValid(Application& app) override;
+protected:
+    std::string getAssetCode() const override;
 };
 }

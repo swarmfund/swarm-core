@@ -50,7 +50,8 @@ TEST_CASE("toXdr", "[overlay][PeerRecord]")
 
             auto actualPR = PeerRecord::loadPeerRecord(app->getDatabase(),
                                                        pr.mIP, pr.mPort);
-            REQUIRE(*actualPR == pr);
+			bool isEqual = *actualPR == pr;
+            REQUIRE(isEqual);
         }
 
         PeerRecord other("1.2.3.4", 15, clock.now());
@@ -60,11 +61,13 @@ TEST_CASE("toXdr", "[overlay][PeerRecord]")
         pr.storePeerRecord(app->getDatabase());
         auto actual1 =
             PeerRecord::loadPeerRecord(app->getDatabase(), pr.mIP, pr.mPort);
-        REQUIRE(*actual1 == pr);
+		bool isEqual = *actual1 == pr;
+        REQUIRE(isEqual);
 
         auto actual2 =
             PeerRecord::loadPeerRecord(app->getDatabase(), "1.2.3.4", 15);
-        REQUIRE(*actual2 == other);
+		isEqual = *actual2 == other;
+        REQUIRE(isEqual);
     }
 }
 

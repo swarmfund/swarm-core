@@ -380,6 +380,7 @@
     <ClCompile Include="..\..\src\work\WorkTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\lib\catcher.cpp" />
     <ClInclude Include="..\..\lib\catch.hpp" />
     <ClInclude Include="..\..\src\bucket\Bucket.h" />
     <ClInclude Include="..\..\src\bucket\BucketApplicator.h" />

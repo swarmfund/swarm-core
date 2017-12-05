@@ -76,4 +76,8 @@ bool UpdateAssetOpFrame::doCheckValid(Application & app)
 	return true;
 }
 
+string UpdateAssetOpFrame::getAssetCode() const
+{
+    return mAssetUpdateRequest.code;
+}
 }

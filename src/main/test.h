@@ -14,7 +14,7 @@ class Config;
 
 Config getTestConfig(int instanceNumber = 0,
                             Config::TestDbMode mode = Config::TESTDB_DEFAULT);
-int test(int argc, char* const* argv, el::Level logLevel,
+int test(int argc, char* argv[], el::Level logLevel,
          std::vector<std::string> const& metrics);
 
 SecretKey getAccountSecret(const char* n);

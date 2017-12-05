@@ -134,7 +134,8 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
-	if (!BalanceFrame::exists(db, mCreateIssuanceRequest.request.receiver)) {
+        auto balance = BalanceFrame::loadBalance(mCreateIssuanceRequest.request.receiver, db);
+	if (!balance || balance->getAsset() != asset->getCode()) {
 		innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
 		return nullptr;
 	}

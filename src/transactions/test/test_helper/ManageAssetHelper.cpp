@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/test/TxTests.h>
 #include "ManageAssetHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
@@ -19,7 +20,8 @@ namespace txtest
 
 	ManageAssetResult ManageAssetHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
 	{
-
+        auto root = getRoot();
+        bool isMaster = root.getPublicKey() == source.key.getPublicKey();
 		auto reviewableRequestCountBeforeTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
 		LedgerDelta& delta = mTestManager->getLedgerDelta();
 		auto requestBeforeTx = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getLedgerManager().getDatabase(), &delta);
@@ -45,7 +47,7 @@ namespace txtest
 
 		auto manageAssetResult = opResult.tr().manageAssetResult();
 		auto requestAfterTx = ReviewableRequestFrame::loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
-		if (request.action() == ManageAssetAction::CANCEL_ASSET_REQUEST) {
+		if (request.action() == ManageAssetAction::CANCEL_ASSET_REQUEST || isMaster) {
 			REQUIRE(!requestAfterTx);
 			return manageAssetResult;
 		}

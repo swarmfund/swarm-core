@@ -24,10 +24,10 @@ class CreateAccountOpFrame : public OperationFrame
         counterpartiesDetails) const override;
 
     bool createAccount(Application& app, LedgerDelta& delta,
-                       LedgerManager& ledgerManager);
+                       LedgerManager& ledgerManager) const;
 
     void trySetReferrer(Application& app, Database& db,
-                        AccountFrame::pointer destAccount);
+                        AccountFrame::pointer destAccount) const;
 
     bool isAllowedToUpdateAccountType(AccountFrame::pointer destAccount) const;
 

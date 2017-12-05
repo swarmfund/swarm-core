@@ -29,17 +29,21 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
         SECTION("commit top")
         {
             LedgerHeader expHeader = curHeader;
-            expHeader.idPool++;
+            for (auto& generator : expHeader.idGenerators)
+            {
+                if (generator.entryType == LedgerEntryType::BALANCE)
+                    generator.idPool++;
+            }
 
             SECTION("top")
             {
-                delta.getHeader().idPool++;
+                delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE);
                 delta.commit();
             }
             SECTION("nested")
             {
                 LedgerDelta delta2(delta);
-                delta2.getHeader().idPool++;
+                delta2.getHeaderFrame().generateID(LedgerEntryType::BALANCE);
                 SECTION("inner no op")
                 {
                     LedgerDelta delta3(delta2);
@@ -47,7 +51,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
                 SECTION("inner rollback")
                 {
                     LedgerDelta delta3(delta2);
-                    delta3.getHeader().idPool++;
+                    delta3.getHeaderFrame().generateID(LedgerEntryType::BALANCE);
                     delta3.rollback();
                 }
                 delta2.commit();
@@ -58,7 +62,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
                 LedgerDelta delta2(delta);
                 {
                     LedgerDelta delta3(delta2);
-                    delta3.getHeader().idPool++;
+                    delta3.getHeaderFrame().generateID(LedgerEntryType::BALANCE);
                     delta3.commit();
                 }
                 delta2.commit();
@@ -68,7 +72,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
         }
         SECTION("rollback")
         {
-            delta.getHeader().idPool++;
+            delta.getHeader().idGenerators[0].idPool++;
             delta.rollback();
             REQUIRE(curHeader == orgHeader);
         }

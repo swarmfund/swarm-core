@@ -162,7 +162,6 @@ LedgerManagerImpl::startNewLedger()
 	}
 
     LedgerHeader genesisHeader;
-    genesisHeader.idPool = 2;
     // all fields are initialized by default to 0
     // set the ones that are not 0
     genesisHeader.baseFee = 0;
@@ -195,7 +194,7 @@ LedgerManagerImpl::startNewLedger()
 				balanceID = systemAccount->getID();
 			}
 			else {
-				balanceID = BalanceKeyUtils::forAccount(systemAccount->getID(), delta.getHeaderFrame().generateID());
+				balanceID = BalanceKeyUtils::forAccount(systemAccount->getID(), delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
 			}
 
 			auto balance = BalanceFrame::createNew(balanceID,

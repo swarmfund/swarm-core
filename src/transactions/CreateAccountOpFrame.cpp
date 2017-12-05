@@ -140,7 +140,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
         if (!(baseAsset->getCode() == app.getBaseAsset()))
             balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination,
                                                     delta.getHeaderFrame().
-                                                          generateID());
+                                                          generateID(LedgerEntryType::BALANCE));
         auto balanceFrame = BalanceFrame::createNew(balanceID,
                                                     mCreateAccount.destination,
                                                     baseAsset->getCode(),

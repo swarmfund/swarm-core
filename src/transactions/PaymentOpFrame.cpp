@@ -265,7 +265,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     AccountManager accountManager(app, db, delta, ledgerManager);
 
-    uint64 paymentID = delta.getHeaderFrame().generateID();
+    uint64 paymentID = delta.getHeaderFrame().generateID(LedgerEntryType::PAYMENT_REQUEST);
 
     if (mPayment.reference.size() != 0)
     {

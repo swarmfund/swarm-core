@@ -144,7 +144,7 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 	ReviewableRequestEntry::_body_t body;
 	body.type(ReviewableRequestType::ISSUANCE_CREATE);
 	body.issuanceRequest() = mCreateIssuanceRequest.request;
-	auto request = ReviewableRequestFrame::createNewWithHash(delta.getHeaderFrame().generateID(), getSourceID(), asset->getOwner(), reference, body);
+	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference, body);
 	request->storeAdd(delta, db);
 	return request;
 }

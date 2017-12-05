@@ -197,8 +197,10 @@
     <ClCompile Include="..\..\src\ledger\AssetPairFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\AssetPairHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\BalanceFrame.cpp" />
+    <ClCompile Include="..\..\src\ledger\BalanceHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\EntryHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeFrame.cpp" />
+    <ClCompile Include="..\..\src\ledger\FeeHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\InvoiceFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\LedgerDelta.cpp" />
     <ClCompile Include="..\..\src\ledger\EntryFrame.cpp" />
@@ -420,8 +422,10 @@
     <ClInclude Include="..\..\src\ledger\AssetPairFrame.h" />
     <ClInclude Include="..\..\src\ledger\AssetPairHelper.h" />
     <ClInclude Include="..\..\src\ledger\BalanceFrame.h" />
+    <ClInclude Include="..\..\src\ledger\BalanceHelper.h" />
     <ClInclude Include="..\..\src\ledger\EntryHelper.h" />
     <ClInclude Include="..\..\src\ledger\FeeFrame.h" />
+    <ClInclude Include="..\..\src\ledger\FeeHelper.h" />
     <ClInclude Include="..\..\src\ledger\InvoiceFrame.h" />
     <ClInclude Include="..\..\src\ledger\LedgerTestUtils.h" />
     <ClInclude Include="..\..\src\ledger\OfferFrame.h" />

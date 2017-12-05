@@ -21,17 +21,9 @@ class StatementContext;
 class ReviewableRequestFrame : public EntryFrame
 {
 
-	static const char* select;
-
-    static void
-    loadRequests(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> requestsProcessor);
-
     ReviewableRequestEntry& mRequest;
 
     ReviewableRequestFrame(ReviewableRequestFrame const& from);
-
-    void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
 
 	static bool isAssetCreateValid(AssetCreationRequest const & request);
 	static bool isAssetUpdateValid(AssetUpdateRequest const& request);
@@ -118,18 +110,6 @@ class ReviewableRequestFrame : public EntryFrame
     static bool isValid(ReviewableRequestEntry const& oe);
     bool isValid() const;
 
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-
-	static void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key);
-	static bool exists(Database& db, LedgerKey const& key);
-	static bool exists(Database& db, AccountID const& requestor, stellar::string64 reference);
-    static uint64_t countObjects(soci::session& sess);
-	// returns true if reviewable request with such reference already exist or reference already exists
-	static bool isReferenceExist(Database& db, AccountID const& requestor, stellar::string64 reference);
-
     // database utilities
 	// loadRequest - loads request by it's id. If not found returns nullptr.
     static pointer loadRequest(uint64 requestID, Database& db, LedgerDelta* delta = nullptr);
@@ -137,8 +117,6 @@ class ReviewableRequestFrame : public EntryFrame
 	static pointer loadRequest(uint64 requestID, AccountID requestor, Database& db, LedgerDelta* delta = nullptr);
 	// loadRequest - loads request by it's id, requestor and request type, if not found returns nullptr.
 	static pointer loadRequest(uint64 requestID, AccountID requestor, ReviewableRequestType requestType, Database& db, LedgerDelta* delta = nullptr);
-
-    static void dropAll(Database& db);
 
 };
 }

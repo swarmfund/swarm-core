@@ -19,15 +19,9 @@ class StatementContext;
 
 class StatisticsFrame : public EntryFrame
 {
-    static void
-    loadStatistics(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> assetProcessor);
-
     StatisticsEntry& mStatistics;
 
     StatisticsFrame(StatisticsFrame const& from);
-
-    void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
 
   public:
     typedef std::shared_ptr<StatisticsFrame> pointer;
@@ -54,38 +48,38 @@ class StatisticsFrame : public EntryFrame
         return mStatistics;
     }
 
+    int64 getDailyOutcome(){
+        return mStatistics.dailyOutcome;
+    }
+
+    int64 getWeeklyOutcome() {
+        return mStatistics.weeklyOutcome;
+    }
+
+    int64 getMonthlyOutcome() {
+        return mStatistics.monthlyOutcome;
+    }
+
+    int64 getAnnualOutcome() {
+        return mStatistics.annualOutcome;
+    }
+
+    int64 getUpdateAt() {
+        return mStatistics.updatedAt;
+    }
+
+    LedgerVersion getVersion(){
+        return mStatistics.ext.v();
+    }
+
+    AccountID getAccountID(){
+        return mStatistics.accountID;
+    }
+
 	void clearObsolete(time_t rawCurrentTime);
 	bool add(int64 outcome, time_t currentTime, time_t timePerformed);
 
     static bool isValid(StatisticsEntry const& oe);
     bool isValid() const;
-
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-
-    // Static helpers that don't assume an instance.
-    static void storeDelete(LedgerDelta& delta, Database& db,
-                            LedgerKey const& key);
-    static bool exists(Database& db, LedgerKey const& key);
-    static uint64_t countObjects(soci::session& sess);
-
-    // database utilities
-	static pointer loadStatistics(AccountID const& accountID, Database& db, LedgerDelta* delta = nullptr);
-	static pointer mustLoadStatistics(AccountID const& accountID, Database& db, LedgerDelta* delta = nullptr)
-	{
-		auto result = loadStatistics(accountID, db, delta);
-		if (!result)
-		{
-			CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected db state. Expected statistics to exists. AccountID " << PubKeyUtils::toStrKey(accountID);
-			throw std::runtime_error("Unexpected db state. Expected statistics to exist");
-		}
-
-		return result;
-	}
-
-    static void dropAll(Database& db);
-    static const char* kSQLCreateStatement1;
 };
 }

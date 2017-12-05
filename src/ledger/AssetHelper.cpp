@@ -3,16 +3,8 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "AssetHelper.h"
-#include "crypto/SecretKey.h"
-#include "database/Database.h"
 #include "LedgerDelta.h"
-#include "ledger/LedgerManager.h"
-#include "util/types.h"
-#include <util/basen.h>
-#include "util/format.h"
 #include "xdrpp/printer.h"
-#include "crypto/Hex.h"
-#include <locale>
 
 using namespace soci;
 using namespace std;

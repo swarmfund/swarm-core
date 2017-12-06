@@ -4,6 +4,7 @@
 
 #include "ReviewRequestHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include <functional>
 
@@ -21,9 +22,10 @@ namespace txtest
 		ReviewableRequestType requestType, ReviewRequestOpAction action, std::string rejectReason,
 		ReviewRequestResultCode expectedResult, std::function<void(ReviewableRequestFrame::pointer requestBeforeTx)> checkApproval)
 	{
-		auto reviewableRequestCountBeforeTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
 		LedgerDelta& delta = mTestManager->getLedgerDelta();
-		auto requestBeforeTx = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getDB(), &delta);
+		auto requestBeforeTx = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB(), &delta);
 		auto txFrame = createReviewRequestTx(source, requestID, requestHash, requestType, action, rejectReason);
 
 		mTestManager->applyCheck(txFrame);
@@ -35,14 +37,14 @@ namespace txtest
 		auto reviewResult = opResult.tr().reviewRequestResult();
 		if (expectedResult != ReviewRequestResultCode::SUCCESS)
 		{
-			uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+			uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
 			REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
 			return reviewResult;
 		}
 
 		REQUIRE(!!requestBeforeTx);
 
-		auto requestAfterTx = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getDB(), &delta);
+		auto requestAfterTx = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB(), &delta);
 		if (action == ReviewRequestOpAction::REJECT) {
 			REQUIRE(!!requestAfterTx);
 			REQUIRE(requestAfterTx->getRejectReason() == rejectReason);

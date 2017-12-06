@@ -23,8 +23,6 @@ class InvoiceFrame : public EntryFrame
 
     InvoiceFrame(InvoiceFrame const& from);
 
-    void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
-
   public:
     typedef std::shared_ptr<InvoiceFrame> pointer;
 
@@ -95,7 +93,5 @@ class InvoiceFrame : public EntryFrame
     static bool isValid(InvoiceEntry const& oe);
     bool isValid() const;
 
-    static int64 countForReceiverAccount(Database& db, AccountID account);
-    // database utilities
 };
 }

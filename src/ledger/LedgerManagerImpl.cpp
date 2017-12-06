@@ -10,6 +10,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerManagerImpl.h"
 #include "ledger/AssetPairFrame.h"
+#include "ledger/AccountHelper.h"
 
 #include "overlay/OverlayManager.h"
 #include "util/make_unique.h"
@@ -185,7 +186,7 @@ LedgerManagerImpl::startNewLedger()
     {
 		// TODO fix me
 		auto baseAssetFrame = AssetFrame::createSystemAsset(baseAssetCode, mApp.getMasterID());
-		baseAssetFrame->storeAdd(delta, this->getDatabase());
+		EntryHelperProvider::storeAddEntry(delta, this->getDatabase(), baseAssetFrame->mEntry);
 
 		for (auto systemAccount : systemAccounts)
 		{
@@ -200,18 +201,18 @@ LedgerManagerImpl::startNewLedger()
 
 			auto balance = BalanceFrame::createNew(balanceID,
 				systemAccount->getID(), baseAssetCode, 1);
-			balance->storeAdd(delta, this->getDatabase());
+			EntryHelperProvider::storeAddEntry(delta, this->getDatabase(), balance->mEntry);
 		}
 
 		int32_t assetPairPolicies = baseAssetCode == mApp.getStatsQuoteAsset() ? 0 : static_cast<int32_t >(AssetPairPolicy::TRADEABLE);
 		auto assetPair = AssetPairFrame::create(baseAssetCode, mApp.getStatsQuoteAsset(), ONE, ONE, 0, 0, assetPairPolicies);
-		assetPair->storeAdd(delta, this->getDatabase());
+		EntryHelperProvider::storeAddEntry(delta, this->getDatabase(), assetPair->mEntry);
     }
 
 	AccountManager accountManager(mApp, this->getDatabase(), delta, mApp.getLedgerManager());
 	for (auto systemAccount : systemAccounts)
 	{
-		systemAccount->storeAdd(delta, this->getDatabase());
+		EntryHelperProvider::storeAddEntry(delta, this->getDatabase(), systemAccount->mEntry);
 		accountManager.createStats(systemAccount);
 		
 	}
@@ -858,8 +859,9 @@ void
 LedgerManagerImpl::checkDbState()
 {
 	// TODO move to invariant
+	auto accountHelper = AccountHelper::Instance();
     std::unordered_map<AccountID, AccountFrame::pointer> aData =
-        AccountFrame::checkDB(getDatabase());
+		accountHelper->checkDB(getDatabase());
 
 }
 

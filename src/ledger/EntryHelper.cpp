@@ -23,8 +23,6 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/CoinsEmissionFrame.h"
-#include "ledger/CoinsEmissionHelper.h"
 #include "ledger/PaymentRequestFrame.h"
 #include "ledger/PaymentRequestHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
@@ -83,7 +81,7 @@ namespace stellar
 		auto helper = getHelper(entry.data.type());
 		helper->flushCachedEntry(key, db);
 		auto const &fromDb = helper->storeLoad(key, db);
-		if (!(fromDb->mEntry == entry)) {
+		if (!fromDb || !(fromDb->mEntry == entry)) {
 			std::string s;
 			s = "Inconsistent state between objects: ";
 			s += !!fromDb ? xdr::xdr_to_string(fromDb->mEntry, "db") : "db: nullptr\n";

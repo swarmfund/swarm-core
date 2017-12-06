@@ -11,6 +11,7 @@
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ReviewPreIssuanceRequestHelper.h"
+#include "ledger/AssetHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -24,7 +25,8 @@ void testAuthPreissuedAssetHappyPath(TestManager::pointer testManager, Account& 
 	manageAssetHelper.createAsset(account, preissuedSigner, assetCode, root);
 	auto issuanceRequestHelper = IssuanceRequestHelper(testManager);
 	auto reviewPreIssuanceRequestHelper = ReviewPreIssuanceRequestHelper(testManager);
-	auto asset = AssetFrame::loadAsset(assetCode, testManager->getDB());
+	auto assetHelper = AssetHelper::Instance();
+	auto asset = assetHelper->loadAsset(assetCode, testManager->getDB());
 	const uint64_t amountToIssue = 10000;
 	const int issueTimes = 3;
 	for (int i = 0; i < issueTimes; i++) {
@@ -32,7 +34,7 @@ void testAuthPreissuedAssetHappyPath(TestManager::pointer testManager, Account& 
 			SecretKey::random().getStrKeyPublic());
 		reviewPreIssuanceRequestHelper.applyReviewRequestTx(root, preIssuanceResult.success().requestID, ReviewRequestOpAction::APPROVE, "");
 	}
-	asset = AssetFrame::loadAsset(assetCode, testManager->getDB());
+	asset = assetHelper->loadAsset(assetCode, testManager->getDB());
 	REQUIRE(asset->getAvailableForIssuance() == amountToIssue * issueTimes);	
 }
 

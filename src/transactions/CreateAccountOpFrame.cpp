@@ -6,6 +6,10 @@
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
 
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/FeeHelper.h"
+
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
@@ -69,12 +73,14 @@ void CreateAccountOpFrame::trySetReferrer(Application& app, Database& db, Accoun
 	if (referrerAccountID == app.getMasterID())
 		return;
 
-	auto referrer = AccountFrame::loadAccount(referrerAccountID, db);
+	auto accountHelper = AccountHelper::Instance();
+	auto referrer = accountHelper->loadAccount(referrerAccountID, db);
 	if (!referrer)
 		return;
 
 	// amount is not applyable for referral fee
-	auto referralFeeFrame = FeeFrame::loadForAccount(FeeType::REFERRAL_FEE,
+	auto feeHelper = FeeHelper::Instance();
+	auto referralFeeFrame = feeHelper->loadForAccount(FeeType::REFERRAL_FEE,
 		app.getBaseAsset(), FeeFrame::SUBTYPE_ANY, referrer, 0, db);
 
 	int64_t referralFee = referralFeeFrame ? referralFeeFrame->getPercentFee() : 0;
@@ -93,19 +99,20 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta, L
 	trySetReferrer(app, db, destAccountFrame);
 	destAccount.policies = mCreateAccount.policies;
 
-	destAccountFrame->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, destAccountFrame->mEntry);
 
 	AccountManager accountManager(app, db, delta, ledgerManager);
 	accountManager.createStats(destAccountFrame);
 	// create balance for all availabe assets
 	std::vector<AssetFrame::pointer> assets;
-	AssetFrame::loadAssets(assets, db);
+	auto assetHelper = AssetHelper::Instance();
+	assetHelper->loadAssets(assets, db);
 	for (auto baseAsset : assets) {
 		BalanceID balanceID = mCreateAccount.destination;
 		if (!(baseAsset->getCode() == app.getBaseAsset()))
 			balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination, delta.getHeaderFrame().generateID());
 		auto balanceFrame = BalanceFrame::createNew(balanceID, mCreateAccount.destination, baseAsset->getCode(), ledgerManager.getCloseTime());
-		balanceFrame->storeAdd(delta, db);
+		EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
 	}
 
 	innerResult().success().referrerFee = destAccountFrame->getShareForReferrer();
@@ -121,7 +128,8 @@ CreateAccountOpFrame::doApply(Application& app,
     Database& db = ledgerManager.getDatabase();
 	innerResult().code(CreateAccountResultCode::SUCCESS);
 
-    auto destAccountFrame = AccountFrame::loadAccount(delta, mCreateAccount.destination, db);
+	auto accountHelper = AccountHelper::Instance();
+    auto destAccountFrame = accountHelper->loadAccount(delta, mCreateAccount.destination, db);
 
 	if (ledgerManager.getCurrentLedgerHeader().ledgerVersion < static_cast<int32_t >(mCreateAccount.ext.v()))
 	{
@@ -150,7 +158,7 @@ CreateAccountOpFrame::doApply(Application& app,
 	AccountEntry& accountEntry = destAccountFrame->getAccount();
 	accountEntry.policies = mCreateAccount.policies;
 
-	destAccountFrame->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, destAccountFrame->mEntry);
 
 	innerResult().success().referrerFee = destAccountFrame->getShareForReferrer();
 	app.getMetrics().NewMeter({"op-create-account", "success", "apply"},

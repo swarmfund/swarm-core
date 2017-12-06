@@ -4,7 +4,11 @@
 
 #include "util/asio.h"
 #include "CreateIssuanceRequestOpFrame.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "ledger/ReferenceFrame.h"
 #include "util/Logging.h"
 #include "util/types.h"
@@ -66,7 +70,8 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 	innerResult().success().requestID = request->getRequestID();
 	innerResult().success().fulfilled = isFulfilled;
 	auto& db = app.getDatabase();
-	auto receiver = BalanceFrame::mustLoadBalance(mCreateIssuanceRequest.request.receiver, db);
+	auto balanceHelper = BalanceHelper::Instance();
+	auto receiver = balanceHelper->mustLoadBalance(mCreateIssuanceRequest.request.receiver, db);
 	innerResult().success().receiver = receiver->getAccountID();
 	return true;
 }
@@ -113,12 +118,15 @@ bool CreateIssuanceRequestOpFrame::isAuthorizedToRequestIssuance(AssetFrame::poi
 ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceRequest(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager)
 {
 	Database& db = ledgerManager.getDatabase();
-	if (ReviewableRequestFrame::isReferenceExist(db, getSourceID(), mCreateIssuanceRequest.reference)) {
+
+	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+	if (reviewableRequestHelper->isReferenceExist(db, getSourceID(), mCreateIssuanceRequest.reference)) {
 		innerResult().code(CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
 		return nullptr;
 	}
 
-	auto asset = AssetFrame::loadAsset(mCreateIssuanceRequest.request.asset, db);
+	auto assetHelper = AssetHelper::Instance();
+	auto asset = assetHelper->loadAsset(mCreateIssuanceRequest.request.asset, db);
 	if (!asset) {
 		innerResult().code(CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
 		return nullptr;
@@ -134,7 +142,8 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
-	if (!BalanceFrame::exists(db, mCreateIssuanceRequest.request.receiver)) {
+	auto balanceHelper = BalanceHelper::Instance();
+	if (!balanceHelper->exists(db, mCreateIssuanceRequest.request.receiver)) {
 		innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
 		return nullptr;
 	}
@@ -144,7 +153,7 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 	body.type(ReviewableRequestType::ISSUANCE_CREATE);
 	body.issuanceRequest() = mCreateIssuanceRequest.request;
 	auto request = ReviewableRequestFrame::createNewWithHash(delta.getHeaderFrame().generateID(), getSourceID(), asset->getOwner(), reference, body);
-	request->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	return request;
 }
 
@@ -165,7 +174,9 @@ std::pair<bool, ReviewRequestResult>  CreateIssuanceRequestOpFrame::tryReviewIss
 	opRes.code(OperationResultCode::opINNER);
 	opRes.tr().type(OperationType::REVIEW_REQUEST);
 	Database& db = ledgerManager.getDatabase();
-	auto reviewerFrame = AccountFrame::loadAccount(reviewer, db);
+	
+	auto accountHelper = AccountHelper::Instance();
+	auto reviewerFrame = accountHelper->loadAccount(reviewer, db);
 	if (!reviewerFrame) {
 		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: expected review to exist for request: " << xdr::xdr_to_string(request->getRequestEntry());
 		throw std::runtime_error("Unexpected state expected reviewer to exist");

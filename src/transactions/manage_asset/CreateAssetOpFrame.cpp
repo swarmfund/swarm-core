@@ -6,6 +6,8 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AssetFrame.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/ReviewableRequestHelper.h"
 
 namespace stellar
 {
@@ -44,22 +46,26 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 		return false;
 	}
 
-	if (mManageAsset.requestID == 0 && ReviewableRequestFrame::exists(db, getSourceID(), mAssetCreationRequest.code)) {
+	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+
+	if (mManageAsset.requestID == 0 && reviewableRequestHelper->exists(db, getSourceID(), mAssetCreationRequest.code)) {
 		innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
 		return false;
 	}
 
-	auto isAssetExist = AssetFrame::exists(db, mAssetCreationRequest.code);
+	auto assetHelper = AssetHelper::Instance();
+
+	auto isAssetExist = assetHelper->exists(db, mAssetCreationRequest.code);
 	if (isAssetExist) {
 		innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
 		return false;
 	}
 
 	if (mManageAsset.requestID == 0) {
-		request->storeAdd(delta, db);
+		EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	}
 	else {
-		request->storeChange(delta, db);
+		EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
 	}
 
 	innerResult().code(ManageAssetResultCode::SUCCESS);

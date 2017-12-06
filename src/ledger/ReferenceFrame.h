@@ -51,11 +51,11 @@ class ReferenceFrame : public EntryFrame
         return mReference;
     }
 
-    AccountID getSender(){
+    AccountID& getSender(){
         return mReference.sender;
     }
 
-    std::string getReferenceString(){
+    std::string& getReferenceString(){
         return mReference.reference;
     }
 

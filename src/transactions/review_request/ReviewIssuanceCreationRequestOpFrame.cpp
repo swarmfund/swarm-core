@@ -10,6 +10,8 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReferenceFrame.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
 
@@ -30,7 +32,8 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
 	Database& db = ledgerManager.getDatabase();
 	createReference(delta, db, request->getRequestor(), request->getReference());	
 
-	auto asset = AssetFrame::loadAsset(issuanceCreationRequest.asset, db, &delta);
+	auto assetHelper = AssetHelper::Instance();
+	auto asset = assetHelper->loadAsset(issuanceCreationRequest.asset, db, &delta);
 	if (!asset) {
 		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Expected asset to exist for issuance request. Request: " << xdr::xdr_to_string(request->getRequestEntry());
 		throw std::runtime_error("Expected asset for  issuance request to exist");
@@ -51,9 +54,10 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
 		throw std::runtime_error("Unexcpted issuance result. Expected to be able to issue");
 	}
 
-	asset->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, asset->mEntry);
 
-	auto receiver = BalanceFrame::loadBalance(issuanceCreationRequest.receiver, db, &delta);
+	auto balanceHelper = BalanceHelper::Instance();
+	auto receiver = balanceHelper->loadBalance(issuanceCreationRequest.receiver, db, &delta);
 	if (!receiver) {
 		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Excpected receiver to exist: " << xdr::xdr_to_string(request->getRequestEntry());
 		throw std::runtime_error("Expected receiver to exist");
@@ -64,9 +68,9 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
 		return false;
 	}
 
-	receiver->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, receiver->mEntry);
 	
-	request->storeDelete(delta, db);
+	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }

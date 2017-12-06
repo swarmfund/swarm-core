@@ -125,7 +125,7 @@ namespace stellar {
             sql = "UPDATE reviewable_request SET hash=:hash, body = :body, requestor = :requestor, reviewer = :reviewer, reference = :reference, reject_reason = :reject_reason, version=:v, lastmodified=:lm"
                     " WHERE id = :id";
         }
-
+		auto logger = db.captureAndLogSQL(Logging::ENTRY_LOGGER);
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
@@ -134,7 +134,8 @@ namespace stellar {
         st.exchange(use(strBody, "body"));
         st.exchange(use(reviewableRequest->getRequestor(), "requestor"));
         st.exchange(use(reviewableRequest->getReviewer(), "reviewer"));
-        st.exchange(use(reviewableRequest->getReference(), "reference"));
+		auto ref = reviewableRequest->getReference();
+        st.exchange(use(ref, "reference"));
         st.exchange(use(rejectReason, "reject_reason"));
         st.exchange(use(version, "v"));
         st.exchange(use(reviewableRequest->getLastModified(), "lm"));
@@ -226,7 +227,7 @@ namespace stellar {
         key.type(LedgerEntryType::REFERENCE_ENTRY);
         key.reference().reference = reference;
         key.reference().sender = requestor;
-        return EntryHelper::exists(db, key);
+        return EntryHelperProvider::existsEntry(db, key);
     }
 
     ReviewableRequestFrame::pointer
@@ -264,7 +265,7 @@ namespace stellar {
             delta->recordEntry(*retReviewableRequest);
         }
 
-        auto pEntry = std::make_shared<LedgerEntry const>(retReviewableRequest->mEntry);
+        auto pEntry = std::make_shared<LedgerEntry>(retReviewableRequest->mEntry);
         putCachedEntry(key, pEntry, db);
         return retReviewableRequest;
     }

@@ -5,7 +5,9 @@
 #include "CancelAssetRequestOpFrame.h"
 
 #include "ledger/LedgerDelta.h"
+#include "ledger/EntryHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ReviewableRequestHelper.h"
 
 #include "database/Database.h"
 
@@ -31,7 +33,9 @@ CancelAssetRequestOpFrame::doApply(Application& app,
                               LedgerDelta& delta, LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-	auto request = ReviewableRequestFrame::loadRequest(mManageAsset.requestID, getSourceID(), db, &delta);
+	
+	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+	auto request = reviewableRequestHelper->loadRequest(mManageAsset.requestID, getSourceID(), db, &delta);
 	if (!request) {
 		innerResult().code(ManageAssetResultCode::REQUEST_NOT_FOUND);
 		return false;
@@ -43,7 +47,7 @@ CancelAssetRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	request->storeDelete(delta, db);
+ 	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
 	innerResult().code(ManageAssetResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();

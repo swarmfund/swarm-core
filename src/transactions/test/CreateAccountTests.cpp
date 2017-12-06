@@ -10,6 +10,7 @@
 #include "TxTests.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -35,6 +36,8 @@ TEST_CASE("create account", "[dep_tx][create_account]")
     SecretKey rootKP = getRoot();
 	Salt rootSeq = 1;
 
+	auto accountHelper = AccountHelper::Instance();
+
 	SECTION("Can't create system account")
 	{
 		for (auto systemAccountType : getSystemAccountTypes())
@@ -53,7 +56,8 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 		auto checkAccountPolicies = [&app, &delta](AccountID accountID, LedgerVersion expectedAccountVersion,
 												   int32 expectedPolicies)
 		{
-			auto accountFrame = AccountFrame::loadAccount(accountID, app.getDatabase(), &delta);
+			auto accountHelper = AccountHelper::Instance();
+			auto accountFrame = accountHelper->loadAccount(accountID, app.getDatabase(), &delta);
 			REQUIRE(accountFrame);
 			REQUIRE(accountFrame->getAccount().ext.v() == expectedAccountVersion);
 			if (expectedPolicies != -1)
@@ -101,7 +105,7 @@ TEST_CASE("create account", "[dep_tx][create_account]")
         {
             AccountID invalidReferrer = SecretKey::random().getPublicKey();
             applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::GENERAL, nullptr, &invalidReferrer);
-			auto accountFrame = AccountFrame::loadAccount(account.getPublicKey(), app.getDatabase());
+			auto accountFrame = accountHelper->loadAccount(account.getPublicKey(), app.getDatabase());
 			REQUIRE(accountFrame);
 			REQUIRE(!accountFrame->getReferrer());
         }
@@ -164,14 +168,14 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 		auto newAccount = SecretKey::random();
 		auto createAccount = createCreateAccountTx(app.getNetworkID(), rootKP, newAccount, rootSeq++, AccountType::NOT_VERIFIED);
 		REQUIRE(applyCheck(createAccount, delta, app));
-		auto newAccountFrame = AccountFrame::loadAccount(newAccount.getPublicKey(), app.getDatabase());
+		auto newAccountFrame = accountHelper->loadAccount(newAccount.getPublicKey(), app.getDatabase());
                 
 
 		REQUIRE(newAccountFrame);
 		REQUIRE(newAccountFrame->getAccountType() == AccountType::NOT_VERIFIED);
 
 		applyCreateAccountTx(app, rootKP, newAccount, rootSeq++, AccountType::GENERAL);
-		newAccountFrame = AccountFrame::loadAccount(newAccount.getPublicKey(), app.getDatabase());
+		newAccountFrame = accountHelper->loadAccount(newAccount.getPublicKey(), app.getDatabase());
 		REQUIRE(newAccountFrame->getAccountType() == AccountType::GENERAL);
 
 	}

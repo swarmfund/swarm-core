@@ -15,6 +15,7 @@
 #include "simulation/Topologies.h"
 #include "transactions/test/TxTests.h"
 #include "herder/Herder.h"
+#include "ledger/AccountHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "herder/HerderImpl.h"
 
@@ -53,8 +54,10 @@ TEST_CASE("Flooding", "[flood][overlay]")
         const int nbTx = 100;
 
         SecretKey root = getRoot();
+		
+		auto accountHelper = AccountHelper::Instance();
         auto rootA =
-            AccountFrame::loadAccount(root.getPublicKey(), app0->getDatabase());
+			accountHelper->loadAccount(root.getPublicKey(), app0->getDatabase());
 
         // directly create a bunch of accounts by cloning the root account (one
         // per tx so that we can easily identify them)
@@ -66,7 +69,7 @@ TEST_CASE("Flooding", "[flood][overlay]")
                 sources.emplace_back(SecretKey::random());
                 sourcesPub.emplace_back(sources.back().getPublicKey());
                 account.accountID = sourcesPub.back();
-                auto newAccount = EntryFrame::FromXDR(gen);
+                auto newAccount = EntryHelperProvider::fromXDREntry(gen);
 
                 // need to create on all nodes
                 for (auto n : nodes)
@@ -74,7 +77,7 @@ TEST_CASE("Flooding", "[flood][overlay]")
                     LedgerHeader lh;
                     Database& db = n->getDatabase();
                     LedgerDelta delta(lh, db, false);
-                    newAccount->storeAdd(delta, db);
+					EntryHelperProvider::storeAddEntry(delta, db, newAccount->mEntry);
                 }
             }
         }

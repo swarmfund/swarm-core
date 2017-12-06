@@ -4,6 +4,7 @@
 
 #include "ReviewAssetRequestHelper.h"
 #include "ledger/AssetFrame.h"
+#include "ledger/AssetHelper.h"
 
 
 
@@ -15,7 +16,8 @@ namespace txtest
 	void ReviewAssetRequestHelper::checkApproval(AssetCreationRequest const & request, AccountID const& requestor)
 	{
 		auto& delta = mTestManager->getLedgerDelta();
-		auto assetFrame = AssetFrame::loadAsset(request.code, mTestManager->getDB(), &delta);
+		auto assetHelper = AssetHelper::Instance();
+		auto assetFrame = assetHelper->loadAsset(request.code, mTestManager->getDB(), &delta);
 		REQUIRE(!!assetFrame);
 		auto assetEntry = assetFrame->getAsset();
 		REQUIRE(assetEntry.availableForIssueance == 0);
@@ -33,7 +35,8 @@ namespace txtest
 	void ReviewAssetRequestHelper::checkApproval(AssetUpdateRequest const & request, AccountID const & requestor)
 	{
 		auto& delta = mTestManager->getLedgerDelta();
-		auto assetFrame = AssetFrame::loadAsset(request.code, mTestManager->getDB(), &delta);
+		auto assetHelper = AssetHelper::Instance();
+		auto assetFrame = assetHelper->loadAsset(request.code, mTestManager->getDB(), &delta);
 		REQUIRE(!!assetFrame);
 		auto assetEntry = assetFrame->getAsset();
 		REQUIRE(assetEntry.code == request.code);

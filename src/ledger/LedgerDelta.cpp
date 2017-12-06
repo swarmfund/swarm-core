@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "ledger/LedgerDelta.h"
+#include "ledger/EntryHelper.h"
 #include "xdr/Stellar-ledger.h"
 #include "main/Application.h"
 #include "main/Config.h"
@@ -234,18 +235,21 @@ LedgerDelta::rollback()
     checkState();
     mHeader = nullptr;
 
-    for (auto& d : mDelete)
-    {
-        EntryFrame::flushCachedEntry(d, mDb);
-    }
-    for (auto& n : mNew)
-    {
-        EntryFrame::flushCachedEntry(n.first, mDb);
-    }
-    for (auto& m : mMod)
-    {
-        EntryFrame::flushCachedEntry(m.first, mDb);
-    }
+	for (auto& d : mDelete)
+	{
+		auto helper = EntryHelperProvider::getHelper(d.type());
+		helper->flushCachedEntry(d, mDb);
+	}
+	for (auto& n : mNew)
+	{
+		auto helper = EntryHelperProvider::getHelper(n.first.type());
+		helper->flushCachedEntry(n.first, mDb);
+	}
+	for (auto& m : mMod)
+	{
+		auto helper = EntryHelperProvider::getHelper(m.first.type());
+		helper->flushCachedEntry(m.first, mDb);
+	}
 }
 
 void
@@ -361,12 +365,12 @@ LedgerDelta::checkAgainstDatabase(Application& app) const
     auto live = getLiveEntries();
     for (auto const& l : live)
     {
-        EntryFrame::checkAgainstDatabase(l, db);
+        EntryHelperProvider::checkAgainstDatabase(l, db);
     }
     auto dead = getDeadEntries();
     for (auto const& d : dead)
     {
-        if (EntryFrame::exists(db, d))
+        if (EntryHelperProvider::existsEntry(db, d))
         {
             std::string s;
             s = "Inconsistent state ; entry should not exist in database: ";

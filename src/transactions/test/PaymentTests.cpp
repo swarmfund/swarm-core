@@ -12,6 +12,8 @@
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReferenceFrame.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/PaymentRequestHelper.h"
 #include "transactions/PaymentOpFrame.h"
 #include "crypto/SHA.h"
 
@@ -51,6 +53,9 @@ TEST_CASE("payment", "[dep_tx][payment]")
 
     auto secondAsset = "AETH";
 
+	auto balanceHelper = BalanceHelper::Instance();
+	auto paymentRequestHelper = PaymentRequestHelper::Instance();
+
 	SECTION("basic tests")
 	{
 		auto account = SecretKey::random();
@@ -75,8 +80,8 @@ TEST_CASE("payment", "[dep_tx][payment]")
         REQUIRE(paymentResult.paymentResponse().asset == app.getBaseAsset());
 
         auto paymentID = paymentResult.paymentResponse().paymentID;
-        soci::session& sess = app.getDatabase().getSession(); 
-        REQUIRE(PaymentRequestFrame::countObjects(sess) == 0);
+        soci::session& sess = app.getDatabase().getSession();
+        REQUIRE(paymentRequestHelper->countObjects(sess) == 0);
 	}
     SECTION("send to self")
     {
@@ -124,7 +129,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
 
 		applyManageBalanceTx(app, account, account, accSeq++, balanceID, secondAsset);
 
-        auto accBalanceForSecondAsset = BalanceFrame::loadBalance(account.getPublicKey(), secondAsset, app.getDatabase(), &delta);
+        auto accBalanceForSecondAsset = balanceHelper->loadBalance(account.getPublicKey(), secondAsset, app.getDatabase(), &delta);
 
         auto paymentResult = applyPaymentTx(app, aWM, aWM.getPublicKey(), accBalanceForSecondAsset->getBalanceID(), rootSeq++,
             paymentAmount, getNoPaymentFee(), false, "", "", PaymentResultCode::BALANCE_ASSETS_MISMATCHED);

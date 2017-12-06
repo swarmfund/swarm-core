@@ -4,6 +4,7 @@
 
 #include "util/asio.h"
 #include <set>
+#include "ledger/AccountHelper.h"
 #include "transactions/SignatureValidator.h"
 #include "transactions/TransactionFrame.h"
 #include "main/Application.h"
@@ -55,7 +56,8 @@ vector<Signer> SignatureValidator::getSigners(Application& app, Database& db, Ac
 	// system accounts use master's signers
 	if (account.getAccountType() != AccountType::MASTER && isSystemAccountType(account.getAccountType()))
 	{
-		auto master = AccountFrame::loadAccount(app.getMasterID(), db);
+		auto accountHelper = AccountHelper::Instance();
+		auto master = accountHelper->loadAccount(app.getMasterID(), db);
 		assert(master);
 		return getSigners(app, db, *master);
 	}

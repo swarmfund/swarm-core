@@ -6,6 +6,8 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerManager.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/OfferHelper.h"
 #include "util/Logging.h"
 
 namespace stellar
@@ -133,7 +135,7 @@ OfferExchange::exchange(int64_t buyerBase, int64_t buyerQuote, int64_t sellerBas
 
 void OfferExchange::markOfferAsTaken(OfferFrame& offer, BalanceFrame::pointer baseBalance, BalanceFrame::pointer quoteBalance, Database& db)
 {
-	offer.storeDelete(mDelta, db);
+	EntryHelperProvider::storeDeleteEntry(mDelta, db, offer.getKey());
 	unlockBalancesForTakenOffer(offer, baseBalance, quoteBalance);
 }
 
@@ -155,7 +157,8 @@ void OfferExchange::unlockBalancesForTakenOffer(OfferFrame& offer, BalanceFrame:
 
 BalanceFrame::pointer OfferExchange::loadBalance(BalanceID& balanceID, Database& db)
 {
-	BalanceFrame::pointer balance = BalanceFrame::loadBalance(balanceID, db, &mDelta);
+	auto balanceHelper = BalanceHelper::Instance();
+	BalanceFrame::pointer balance = balanceHelper->loadBalance(balanceID, db, &mDelta);
 	if (!balance)
 	{
 		throw std::runtime_error(
@@ -237,8 +240,8 @@ OfferExchange::crossOffer(OfferEntry& offerA, BalanceFrame::pointer baseBalanceA
 	if (!isOfferValid)
 	{
 		markOfferAsTaken(offerFrameB, baseBalanceB, quoteBalanceB, db);
-		baseBalanceB->storeChange(mDelta, db);
-		quoteBalanceB->storeChange(mDelta, db);
+		EntryHelperProvider::storeChangeEntry(mDelta, db, baseBalanceB->mEntry);
+		EntryHelperProvider::storeChangeEntry(mDelta, db, baseBalanceB->mEntry);
 		return eOfferTaken;
 	}
     
@@ -264,14 +267,14 @@ OfferExchange::crossOffer(OfferEntry& offerA, BalanceFrame::pointer baseBalanceA
 	if (!offerNeedsMore(offerB))
     { // entire offer is taken
 		markOfferAsTaken(offerFrameB, baseBalanceB, quoteBalanceB, db);
-		baseBalanceB->storeChange(mDelta, db);
-		quoteBalanceB->storeChange(mDelta, db);
+		EntryHelperProvider::storeChangeEntry(mDelta, db, baseBalanceB->mEntry);
+		EntryHelperProvider::storeChangeEntry(mDelta, db, quoteBalanceB->mEntry);
 		return eOfferTaken;
     }
    
-	offerFrameB.storeChange(mDelta, db);
-	baseBalanceB->storeChange(mDelta, db);
-	quoteBalanceB->storeChange(mDelta, db);
+	EntryHelperProvider::storeChangeEntry(mDelta, db, offerFrameB.mEntry);
+	EntryHelperProvider::storeChangeEntry(mDelta, db, baseBalanceB->mEntry);
+	EntryHelperProvider::storeChangeEntry(mDelta, db, quoteBalanceB->mEntry);
 	return eOfferPartial;
 }
 
@@ -307,7 +310,8 @@ OfferExchange::convertWithOffers(
     while (offerNeedsMore(offerA))
     {
         std::vector<OfferFrame::pointer> retList;
-        OfferFrame::loadBestOffers(OFFERS_TO_TAKE, offerOffset, mAssetPair->getBaseAsset(), mAssetPair->getQuoteAsset(), !offerA.isBuy, retList, db);
+		auto offerHelper = OfferHelper::Instance();
+		offerHelper->loadBestOffers(OFFERS_TO_TAKE, offerOffset, mAssetPair->getBaseAsset(), mAssetPair->getQuoteAsset(), !offerA.isBuy, retList, db);
 
         offerOffset += retList.size();
 

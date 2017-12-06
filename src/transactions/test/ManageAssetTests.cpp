@@ -4,6 +4,7 @@
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "lib/catch.hpp"
 #include "TxTests.h"
 #include "test_helper/TestManager.h"
@@ -21,6 +22,9 @@ void testManageAssetHappyPath(TestManager::pointer testManager, Account& account
 		AssetCode assetCode = "EURT";
 		auto creationRequest = manageAssetHelper.createAssetCreationRequest(assetCode, "New USD token", preissuedSigner.getPublicKey(), "Description can be quiete long", "https://testusd.usd", 0, 0);
 		auto creationResult = manageAssetHelper.applyManageAssetTx(account, 0, creationRequest);
+
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+
 		SECTION("Can cancel creation request")
 		{
 			manageAssetHelper.applyManageAssetTx(account, creationResult.success().requestID, manageAssetHelper.createCancelRequest());
@@ -34,7 +38,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager, Account& account
 		SECTION("Given approved asset")
 		{
 			LedgerDelta& delta = testManager->getLedgerDelta();
-			auto approvingRequest = ReviewableRequestFrame::loadRequest(creationResult.success().requestID, testManager->getDB(), &delta);
+			auto approvingRequest = reviewableRequestHelper->loadRequest(creationResult.success().requestID, testManager->getDB(), &delta);
 			REQUIRE(approvingRequest);
 			auto reviewRequetHelper = ReviewAssetRequestHelper(testManager);
 			reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
@@ -43,7 +47,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager, Account& account
 			{
 				auto updateRequestBody = manageAssetHelper.createAssetUpdateRequest(assetCode, "Updated token descpition", "https://updatedlink.token", 0);
 				auto updateResult = manageAssetHelper.applyManageAssetTx(account, 0, updateRequestBody);
-				approvingRequest = ReviewableRequestFrame::loadRequest(updateResult.success().requestID, testManager->getDB(), &delta);
+				approvingRequest = reviewableRequestHelper->loadRequest(updateResult.success().requestID, testManager->getDB(), &delta);
 				REQUIRE(approvingRequest);
 				reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
 					ReviewRequestOpAction::APPROVE, "");

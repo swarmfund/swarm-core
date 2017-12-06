@@ -7,6 +7,7 @@
 #include "util/Logging.h"
 #include "util/types.h"
 #include "database/Database.h"
+#include "ledger/AssetHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetFrame.h"
@@ -28,7 +29,9 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 
 	auto assetUpdateRequest = request->getRequestEntry().body.assetUpdateRequest();
 	Database& db = ledgerManager.getDatabase();
-	auto assetFrame = AssetFrame::loadAsset(assetUpdateRequest.code, db, &delta);
+
+	auto assetHelper = AssetHelper::Instance();
+	auto assetFrame = assetHelper->loadAsset(assetUpdateRequest.code, db, &delta);
 	if (!assetFrame) {
 		innerResult().code(ReviewRequestResultCode::ASSET_DOES_NOT_EXISTS);
 		return false;
@@ -44,8 +47,8 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 	assetEntry.description = assetUpdateRequest.description;
 	assetEntry.externalResourceLink = assetUpdateRequest.externalResourceLink;
 	assetEntry.policies = assetUpdateRequest.policies;
-	assetFrame->storeChange(delta, db);
-	request->storeDelete(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, assetFrame->mEntry);
+	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }

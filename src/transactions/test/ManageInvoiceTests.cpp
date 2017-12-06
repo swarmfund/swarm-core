@@ -14,6 +14,7 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/InvoiceHelper.h"
 #include "ledger/ReferenceFrame.h"
 
 #include "crypto/Hex.h"
@@ -50,6 +51,8 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
 
     SecretKey a3 = SecretKey::random();
     applyCreateAccountTx(app, root, a3, rootSeq++, AccountType::GENERAL);
+
+	auto invoiceHelper = InvoiceHelper::Instance();
 
     auto asset = app.getBaseAsset();
 	SECTION("Malformed")
@@ -105,20 +108,20 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
         }
         SECTION("Paid")
         {
-            auto invoiceFrame = InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()); 
+            auto invoiceFrame = invoiceHelper->loadInvoice(invoiceID, app.getDatabase());
             REQUIRE(invoiceFrame);
             REQUIRE(invoiceFrame->getState() == InvoiceState::INVOICE_NEEDS_PAYMENT);
             auto emissionAmount = 100 * ONE;
             fundAccount(app, root, issuance, rootSeq, a2.getPublicKey(), emissionAmount);
             applyPaymentTx(app, a2, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PaymentResultCode::SUCCESS, &invoiceReference);
-            REQUIRE(!InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()));
+            REQUIRE(!invoiceHelper->loadInvoice(invoiceID, app.getDatabase()));
         }
         SECTION("rejected")
         {
-            REQUIRE(InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()));
+            REQUIRE(invoiceHelper->loadInvoice(invoiceID, app.getDatabase()));
             invoiceReference.accept = false;
             applyPaymentTx(app, a2, a1, rootSeq++, amount, getNoPaymentFee(), false, "", "", PaymentResultCode::SUCCESS, &invoiceReference);
-            REQUIRE(!InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()));
+            REQUIRE(!invoiceHelper->loadInvoice(invoiceID, app.getDatabase()));
         }
 		SECTION("unverified")
 		{

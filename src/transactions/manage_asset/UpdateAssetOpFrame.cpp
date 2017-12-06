@@ -4,6 +4,7 @@
 
 #include "UpdateAssetOpFrame.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AssetHelper.h"
 
 #include "database/Database.h"
 
@@ -43,17 +44,18 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 		return false;
 	}
 
-	auto assetFrame = AssetFrame::loadAsset(mAssetUpdateRequest.code, getSourceID(), db, &delta);
+	auto assetHelper = AssetHelper::Instance();
+	auto assetFrame = assetHelper->loadAsset(mAssetUpdateRequest.code, getSourceID(), db, &delta);
 	if (!assetFrame) {
 		innerResult().code(ManageAssetResultCode::ASSET_NOT_FOUND);
 		return false;
 	}
 
 	if (mManageAsset.requestID == 0) {
-		request->storeAdd(delta, db);
+		EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	}
 	else {
-		request->storeChange(delta, db);
+		EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
 	}
 
 	innerResult().code(ManageAssetResultCode::SUCCESS);

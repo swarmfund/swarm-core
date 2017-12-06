@@ -10,6 +10,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetFrame.h"
+#include "ledger/AssetHelper.h"
 #include "main/Application.h"
 
 namespace stellar
@@ -27,15 +28,17 @@ bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerD
 
 	auto assetCreationRequest = request->getRequestEntry().body.assetCreationRequest();
 	Database& db = ledgerManager.getDatabase();
-	auto isAssetExist = AssetFrame::exists(db, assetCreationRequest.code);
+
+	auto assetHelper = AssetHelper::Instance();
+	auto isAssetExist = assetHelper->exists(db, assetCreationRequest.code);
 	if (isAssetExist) {
 		innerResult().code(ReviewRequestResultCode::ASSET_ALREADY_EXISTS);
 		return false;
 	}
 
 	auto assetFrame = AssetFrame::create(assetCreationRequest, request->getRequestor());
-	assetFrame->storeAdd(delta, db);
-	request->storeDelete(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, assetFrame->mEntry);
+	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }

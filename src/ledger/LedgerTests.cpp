@@ -11,7 +11,9 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/EntryFrame.h"
+#include "ledger/EntryHelper.h"
 #include "ledger/AccountFrame.h"
+#include "ledger/AccountHelper.h"
 #include "util/Logging.h"
 #include "util/types.h"
 #include <xdrpp/autocheck.h>
@@ -31,14 +33,14 @@ TEST_CASE("Ledger entry db lifecycle", "[ledger]")
     for (size_t i = 0; i < 1000; ++i)
     {
         auto le =
-            EntryFrame::FromXDR(LedgerTestUtils::generateValidLedgerEntry(3));
-        CHECK(!EntryFrame::exists(db, le->getKey()));
-        le->storeAddOrChange(delta, db);
-        CHECK(EntryFrame::exists(db, le->getKey()));
-		CHECK(EntryFrame::storeLoad(le->getKey(), db));
-        le->storeDelete(delta, db);
-        CHECK(!EntryFrame::exists(db, le->getKey()));
-		CHECK(!EntryFrame::storeLoad(le->getKey(), db));
+            EntryHelperProvider::fromXDREntry(LedgerTestUtils::generateValidLedgerEntry(3));
+        CHECK(!EntryHelperProvider::existsEntry(db, le->getKey()));
+		EntryHelperProvider::storeAddOrChangeEntry(delta, db, le->mEntry);
+        CHECK(EntryHelperProvider::existsEntry(db, le->getKey()));
+		CHECK(EntryHelperProvider::storeLoadEntry(le->getKey(), db));
+		EntryHelperProvider::storeDeleteEntry(delta, db, le->getKey());
+        CHECK(!EntryHelperProvider::existsEntry(db, le->getKey()));
+		CHECK(!EntryHelperProvider::storeLoadEntry(le->getKey(), db));
     }
 }
 
@@ -58,9 +60,9 @@ TEST_CASE("single ledger entry insert SQL", "[singlesql][entrysql]")
     LedgerDelta delta(app->getLedgerManager().getCurrentLedgerHeader(),
                       app->getDatabase());
     auto& db = app->getDatabase();
-    auto le = EntryFrame::FromXDR(LedgerTestUtils::generateValidLedgerEntry(3));
+    auto le = EntryHelperProvider::fromXDREntry(LedgerTestUtils::generateValidLedgerEntry(3));
     auto ctx = db.captureAndLogSQL("ledger-insert");
-    le->storeAddOrChange(delta, db);
+	EntryHelperProvider::storeAddOrChangeEntry(delta, db, le->mEntry);
 }
 
 TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
@@ -82,7 +84,7 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
     EntryFrame::pointer le;
     do
     {
-        le = EntryFrame::FromXDR(LedgerTestUtils::generateValidLedgerEntry(3));
+        le = EntryHelperProvider::fromXDREntry(LedgerTestUtils::generateValidLedgerEntry(3));
     } while (le->mEntry.data.type() != LedgerEntryType::ACCOUNT);
 
     auto key = le->getKey();
@@ -91,12 +93,13 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
         LedgerDelta delta(app->getLedgerManager().getCurrentLedgerHeader(),
                           app->getDatabase());
         soci::transaction sqltx(session);
-        le->storeAddOrChange(delta, db);
+        EntryHelperProvider::storeAddOrChangeEntry(delta, db, le->mEntry);
         sqltx.commit();
     }
 
     // The write should have removed it from the cache.
-    REQUIRE(!EntryFrame::cachedEntryExists(key, db));
+	auto accountHelper = AccountHelper::Instance();
+    REQUIRE(!accountHelper->cachedEntryExists(key, db));
 
     AccountType accountType0, accountType1;
 
@@ -105,20 +108,20 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
         LedgerDelta delta(app->getLedgerManager().getCurrentLedgerHeader(),
                           app->getDatabase());
 
-        auto acc = AccountFrame::loadAccount(key.account().accountID, db);
-        REQUIRE(EntryFrame::cachedEntryExists(key, db));
+        auto acc = accountHelper->loadAccount(key.account().accountID, db);
+        REQUIRE(accountHelper->cachedEntryExists(key, db));
 
         accountType0 = acc->getAccount().accountType;
         acc->getAccount().accountType = AccountType::GENERAL;
         accountType1 = acc->getAccount().accountType;
 
-        acc->storeChange(delta, db);
+        EntryHelperProvider::storeChangeEntry(delta, db, acc->mEntry);
         // Write should flush cache, put balance1 in DB _pending commit_.
-        REQUIRE(!EntryFrame::cachedEntryExists(key, db));
+        REQUIRE(!accountHelper->cachedEntryExists(key, db));
 
-        acc = AccountFrame::loadAccount(key.account().accountID, db);
+        acc = accountHelper->loadAccount(key.account().accountID, db);
         // Read should have populated cache.
-        REQUIRE(EntryFrame::cachedEntryExists(key, db));
+        REQUIRE(accountHelper->cachedEntryExists(key, db));
 
         // Read-back value should be balance1
         REQUIRE(acc->getAccount().accountType == accountType1);
@@ -130,11 +133,11 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
     }
 
     // Rollback should have evicted changed value from cache.
-    CHECK(!EntryFrame::cachedEntryExists(key, db));
+    CHECK(!accountHelper->cachedEntryExists(key, db));
 
-    auto acc = AccountFrame::loadAccount(key.account().accountID, db);
+    auto acc = accountHelper->loadAccount(key.account().accountID, db);
     // Read should populate cache
-    CHECK(EntryFrame::cachedEntryExists(key, db));
+    CHECK(accountHelper->cachedEntryExists(key, db));
     LOG(INFO) << "cached accountType: " << static_cast<int32_t >(acc->getAccount().accountType);
 
     CHECK(accountType0 == acc->getAccount().accountType);

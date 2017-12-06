@@ -4,6 +4,7 @@
 
 #include "ManageAssetHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
 #include "ReviewAssetRequestHelper.h"
 
@@ -19,10 +20,10 @@ namespace txtest
 
 	ManageAssetResult ManageAssetHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
 	{
-
-		auto reviewableRequestCountBeforeTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
 		LedgerDelta& delta = mTestManager->getLedgerDelta();
-		auto requestBeforeTx = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getLedgerManager().getDatabase(), &delta);
+		auto requestBeforeTx = reviewableRequestHelper->loadRequest(requestID, mTestManager->getLedgerManager().getDatabase(), &delta);
 		auto txFrame = createManageAssetTx(source, requestID, request);
 
 		mTestManager->applyCheck(txFrame);
@@ -31,7 +32,7 @@ namespace txtest
 		auto actualResultCode = ManageAssetOpFrame::getInnerCode(opResult);
 		REQUIRE(actualResultCode == expectedResult);
 
-		uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+		uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
 		if (expectedResult != ManageAssetResultCode::SUCCESS)
 		{
 			REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
@@ -44,7 +45,7 @@ namespace txtest
 		}
 
 		auto manageAssetResult = opResult.tr().manageAssetResult();
-		auto requestAfterTx = ReviewableRequestFrame::loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
+		auto requestAfterTx = reviewableRequestHelper->loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
 		if (request.action() == ManageAssetAction::CANCEL_ASSET_REQUEST) {
 			REQUIRE(!requestAfterTx);
 			return manageAssetResult;
@@ -116,7 +117,8 @@ namespace txtest
 			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0);
 		auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 		LedgerDelta& delta = mTestManager->getLedgerDelta();
-		auto approvingRequest = ReviewableRequestFrame::loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto approvingRequest = reviewableRequestHelper->loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
 		REQUIRE(approvingRequest);
 		auto reviewRequetHelper = ReviewAssetRequestHelper(mTestManager);
 		reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),

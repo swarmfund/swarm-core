@@ -9,6 +9,7 @@
 #include "lib/catch.hpp"
 #include "util/Logging.h"
 #include "AccountFrame.h"
+#include "AccountHelper.h"
 #include "LedgerDelta.h"
 #include "xdrpp/marshal.h"
 #include "xdrpp/autocheck.h"
@@ -33,6 +34,8 @@ TEST_CASE("Ledger Entry tests", "[ledgerentry]")
     app->start();
     Database& db = app->getDatabase();
 
+	auto accountHelper = AccountHelper::Instance();
+
     SECTION("round trip with database")
     {
         std::vector<LedgerEntry> accounts(100);
@@ -54,8 +57,8 @@ TEST_CASE("Ledger Entry tests", "[ledgerentry]")
         for (auto const& l : accountsMap)
         {
             AccountFrame::pointer af = std::make_shared<AccountFrame>(l.second);
-            af->storeAdd(delta, db);
-            auto fromDb = AccountFrame::loadAccount(af->getID(), db);
+            EntryHelperProvider::storeAddEntry(delta, db, af->mEntry);
+            auto fromDb = accountHelper->loadAccount(af->getID(), db);
             REQUIRE(af->getAccount() == fromDb->getAccount());
         }
         app->getLedgerManager().checkDbState();
@@ -71,8 +74,8 @@ TEST_CASE("Ledger Entry tests", "[ledgerentry]")
             newA.accountID = l.first;
 
             AccountFrame::pointer af = std::make_shared<AccountFrame>(l.second);
-            af->storeChange(delta, db);
-            auto fromDb = AccountFrame::loadAccount(af->getID(), db);
+            EntryHelperProvider::storeChangeEntry(delta, db, af->mEntry);
+            auto fromDb = accountHelper->loadAccount(af->getID(), db);
             REQUIRE(af->getAccount() == fromDb->getAccount());
         }
         app->getLedgerManager().checkDbState();
@@ -88,8 +91,8 @@ TEST_CASE("Ledger Entry tests", "[ledgerentry]")
 
 				AccountFrame::pointer af =
 					std::make_shared<AccountFrame>(l.second);
-				af->storeChange(delta, db);
-				auto fromDb = AccountFrame::loadAccount(af->getID(), db);
+				EntryHelperProvider::storeChangeEntry(delta, db, af->mEntry);
+				auto fromDb = accountHelper->loadAccount(af->getID(), db);
 				REQUIRE(af->getAccount() == fromDb->getAccount());
 			}
 		};
@@ -99,11 +102,11 @@ TEST_CASE("Ledger Entry tests", "[ledgerentry]")
         for (auto const& l : accountsMap)
         {
             AccountFrame::pointer af = std::make_shared<AccountFrame>(l.second);
-            REQUIRE(AccountFrame::loadAccount(af->getID(), db) != nullptr);
-            REQUIRE(AccountFrame::exists(db, af->getKey()));
-            af->storeDelete(delta, db);
-            REQUIRE(AccountFrame::loadAccount(af->getID(), db) == nullptr);
-            REQUIRE(!AccountFrame::exists(db, af->getKey()));
+            REQUIRE(accountHelper->loadAccount(af->getID(), db) != nullptr);
+            REQUIRE(accountHelper->exists(db, af->getKey()));
+            EntryHelperProvider::storeDeleteEntry(delta, db, af->getKey());
+            REQUIRE(accountHelper->loadAccount(af->getID(), db) == nullptr);
+            REQUIRE(!accountHelper->exists(db, af->getKey()));
         }
 
         app->getLedgerManager().checkDbState();

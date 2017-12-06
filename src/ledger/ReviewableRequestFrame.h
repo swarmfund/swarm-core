@@ -46,11 +46,11 @@ class ReviewableRequestFrame : public EntryFrame
 		mRequest.body = body;
 	}
 
-	AccountID getRequestor() const {
+	AccountID& getRequestor() const {
 		return mRequest.requestor;
 	}
 
-	AccountID getReviewer() {
+	AccountID& getReviewer() {
 		return mRequest.reviewer;
 	}
 
@@ -109,14 +109,6 @@ class ReviewableRequestFrame : public EntryFrame
         
     static bool isValid(ReviewableRequestEntry const& oe);
     bool isValid() const;
-
-    // database utilities
-	// loadRequest - loads request by it's id. If not found returns nullptr.
-    static pointer loadRequest(uint64 requestID, Database& db, LedgerDelta* delta = nullptr);
-	// loadRequest - loads request by it's id and requestor, if not found returns nullptr.
-	static pointer loadRequest(uint64 requestID, AccountID requestor, Database& db, LedgerDelta* delta = nullptr);
-	// loadRequest - loads request by it's id, requestor and request type, if not found returns nullptr.
-	static pointer loadRequest(uint64 requestID, AccountID requestor, ReviewableRequestType requestType, Database& db, LedgerDelta* delta = nullptr);
 
 };
 }

@@ -8,6 +8,9 @@
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/FeeHelper.h"
 
 namespace stellar
 {
@@ -41,7 +44,8 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     Database& db = ledgerManager.getDatabase();
 	innerResult().code(ManageForfeitRequestResultCode::SUCCESS);
 
-    auto balance = BalanceFrame::loadBalance(mManageForfeitRequest.balance, db);
+	auto balanceHelper = BalanceHelper::Instance();
+    auto balance = balanceHelper->loadBalance(mManageForfeitRequest.balance, db);
 
     if (!balance || !(balance->getAccountID() == mSourceAccount->getID()) )
     {
@@ -52,7 +56,8 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     }
 
 	auto requestReviewerID = mManageForfeitRequest.reviewer;
-    auto reviewer = AccountFrame::loadAccount(requestReviewerID, db, &delta);
+	auto accountHelper = AccountHelper::Instance();
+    auto reviewer = accountHelper->loadAccount(requestReviewerID, db, &delta);
     if (!reviewer)
     {
         app.getMetrics().NewMeter({ "op-manage-forfeit-request", "invalid", "request-reviewer-not-found" },
@@ -77,7 +82,7 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     }
 
 	int64 universalAmount;
-	auto account = AccountFrame::loadAccount(delta, balance->getAccountID(), db);
+	auto account = accountHelper->loadAccount(delta, balance->getAccountID(), db);
     auto transferResult = accountManager.processTransfer(account, balance,
         amountToCharge, universalAmount, true);
 
@@ -88,7 +93,7 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
             universalAmount,
             nullptr, mManageForfeitRequest.amount, delta, db, ledgerManager.getCloseTime());
 
-    balance->storeChange(delta, db);
+    EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
 
     innerResult().success().paymentID = paymentID;
     app.getMetrics().NewMeter({ "op-manage-forfeit-request", "success", "apply" },
@@ -105,7 +110,8 @@ ManageForfeitRequestOpFrame::calculateFee(Database &db, AssetCode asset, int64_t
         return 0;
     }
 
-    auto feeFrame = FeeFrame::loadForAccount(FeeType::FORFEIT_FEE, asset, FeeFrame::SUBTYPE_ANY, mSourceAccount, amount, db);
+	auto feeHelper = FeeHelper::Instance();
+    auto feeFrame = feeHelper->loadForAccount(FeeType::FORFEIT_FEE, asset, FeeFrame::SUBTYPE_ANY, mSourceAccount, amount, db);
     if (!feeFrame)
     {
         return 0;

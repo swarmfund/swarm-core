@@ -139,7 +139,10 @@ namespace stellar {
         trust.balanceToUse = BalanceKeyUtils::fromStrKey(balIDStrKey);
 
         assert(res->isValid());
-        putCachedEntry(key, &trust, db);
+		res->clearCached();
+
+		auto pEntry = std::make_shared<LedgerEntry>(res->mEntry);
+		putCachedEntry(key, pEntry, db);
         return res;
     }
 
@@ -161,4 +164,65 @@ namespace stellar {
 
         return total;
     }
+
+	void TrustHelper::storeUpdateHelper(LedgerDelta & delta, Database & db, bool insert, LedgerEntry const & entry)
+	{
+		auto trustFrame = std::make_shared<TrustFrame>(entry);
+
+		bool isValid = trustFrame->isValid();
+		assert(isValid);
+
+		trustFrame->touch(delta);
+
+		auto key = trustFrame->getKey();
+		flushCachedEntry(key, db);
+
+		std::string actIDStrKey = PubKeyUtils::toStrKey(trustFrame->getAllowedAccount());
+		std::string balIDStrKey = BalanceKeyUtils::toStrKey(trustFrame->getBalanceToUse());
+		std::string sql;
+
+		if (insert)
+		{
+			sql = std::string(
+				"INSERT INTO trusts (allowed_account, balance_to_use, "
+				"lastmodified, version) "
+				"VALUES ( :id, :v2, :v3, :v4)");
+		}
+		else
+		{
+			sql = std::string(
+				"UPDATE trusts "
+				"SET    lastmodified=:v3 "
+				"WHERE  allowed_account=:id AND balance_to_use=:v2");
+		}
+
+		auto prep = db.getPreparedStatement(sql);
+
+		{
+			soci::statement& st = prep.statement();
+			st.exchange(use(actIDStrKey, "id"));
+			st.exchange(use(balIDStrKey, "v2"));
+			st.exchange(use(trustFrame->getLastModified(), "v3"));
+			st.define_and_bind();
+			{
+				auto timer = insert ? db.getInsertTimer("trusts")
+					: db.getUpdateTimer("trusts");
+				st.execute(true);
+			}
+
+			if (st.get_affected_rows() != 1)
+			{
+				throw std::runtime_error("Could not update data in SQL");
+			}
+			if (insert)
+			{
+				delta.addEntry(*trustFrame);
+			}
+			else
+			{
+				delta.modEntry(*trustFrame);
+			}
+		}
+
+	}
 }

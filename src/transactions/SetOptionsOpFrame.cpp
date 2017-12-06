@@ -4,6 +4,8 @@
 
 #include "transactions/SetOptionsOpFrame.h"
 #include "ledger/TrustFrame.h"
+#include "ledger/TrustHelper.h"
+#include "ledger/BalanceHelper.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -66,7 +68,7 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 			it++;
 		}
 
-		mSourceAccount->setUpdateSigners();
+		mSourceAccount->setUpdateSigners(true);
 		return true;
 	}
 
@@ -78,7 +80,7 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 		if (signers[i].pubKey == mSetOptions.signer->pubKey)
 		{
 			signers[i] = *mSetOptions.signer;
-			mSourceAccount->setUpdateSigners();
+			mSourceAccount->setUpdateSigners(true);
 			return true;
 		}
 	}
@@ -95,7 +97,7 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 	}
 	signers.push_back(*mSetOptions.signer);
 
-	mSourceAccount->setUpdateSigners();
+	mSourceAccount->setUpdateSigners(true);
 	return true;
 }
 
@@ -137,7 +139,8 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (mSetOptions.trustData)
     {
         auto trust = mSetOptions.trustData->trust;
-        auto balanceFrame = BalanceFrame::loadBalance(trust.balanceToUse, db);
+		auto balanceHelper = BalanceHelper::Instance();
+        auto balanceFrame = balanceHelper->loadBalance(trust.balanceToUse, db);
         if (!balanceFrame || !(balanceFrame->getAccountID() == getSourceID()))
         {
             app.getMetrics().NewMeter({"op-set-options", "failure",
@@ -147,9 +150,11 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
             return false;
         }        
 
+		auto trustHelper = TrustHelper::Instance();
+
         if (mSetOptions.trustData->action == ManageTrustAction::TRUST_ADD)
         {
-			auto trustLines = TrustFrame::countForBalance(db, trust.balanceToUse);
+			auto trustLines = trustHelper->countForBalance(db, trust.balanceToUse);
 			// TODO move to config
 			if (trustLines > 20)
 			{
@@ -162,20 +167,20 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
             auto trustFrame = TrustFrame::createNew(
                 trust.allowedAccount, trust.balanceToUse);
-            trustFrame->storeAdd(delta, db);
+            EntryHelperProvider::storeAddEntry(delta, db, trustFrame->mEntry);
         }
         else if (mSetOptions.trustData->action == ManageTrustAction::TRUST_REMOVE)
         {
-            auto trustFrame = TrustFrame::loadTrust(trust.allowedAccount,
+            auto trustFrame = trustHelper->loadTrust(trust.allowedAccount,
                 trust.balanceToUse, db);
-            trustFrame->storeDelete(delta, db);
+            EntryHelperProvider::storeDeleteEntry(delta, db, trustFrame->getKey());
         }
     }
 
     app.getMetrics().NewMeter({"op-set-options", "success", "apply"}, "operation")
         .Mark();
     innerResult().code(SetOptionsResultCode::SUCCESS);
-    mSourceAccount->storeChange(delta, db);
+    EntryHelperProvider::storeChangeEntry(delta, db, mSourceAccount->mEntry);
     return true;
 }
 

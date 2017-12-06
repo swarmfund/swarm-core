@@ -56,7 +56,7 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 {
 	Database& db = ledgerManager.getDatabase();
     if (mManageAsset.requestID == 0 && ReviewableRequestFrame::exists(db, getSourceID(), mAssetCreationRequest.code)) {
-        innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
+        innerResult().code(ManageAssetResultCode::REQUEST_ALREADY_EXISTS);
         return false;
     }
 
@@ -134,6 +134,6 @@ string CreateAssetOpFrame::getAssetCode() const
 bool CreateAssetOpFrame::checkAssetPolicy(AssetPolicy policy) const
 {
     uint32 assetPolicy = static_cast<uint32>(policy);
-    return (mAssetCreationRequest.policies && assetPolicy) == assetPolicy;
+    return (mAssetCreationRequest.policies & assetPolicy) == assetPolicy;
 }
 }

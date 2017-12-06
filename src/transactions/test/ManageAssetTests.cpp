@@ -29,9 +29,11 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
 
     auto root = Account{getRoot(), Salt(0)};
 
-    SECTION("Root happy path")
+    SECTION("Syndicate happy path")
     {
-        testManageAssetHappyPath(testManager, root, root);
+        auto syndicate = Account{SecretKey::random(), Salt(0)};
+        applyCreateAccountTx(app, root.key, syndicate.key, 0, AccountType::SYNDICATE);
+        testManageAssetHappyPath(testManager, syndicate, root);
     }
     SECTION("Cancel asset request")
     {
@@ -123,7 +125,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             manageAssetHelper.applyManageAssetTx(root, 0, request);
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
-                                                 REQUEST_ALREADY_EXISTS);
+                                                 ASSET_ALREADY_EXISTS);
         }
         SECTION("Trying to create asset which is already exist")
         {
@@ -172,8 +174,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             applyCreateAccountTx(testManager->getApp(), root.key, syndicate.key,
                                  0, AccountType::SYNDICATE);
             const AssetCode assetCode = "BTC";
-            manageAssetHelper.createAsset(syndicate, syndicate.key, assetCode,
-                                          root);
+            manageAssetHelper.createAsset(syndicate, syndicate.key, assetCode, root);
             // try to update with root
             const auto request = manageAssetHelper.
                 createAssetUpdateRequest(assetCode, "Long desciption'as'd.", "",

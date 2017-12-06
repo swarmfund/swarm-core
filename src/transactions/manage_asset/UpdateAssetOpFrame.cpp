@@ -53,6 +53,13 @@ UpdateAssetOpFrame::UpdateAssetOpFrame(Operation const & op, OperationResult & r
 bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager)
 {
 	Database& db = ledgerManager.getDatabase();
+
+    auto request = getUpdatedOrCreateReviewableRequest(app, db, delta);
+    if (!request) {
+        innerResult().code(ManageAssetResultCode::REQUEST_NOT_FOUND);
+        return false;
+    }
+
     auto assetFrame = AssetFrame::loadAsset(mAssetUpdateRequest.code, getSourceID(), db, &delta);
     if (!assetFrame) {
         innerResult().code(ManageAssetResultCode::ASSET_NOT_FOUND);
@@ -63,7 +70,7 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
     if (isStats) {
         auto statsAssetFrame = AssetFrame::loadStatsAsset(db);
         if (statsAssetFrame && mAssetUpdateRequest.code != statsAssetFrame->getCode()) {
-            innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
+            innerResult().code(ManageAssetResultCode::STATS_ASSET_ALREADY_EXISTS);
             return false;
         }
     }
@@ -78,12 +85,6 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
         innerResult().code(ManageAssetResultCode::NO_PERMISSIONS);
         return false;
     }
-
-	auto request = getUpdatedOrCreateReviewableRequest(app, db, delta);
-	if (!request) {
-        innerResult().code(ManageAssetResultCode::ASSET_NOT_FOUND);
-		return false;
-	}
 
 	if (mManageAsset.requestID == 0) {
 		request->storeAdd(delta, db);
@@ -132,6 +133,6 @@ string UpdateAssetOpFrame::getAssetCode() const
 bool UpdateAssetOpFrame::checkAssetPolicy(AssetPolicy policy) const
 {
     uint32 assetPolicy = static_cast<uint32>(policy);
-    return (mAssetUpdateRequest.policies && assetPolicy) == assetPolicy;
+    return (mAssetUpdateRequest.policies & assetPolicy) == assetPolicy;
 }
 }

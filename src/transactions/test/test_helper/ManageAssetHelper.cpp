@@ -112,18 +112,32 @@ namespace txtest
 		request.action(ManageAssetAction::CANCEL_ASSET_REQUEST);
 		return request;
 	}
-	void ManageAssetHelper::createAsset(Account & assetOwner, SecretKey & preIssuedSigner, AssetCode assetCode, Account & root)
+	void ManageAssetHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root)
 	{
-		auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(), 
+		auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
 			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0);
-		auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
-		LedgerDelta& delta = mTestManager->getLedgerDelta();
-		auto approvingRequest = ReviewableRequestFrame::loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
+        auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
+        auto assetOwnerFrame = AccountFrame::loadAccount(assetOwner.key.getPublicKey(), mTestManager->getDB());
+        if (assetOwnerFrame->getAccountType() == AccountType::MASTER) {
+            auto createdAsset = AssetFrame::loadAsset(assetCode, mTestManager->getDB());
+            REQUIRE(createdAsset);
+            return;
+        }
+        LedgerDelta& delta = mTestManager->getLedgerDelta();
+        auto approvingRequest = ReviewableRequestFrame::loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
 		REQUIRE(approvingRequest);
 		auto reviewRequetHelper = ReviewAssetRequestHelper(mTestManager);
 		reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
 			ReviewRequestOpAction::APPROVE, "");
 	}
+
+    void ManageAssetHelper::createBaseAsset(Account &root, SecretKey &preIssuedSigner, AssetCode assetCode)
+    {
+        uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
+        auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
+              "Description can be quiete long", "https://testusd.usd", UINT64_MAX, baseAssetPolicy);
+        auto creationResult = applyManageAssetTx(root, 0, creationRequest);
+    }
 }
 
 }

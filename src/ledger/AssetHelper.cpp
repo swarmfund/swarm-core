@@ -63,7 +63,7 @@ namespace stellar
 		string preissuedAssetSigner = PubKeyUtils::toStrKey(assetFrame->getPreIssuedAssetSigner());
 		string desc = assetFrame->getAsset().description;
 		string externalLink = assetFrame->getAsset().externalResourceLink;
-		int32_t assetVersion = static_cast<int32_t>(assetFrame->getAsset().ext.v());
+		auto assetVersion = static_cast<int32_t>(assetFrame->getAsset().ext.v());
 
 		string sql;
 

@@ -10,6 +10,7 @@
 #include "TxTests.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/ExternalSystemAccountID.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -35,6 +36,23 @@ TEST_CASE("create account", "[tx][create_account]")
     SecretKey rootKP = getRoot();
 	Salt rootSeq = 1;
 
+        SECTION("External system account id are generated")
+        {
+            auto randomAccount = SecretKey::random();
+            applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::NOT_VERIFIED);
+            const auto btcKey = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
+            REQUIRE(!!btcKey);
+            const auto ethKey = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
+            REQUIRE(!!ethKey);
+            SECTION("Can update account, but ext keys will be the same")
+            {
+                applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::GENERAL);
+                const auto btcKeyAfterUpdate = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
+                REQUIRE(btcKey->getExternalSystemAccountID() == btcKeyAfterUpdate->getExternalSystemAccountID());
+                const auto ethKeyAfterUpdate = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
+                REQUIRE(ethKey->getExternalSystemAccountID() == ethKeyAfterUpdate->getExternalSystemAccountID());
+            }
+        }
 	SECTION("Can't create system account")
 	{
 		for (auto systemAccountType : getSystemAccountTypes())

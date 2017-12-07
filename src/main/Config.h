@@ -141,7 +141,6 @@ class Config : public std::enable_shared_from_this<Config>
 	PublicKey commissionID; // account id of commission account
 	PublicKey operationalID; // account id of operational account
 
-    std::vector<PublicKey> ISSUANCE_KEYS;
     std::string BASE_EXCHANGE_NAME;
     int64 TX_EXPIRATION_PERIOD;
     int64 TX_EXPIRATION_PERIOD_WINDOW = 60*60;
@@ -205,6 +204,9 @@ class Config : public std::enable_shared_from_this<Config>
 
     std::string NTP_SERVER; // ntp server used to check if time is valid on host
 
+    std::vector<std::string> BTC_ADDRESSES;
+    std::vector<std::string> ETH_ADDRESSES;
+
     Config();
 
     void load(std::string const& filename);
@@ -217,5 +219,7 @@ class Config : public std::enable_shared_from_this<Config>
 	std::vector<PublicKey> getSystemAccounts() const {
 		return{ masterID, commissionID, operationalID };
 	}
+
+    static std::vector<std::string> readStrVector(std::string name, std::shared_ptr<cpptoml::toml_base> values);
 };
 }

@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "Marshaler.h"
+#include "util/types.h"
 
 
 namespace soci
@@ -52,8 +53,22 @@ namespace soci
 		result = *raw;
 	}
 
+void type_conversion<longstring>::from_base(
+    std::string rawStr, indicator ind, longstring& result)
+{
+    ind = i_ok;
+    result = rawStr;
+}
 
-	void type_conversion<string64>::from_base(std::string rawStr, indicator ind, string64 & result) {
+void type_conversion<longstring>::to_base(
+    const longstring& raw, std::string& result, indicator& ind)
+{
+    ind = i_ok;
+    result = raw;
+}
+
+
+void type_conversion<string64>::from_base(std::string rawStr, indicator ind, string64 & result) {
 		switch (ind) {
 		case soci::i_ok:
 		{
@@ -88,4 +103,18 @@ namespace soci
         ind = i_ok;
         result = number;
     }
+
+void type_conversion<ExternalSystemType, void>::from_base(int32_t number,
+    indicator ind, ExternalSystemType& result)
+{
+    result = static_cast<ExternalSystemType>(number);
+    ind = i_ok;
+}
+
+void type_conversion<ExternalSystemType, void>::to_base(
+    ExternalSystemType& number, int32_t& result, indicator& ind)
+{
+    result = static_cast<int32_t>(number);
+    ind = i_ok;
+}
 }

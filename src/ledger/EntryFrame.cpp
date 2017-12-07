@@ -19,6 +19,7 @@
 #include "ledger/OfferFrame.h"
 #include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ExternalSystemAccountID.h"
 #include "xdrpp/printer.h"
 #include "xdrpp/marshal.h"
 #include "crypto/Hex.h"
@@ -74,6 +75,9 @@ namespace stellar {
             case LedgerEntryType::REVIEWABLE_REQUEST:
 				res = std::make_shared<ReviewableRequestFrame>(from);
 				break;
+            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID:
+                res = std::make_shared<ExternalSystemAccountIDFrame>(from);
+                break;
             default:
                 CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on construct: " << static_cast<int32_t>(from.data.type());
                 throw std::runtime_error("Unexpected entry type on costruct");
@@ -167,6 +171,13 @@ namespace stellar {
 					ReviewableRequestFrame::loadRequest(request.requestID, db));
 				break;
 			}
+            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID:
+                {
+                auto const& exSysAccountID = key.externalSystemAccountID();
+                    res = std::static_pointer_cast<EntryFrame>(
+                        ExternalSystemAccountIDFrame::load(exSysAccountID.accountID, exSysAccountID.externalSystemType, db));
+                    break;
+                }
             default: {
                 CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on load: " << static_cast<int32_t>(key.type());
                 throw std::runtime_error("Unexpected entry type on load");
@@ -306,6 +317,8 @@ namespace stellar {
                 return InvoiceFrame::exists(db, key);
             case LedgerEntryType::REVIEWABLE_REQUEST:
 				return ReviewableRequestFrame::exists(db, key);
+            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID:
+                return ExternalSystemAccountIDFrame::exists(db, key);
             default: {
                 CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on exists: " << static_cast<int32_t>(key.type());
                 throw std::runtime_error("Unexpected entry type on exists");
@@ -358,6 +371,9 @@ namespace stellar {
             case LedgerEntryType::REVIEWABLE_REQUEST:
 				ReviewableRequestFrame::storeDelete(delta, db, key);
 				break;
+            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID:
+                ExternalSystemAccountIDFrame::storeDelete(delta, db, key);
+                break;
             default: {
                 CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on delete: " << static_cast<int32_t>(key.type());
                 throw std::runtime_error("Unexpected entry type on delete");
@@ -433,6 +449,11 @@ namespace stellar {
 				k.type(LedgerEntryType::REVIEWABLE_REQUEST);
 				k.reviewableRequest().requestID = d.reviewableRequest().requestID;
 				break;
+            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID:
+                k.type(LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID);
+                k.externalSystemAccountID().accountID = d.externalSystemAccountID().accountID;
+                k.externalSystemAccountID().externalSystemType = d.externalSystemAccountID().externalSystemType;
+                break;
             default:
                 CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected entry type on key create: " << static_cast<int32_t>(d.type());
                 throw std::runtime_error("Unexpected ledger entry type");

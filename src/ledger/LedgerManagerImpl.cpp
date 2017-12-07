@@ -168,12 +168,6 @@ LedgerManagerImpl::startNewLedger()
     genesisHeader.baseReserve = 0;
     genesisHeader.maxTxSetSize = 100; // 100 tx/ledger max
     genesisHeader.ledgerSeq = 1;
-
-	auto issuanceKeys = mApp.getConfig().ISSUANCE_KEYS;
-	for (int i = 0; i < issuanceKeys.size(); i++)
-	{
-		genesisHeader.issuanceKeys.push_back(issuanceKeys[i]);
-	}
    
     genesisHeader.txExpirationPeriod = mApp.getConfig().TX_EXPIRATION_PERIOD;
 
@@ -789,8 +783,8 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const& ledgerData)
         case LedgerUpgradeType::MAX_TX_SET_SIZE:
             ledgerDelta.getHeader().maxTxSetSize = lupgrade.newMaxTxSetSize();
             break;
-        case LedgerUpgradeType::ISSUANCE_KEYS:
-            ledgerDelta.getHeader().issuanceKeys = lupgrade.newIssuanceKeys();
+        case LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR:
+            ledgerDelta.getHeader().externalSystemIDGenerators = lupgrade.newExternalSystemIDGenerators();
             break;
         case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
             ledgerDelta.getHeader().txExpirationPeriod = lupgrade.newTxExpirationPeriod();

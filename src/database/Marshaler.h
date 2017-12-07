@@ -32,6 +32,16 @@ namespace soci
 		static void to_base(const xdr::pointer<string64>& raw, std::string & result, indicator & ind);
 	};
 
+        template <>
+        struct type_conversion<longstring>
+        {
+            typedef std::string base_type;
+
+            static void from_base(std::string rawStr, indicator ind, longstring & result);
+
+            static void to_base(const longstring& raw, std::string & result, indicator & ind);
+        };
+
 	template <>
 	struct type_conversion<string64>
 	{
@@ -51,5 +61,15 @@ namespace soci
 
         static void to_base(const stellar::uint64& number, unsigned long long int& result, indicator& ind);
 	};
+
+        template <>
+        struct type_conversion<ExternalSystemType >
+        {
+            typedef int32_t base_type;
+
+            static void from_base(int32_t number, indicator ind, ExternalSystemType& result);
+
+            static void to_base(ExternalSystemType& number,int32_t& result, indicator& ind);
+        };
 
 }

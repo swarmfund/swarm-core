@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AssetFrame.h>
 #include "transactions/AccountManager.h"
 #include "main/Application.h"
 #include "ledger/AssetPairFrame.h"
@@ -45,7 +46,13 @@ namespace stellar
                 return UNDERFUNDED;
         }
 
-        auto assetPairFrame = AssetPairFrame::mustLoadAssetPair(balance->getAsset(), mApp.getStatsQuoteAsset(), mDb, &mDelta);
+        auto statsAssetFrame = AssetFrame::loadStatsAsset(mDb);
+        if (!statsAssetFrame)
+            return SUCCESS;
+
+        auto assetPairFrame = AssetPairFrame::loadAssetPair(balance->getAsset(), mApp.getStatsQuoteAsset(), mDb, &mDelta);
+        if (!assetPairFrame)
+            return SUCCESS;
 
         if (!bigDivide(universalAmount, amount, assetPairFrame->getCurrentPrice(),
             ONE, ROUND_UP))

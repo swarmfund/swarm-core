@@ -5,7 +5,7 @@
 #include "transactions/CreateAccountOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
-
+#include "exsysidgen/ExternalSystemIDGenerators.h"
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
@@ -118,9 +118,21 @@ bool CreateAccountOpFrame::isAllowedToUpdateAccountType(
            mCreateAccount.accountType == AccountType::GENERAL;
 }
 
+void CreateAccountOpFrame::storeExternalSystemsIDs(Application& app,
+    LedgerDelta& delta, Database& db, const AccountFrame::pointer account)
+{
+    auto generator = ExternalSystemIDGenerators(app, delta, db);
+    auto newIDs = generator.generateNewIDs(account->getID());
+    for (auto newID : newIDs)
+    {
+        newID->storeAdd(delta, db);
+        innerResult().success().externalSystemIDs.push_back(newID->getExternalSystemAccountID());
+    }
+}
+
 
 bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
-                                         LedgerManager& ledgerManager) const
+                                         LedgerManager& ledgerManager)
 {
     auto& db = app.getDatabase();
     auto destAccountFrame = make_shared<AccountFrame>(mCreateAccount.destination);
@@ -131,6 +143,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
     destAccount.policies = mCreateAccount.policies;
 
     destAccountFrame->storeAdd(delta, db);
+    storeExternalSystemsIDs(app, delta, db, destAccountFrame);
 
     AccountManager accountManager(app, db, delta, ledgerManager);
     accountManager.createStats(destAccountFrame);
@@ -196,6 +209,7 @@ CreateAccountOpFrame::doApply(Application& app,
     accountEntry.policies = mCreateAccount.policies;
 
     destAccountFrame->storeChange(delta, db);
+    storeExternalSystemsIDs(app, delta, db, destAccountFrame);
 
     innerResult().success().referrerFee = destAccountFrame->
         getShareForReferrer();

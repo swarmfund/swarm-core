@@ -50,8 +50,8 @@ stellarValueToString(StellarValue const& sv)
                 case LedgerUpgradeType::MAX_TX_SET_SIZE:
                     res << "MAX_TX_SET_SIZE=" << lupgrade.newMaxTxSetSize();
                     break;
-                case LedgerUpgradeType::ISSUANCE_KEYS:
-                    res << "ISSUANCE_KEYS=" << lupgrade.newIssuanceKeys().size();
+                case LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR:
+                    res << "EXTERNAL_SYSTEM_ID_GENERATOR=" << lupgrade.newExternalSystemIDGenerators().size();
                     break;
                 case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
                     res << "TX_EXPIRATION_PERIOD=" << lupgrade.newTxExpirationPeriod();

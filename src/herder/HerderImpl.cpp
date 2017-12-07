@@ -313,10 +313,10 @@ HerderImpl::validateUpgradeStep(uint64 slotIndex, UpgradeType const& upgrade,
               (newMax <= mApp.getConfig().DESIRED_MAX_TX_PER_LEDGER * 13 / 10);
         break;
     }
-    case LedgerUpgradeType::ISSUANCE_KEYS:
+    case LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR:
     {
-        auto newKeys = lupgrade.newIssuanceKeys();
-        res = (newKeys == mApp.getConfig().ISSUANCE_KEYS);
+        auto newGenerators = lupgrade.newExternalSystemIDGenerators();
+        res = mApp.areAllExternalSystemGeneratorsAvailable(newGenerators);
         break;
     }
     case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
@@ -718,13 +718,12 @@ HerderImpl::combineCandidates(uint64 slotIndex,
                             lupgrade.newMaxTxSetSize();
                     }
                     break;
-                case LedgerUpgradeType::ISSUANCE_KEYS:
-                    // take the max tx set size
-                    if (!(clUpgrade.newIssuanceKeys() ==
-                        lupgrade.newIssuanceKeys()))
+                case LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR:
+                    if (!(clUpgrade.newExternalSystemIDGenerators() ==
+                        lupgrade.newExternalSystemIDGenerators()))
                     {
-                        clUpgrade.newIssuanceKeys() =
-                            lupgrade.newIssuanceKeys();
+                        clUpgrade.newExternalSystemIDGenerators() =
+                            lupgrade.newExternalSystemIDGenerators();
                     }
                     break;
                 case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
@@ -1354,14 +1353,14 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger)
     std::vector<LedgerUpgrade> upgrades;
 
     // see if we need to include some upgrades
-    auto issuanceKeys = mApp.getConfig().ISSUANCE_KEYS;
-    if (lcl.header.issuanceKeys != mApp.getConfig().ISSUANCE_KEYS)
+    xdr::xvector<ExternalSystemIDGeneratorType> generators;
+    auto avaialbeGenerators = mApp.getAvailableExternalSystemGenerator();
+    copy(avaialbeGenerators.begin(), avaialbeGenerators.end(), back_inserter(generators));
+    sort(generators.begin(), generators.end());
+    if (lcl.header.externalSystemIDGenerators != generators)
     {
-        upgrades.emplace_back(LedgerUpgradeType::ISSUANCE_KEYS);
-        for (int i = 0; i < mApp.getConfig().ISSUANCE_KEYS.size(); i++)
-        {
-            upgrades.back().newIssuanceKeys().push_back(mApp.getConfig().ISSUANCE_KEYS[i]);
-        }
+        upgrades.emplace_back(LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR);
+        upgrades.back().newExternalSystemIDGenerators() = generators;
     }
 
     if (lcl.header.txExpirationPeriod != mApp.getConfig().TX_EXPIRATION_PERIOD)

@@ -168,6 +168,10 @@
     <ClCompile Include="..\..\src\database\Database.cpp" />
     <ClCompile Include="..\..\src\database\DatabaseTests.cpp" />
     <ClCompile Include="..\..\src\database\Marshaler.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\BTCIDGenerator.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\ETHIDGenerator.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\ExternalSystemIDGenerators.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\Generator.cpp" />
     <ClCompile Include="..\..\src\herder\Herder.cpp" />
     <ClCompile Include="..\..\src\herder\HerderImpl.cpp" />
     <ClCompile Include="..\..\src\herder\HerderTests.cpp" />
@@ -192,6 +196,7 @@
     <ClCompile Include="..\..\src\ledger\AssetFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\AssetPairFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\BalanceFrame.cpp" />
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountID.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\InvoiceFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\LedgerDelta.cpp" />
@@ -398,6 +403,10 @@
     <ClInclude Include="..\..\src\crypto\StrKey.h" />
     <ClInclude Include="..\..\src\database\Database.h" />
     <ClInclude Include="..\..\src\database\Marshaler.h" />
+    <ClInclude Include="..\..\src\exsysidgen\BTCIDGenerator.h" />
+    <ClInclude Include="..\..\src\exsysidgen\ETHIDGenerator.h" />
+    <ClInclude Include="..\..\src\exsysidgen\ExternalSystemIDGenerators.h" />
+    <ClInclude Include="..\..\src\exsysidgen\Generator.h" />
     <ClInclude Include="..\..\src\history\HistoryWork.h" />
     <ClInclude Include="..\..\src\history\InferredQuorum.h" />
     <ClInclude Include="..\..\src\history\StateSnapshot.h" />
@@ -410,6 +419,7 @@
     <ClInclude Include="..\..\src\ledger\AssetFrame.h" />
     <ClInclude Include="..\..\src\ledger\AssetPairFrame.h" />
     <ClInclude Include="..\..\src\ledger\BalanceFrame.h" />
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountID.h" />
     <ClInclude Include="..\..\src\ledger\FeeFrame.h" />
     <ClInclude Include="..\..\src\ledger\InvoiceFrame.h" />
     <ClInclude Include="..\..\src\ledger\LedgerTestUtils.h" />
@@ -896,6 +906,12 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-issuance.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-external-system-id.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

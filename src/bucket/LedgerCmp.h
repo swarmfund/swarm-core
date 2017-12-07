@@ -147,6 +147,16 @@ struct LedgerEntryIdCmp
 			auto const& br = b.reviewableRequest();
 			return ar.requestID < br.requestID;
 		}
+        case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID:
+            {
+                auto const& ae = a.externalSystemAccountID();
+                auto const& be = b.externalSystemAccountID();
+                if (ae.accountID < be.accountID)
+                    return true;
+                if (be.accountID < ae.accountID)
+                    return false;
+                return ae.externalSystemType < be.externalSystemType;
+            }
         }
 
         return false;

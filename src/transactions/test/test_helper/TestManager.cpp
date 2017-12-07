@@ -34,11 +34,12 @@ namespace txtest
 		auto const& lastHash = lcl.hash;
 		TxSetFramePtr txSet = std::make_shared<TxSetFrame>(lastHash);
 
-		LedgerUpgrade upgrade(LedgerUpgradeType::VERSION);
-		upgrade.newLedgerVersion() = mApp.getConfig().LEDGER_PROTOCOL_VERSION;
+		
 		xdr::xvector<UpgradeType, 6> upgrades;
-		Value v(xdr::xdr_to_opaque(upgrade));
-		upgrades.emplace_back(v.begin(), v.end());
+                auto ledgerVersion = this->ledgerVersion();
+		upgrades.emplace_back(ledgerVersion.begin(), ledgerVersion.end());
+                auto externalSystemGenerators = this->externalSystemGenerators();
+                upgrades.emplace_back(externalSystemGenerators.begin(), externalSystemGenerators.end());
 
 		StellarValue sv(txSet->getContentsHash(), 1, upgrades, StellarValue::_ext_t(LedgerVersion::EMPTY_VERSION));
 		LedgerCloseData ledgerData(1, txSet, sv);
@@ -90,7 +91,24 @@ namespace txtest
 		REQUIRE(result.result.code() != TransactionResultCode::txSUCCESS);
 	}
 
-	bool TestManager::applyCheck(TransactionFramePtr tx)
+Value TestManager::ledgerVersion() const
+{
+    LedgerUpgrade upgrade(LedgerUpgradeType::VERSION);
+    upgrade.newLedgerVersion() = mApp.getConfig().LEDGER_PROTOCOL_VERSION;
+    Value v(xdr::xdr_to_opaque(upgrade));
+    return v;
+}
+
+Value TestManager::externalSystemGenerators()
+{
+    LedgerUpgrade upgrade(LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR);
+    upgrade.newExternalSystemIDGenerators().push_back(ExternalSystemIDGeneratorType::BITCOIN_BASIC);
+    upgrade.newExternalSystemIDGenerators().push_back(ExternalSystemIDGeneratorType::ETHEREUM_BASIC);
+    Value v(xdr::xdr_to_opaque(upgrade));
+    return v;
+}
+
+bool TestManager::applyCheck(TransactionFramePtr tx)
 	{
 		const bool isApplied = apply(tx);
 		// validates db state

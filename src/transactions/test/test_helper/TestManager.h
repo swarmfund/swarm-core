@@ -32,6 +32,9 @@ namespace txtest
 		bool apply(TransactionFramePtr tx);
 		void checkResult(TransactionResult result, bool mustSuccess);
 
+                Value ledgerVersion() const;
+                Value externalSystemGenerators();
+
 	public:
 		typedef std::shared_ptr<TestManager> pointer;
 

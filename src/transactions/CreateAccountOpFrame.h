@@ -10,7 +10,7 @@ namespace stellar
 {
 class CreateAccountOpFrame : public OperationFrame
 {
-    CreateAccountResult& innerResult() const
+    CreateAccountResult& innerResult()
     {
         return mResult.tr().createAccountResult();
     }
@@ -24,12 +24,15 @@ class CreateAccountOpFrame : public OperationFrame
         counterpartiesDetails) const override;
 
     bool createAccount(Application& app, LedgerDelta& delta,
-                       LedgerManager& ledgerManager) const;
+                       LedgerManager& ledgerManager);
 
     void trySetReferrer(Application& app, Database& db,
                         AccountFrame::pointer destAccount) const;
 
     bool isAllowedToUpdateAccountType(AccountFrame::pointer destAccount) const;
+
+    void storeExternalSystemsIDs(Application& app, LedgerDelta& delta,
+        Database& db, const AccountFrame::pointer account);
 
 
 public:

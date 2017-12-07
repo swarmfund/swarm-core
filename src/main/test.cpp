@@ -34,6 +34,18 @@ static std::vector<TmpDir> gTestRoots;
 
 bool force_sqlite = (std::getenv("STELLAR_FORCE_SQLITE") != nullptr);
 const char* db_conn_str = std::getenv("STELLAR_TX_TEST_DB");
+
+std::vector<std::string> generateExternalSystemBasicIDS(const std::string name)
+{
+    std::vector<std::string> result;
+    for (auto i = 0; i < 1000; i++)
+    {
+        result.push_back(name + std::to_string(i));
+    }
+
+    return result;
+}
+
 Config
 getTestConfig(int instanceNumber, Config::TestDbMode mode)
 {
@@ -81,8 +93,6 @@ getTestConfig(int instanceNumber, Config::TestDbMode mode)
 
 		thisConfig.masterID = getMasterKP().getPublicKey();
 		thisConfig.commissionID = getCommissionKP().getPublicKey();
-        thisConfig.ISSUANCE_KEYS.push_back(getIssuanceKP().getPublicKey());
-		thisConfig.ISSUANCE_KEYS.push_back(thisConfig.masterID);
 
         thisConfig.PEER_PORT =
             static_cast<unsigned short>(DEFAULT_PEER_PORT + instanceNumber * 2);
@@ -134,11 +144,15 @@ getTestConfig(int instanceNumber, Config::TestDbMode mode)
         }
         thisConfig.DATABASE = dbname.str();
         thisConfig.REPORT_METRICS = gTestMetrics;
+        thisConfig.BTC_ADDRESSES = generateExternalSystemBasicIDS("BTC");
+        thisConfig.ETH_ADDRESSES = generateExternalSystemBasicIDS("ETH");
 
 		thisConfig.validateConfig();
     }
     return *cfgs[instanceNumber];
 }
+
+
 
 SecretKey getMasterKP()
 {

@@ -1,3 +1,4 @@
+
 // Copyright 2017 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,16 +10,16 @@
 
 namespace stellar
 {
-std::unique_ptr<Generator> ExternalSystemIDGenerators::getGeneratorForType(
+std::shared_ptr<Generator> ExternalSystemIDGenerators::getGeneratorForType(
     Application& app, Database& db,
     const ExternalSystemIDGeneratorType type) const
 {
     switch (type)
     {
     case ExternalSystemIDGeneratorType::BITCOIN_BASIC:
-        return std::make_unique<BTCIDGenerator>(app, db);
+        return std::make_shared<BTCIDGenerator>(app, db);
     case ExternalSystemIDGeneratorType::ETHEREUM_BASIC:
-        return std::make_unique<ETHIDGenerator>(app, db);
+        return std::make_shared<ETHIDGenerator>(app, db);
     default:
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) <<

@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/review_request/ReviewRequestHelper.h>
 #include "util/asio.h"
 #include "CreateIssuanceRequestOpFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
@@ -37,7 +38,7 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-        const auto reviewResultCode = approveIssuanceRequest(app, delta, ledgerManager, request);
+    const auto reviewResultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
 	bool isFulfilled;
 	switch (reviewResultCode) {
 	case ReviewRequestResultCode::SUCCESS:

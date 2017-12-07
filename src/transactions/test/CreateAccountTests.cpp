@@ -132,9 +132,6 @@ TEST_CASE("create account", "[tx][create_account]")
         }
         
         AccountID validReferrer = rootKP.getPublicKey();
-		auto feeFrame = FeeFrame::create(FeeType::REFERRAL_FEE, 0, int64_t(0.5*ONE), baseAsset);
-		auto fee = feeFrame->getFee();
-		applySetFees(app, rootKP, 0, &fee, false, nullptr);
 		applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::GENERAL, nullptr, &validReferrer);
 		SECTION("Requires med threshold")
 		{

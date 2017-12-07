@@ -474,19 +474,6 @@ applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
 				REQUIRE(balance->getBalance().amount == 0);
 				REQUIRE(balance->getAccountID() == toAccountAfter->getAccount().accountID);
 			}
-            auto opResult = txResult.result.results()[0].tr().createAccountResult().success();
-			int64_t feeSharePercent = 0;
-			if (referrer)
-			{
-				auto referrerAccountID = *referrer;
-				auto referrerFrame = AccountFrame::loadAccount(referrerAccountID, app.getDatabase());
-				if (referrerFrame && !(referrerFrame->getID() == app.getMasterID()))
-				{
-					auto feeShare = FeeFrame::loadForAccount(FeeType::REFERRAL_FEE, app.getBaseAsset(), 0, referrerFrame, 0, app.getDatabase());
-					feeSharePercent = feeShare ? feeShare->getPercentFee() : 0;
-				}
-			}
-			REQUIRE(opResult.referrerFee == feeSharePercent);
         }
     }
 }

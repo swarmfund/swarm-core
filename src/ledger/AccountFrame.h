@@ -128,17 +128,6 @@ class AccountFrame : public EntryFrame
 		return mAccountEntry.referrer.get();
     }
 
-    void setShareForReferrer(int64 share)
-    {
-        mAccountEntry.shareForReferrer = share;
-    }
-
-
-    int64 getShareForReferrer()
-    {
-        return mAccountEntry.shareForReferrer;
-    }
-
     // Instance-based overrides of EntryFrame.
     void storeDelete(LedgerDelta& delta, Database& db) const override;
     void storeChange(LedgerDelta& delta, Database& db) override;

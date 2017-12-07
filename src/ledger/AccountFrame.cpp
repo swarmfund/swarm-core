@@ -26,7 +26,6 @@ const char* AccountFrame::kSQLCreateStatement1 =
 	"account_type       INT          NOT NULL,"
 	"block_reasons      INT          NOT NULL,"
     "referrer           VARCHAR(56)  NOT NULL,"
-	"share_for_referrer BIGINT       NOT NULL,"
     "policies           INT          NOT NULL           DEFAULT 0,"
     "version            INT          NOT NULL           DEFAULT 0"
     ");";
@@ -96,17 +95,6 @@ AccountFrame::normalize()
 bool
 AccountFrame::isValid()
 {
-	// if we do not have referrer, share for referrer must be 0
-	if (!mAccountEntry.referrer && mAccountEntry.shareForReferrer != 0)
-		return false;
-
-	if (mAccountEntry.shareForReferrer < 0)
-		return false;
-
-	// it is not valid behaviour if we have shareForReferrer == 100%. DO NOT EDIT!
-	if (mAccountEntry.shareForReferrer >= int64(100 * ONE))
-		return false;
-
     auto const& a = mAccountEntry;
     return std::is_sorted(a.signers.begin(), a.signers.end(),
                           &AccountFrame::signerCompare);
@@ -193,7 +181,7 @@ AccountFrame::loadAccount(AccountID const& accountID, Database& db, LedgerDelta*
 	int32_t accountVersion;
     auto prep =
         db.getPreparedStatement("SELECT thresholds, lastmodified, account_type, block_reasons,"
-                                       "referrer, share_for_referrer, policies, version "
+                                       "referrer, policies, version "
                                 "FROM   accounts "
                                 "WHERE  accountid=:v1");
     auto& st = prep.statement();
@@ -202,7 +190,6 @@ AccountFrame::loadAccount(AccountID const& accountID, Database& db, LedgerDelta*
 	st.exchange(into(accountType));
 	st.exchange(into(account.blockReasons));
 	st.exchange(into(referrer));
-    st.exchange(into(account.shareForReferrer));
 	st.exchange(into(accountPolicies));
 	st.exchange(into(accountVersion));
     st.exchange(use(actIDStrKey));
@@ -383,15 +370,15 @@ AccountFrame::storeUpdate(LedgerDelta& delta, Database& db, bool insert)
     {
         sql = std::string(
             "INSERT INTO accounts (accountid, thresholds, lastmodified, account_type, block_reasons,"
-                                  "referrer, share_for_referrer, policies, version) "
-            "VALUES               (:id, :th, :lm, :type, :br, :ref, :sref, :p, :v)");
+                                  "referrer, policies, version) "
+            "VALUES               (:id, :th, :lm, :type, :br, :ref, :p, :v)");
     }
     else
     {
         sql = std::string(
             "UPDATE accounts "
             "SET    thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
-			"       referrer=:ref, share_for_referrer=:sref, policies=:p, version=:v "
+			"       referrer=:ref, policies=:p, version=:v "
             "WHERE  accountid=:id");
     }
 
@@ -409,7 +396,6 @@ AccountFrame::storeUpdate(LedgerDelta& delta, Database& db, bool insert)
 		st.exchange(use(accountType, "type"));
 		st.exchange(use(mAccountEntry.blockReasons, "br"));
 		st.exchange(use(refIDStrKey, "ref"));
-        st.exchange(use(mAccountEntry.shareForReferrer, "sref"));
 		st.exchange(use(newAccountPolicies, "p"));
 		st.exchange(use(newAccountVersion, "v"));
 

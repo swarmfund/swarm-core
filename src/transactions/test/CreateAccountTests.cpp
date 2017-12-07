@@ -1,6 +1,8 @@
 // Copyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
+#include <transactions/test/test_helper/TestManager.h>
+#include <transactions/test/test_helper/ManageAssetHelper.h>
 #include "main/Application.h"
 #include "util/Timer.h"
 #include "main/Config.h"
@@ -16,7 +18,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("create account", "[dep_tx][create_account]")
+TEST_CASE("create account", "[tx][create_account]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
 
@@ -34,6 +36,11 @@ TEST_CASE("create account", "[dep_tx][create_account]")
     // set up world
     SecretKey rootKP = getRoot();
 	Salt rootSeq = 1;
+    auto testManager = TestManager::make(app);
+    ManageAssetHelper manageAssetHelper(testManager);
+    Account rootAccount = {rootKP, rootSeq};
+    AssetCode baseAsset = "USD";
+    manageAssetHelper.createBaseAsset(rootAccount, rootKP, baseAsset);
 
 	SECTION("Can't create system account")
 	{
@@ -107,7 +114,7 @@ TEST_CASE("create account", "[dep_tx][create_account]")
         }
         
         AccountID validReferrer = rootKP.getPublicKey();
-		auto feeFrame = FeeFrame::create(FeeType::REFERRAL_FEE, 0, int64_t(0.5*ONE), app.getBaseAsset());
+		auto feeFrame = FeeFrame::create(FeeType::REFERRAL_FEE, 0, int64_t(0.5*ONE), baseAsset);
 		auto fee = feeFrame->getFee();
 		applySetFees(app, rootKP, 0, &fee, false, nullptr);
 		applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::GENERAL, nullptr, &validReferrer);
@@ -192,6 +199,12 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 			REQUIRE(getFirstResult(*createAccount).code() == OperationResultCode::opNOT_ALLOWED);
 		}
 	}
+        SECTION("Can update not verified to syndicate")
+	{
+            auto toBeCreated = SecretKey::random();
+            applyCreateAccountTx(app, rootKP, toBeCreated, 0, AccountType::NOT_VERIFIED);
+            applyCreateAccountTx(app, rootKP, toBeCreated, 0, AccountType::SYNDICATE);
+	}
 	SECTION("Can only change account type from Not verified to general")
 	{
 		for (auto accountType : getAllAccountTypes())
@@ -200,16 +213,18 @@ TEST_CASE("create account", "[dep_tx][create_account]")
 			if (isSystemAccountType(AccountType(accountType)))
 				continue;
 
-			
-			auto toBeCreated = SecretKey::random();
-			applyCreateAccountTx(app, rootKP, toBeCreated, 0, AccountType(accountType));
 			for (auto updateAccountType : getAllAccountTypes())
 			{
 				if (isSystemAccountType(AccountType(updateAccountType)))
 					continue;
-				if (updateAccountType == AccountType::GENERAL && accountType == AccountType::NOT_VERIFIED || updateAccountType == accountType)
+                                if (updateAccountType == accountType)
+                                    continue;
+                                const auto isAllowedToUpdateTo = updateAccountType == AccountType::GENERAL || updateAccountType == AccountType::SYNDICATE;
+				if (isAllowedToUpdateTo && accountType == AccountType::NOT_VERIFIED)
 					continue;
-				applyCreateAccountTx(app, rootKP, toBeCreated, 0, updateAccountType, nullptr, nullptr,
+                                auto toBeCreated = SecretKey::random();
+                                applyCreateAccountTx(app, rootKP, toBeCreated, 0, AccountType(accountType));
+			        applyCreateAccountTx(app, rootKP, toBeCreated, 0, updateAccountType, nullptr, nullptr,
 									 CreateAccountResultCode::TYPE_NOT_ALLOWED);
 			}
 		}

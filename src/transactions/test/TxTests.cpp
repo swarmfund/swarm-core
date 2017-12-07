@@ -530,7 +530,7 @@ applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offer
 	
 	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
-	uint64_t expectedOfferID = delta.getHeaderFrame().getLastGeneratedID() + 1;
+	uint64_t expectedOfferID = delta.getHeaderFrame().getLastGeneratedID(LedgerEntryType::OFFER_ENTRY) + 1;
 	if (offerID != 0)
 	{
 		expectedOfferID = offerID;

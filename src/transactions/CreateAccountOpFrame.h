@@ -8,26 +8,32 @@
 
 namespace stellar
 {
-
 class CreateAccountOpFrame : public OperationFrame
 {
-    CreateAccountResult&
-    innerResult()
+    CreateAccountResult& innerResult() const
     {
         return mResult.tr().createAccountResult();
     }
+
     CreateAccountOp const& mCreateAccount;
 
-	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database & db, LedgerDelta * delta) const override;
-	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+    std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(
+        Database& db, LedgerDelta* delta) const override;
+    SourceDetails getSourceAccountDetails(
+        std::unordered_map<AccountID, CounterpartyDetails>
+        counterpartiesDetails) const override;
 
-	bool createAccount(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager);
+    bool createAccount(Application& app, LedgerDelta& delta,
+                       LedgerManager& ledgerManager) const;
 
-	void trySetReferrer(Application& app, Database& db, AccountFrame::pointer destAccount);
+    void trySetReferrer(Application& app, Database& db,
+                        AccountFrame::pointer destAccount) const;
+
+    bool isAllowedToUpdateAccountType(AccountFrame::pointer destAccount) const;
 
 
-  public:
-    
+public:
+
     CreateAccountOpFrame(Operation const& op, OperationResult& res,
                          TransactionFrame& parentTx);
 
@@ -35,8 +41,7 @@ class CreateAccountOpFrame : public OperationFrame
                  LedgerManager& ledgerManager) override;
     bool doCheckValid(Application& app) override;
 
-    static CreateAccountResultCode
-    getInnerCode(OperationResult const& res)
+    static CreateAccountResultCode getInnerCode(OperationResult const& res)
     {
         return res.tr().createAccountResult().code();
     }

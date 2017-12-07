@@ -75,17 +75,6 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
         }
     }
 
-    auto requestor = AccountFrame::loadAccount(getSourceID(), db);
-    if (!requestor)
-        throw std::runtime_error("Unexpected state. Source account supposed to exist");
-    bool isMaster = requestor->getAccountType() == AccountType::MASTER;
-    bool updBaseOrStats = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET) ||
-                          assetFrame->checkPolicy(AssetPolicy::STATS_QUOTE_ASSET);
-    if (!isMaster && updBaseOrStats) {
-        innerResult().code(ManageAssetResultCode::NO_PERMISSIONS);
-        return false;
-    }
-
 	if (mManageAsset.requestID == 0) {
 		request->storeAdd(delta, db);
 	}
@@ -94,9 +83,12 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 	}
 
     bool fulfilled = false;
+    auto requestor = AccountFrame::loadAccount(getSourceID(), db);
+    if (!requestor)
+        throw std::runtime_error("Unexpected state. Source account supposed to exist");
+    bool isMaster = requestor->getAccountType() == AccountType::MASTER;
     if (isMaster) {
-        ReviewRequestHelper reviewRequestHelper(app, ledgerManager, delta, request);
-        ReviewRequestResultCode resultCode = reviewRequestHelper.tryApproveRequest(mParentTx);
+        auto resultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
 
         if (resultCode != ReviewRequestResultCode::SUCCESS) {
             throw std::runtime_error("Failed to approve review request");

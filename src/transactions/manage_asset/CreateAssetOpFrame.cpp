@@ -22,7 +22,7 @@ CreateAssetOpFrame::CreateAssetOpFrame(Operation const& op,
 
 }
 
-    SourceDetails CreateAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails CreateAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
     vector<AccountType> allowedAccountTypes = {AccountType::MASTER};
 
@@ -91,8 +91,7 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 
     bool fulfilled = false;
     if (requestor->getAccountType() == AccountType::MASTER) {
-        ReviewRequestHelper reviewRequestHelper(app, ledgerManager, delta, request);
-        ReviewRequestResultCode resultCode = reviewRequestHelper.tryApproveRequest(mParentTx);
+        auto resultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
 
         if (resultCode != ReviewRequestResultCode::SUCCESS) {
             throw std::runtime_error("Failed to review create asset request");

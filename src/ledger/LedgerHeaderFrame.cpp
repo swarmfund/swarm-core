@@ -49,16 +49,39 @@ LedgerHeaderFrame::getHash() const
     return mHash;
 }
 
-uint64_t
-LedgerHeaderFrame::getLastGeneratedID() const
+IdGenerator& LedgerHeaderFrame::getIDGenerator(const LedgerEntryType entryType)
 {
-    return mHeader.idPool;
+    for (auto& generator : mHeader.idGenerators)
+    {
+        if (generator.entryType == entryType)
+        {
+            return generator;
+        }
+    }
+
+    const auto generator = IdGenerator(entryType, 0);
+    mHeader.idGenerators.push_back(generator);
+    return mHeader.idGenerators[mHeader.idGenerators.size() - 1];
 }
 
 uint64_t
-LedgerHeaderFrame::generateID()
+LedgerHeaderFrame::getLastGeneratedID(const LedgerEntryType ledgerEntryType) const
 {
-    return ++mHeader.idPool;
+    for (auto& generator : mHeader.idGenerators)
+    {
+        if (generator.entryType == ledgerEntryType)
+        {
+            return generator.idPool;
+        }
+    }
+
+    return 0;
+}
+
+uint64_t
+LedgerHeaderFrame::generateID(const LedgerEntryType ledgerEntryType)
+{
+    return ++getIDGenerator(ledgerEntryType).idPool;
 }
 
 void

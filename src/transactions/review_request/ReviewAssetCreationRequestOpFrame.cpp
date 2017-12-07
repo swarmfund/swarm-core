@@ -14,16 +14,17 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
-void ReviewAssetCreationRequestOpFrame::createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta, uint64_t ledgerCloseTime)
+void ReviewAssetCreationRequestOpFrame::createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta,
+                                                             uint64_t ledgerCloseTime)
 {
     auto systemAccounts = app.getSystemAccounts();
-    //need another delta for generating id without overlapping outer changes
-    LedgerDelta innerDelta(delta);
+
     for (auto& systemAccount : systemAccounts)
     {
-        auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode, app.getDatabase(), &innerDelta);
+        auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode, app.getDatabase(), &delta);
         if (!balanceFrame) {
-            BalanceID balanceID = BalanceKeyUtils::forAccount(systemAccount, innerDelta.getHeaderFrame().generateID());
+            BalanceID balanceID = BalanceKeyUtils::forAccount(systemAccount,
+                                                              delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
             balanceFrame = BalanceFrame::createNew(balanceID, systemAccount, assetCode, ledgerCloseTime);
 
             balanceFrame->storeAdd(delta, app.getDatabase());

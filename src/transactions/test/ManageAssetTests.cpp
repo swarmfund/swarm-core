@@ -184,6 +184,76 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
                                                  ASSET_NOT_FOUND);
         }
     }
+    SECTION("create base asset")
+    {
+        uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
+        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto preissuedSigner = SecretKey::random();
+
+        SECTION("create base asset")
+        {
+            AssetCode baseAsset = "ILS";
+            auto assetCreationRequest = manageAssetHelper.
+                    createAssetCreationRequest(baseAsset, "ILS", SecretKey::random().getPublicKey(),
+                                               "Israeli new shekel", "http://ils.com",
+                                               UINT64_MAX, baseAssetPolicy);
+            auto creationResult = manageAssetHelper.applyManageAssetTx(root, 0, assetCreationRequest);
+        }
+
+        SECTION("create asset then make it base by updating policies")
+        {
+            AssetCode assetCode = "UAH";
+            manageAssetHelper.createAsset(root, preissuedSigner, assetCode, root);
+
+            auto assetUpdateRequest = manageAssetHelper.
+                    createAssetUpdateRequest(assetCode, "long description", "http://bank.gov.ua", baseAssetPolicy);
+            manageAssetHelper.applyManageAssetTx(root, 0, assetUpdateRequest);
+        }
+
+        SECTION("remove base asset by updating policies")
+        {
+            AssetCode assetCode = "ILS";
+            manageAssetHelper.createBaseAsset(root, preissuedSigner, assetCode);
+
+            auto assetUpdateRequest = manageAssetHelper.
+                    createAssetUpdateRequest(assetCode, "Description", "http://ils.com", 0);
+            manageAssetHelper.applyManageAssetTx(root, 0, assetUpdateRequest);
+            std::vector<AssetFrame::pointer> baseAssets;
+            AssetFrame::loadBaseAssets(baseAssets, testManager->getDB());
+            REQUIRE(baseAssets.empty());
+        }
+    }
+
+    SECTION("create stats asset")
+    {
+        ManageAssetHelper manageAssetHelper(testManager);
+        uint32 statsPolicy = static_cast<uint32>(AssetPolicy::STATS_QUOTE_ASSET);
+        SECTION("create stats asset")
+        {
+            AssetCode statsAsset = "BYN";
+            SecretKey preissuedSigner = SecretKey::random();
+            auto createAssetRequest = manageAssetHelper.
+                    createAssetCreationRequest(statsAsset, "BYN", preissuedSigner.getPublicKey(), "long description",
+                                               "http://byn.com", UINT64_MAX, statsPolicy);
+            manageAssetHelper.applyManageAssetTx(root, 0, createAssetRequest);
+        }
+
+        SECTION("attempt to create several stats assets")
+        {
+            AssetCode statsAsset = "BYN";
+            SecretKey preissuedSigner = SecretKey::random();
+            auto createFirst = manageAssetHelper.
+                    createAssetCreationRequest(statsAsset, "BYN", preissuedSigner.getPublicKey(), "long description",
+                                               "http://byn.com", UINT64_MAX, statsPolicy);
+            manageAssetHelper.applyManageAssetTx(root, 0, createFirst);
+
+            auto createSecond = manageAssetHelper.
+                createAssetCreationRequest("CZK", "CZK", preissuedSigner.getPublicKey(), "long description",
+                "http://czk.com", UINT64_MAX, statsPolicy);
+            manageAssetHelper.applyManageAssetTx(root, 0, createSecond,
+                                                ManageAssetResultCode::STATS_ASSET_ALREADY_EXISTS);
+        }
+    }
 }
 
 

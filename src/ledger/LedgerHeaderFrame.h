@@ -20,6 +20,8 @@ class XDROutputFileStream;
 class LedgerHeaderFrame
 {
     mutable Hash mHash;
+
+    IdGenerator& getIDGenerator(const LedgerEntryType entryType);
 	
   public:
     typedef std::shared_ptr<LedgerHeaderFrame> pointer;
@@ -35,9 +37,9 @@ class LedgerHeaderFrame
     Hash const& getHash() const;
 
 	// methods to generate IDs
-    uint64_t getLastGeneratedID() const;
+    uint64_t getLastGeneratedID(const LedgerEntryType ledgerEntryType) const;
     // generates a new ID and returns it
-    uint64_t generateID();
+    uint64_t generateID(const LedgerEntryType ledgerEntryType);
 
     void storeInsert(LedgerManager& ledgerManager) const;
 

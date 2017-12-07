@@ -162,7 +162,6 @@ LedgerManagerImpl::startNewLedger()
 	}
 
     LedgerHeader genesisHeader;
-    genesisHeader.idPool = 2;
     // all fields are initialized by default to 0
     // set the ones that are not 0
     genesisHeader.baseFee = 0;

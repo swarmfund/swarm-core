@@ -10,14 +10,29 @@ ReviewRequestHelper::ReviewRequestHelper(Application &app, LedgerManager &ledger
 {
 }
 
-ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame &parentTx)
+ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame &parentTx, Application &app,
+                                                               LedgerManager &ledgerManager, LedgerDelta &delta,
+                                                               ReviewableRequestFrame::pointer reviewableRequest)
 {
-    Database& db = mLedgerManager.getDatabase();
+    Database& db = ledgerManager.getDatabase();
     // shield outer scope of any side effects by using
     // a sql transaction for ledger state and LedgerDelta
     soci::transaction reviewRequestTx(db.getSession());
-    LedgerDelta reviewRequestDelta(mDelta);
+    LedgerDelta reviewRequestDelta(delta);
 
+    auto helper = ReviewRequestHelper(app, ledgerManager, reviewRequestDelta, reviewableRequest);
+    auto resultCode = helper.tryApproveRequest(parentTx);
+    if (resultCode != ReviewRequestResultCode::SUCCESS)
+        return resultCode;
+
+    reviewRequestTx.commit();
+    reviewRequestDelta.commit();
+
+    return resultCode;
+}
+
+ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame &parentTx)
+{
     auto result = tryReviewRequest(parentTx);
     bool isApplied = result.first;
     ReviewRequestResult reviewRequestResult = result.second;
@@ -33,13 +48,10 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
         throw std::runtime_error("Unexpected state: doApply returned true, but result code is not success.");
     }
 
-    reviewRequestTx.commit();
-    reviewRequestDelta.commit();
-
     return resultCode;
 }
 
-std::pair<bool, ReviewRequestResult>  ReviewRequestHelper::tryReviewRequest(TransactionFrame &parentTx)
+std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(TransactionFrame &parentTx)
 {
     Operation op;
     auto reviewer = mRequest->getReviewer();

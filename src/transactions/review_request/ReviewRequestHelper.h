@@ -20,13 +20,17 @@ private:
     LedgerManager& mLedgerManager;
     ReviewableRequestFrame::pointer mRequest;
 
-    std::pair<bool, ReviewRequestResult> tryReviewRequest(TransactionFrame& parentTx);
+    std::pair<bool, ReviewRequestResult> tryReviewRequest(TransactionFrame &parentTx);
 
-public:
     ReviewRequestHelper(Application &app, LedgerManager &ledgerManager, LedgerDelta &delta,
-                            ReviewableRequestFrame::pointer reviewableRequest);
+                        ReviewableRequestFrame::pointer reviewableRequest);
 
     ReviewRequestResultCode tryApproveRequest(TransactionFrame &parentTx);
+
+public:
+
+    static ReviewRequestResultCode tryApproveRequest(TransactionFrame &parentTx, Application &app, LedgerManager &ledgerManager, LedgerDelta &delta,
+                                              ReviewableRequestFrame::pointer reviewableRequest);
 };
 
 }

@@ -85,6 +85,13 @@ bool isValidEnumValue(EnumType value)
 	return std::find(std::begin(enums), std::end(enums), static_cast<int32_t>(value)) != std::end(enums);
 }
 
+template <typename EnumType>
+bool isSetFlag(uint32 value, EnumType flag)
+{
+    uint32 flagValue = static_cast<uint32>(flag);
+    return (flagValue & value) == flagValue;
+}
+
 // returns true if result is valid (no overflow)
 bool safeSum(uint64_t a, uint64_t b, uint64_t& result);
 

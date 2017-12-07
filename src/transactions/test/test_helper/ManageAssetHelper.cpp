@@ -43,35 +43,7 @@ namespace txtest
         if (sourceFrame->getAccountType() == AccountType::MASTER) {
             REQUIRE(reviewableRequestCountAfterTx == reviewableRequestCountBeforeTx);
             REQUIRE(manageAssetResult.success().fulfilled);
-            AssetCode assetCode;
-            switch (request.action()) {
-                case ManageAssetAction::CREATE_ASSET_CREATION_REQUEST:
-                    assetCode = request.createAsset().code;
-                    break;
-                case ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST:
-                {
-                    assetCode = request.updateAsset().code;
-                    auto assetFrame = AssetFrame::loadAsset(assetCode, mTestManager->getDB());
-                    REQUIRE(assetFrame);
-                    auto assetEntry = assetFrame->getAsset();
-                    REQUIRE(assetEntry.description == request.updateAsset().description);
-                    REQUIRE(assetEntry.externalResourceLink == request.updateAsset().externalResourceLink);
-                    REQUIRE(assetEntry.policies == request.updateAsset().policies);
-                    break;
-                }
-                default:
-                    throw std::runtime_error("Unexpected manage asset action from master account");
-            }
-            auto assetFrame = AssetFrame::loadAsset(assetCode, mTestManager->getDB());
-            REQUIRE(assetFrame);
-            if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET)) {
-                auto systemAccounts = mTestManager->getApp().getSystemAccounts();
-                for (auto systemAccount : systemAccounts) {
-                    auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode,
-                                                                  mTestManager->getDB(), &delta);
-                    REQUIRE(balanceFrame);
-                }
-            }
+            validateManageAssetEffect(request);
             return manageAssetResult;
         }
 
@@ -170,6 +142,38 @@ namespace txtest
         auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
               "Description can be quiete long", "https://testusd.usd", UINT64_MAX, baseAssetPolicy);
         auto creationResult = applyManageAssetTx(root, 0, creationRequest);
+    }
+
+    void ManageAssetHelper::validateManageAssetEffect(ManageAssetOp::_request_t request) {
+        AssetCode assetCode;
+        switch (request.action()) {
+            case ManageAssetAction::CREATE_ASSET_CREATION_REQUEST:
+                assetCode = request.createAsset().code;
+                break;
+            case ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST:
+            {
+                assetCode = request.updateAsset().code;
+                auto assetFrame = AssetFrame::loadAsset(assetCode, mTestManager->getDB());
+                REQUIRE(assetFrame);
+                auto assetEntry = assetFrame->getAsset();
+                REQUIRE(assetEntry.description == request.updateAsset().description);
+                REQUIRE(assetEntry.externalResourceLink == request.updateAsset().externalResourceLink);
+                REQUIRE(assetEntry.policies == request.updateAsset().policies);
+                break;
+            }
+            default:
+                throw std::runtime_error("Unexpected manage asset action from master account");
+        }
+        auto assetFrame = AssetFrame::loadAsset(assetCode, mTestManager->getDB());
+        REQUIRE(assetFrame);
+        if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET)) {
+            auto systemAccounts = mTestManager->getApp().getSystemAccounts();
+            for (auto systemAccount : systemAccounts) {
+                auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode,
+                                                              mTestManager->getDB(), &mTestManager->getLedgerDelta());
+                REQUIRE(balanceFrame);
+            }
+        }
     }
 }
 

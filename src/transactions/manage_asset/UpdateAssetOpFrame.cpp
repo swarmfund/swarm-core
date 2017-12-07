@@ -20,8 +20,8 @@ SourceDetails UpdateAssetOpFrame::getSourceAccountDetails(std::unordered_map<Acc
 {
     vector<AccountType> allowedAccountTypes = {AccountType::MASTER};
 
-    bool isBaseAsset = checkAssetPolicy(AssetPolicy::BASE_ASSET);
-    bool isStatsAsset = checkAssetPolicy(AssetPolicy::STATS_QUOTE_ASSET);
+    bool isBaseAsset = isSetFlag(mAssetUpdateRequest.policies, AssetPolicy::BASE_ASSET);
+    bool isStatsAsset = isSetFlag(mAssetUpdateRequest.policies, AssetPolicy::STATS_QUOTE_ASSET);
     if (!isBaseAsset && !isStatsAsset)
     {
         allowedAccountTypes.push_back(AccountType::SYNDICATE);
@@ -66,7 +66,7 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
         return false;
     }
 
-    bool isStats = checkAssetPolicy(AssetPolicy::STATS_QUOTE_ASSET);
+    bool isStats = isSetFlag(mAssetUpdateRequest.policies, AssetPolicy::STATS_QUOTE_ASSET);
     if (isStats) {
         auto statsAssetFrame = AssetFrame::loadStatsAsset(db);
         if (statsAssetFrame && mAssetUpdateRequest.code != statsAssetFrame->getCode()) {
@@ -83,11 +83,8 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 	}
 
     bool fulfilled = false;
-    auto requestor = AccountFrame::loadAccount(getSourceID(), db);
-    if (!requestor)
-        throw std::runtime_error("Unexpected state. Source account supposed to exist");
-    bool isMaster = requestor->getAccountType() == AccountType::MASTER;
-    if (isMaster) {
+
+    if (getSourceAccount().getAccountType() == AccountType::MASTER) {
         auto resultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
 
         if (resultCode != ReviewRequestResultCode::SUCCESS) {
@@ -122,9 +119,4 @@ string UpdateAssetOpFrame::getAssetCode() const
     return mAssetUpdateRequest.code;
 }
 
-bool UpdateAssetOpFrame::checkAssetPolicy(AssetPolicy policy) const
-{
-    uint32 assetPolicy = static_cast<uint32>(policy);
-    return (mAssetUpdateRequest.policies & assetPolicy) == assetPolicy;
-}
 }

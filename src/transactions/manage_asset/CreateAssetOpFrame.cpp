@@ -26,8 +26,8 @@ SourceDetails CreateAssetOpFrame::getSourceAccountDetails(std::unordered_map<Acc
 {
     vector<AccountType> allowedAccountTypes = {AccountType::MASTER};
 
-    bool isBaseAsset = checkAssetPolicy(AssetPolicy::BASE_ASSET);
-    bool isStatsAsset = checkAssetPolicy(AssetPolicy::STATS_QUOTE_ASSET);
+    bool isBaseAsset = isSetFlag(mAssetCreationRequest.policies, AssetPolicy::BASE_ASSET);
+    bool isStatsAsset = isSetFlag(mAssetCreationRequest.policies, AssetPolicy::STATS_QUOTE_ASSET);
     if (!isBaseAsset && !isStatsAsset)
     {
         allowedAccountTypes.push_back(AccountType::SYNDICATE);
@@ -66,7 +66,7 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
         return false;
     }
 
-    bool isStats = checkAssetPolicy(AssetPolicy::STATS_QUOTE_ASSET);
+    bool isStats = isSetFlag(mAssetCreationRequest.policies, AssetPolicy::STATS_QUOTE_ASSET);
     if (isStats && !!AssetFrame::loadStatsAsset(db)) {
         innerResult().code(ManageAssetResultCode::STATS_ASSET_ALREADY_EXISTS);
         return false;
@@ -85,12 +85,8 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
         request->storeChange(delta, db);
     }
 
-    AccountFrame::pointer requestor = AccountFrame::loadAccount(getSourceID(), db);
-    if (!requestor)
-        throw std::runtime_error("Unexpected state. Source account supposed to exist");
-
     bool fulfilled = false;
-    if (requestor->getAccountType() == AccountType::MASTER) {
+    if (getSourceAccount().getAccountType() == AccountType::MASTER) {
         auto resultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
 
         if (resultCode != ReviewRequestResultCode::SUCCESS) {
@@ -130,9 +126,4 @@ string CreateAssetOpFrame::getAssetCode() const
     return mAssetCreationRequest.code;
 }
 
-bool CreateAssetOpFrame::checkAssetPolicy(AssetPolicy policy) const
-{
-    uint32 assetPolicy = static_cast<uint32>(policy);
-    return (mAssetCreationRequest.policies & assetPolicy) == assetPolicy;
-}
 }

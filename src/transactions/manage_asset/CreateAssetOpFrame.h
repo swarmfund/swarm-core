@@ -19,8 +19,6 @@ class CreateAssetOpFrame : public ManageAssetOpFrame
 	// if fails to load request, returns nullptr
 	ReviewableRequestFrame::pointer getUpdatedOrCreateReviewableRequest(Application& app, Database& db, LedgerDelta& delta) const;
 
-    bool checkAssetPolicy(AssetPolicy policy) const;
-
     SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
 public:

@@ -14,9 +14,7 @@ class ReviewAssetUpdateRequestOpFrame : public ReviewRequestOpFrame
 protected:
 	bool handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) override;
 
-    void createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta, uint64_t ledgerCloseTime);
-
-	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+    virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
   public:
 
 	  ReviewAssetUpdateRequestOpFrame(Operation const& op, OperationResult& res,

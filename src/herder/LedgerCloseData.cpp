@@ -4,6 +4,7 @@
 #include <overlay/OverlayManager.h>
 #include <xdrpp/marshal.h>
 #include "util/Logging.h"
+#include "LedgerCloseData.h"
 
 using namespace std;
 

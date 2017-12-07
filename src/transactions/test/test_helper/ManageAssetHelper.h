@@ -13,6 +13,8 @@ namespace txtest
 {	
 	class ManageAssetHelper : TxHelper
 	{
+    private:
+        void validateManageAssetEffect(ManageAssetOp::_request_t request);
 	public:
 		ManageAssetHelper(TestManager::pointer testManager);
 

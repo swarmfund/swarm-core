@@ -8,8 +8,12 @@
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "ledger/PaymentRequestFrame.h"
+#include "ledger/PaymentRequestHelper.h"
 #include "ledger/AccountFrame.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/BalanceHelper.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/InvoiceHelper.h"
 
 
 namespace stellar
@@ -22,11 +26,15 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 	// on reject we do not care about counterparties
 	if (!mReviewPaymentRequest.accept)
 		return{};
-	auto request = PaymentRequestFrame::loadPaymentRequest(mReviewPaymentRequest.paymentID, db, delta);
+
+	auto paymentRequestHelper = PaymentRequestHelper::Instance();
+	auto request = paymentRequestHelper->loadPaymentRequest(mReviewPaymentRequest.paymentID, db, delta);
 	if (!request)
 		return{};
 	std::unordered_map<AccountID, CounterpartyDetails> result;
-	auto sourceBalanceFrame = BalanceFrame::loadBalance(request->getSourceBalance(), db);
+
+	auto balanceHelper = BalanceHelper::Instance();
+	auto sourceBalanceFrame = balanceHelper->loadBalance(request->getSourceBalance(), db);
 	if (sourceBalanceFrame)
 	{
 		result.insert({sourceBalanceFrame->getAccountID(), CounterpartyDetails({ AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, false, true) });
@@ -35,7 +43,7 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 	auto destBalance = request->getPaymentRequest().destinationBalance;
 	if (destBalance)
 	{
-		auto destBalanceFrame = BalanceFrame::loadBalance(*request->getPaymentRequest().destinationBalance, db);
+		auto destBalanceFrame = balanceHelper->loadBalance(*request->getPaymentRequest().destinationBalance, db);
 		if (destBalanceFrame)
 		{
 			result.insert({ destBalanceFrame->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, true, true) });
@@ -56,9 +64,6 @@ ReviewPaymentRequestOpFrame::ReviewPaymentRequestOpFrame(Operation const& op, Op
 {
 }
 
-
-
-
 bool
 ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
@@ -69,7 +74,9 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     AccountManager accountManager(app, db, delta, ledgerManager);
 
 	innerResult().code(ReviewPaymentRequestResultCode::SUCCESS);
-    auto request = PaymentRequestFrame::loadPaymentRequest(mReviewPaymentRequest.paymentID, db, &delta);
+
+	auto paymentRequestHelper = PaymentRequestHelper::Instance();
+    auto request = paymentRequestHelper->loadPaymentRequest(mReviewPaymentRequest.paymentID, db, &delta);
     if (!request)
     {
         app.getMetrics().NewMeter({ "op-review-payment-request", "invalid", "not-found" },
@@ -78,18 +85,21 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    auto sourceBalanceFrame = BalanceFrame::loadBalance(request->getSourceBalance(), db);
+	auto balanceHelper = BalanceHelper::Instance();
+    auto sourceBalanceFrame = balanceHelper->loadBalance(request->getSourceBalance(), db);
     assert(sourceBalanceFrame);
-	auto sourceBalanceAccount = AccountFrame::loadAccount(delta, sourceBalanceFrame->getAccountID(), db);
+
+	auto accountHelper = AccountHelper::Instance();
+	auto sourceBalanceAccount = accountHelper->loadAccount(delta, sourceBalanceFrame->getAccountID(), db);
 	assert(sourceBalanceAccount);
     
     if (mReviewPaymentRequest.accept)
     {    
         if (request->getPaymentRequest().destinationBalance)
         {
-            auto destBalanceFrame = BalanceFrame::loadBalance(*request->getPaymentRequest().destinationBalance, db);
+            auto destBalanceFrame = balanceHelper->loadBalance(*request->getPaymentRequest().destinationBalance, db);
             assert(destBalanceFrame);
-			auto destBalanceAccount = AccountFrame::loadAccount(delta, destBalanceFrame->getAccountID(), db);
+			auto destBalanceAccount = accountHelper->loadAccount(delta, destBalanceFrame->getAccountID(), db);
 			assert(sourceBalanceAccount);
             if (!destBalanceFrame->addBalance(request->getDestinationReceive()))
             {
@@ -97,14 +107,14 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
                 innerResult().code(ReviewPaymentRequestResultCode::LINE_FULL);
                 return false;
             }
-            destBalanceFrame->storeChange(delta, db);
+            EntryHelperProvider::storeChangeEntry(delta, db, destBalanceFrame->mEntry);
         }
 
         assert(sourceBalanceFrame->addLocked(-request->getSourceSend()));
-        auto commissionBalanceFrame = BalanceFrame::loadBalance(app.getCommissionID(),
+        auto commissionBalanceFrame = balanceHelper->loadBalance(app.getCommissionID(),
             sourceBalanceFrame->getAsset(), app.getDatabase(), &delta);
         assert(commissionBalanceFrame);
-		auto commissionAccount = AccountFrame::loadAccount(delta, commissionBalanceFrame->getAccountID(), db);
+		auto commissionAccount = accountHelper->loadAccount(delta, commissionBalanceFrame->getAccountID(), db);
 
         auto fee = request->getSourceSend() - request->getDestinationReceive();
         if (fee < 0)
@@ -120,9 +130,9 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
             return false;
         }
                 
-        sourceBalanceFrame->storeChange(delta, db);
-        commissionBalanceFrame->storeChange(delta, db);
-        request->storeDelete(delta, db);
+        EntryHelperProvider::storeChangeEntry(delta, db, sourceBalanceFrame->mEntry);
+		EntryHelperProvider::storeChangeEntry(delta, db, commissionBalanceFrame->mEntry);
+		EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
         innerResult().reviewPaymentResponse().state = PaymentState::PROCESSED;
         
         tryProcessInvoice(request->getInvoiceID(), delta, db);
@@ -131,7 +141,7 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         if (request->getPaymentRequest().destinationBalance)
         {
-            auto destBalanceFrame = BalanceFrame::loadBalance(*request->getPaymentRequest().destinationBalance, db);
+            auto destBalanceFrame = balanceHelper->loadBalance(*request->getPaymentRequest().destinationBalance, db);
 			assert(destBalanceFrame);
         }
 
@@ -144,9 +154,9 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
             return false;
         }
 
-        request->storeDelete(delta, ledgerManager.getDatabase());
+        EntryHelperProvider::storeDeleteEntry(delta, ledgerManager.getDatabase(), request->getKey());
 
-        sourceBalanceFrame->storeChange(delta, db);
+		EntryHelperProvider::storeChangeEntry(delta, db, sourceBalanceFrame->mEntry);
         innerResult().reviewPaymentResponse().state = PaymentState::REJECTED;
 
         tryProcessInvoice(request->getInvoiceID(), delta, db);
@@ -163,9 +173,10 @@ void ReviewPaymentRequestOpFrame::tryProcessInvoice(uint64* invoiceID,
     {
         if (*invoiceID > 100)
             return;
-        auto invoiceFrame = InvoiceFrame::loadInvoice(*invoiceID, db);
+		auto invoiceHelper = InvoiceHelper::Instance();
+        auto invoiceFrame = invoiceHelper->loadInvoice(*invoiceID, db);
         assert(invoiceFrame);
-        invoiceFrame->storeDelete(delta, db);
+        EntryHelperProvider::storeDeleteEntry(delta, db, invoiceFrame->getKey());
         innerResult().reviewPaymentResponse().relatedInvoiceID.activate() = *invoiceID;
     }
 }

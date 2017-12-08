@@ -42,8 +42,6 @@ namespace stellar
             AccountID* accountID = nullptr, AccountType* accountType = nullptr, int64_t subtype = SUBTYPE_ANY,
             int64_t lowerBound=0, int64_t upperBound=INT64_MAX);
         
-        void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
-        
         EntryFrame::pointer
         copy() const override
         {
@@ -74,41 +72,10 @@ namespace stellar
         
         static bool isValid(FeeEntry const& oe);
         bool isValid() const;
-        
-        // Instance-based overrides of EntryFrame.
-        void storeDelete(LedgerDelta& delta, Database& db) const override;
-        void storeChange(LedgerDelta& delta, Database& db) override;
-        void storeAdd(LedgerDelta& delta, Database& db) override;
-        
-        // Static helpers that don't assume an instance.
-        static void storeDelete(LedgerDelta& delta, Database& db,
-                                LedgerKey const& key);
-        static bool exists(Database& db, LedgerKey const& key);
-        static bool exists(Database& db, Hash hash, int64_t lowerBound, int64_t upperBound);
-        static uint64_t countObjects(soci::session& sess);
-
-		static bool isBoundariesOverlap(Hash hash, int64_t lowerBound, int64_t upperBound, Database& db);
 
 		static bool isInRange(int64_t a, int64_t b, int64_t point);
-        
-        // database utilities
-        static pointer loadFee(FeeType feeType, AssetCode asset, AccountID* accountID,
-            AccountType* accountType, int64_t subtype, int64_t lowerBound, int64_t upperBound, Database& db, LedgerDelta* delta = nullptr);
-
-		static std::vector<pointer> loadFees(Hash hash, Database& db);
-
-        static pointer loadFee(Hash hash, int64_t lowerBound, int64_t upperBound, Database& db, LedgerDelta* delta = nullptr);
-
-        static pointer loadForAccount(FeeType feeType, AssetCode asset, int64_t subtype, AccountFrame::pointer accountFrame, int64_t amount,
-            Database& db, LedgerDelta* delta = nullptr);
 
         static Hash calcHash(FeeType feeType, AssetCode asset, AccountID* accountID, AccountType* accountType, int64_t subtype);
 
-        static void
-        loadFees(StatementContext& prep, std::function<void(LedgerEntry const&)> feeProcessor);
-        
-        static void dropAll(Database& db);
-        static const char* kSQLCreateStatement1;
-        static const char* kSQLCreateStatement2;
     };
 }

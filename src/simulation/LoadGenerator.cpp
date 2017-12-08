@@ -6,6 +6,7 @@
 #include "main/Config.h"
 #include "transactions/test/TxTests.h"
 #include "herder/Herder.h"
+#include "ledger/AccountHelper.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
 #include "overlay/OverlayManager.h"
@@ -404,7 +405,9 @@ bool
 LoadGenerator::loadAccount(Application& app, AccountInfo& account)
 {
     AccountFrame::pointer ret;
-    ret = AccountFrame::loadAccount(account.mKey.getPublicKey(),
+	
+	auto accountHelper = AccountHelper::Instance();
+    ret = accountHelper->loadAccount(account.mKey.getPublicKey(),
                                     app.getDatabase());
     if (!ret)
     {
@@ -683,7 +686,7 @@ LoadGenerator::AccountInfo::createDirectly(Application& app)
 	a.touch(ledger);
 	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());;
-	a.storeAdd(delta, app.getDatabase());
+	EntryHelperProvider::storeAddEntry(delta, app.getDatabase(), a.mEntry);
 }
 
 

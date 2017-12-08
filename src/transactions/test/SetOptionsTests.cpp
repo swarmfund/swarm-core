@@ -13,7 +13,9 @@
 #include "TxTests.h"
 #include "transactions/TransactionFrame.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
 #include "ledger/TrustFrame.h"
+#include "ledger/TrustHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -48,6 +50,9 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
     applyCreateAccountTx(app, root, a1, rootSeq++, AccountType::GENERAL);
 
     Salt a1seq = 1;
+
+	auto accountHelper = AccountHelper::Instance();
+	auto trustHelper = TrustHelper::Instance();
 
     SECTION("Signers")
     {
@@ -106,7 +111,8 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
 		LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
 			app.getDatabase());
 		auto checkSignerName = [&app, &delta](AccountID accountID, Signer expectedSigner) {
-			auto account = AccountFrame::loadAccount(accountID, app.getDatabase(), &delta);
+			auto accountHelper = AccountHelper::Instance();
+			auto account = accountHelper->loadAccount(accountID, app.getDatabase(), &delta);
 			for (auto signer : account->getAccount().signers)
 			{
 				if (signer.pubKey == expectedSigner.pubKey)
@@ -182,7 +188,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
         SECTION("can add Trust")
         {
             auto trustAccount = SecretKey::random();
-            REQUIRE(!TrustFrame::exists(app.getDatabase(),
+            REQUIRE(!trustHelper->exists(app.getDatabase(),
                 trustAccount.getPublicKey(), a1.getPublicKey()));
 
             applyCreateAccountTx(app, root, trustAccount, rootSeq++, AccountType::GENERAL);
@@ -195,7 +201,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
             trustData.action = ManageTrustAction::TRUST_ADD;
             applySetOptions(app, a1, a1seq++, nullptr, nullptr, &trustData);
             
-            REQUIRE(TrustFrame::exists(app.getDatabase(),
+            REQUIRE(trustHelper->exists(app.getDatabase(),
                 trustAccount.getPublicKey(), a1.getPublicKey()));
 
             SECTION("can delete")
@@ -203,7 +209,7 @@ TEST_CASE("set options", "[dep_tx][setoptions]")
                 trustData.action = ManageTrustAction::TRUST_REMOVE;
                 applySetOptions(app, a1, a1seq++, nullptr, nullptr, &trustData);
 
-                REQUIRE(!TrustFrame::exists(app.getDatabase(),
+                REQUIRE(!trustHelper->exists(app.getDatabase(),
                     trustAccount.getPublicKey(), a1.getPublicKey()));
             }
         }

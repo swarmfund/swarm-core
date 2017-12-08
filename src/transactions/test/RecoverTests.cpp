@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include "main/Application.h"
 #include "ledger/LedgerManager.h"
+#include "ledger/AccountHelper.h"
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
@@ -40,6 +41,8 @@ TEST_CASE("Recover", "[dep_tx][recover]")
     SecretKey s1 = getAccount("S1");
     SecretKey s2 = getAccount("S2");
 
+	auto accountHelper = AccountHelper::Instance();
+
 	SECTION("basics")
 	{
 		applyCreateAccountTx(app, root, accountA, rootSeq++, AccountType::GENERAL);
@@ -54,16 +57,16 @@ TEST_CASE("Recover", "[dep_tx][recover]")
 								 static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
  			   					 static_cast<int32_t>(BlockReasons::RECOVERY_REQUEST), 0);
 			applyRecover(app, root, rootSeq++, accountA.getPublicKey(), accountA.getPublicKey(), s1.getPublicKey());
-			auto accAfter = AccountFrame::loadAccount(accountA.getPublicKey(), app.getDatabase());
+			auto accAfter = accountHelper->loadAccount(accountA.getPublicKey(), app.getDatabase());
 			REQUIRE(accAfter->getBlockReasons() == static_cast<int32_t>(BlockReasons::KYC_UPDATE));
 		}
 		SECTION("change master signer to new signer")
 		{
-			auto acc = AccountFrame::loadAccount(accountA.getPublicKey(), app.getDatabase());
+			auto acc = accountHelper->loadAccount(accountA.getPublicKey(), app.getDatabase());
 			REQUIRE(acc->getMasterWeight() == 1);
 
 			applyRecover(app, root, rootSeq++, accountA.getPublicKey(), accountA.getPublicKey(), s1.getPublicKey());
-			auto accAfter = AccountFrame::loadAccount(accountA.getPublicKey(), app.getDatabase());
+			auto accAfter = accountHelper->loadAccount(accountA.getPublicKey(), app.getDatabase());
 			REQUIRE(accAfter->getMasterWeight() == 0);
 			auto signers = accAfter->getAccount().signers;
 			REQUIRE(signers[0].identity == 0);
@@ -88,12 +91,12 @@ TEST_CASE("Recover", "[dep_tx][recover]")
 			th.highThreshold = make_optional<uint8_t>(100);
 			applySetOptions(app, accountA, 1, &th, nullptr, nullptr, SetOptionsResultCode::SUCCESS, &s1);
 
-			auto accountAFrame = AccountFrame::loadAccount(accountA.getPublicKey(), app.getDatabase());
+			auto accountAFrame = accountHelper->loadAccount(accountA.getPublicKey(), app.getDatabase());
 			REQUIRE(accountAFrame->getMasterWeight() == 1);
 			REQUIRE(accountAFrame->getAccount().signers.size() == 2);
 
 			applyRecover(app, root, rootSeq++, accountA.getPublicKey(), s1.getPublicKey(), s2.getPublicKey());
-			accountAFrame = AccountFrame::loadAccount(accountA.getPublicKey(), app.getDatabase());
+			accountAFrame = accountHelper->loadAccount(accountA.getPublicKey(), app.getDatabase());
 			auto signers = accountAFrame->getAccount().signers;
 			REQUIRE(accountAFrame->getMasterWeight() == 0);
 			REQUIRE(signers.size() == 1);

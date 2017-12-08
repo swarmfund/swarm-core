@@ -4,6 +4,8 @@
 
 #include "ReviewPreIssuanceRequestHelper.h"
 #include "ledger/AssetFrame.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/ReviewableRequestHelper.h"
 
 
 
@@ -17,14 +19,16 @@ namespace txtest
 		REQUIRE(!!requestBeforeTx);
 		REQUIRE(!!assetFrameBeforeTx);
 		auto preIssuanceRequest = requestBeforeTx->getRequestEntry().body.preIssuanceRequest();
-		auto assetFrameAfterTx = AssetFrame::loadAsset(preIssuanceRequest.asset, mTestManager->getDB());
+		auto assetHelper = AssetHelper::Instance();
+		auto assetFrameAfterTx = assetHelper->loadAsset(preIssuanceRequest.asset, mTestManager->getDB());
 		REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() + preIssuanceRequest.amount);
 	}
 
 
 	AssetFrame::pointer ReviewPreIssuanceRequestHelper::tryLoadAssetFrameForRequest(uint64_t requestID)
 	{
-		auto request = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getDB());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
 		if (!request) {
 			return nullptr;
 		}
@@ -34,7 +38,8 @@ namespace txtest
 		}
 
 		auto requestEntry = request->getRequestEntry();
-		return AssetFrame::loadAsset(requestEntry.body.preIssuanceRequest().asset, mTestManager->getDB());
+		auto assetHelper = AssetHelper::Instance();
+		return assetHelper->loadAsset(requestEntry.body.preIssuanceRequest().asset, mTestManager->getDB());
 	}
 	ReviewPreIssuanceRequestHelper::ReviewPreIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)
 	{
@@ -52,7 +57,8 @@ namespace txtest
 
 	ReviewRequestResult ReviewPreIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
 	{
-		auto request = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getDB());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
 		REQUIRE(request);
 		return applyReviewRequestTx(source, requestID, request->getHash(), request->getRequestType(), action, rejectReason, expectedResult);
 	}

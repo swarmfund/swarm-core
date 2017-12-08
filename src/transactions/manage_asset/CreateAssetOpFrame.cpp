@@ -7,6 +7,9 @@
 #include <main/Application.h>
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include "CreateAssetOpFrame.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/ReviewableRequestHelper.h"
 
 namespace stellar
 {
@@ -55,19 +58,23 @@ ReviewableRequestFrame::pointer CreateAssetOpFrame::getUpdatedOrCreateReviewable
 bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager)
 {
 	Database& db = ledgerManager.getDatabase();
-    if (mManageAsset.requestID == 0 && ReviewableRequestFrame::exists(db, getSourceID(), mAssetCreationRequest.code)) {
+
+	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    if (mManageAsset.requestID == 0 && reviewableRequestHelper->exists(db, getSourceID(), mAssetCreationRequest.code)) {
         innerResult().code(ManageAssetResultCode::REQUEST_ALREADY_EXISTS);
         return false;
     }
 
-    auto isAssetExist = AssetFrame::exists(db, mAssetCreationRequest.code);
+	auto assetHelper = AssetHelper::Instance();
+
+    auto isAssetExist = assetHelper->exists(db, mAssetCreationRequest.code);
     if (isAssetExist) {
         innerResult().code(ManageAssetResultCode::ASSET_ALREADY_EXISTS);
         return false;
     }
 
     bool isStats = checkAssetPolicy(AssetPolicy::STATS_QUOTE_ASSET);
-    if (isStats && !!AssetFrame::loadStatsAsset(db)) {
+    if (isStats && !!assetHelper->loadStatsAsset(db)) {
         innerResult().code(ManageAssetResultCode::STATS_ASSET_ALREADY_EXISTS);
         return false;
     }
@@ -79,13 +86,14 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
 	}
 
     if (mManageAsset.requestID == 0) {
-        request->storeAdd(delta, db);
+        EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
     }
     else {
-        request->storeChange(delta, db);
+		EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
     }
 
-    AccountFrame::pointer requestor = AccountFrame::loadAccount(getSourceID(), db);
+	auto accountHelper = AccountHelper::Instance();
+    AccountFrame::pointer requestor = accountHelper->loadAccount(getSourceID(), db);
     if (!requestor)
         throw std::runtime_error("Unexpected state. Source account supposed to exist");
 

@@ -18,6 +18,7 @@
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/BalanceFrame.h"
+#include "ledger/EntryHelper.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/PaymentRequestFrame.h"
 #include "ledger/ReferenceFrame.h"
@@ -281,27 +282,13 @@ Database::initialize()
 
     // only time this section should be modified is when
     // consolidating changes found in applySchemaUpgrade here
-    AccountFrame::dropAll(*this);
-    TrustFrame::dropAll(*this);
-    AccountLimitsFrame::dropAll(*this);
-    AccountTypeLimitsFrame::dropAll(*this);
-    AssetFrame::dropAll(*this);
-    BalanceFrame::dropAll(*this);
-    StatisticsFrame::dropAll(*this);
-    FeeFrame::dropAll(*this);
-	OfferFrame::dropAll(*this);
-    PaymentRequestFrame::dropAll(*this);
-    ReferenceFrame::dropAll(*this);
-	AssetPairFrame::dropAll(*this);
-    InvoiceFrame::dropAll(*this);
+	EntryHelperProvider::dropAll(*this);
     OverlayManager::dropAll(*this);
     PersistentState::dropAll(*this);
     ExternalQueue::dropAll(*this);
     LedgerHeaderFrame::dropAll(*this);
     TransactionFrame::dropAll(*this);
     HistoryManager::dropAll(*this);
-	ReviewableRequestFrame::dropAll(*this);
-        ExternalSystemAccountIDFrame::dropAll(*this);
     BucketManager::dropAll(mApp);
     putSchemaVersion(1);
 }

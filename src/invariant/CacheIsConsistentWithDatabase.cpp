@@ -4,6 +4,7 @@
 
 #include "CacheIsConsistentWithDatabase.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/EntryHelper.h"
 #include "lib/util/format.h"
 #include "xdrpp/printer.h"
 
@@ -25,11 +26,11 @@ namespace stellar {
     std::string
     CacheIsConsistentWithDatabase::check(LedgerDelta const &delta) const {
         for (auto const &l : delta.getLiveEntries()) {
-            EntryFrame::checkAgainstDatabase(l, mDb);
+            EntryHelperProvider::checkAgainstDatabase(l, mDb);
         }
 
         for (auto const &d : delta.getDeadEntries()) {
-            if (EntryFrame::exists(mDb, d)) {
+            if (EntryHelperProvider::existsEntry(mDb, d)) {
                 return fmt::format("Inconsistent state; entry should not exist in database: {}",
                                    xdr::xdr_to_string(d));
             }

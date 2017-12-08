@@ -13,7 +13,9 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "ledger/ReferenceFrame.h"
+#include "ledger/ReferenceHelper.h"
 #include "main/Application.h"
 
 namespace stellar
@@ -28,14 +30,16 @@ void ReviewRequestOpFrame::createReference(LedgerDelta & delta, Database & db, A
 		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Expected reference not to be nullptr: requestID " << mReviewRequest.requestID;
 		throw std::invalid_argument("Expected reference not to be nullptr");
 	}
-	auto isReferenceAlreadyExists = ReferenceFrame::exists(db, *reference, requestor);
+
+	auto referenceHelper = ReferenceHelper::Instance();
+	auto isReferenceAlreadyExists = referenceHelper->exists(db, *reference, requestor);
 	if (isReferenceAlreadyExists) {
 		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: reference already exists. requestID " << mReviewRequest.requestID;
 		throw std::runtime_error("Reference already exists");
 	}
 
 	auto referenceFrame = ReferenceFrame::create(requestor, *reference);
-	referenceFrame->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, referenceFrame->mEntry);
 }
 
 ReviewRequestOpFrame::ReviewRequestOpFrame(Operation const& op,
@@ -72,7 +76,7 @@ bool ReviewRequestOpFrame::handleReject(Application & app, LedgerDelta & delta, 
 {
 	request->setRejectReason(mReviewRequest.reason);
 	Database& db = ledgerManager.getDatabase();
-	request->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }
@@ -80,7 +84,7 @@ bool ReviewRequestOpFrame::handleReject(Application & app, LedgerDelta & delta, 
 bool ReviewRequestOpFrame::handlePermanentReject(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager, ReviewableRequestFrame::pointer request)
 {
 	Database& db = ledgerManager.getDatabase();
-	request->storeDelete(delta, db);
+	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }
@@ -91,7 +95,8 @@ ReviewRequestOpFrame::doApply(Application& app,
 {
 
 	Database& db = ledgerManager.getDatabase();
-	auto request = ReviewableRequestFrame::loadRequest(mReviewRequest.requestID, db, &delta);
+	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+	auto request = reviewableRequestHelper->loadRequest(mReviewRequest.requestID, db, &delta);
 	if (!request) {
 		innerResult().code(ReviewRequestResultCode::NOT_FOUND);
 		return false;

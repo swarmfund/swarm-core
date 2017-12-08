@@ -10,6 +10,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReferenceFrame.h"
+#include "ledger/AssetHelper.h"
 #include "main/Application.h"
 
 namespace stellar
@@ -29,7 +30,8 @@ bool ReviewPreIssuanceCreationRequestOpFrame::handleApprove(Application & app, L
 	Database& db = ledgerManager.getDatabase();
 	createReference(delta, db, request->getRequestor(), request->getReference());
 
-	auto asset = AssetFrame::loadAsset(preIssuanceCreationRequest.asset, db, &delta);
+	auto assetHelper = AssetHelper::Instance();
+	auto asset = assetHelper->loadAsset(preIssuanceCreationRequest.asset, db, &delta);
 	if (!asset) {
 		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Expected asset to exist for pre issuance request. RequestID: " << request->getRequestID();
 		throw std::runtime_error("Expected asset for pre issuance request to exist");
@@ -40,8 +42,8 @@ bool ReviewPreIssuanceCreationRequestOpFrame::handleApprove(Application & app, L
 		throw std::runtime_error("Can not add availalbe for issuance amount");
 	}
 
-	asset->storeChange(delta, db);
-	request->storeDelete(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, asset->mEntry);
+	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }

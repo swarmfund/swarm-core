@@ -23,7 +23,7 @@ namespace stellar
 
         LedgerDelta& mDelta;
 
-        std::unique_ptr<Generator> getGeneratorForType(Application& app, Database& db, ExternalSystemIDGeneratorType types) const;
+        std::shared_ptr<Generator> getGeneratorForType(Application& app, Database& db, ExternalSystemIDGeneratorType types) const;
 
     public:
         ExternalSystemIDGenerators(Application& app, LedgerDelta& delta, Database& db);
@@ -32,7 +32,7 @@ namespace stellar
         std::vector<ExternalSystemAccountIDFrame::pointer> generateNewIDs(AccountID const& accountID);
 
     private:
-        std::vector<std::unique_ptr<Generator>> mGenerators;
+        std::vector<std::shared_ptr<Generator>> mGenerators;
     };
 }
 

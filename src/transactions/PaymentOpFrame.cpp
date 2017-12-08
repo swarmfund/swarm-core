@@ -4,7 +4,13 @@
 
 #include "transactions/PaymentOpFrame.h"
 #include "ledger/ReferenceFrame.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/FeeHelper.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/ReferenceHelper.h"
+#include "ledger/InvoiceHelper.h"
 #include "database/Database.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
@@ -25,7 +31,8 @@ PaymentOpFrame::PaymentOpFrame(Operation const& op, OperationResult& res,
 
 bool PaymentOpFrame::tryLoadBalances(Application& app, Database& db, LedgerDelta& delta)
 {
-	mSourceBalance = BalanceFrame::loadBalance(mPayment.sourceBalanceID, db, &delta);
+	auto balanceHelper = BalanceHelper::Instance();
+	mSourceBalance = balanceHelper->loadBalance(mPayment.sourceBalanceID, db, &delta);
 	if (!mSourceBalance)
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "src-balance-not-found-fee" }, "operation").Mark();
@@ -40,7 +47,7 @@ bool PaymentOpFrame::tryLoadBalances(Application& app, Database& db, LedgerDelta
 		return false;
 	}
 
-	mDestBalance = BalanceFrame::loadBalance(mPayment.destinationBalanceID, db, &delta);
+	mDestBalance = balanceHelper->loadBalance(mPayment.destinationBalanceID, db, &delta);
 	if (!mDestBalance)
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "balance-not-found" }, "operation").Mark();
@@ -55,7 +62,8 @@ bool PaymentOpFrame::tryLoadBalances(Application& app, Database& db, LedgerDelta
 		return false;
 	}
 
-	mDestAccount = AccountFrame::loadAccount(mDestBalance->getAccountID(), db);
+	auto accountHelper = AccountHelper::Instance();
+	mDestAccount = accountHelper->loadAccount(mDestBalance->getAccountID(), db);
 	if (!mDestAccount)
 		throw std::runtime_error("Invalid database state - can't load account for balance");
 
@@ -64,7 +72,8 @@ bool PaymentOpFrame::tryLoadBalances(Application& app, Database& db, LedgerDelta
 
 std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
-	auto targetBalance = BalanceFrame::loadBalance(mPayment.destinationBalanceID, db, delta);
+	auto balanceHelper = BalanceHelper::Instance();
+	auto targetBalance = balanceHelper->loadBalance(mPayment.destinationBalanceID, db, delta);
 	// counterparty does not exists, error will be returned from do apply
 	if (!targetBalance)
 		return{};
@@ -157,7 +166,8 @@ bool PaymentOpFrame::checkFeesV1(Application& app, Database& db, LedgerDelta& de
 
 bool PaymentOpFrame::isTransferFeeMatch(AccountFrame::pointer accountFrame, AssetCode const& assetCode, FeeData const& feeData, int64_t const& amount, Database& db, LedgerDelta& delta)
 {
-	auto feeFrame = FeeFrame::loadForAccount(FeeType::PAYMENT_FEE, assetCode, FeeFrame::SUBTYPE_ANY, accountFrame, amount, db, &delta);
+	auto feeHelper = FeeHelper::Instance();
+	auto feeFrame = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, assetCode, FeeFrame::SUBTYPE_ANY, accountFrame, amount, db, &delta);
 	// if we do not have any fee frame - any fee is valid
 	if (!feeFrame)
 		return true;
@@ -235,7 +245,8 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 		return false;
 	}
 
-    auto assetFrame = AssetFrame::loadAsset(mSourceBalance->getAsset(), db);
+	auto assetHelper = AssetHelper::Instance();
+    auto assetFrame = assetHelper->loadAsset(mSourceBalance->getAsset(), db);
     assert(assetFrame);
     if (!isAllowedToTransfer(db, assetFrame))
     {
@@ -258,7 +269,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
         if (!invoiceReference.accept)
         {
             assert(invoiceFrame);
-            invoiceFrame->storeDelete(delta, db);
+            EntryHelperProvider::storeDeleteEntry(delta, db, invoiceFrame->getKey());
             return true;
         }
     }
@@ -270,7 +281,9 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (mPayment.reference.size() != 0)
     {
 		AccountID sourceAccountID = mSourceAccount->getID();
-        if (ReferenceFrame::exists(db, mPayment.reference, sourceAccountID))
+		
+		auto referenceHelper = ReferenceHelper::Instance();
+        if (referenceHelper->exists(db, mPayment.reference, sourceAccountID))
         {
             app.getMetrics().NewMeter({ "op-payment", "failure", "reference-duplication" }, "operation").Mark();
             innerResult().code(PaymentResultCode::REFERENCE_DUPLICATION);
@@ -287,7 +300,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
 
 	if (invoiceFrame)
-		invoiceFrame->storeDelete(delta, db);
+		EntryHelperProvider::storeDeleteEntry(delta, db, invoiceFrame->getKey());
 
 	if (!mDestBalance->addBalance(destReceived))
 	{
@@ -296,10 +309,13 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 		return false;
 	}
 
-	auto commissionBalanceFrame = BalanceFrame::loadBalance(app.getCommissionID(),
+	auto balanceHelper = BalanceHelper::Instance();
+	auto commissionBalanceFrame = balanceHelper->loadBalance(app.getCommissionID(),
 		mSourceBalance->getAsset(), app.getDatabase(), &delta);
 	assert(commissionBalanceFrame);
-	auto commissionAccount = AccountFrame::loadAccount(delta, commissionBalanceFrame->getAccountID(), db);
+
+	auto accountHelper = AccountHelper::Instance();
+	auto commissionAccount = accountHelper->loadAccount(delta, commissionBalanceFrame->getAccountID(), db);
 	auto feeData = mPayment.feeData;
 	auto totalFee = feeData.sourceFee.paymentFee + feeData.sourceFee.fixedFee +
 		feeData.destinationFee.paymentFee + feeData.destinationFee.fixedFee;
@@ -310,12 +326,12 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 		innerResult().code(PaymentResultCode::LINE_FULL);
 		return false;
 	}
-	commissionBalanceFrame->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, commissionBalanceFrame->mEntry);
 
     innerResult().paymentResponse().destination = mDestBalance->getAccountID();
     innerResult().paymentResponse().asset = mDestBalance->getAsset();
-    mSourceBalance->storeChange(delta, db);
-	mDestBalance->storeChange(delta, db);
+    EntryHelperProvider::storeChangeEntry(delta, db, mSourceBalance->mEntry);
+	EntryHelperProvider::storeChangeEntry(delta, db, mDestBalance->mEntry);
 
     innerResult().paymentResponse().paymentID = paymentID;
 
@@ -328,7 +344,8 @@ PaymentOpFrame::processInvoice(Application& app, LedgerDelta& delta, Database& d
     assert(mPayment.invoiceReference);
     auto invoiceReference = *mPayment.invoiceReference;
     
-    invoiceFrame = InvoiceFrame::loadInvoice(invoiceReference.invoiceID, db);
+	auto invoiceHelper = InvoiceHelper::Instance();
+    invoiceFrame = invoiceHelper->loadInvoice(invoiceReference.invoiceID, db);
     if (!invoiceFrame)
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-not-found" }, "operation").Mark();

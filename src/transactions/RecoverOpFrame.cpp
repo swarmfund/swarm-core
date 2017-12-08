@@ -8,6 +8,7 @@
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
 #include "util/types.h"
 
 namespace stellar
@@ -53,14 +54,14 @@ RecoverOpFrame::RecoverOpFrame(Operation const& op, OperationResult& res,
 {
 }
 
-
-
 bool
 RecoverOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-    AccountFrame::pointer targetAccountFrame = AccountFrame::loadAccount(delta, mRecover.account, db);
+
+	auto accountHelper = AccountHelper::Instance();
+    AccountFrame::pointer targetAccountFrame = accountHelper->loadAccount(delta, mRecover.account, db);
 	if (!targetAccountFrame)
 	{
 		app.getMetrics().NewMeter({ "op-recover", "failure", "targe-account-not-exists" }, "operation").Mark();
@@ -76,7 +77,7 @@ RecoverOpFrame::doApply(Application& app, LedgerDelta& delta,
 		return false;
 	}
 
-	targetAccountFrame->setUpdateSigners();
+	targetAccountFrame->setUpdateSigners(true);
 	auto& targetAccount = targetAccountFrame->getAccount();
 	targetAccount.thresholds[static_cast<int32_t>(ThresholdIndexes::MASTER_WEIGHT)] = 0;
     auto& signers = targetAccountFrame->getAccount().signers;
@@ -90,7 +91,7 @@ RecoverOpFrame::doApply(Application& app, LedgerDelta& delta,
 	signers.push_back(newSigner);
 
 	targetAccount.blockReasons &= ~static_cast<int32_t>(BlockReasons::RECOVERY_REQUEST);
-	targetAccountFrame->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, targetAccountFrame->mEntry);
 
     app.getMetrics().NewMeter({"op-recover", "success", "apply"}, "operation")
         .Mark();

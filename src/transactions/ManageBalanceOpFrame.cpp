@@ -4,6 +4,9 @@
 
 #include "transactions/ManageBalanceOpFrame.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -52,8 +55,9 @@ ManageBalanceOpFrame::doApply(Application& app,
     AccountFrame::pointer destAccountFrame;
 
     Database& db = ledgerManager.getDatabase();
-	destAccountFrame =
-        AccountFrame::loadAccount(delta, mManageBalance.destination, db);
+
+	auto accountHelper = AccountHelper::Instance();
+	destAccountFrame = accountHelper->loadAccount(delta, mManageBalance.destination, db);
     if (!destAccountFrame)
     {
         app.getMetrics().NewMeter({ "op-manage-balance", "invalid", "dest-not-found" },
@@ -62,9 +66,10 @@ ManageBalanceOpFrame::doApply(Application& app,
         return false;
     }
 
-	auto balanceFrame = BalanceFrame::loadBalance(mManageBalance.destination, mManageBalance.asset, db, &delta);
+	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceFrame = balanceHelper->loadBalance(mManageBalance.destination, mManageBalance.asset, db, &delta);
 
-	if (balanceFrame || BalanceFrame::exists(db, mManageBalance.balanceID))
+	if (balanceFrame || balanceHelper->exists(db, mManageBalance.balanceID))
 	{
 		app.getMetrics().NewMeter({ "op-manage-balance", "invalid", "already-exists" },
 			"operation").Mark();
@@ -72,7 +77,8 @@ ManageBalanceOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	auto assetFrame = AssetFrame::loadAsset(mManageBalance.asset, db);
+	auto assetHelper = AssetHelper::Instance();
+	auto assetFrame = assetHelper->loadAsset(mManageBalance.asset, db);
 	if (!assetFrame)
 	{
 		app.getMetrics().NewMeter({ "op-manage-balance", "invalid", "asset-not-found" },
@@ -82,7 +88,7 @@ ManageBalanceOpFrame::doApply(Application& app,
 	}
 
 	balanceFrame = BalanceFrame::createNew(mManageBalance.balanceID, mManageBalance.destination, mManageBalance.asset, ledgerManager.getCloseTime());
-	balanceFrame->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
     
 	app.getMetrics().NewMeter({"op-manage-balance", "success", "apply"},
 	                          "operation").Mark();

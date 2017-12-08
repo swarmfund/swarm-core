@@ -13,6 +13,7 @@
 #include "TxTests.h"
 #include "transactions/TransactionFrame.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/BalanceHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -60,8 +61,9 @@ TEST_CASE("account_manager", "[dep_tx][account_manager]")
     AccountManager accountManager(app, app.getDatabase(), delta, app.getLedgerManager());
     auto now = app.getLedgerManager().getCloseTime();
 
+	auto balanceHelper = BalanceHelper::Instance();
 
-    auto balance = BalanceFrame::loadBalance(a.getPublicKey(), app.getDatabase());
+	auto balance = balanceHelper->loadBalance(a.getPublicKey(), app.getDatabase());
 
     int64 universalAmount;
 
@@ -74,13 +76,13 @@ TEST_CASE("account_manager", "[dep_tx][account_manager]")
     fundAccount(app, root, issuance, rootSeq, a.getPublicKey(), emissionAmount);
 	fundAccount(app, root, issuance, rootSeq, a.getPublicKey(), emissionAmount);
 
-    balance = BalanceFrame::loadBalance(a.getPublicKey(), app.getDatabase());
+	balance = balanceHelper->loadBalance(a.getPublicKey(), app.getDatabase());
     transferResult = accountManager.processTransfer(account, balance, amount * 2,
         universalAmount);
     REQUIRE(universalAmount == amount * 2);
     REQUIRE(transferResult == AccountManager::LIMITS_EXCEEDED);
 
-    balance = BalanceFrame::loadBalance(a.getPublicKey(), app.getDatabase());
+    balance = balanceHelper->loadBalance(a.getPublicKey(), app.getDatabase());
     transferResult = accountManager.processTransfer(account, balance, amount,
         universalAmount);
     REQUIRE(transferResult == AccountManager::SUCCESS);
@@ -93,7 +95,7 @@ TEST_CASE("account_manager", "[dep_tx][account_manager]")
     // Monthly limit works and daily is cleared
     closeLedgerOn(app, 3, 3, 7, 2014);
     now = app.getLedgerManager().getCloseTime();
-    balance = BalanceFrame::loadBalance(a.getPublicKey(), app.getDatabase());
+    balance = balanceHelper->loadBalance(a.getPublicKey(), app.getDatabase());
     // weekly limit handled
     
 
@@ -118,14 +120,14 @@ TEST_CASE("account_manager", "[dep_tx][account_manager]")
 
         fundAccount(app, root, issuance, rootSeq, balanceID,
             emissionAmount);
-        balance = BalanceFrame::loadBalance(balanceID, app.getDatabase());
+        balance = balanceHelper->loadBalance(balanceID, app.getDatabase());
         transferResult = accountManager.processTransfer(account, balance, amount,
             universalAmount, true);
         REQUIRE(transferResult == AccountManager::SUCCESS);
         
         REQUIRE(accountManager.revertRequest(account, balance, amount, amount, now));
 
-        balance = BalanceFrame::loadBalance(balanceID, app.getDatabase());
+        balance = balanceHelper->loadBalance(balanceID, app.getDatabase());
         transferResult = accountManager.processTransfer(account, balance, amount,
             universalAmount, true);
         REQUIRE(transferResult == AccountManager::SUCCESS);

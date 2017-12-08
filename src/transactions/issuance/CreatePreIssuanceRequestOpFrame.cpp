@@ -5,7 +5,9 @@
 #include "util/asio.h"
 #include "CreatePreIssuanceRequestOpFrame.h"
 #include "transactions/SignatureValidator.h"
+#include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "ledger/ReferenceFrame.h"
 #include "util/Logging.h"
 #include "util/types.h"
@@ -33,12 +35,15 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
                             LedgerDelta& delta, LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-	if (ReviewableRequestFrame::isReferenceExist(db, getSourceID(), mCreatePreIssuanceRequest.request.reference)) {
+
+	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+	if (reviewableRequestHelper->isReferenceExist(db, getSourceID(), mCreatePreIssuanceRequest.request.reference)) {
 		innerResult().code(CreatePreIssuanceRequestResultCode::REFERENCE_DUPLICATION);
 		return false;
 	}
 
-	auto asset = AssetFrame::loadAsset(mCreatePreIssuanceRequest.request.asset, db);
+	auto assetHelper = AssetHelper::Instance();
+	auto asset = assetHelper->loadAsset(mCreatePreIssuanceRequest.request.asset, db);
 	if (!asset) {
 		innerResult().code(CreatePreIssuanceRequestResultCode::ASSET_NOT_FOUND);
 		return false;
@@ -64,7 +69,7 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 	requestBody.type(ReviewableRequestType::PRE_ISSUANCE_CREATE);
 	requestBody.preIssuanceRequest() = mCreatePreIssuanceRequest.request;
 	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), reference, requestBody);
-	request->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	innerResult().code(CreatePreIssuanceRequestResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();
 	return true;

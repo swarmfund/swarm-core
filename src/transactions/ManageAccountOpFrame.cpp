@@ -4,6 +4,7 @@
 
 #include "transactions/ManageAccountOpFrame.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
 #include "database/Database.h"
 
 #include "main/Application.h"
@@ -55,17 +56,14 @@ ManageAccountOpFrame::ManageAccountOpFrame(Operation const& op,
 {
 }
 
-
-
-
-
 bool
 ManageAccountOpFrame::doApply(Application& app,
                               LedgerDelta& delta, LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
 
-	auto account = AccountFrame::loadAccount(delta, mManageAccount.account, db);
+	auto accountHelper = AccountHelper::Instance();
+	auto account = accountHelper->loadAccount(delta, mManageAccount.account, db);
 	assert(account);
 
 	if (account->getAccountType() != mManageAccount.accountType)
@@ -76,7 +74,7 @@ ManageAccountOpFrame::doApply(Application& app,
 	}
 
     account->setBlockReasons(mManageAccount.blockReasonsToAdd, mManageAccount.blockReasonsToRemove);
-	account->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, account->mEntry);
 
 	app.getMetrics().NewMeter({"op-manage-account", "success", "apply"},
 	                          "operation").Mark();

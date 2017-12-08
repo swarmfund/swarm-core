@@ -3,8 +3,12 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "IssuanceRequestHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "ledger/ReferenceFrame.h"
+#include "ledger/ReferenceHelper.h"
 #include "transactions/issuance/CreatePreIssuanceRequestOpFrame.h"
 #include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
 #include "ReviewPreIssuanceRequestHelper.h"
@@ -22,8 +26,11 @@ namespace txtest
 	}
 	CreatePreIssuanceRequestResult IssuanceRequestHelper::applyCreatePreIssuanceRequest(Account & source, SecretKey & preIssuedAssetSigner, AssetCode assetCode, uint64_t amount, std::string reference, CreatePreIssuanceRequestResultCode expectedResult)
 	{
-		auto reviewableRequestCountBeforeTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
-		auto referenceBeforeTx = ReferenceFrame::loadReference(source.key.getPublicKey(), reference, mTestManager->getDB());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
+
+		auto referenceHelper = ReferenceHelper::Instance();
+		auto referenceBeforeTx = referenceHelper->loadReference(source.key.getPublicKey(), reference, mTestManager->getDB());
 		auto txFrame = createPreIssuanceRequest(source, preIssuedAssetSigner, assetCode, amount, reference);
 		mTestManager->applyCheck(txFrame);
 		auto txResult = txFrame->getResult();
@@ -31,7 +38,7 @@ namespace txtest
 		auto actualResultCode = CreatePreIssuanceRequestOpFrame::getInnerCode(opResult);
 		REQUIRE(actualResultCode == expectedResult);
 
-		uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+		uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
 		if (expectedResult != CreatePreIssuanceRequestResultCode::SUCCESS)
 		{
 			REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
@@ -68,10 +75,17 @@ namespace txtest
 	CreateIssuanceRequestResult IssuanceRequestHelper::applyCreateIssuanceRequest(Account & source, AssetCode assetCode, uint64_t amount,
 		BalanceID receiver, std::string reference, CreateIssuanceRequestResultCode expectedResult)
 	{
-		auto expectedReviewableRequestAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
-		auto referenceBeforeTx = ReferenceFrame::loadReference(source.key.getPublicKey(), reference, mTestManager->getDB());
-		auto assetBeforeTx = AssetFrame::loadAsset(assetCode, mTestManager->getDB());
-		auto balanceBeforeTx = BalanceFrame::loadBalance(receiver, mTestManager->getDB());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto expectedReviewableRequestAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
+
+		auto referenceHelper = ReferenceHelper::Instance();
+		auto referenceBeforeTx = referenceHelper->loadReference(source.key.getPublicKey(), reference, mTestManager->getDB());
+
+		auto assetHelper = AssetHelper::Instance();
+		auto assetBeforeTx = assetHelper->loadAsset(assetCode, mTestManager->getDB());
+
+		auto balanceHelper = BalanceHelper::Instance();
+		auto balanceBeforeTx = balanceHelper->loadBalance(receiver, mTestManager->getDB());
 
 		auto txFrame = createIssuanceRequest(source, assetCode, amount, receiver, reference);
 		mTestManager->applyCheck(txFrame);
@@ -80,7 +94,7 @@ namespace txtest
 		auto actualResultCode = CreateIssuanceRequestOpFrame::getInnerCode(opResult);
 		REQUIRE(actualResultCode == expectedResult);
 
-		uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+		uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
 		if (expectedResult != CreateIssuanceRequestResultCode::SUCCESS)
 		{
 			REQUIRE(expectedReviewableRequestAfterTx == reviewableRequestCountAfterTx);

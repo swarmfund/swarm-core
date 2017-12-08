@@ -14,6 +14,8 @@
 #include "transactions/TransactionFrame.h"
 #include "transactions/OfferExchange.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/OfferHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -51,6 +53,9 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 	AssetCode base = app.getBaseAsset();
 	AssetCode quote = app.getStatsQuoteAsset();
 
+	auto balanceHelper = BalanceHelper::Instance();
+	auto offerHelper = OfferHelper::Instance();
+
 	SECTION("Can cancel order even if blocked, but can not create")
 	{
 		auto quoteAssetAmount = 1000 * ONE;
@@ -58,9 +63,9 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		{
 			auto buyer = SecretKey::random();
 			applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
-			auto quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, &delta);
+			auto quoteBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), quote, db, &delta);
 			fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
-			auto baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, &delta);
+			auto baseBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), base, db, &delta);
 			auto orderResult = applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), 2, ONE, true);
 
 			// block account
@@ -78,17 +83,17 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 	{
 		auto buyer = SecretKey::random();
 		applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
-		auto baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, &delta);
+		auto baseBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), base, db, &delta);
 		REQUIRE(baseBuyerBalance);
-		auto quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, &delta);
+		auto quoteBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), quote, db, &delta);
 		REQUIRE(quoteBuyerBalance);
 		auto quoteAssetAmount = 1000 * ONE;
 		fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
 		auto seller = SecretKey::random();
 		applyCreateAccountTx(app, root, seller, rootSeq, AccountType::GENERAL);
-		auto baseSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), base, db, &delta);
+		auto baseSellerBalance = balanceHelper->loadBalance(seller.getPublicKey(), base, db, &delta);
 		REQUIRE(baseBuyerBalance);
-		auto quoteSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), quote, db, &delta);
+		auto quoteSellerBalance = balanceHelper->loadBalance(seller.getPublicKey(), quote, db, &delta);
 		REQUIRE(quoteSellerBalance);
 		auto baseAssetAmount = 200 * ONE;
 		fundAccount(app, root, issuance, rootSeq, baseSellerBalance->getBalanceID(), baseAssetAmount, base);
@@ -388,7 +393,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 				REQUIRE(quoteSellerBalance->getLocked() == 0);
 				REQUIRE(quoteSellerBalance->getAmount() == quoteAssetMatchAmount - sellerMatchFee);
 
-				auto commissionQuoteBalance = BalanceFrame::loadBalance(app.getCommissionID(), quote, db, &delta);
+				auto commissionQuoteBalance = balanceHelper->loadBalance(app.getCommissionID(), quote, db, &delta);
 				REQUIRE(commissionQuoteBalance);
 				REQUIRE(commissionQuoteBalance->getAmount() == buyerOfferFee + sellerMatchFee);
 			}
@@ -404,18 +409,18 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 
 		auto buyer = SecretKey::random();
 		applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
-		auto baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, &delta);
+		auto baseBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), base, db, &delta);
 		REQUIRE(baseBuyerBalance);
-		auto quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, &delta);
+		auto quoteBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), quote, db, &delta);
 		REQUIRE(quoteBuyerBalance);
 		auto quoteAssetAmount = 10000 * ONE;
 		fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
 
 		auto seller = SecretKey::random();
 		applyCreateAccountTx(app, root, seller, rootSeq, AccountType::GENERAL);
-		auto baseSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), base, db, &delta);
+		auto baseSellerBalance = balanceHelper->loadBalance(seller.getPublicKey(), base, db, &delta);
 		REQUIRE(baseSellerBalance);
-		auto quoteSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), quote, db, &delta);
+		auto quoteSellerBalance = balanceHelper->loadBalance(seller.getPublicKey(), quote, db, &delta);
 		REQUIRE(quoteSellerBalance);
 		auto baseAssetAmount = 1000 * ONE;
 		fundAccount(app, root, issuance, rootSeq, baseSellerBalance->getBalanceID(), baseAssetAmount, base);
@@ -437,7 +442,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 		{
 			int64_t buyerAmount = randomAmount();
 			int64_t buyerPrice = randomPrice();
-			quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, &delta);
+			quoteBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), quote, db, &delta);
 			int64_t buyerOfferAmount = buyerAmount*buyerPrice;
 			assert(buyerOfferAmount > 0);
 
@@ -457,7 +462,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 			matchesLeft -= offerResult.success().offersClaimed.size();
 
 			int64_t sellerAmount = randomAmount();
-			baseSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), base, db, &delta);
+			baseSellerBalance = balanceHelper->loadBalance(seller.getPublicKey(), base, db, &delta);
 			if (baseSellerBalance->getAmount() < sellerAmount)
 			{
 				baseAssetAmount += sellerAmount;
@@ -475,7 +480,7 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 			LOG(INFO) << "matches left: " << matchesLeft;
 		}
 
-		auto offersByAccount = OfferFrame::loadAllOffers(app.getDatabase());
+		auto offersByAccount = offerHelper->loadAllOffers(app.getDatabase());
 		// delete all buyers offers
 		auto buyersOffers = offersByAccount[buyer.getPublicKey()];
 		for (auto buyerOffer : buyersOffers)
@@ -492,28 +497,28 @@ TEST_CASE("manage offer", "[dep_tx][offer]")
 							   quoteSellerBalance->getBalanceID(), 0, 1, false);
 		}
 
-		offersByAccount = OfferFrame::loadAllOffers(app.getDatabase());
+		offersByAccount = offerHelper->loadAllOffers(app.getDatabase());
 		REQUIRE(offersByAccount.size() == 0);
 
-		baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, &delta);
+		baseBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), base, db, &delta);
 		// there must be matches
 		REQUIRE(baseBuyerBalance->getAmount() != 0);
 		REQUIRE(baseBuyerBalance->getLocked() == 0);
 
-		quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, &delta);
+		quoteBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), quote, db, &delta);
 		REQUIRE(quoteBuyerBalance->getLocked() == 0);
 
-		baseSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), base, db, &delta);
+		baseSellerBalance = balanceHelper->loadBalance(seller.getPublicKey(), base, db, &delta);
 		REQUIRE(baseSellerBalance->getLocked() == 0);
 
-		quoteSellerBalance = BalanceFrame::loadBalance(seller.getPublicKey(), quote, db, &delta);
+		quoteSellerBalance = balanceHelper->loadBalance(seller.getPublicKey(), quote, db, &delta);
 		// there must be matches
 		REQUIRE(quoteSellerBalance->getAmount() != 0);
 		REQUIRE(quoteSellerBalance->getLocked() == 0);
 
 		REQUIRE(baseBuyerBalance->getAmount() + baseSellerBalance->getAmount() == baseAssetAmount);
 
-		auto comissionAccount = BalanceFrame::loadBalance(app.getCommissionID(), quote, db, nullptr);
+		auto comissionAccount = balanceHelper->loadBalance(app.getCommissionID(), quote, db, nullptr);
 		REQUIRE(comissionAccount);
 		REQUIRE(comissionAccount->getAmount() + quoteBuyerBalance->getAmount() + quoteSellerBalance->getAmount() == quoteAssetAmount);
 	}

@@ -4,7 +4,9 @@
 
 #include "transactions/SetLimitsOpFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
+#include "ledger/AccountTypeLimitsHelper.h"
 #include "ledger/AccountLimitsFrame.h"
+#include "ledger/AccountLimitsHelper.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -57,27 +59,29 @@ SetLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
     Database& db = ledgerManager.getDatabase();
     if (mSetLimits.account)
     {
-        auto accountLimitsFrame = AccountLimitsFrame::loadLimits(*mSetLimits.account, db);
+		auto accountLimitsHelper = AccountLimitsHelper::Instance();
+        auto accountLimitsFrame = accountLimitsHelper->loadLimits(*mSetLimits.account, db);
         if (accountLimitsFrame)
         {
             accountLimitsFrame->setLimits(mSetLimits.limits);
-            accountLimitsFrame->storeChange(delta, db);
+            EntryHelperProvider::storeChangeEntry(delta, db, accountLimitsFrame->mEntry);
         }
         else
         {
             accountLimitsFrame = AccountLimitsFrame::createNew(*mSetLimits.account,
                 mSetLimits.limits);
-            accountLimitsFrame->storeAdd(delta, db);
+            EntryHelperProvider::storeAddEntry(delta, db, accountLimitsFrame->mEntry);
         }
     }
     else
     {
         assert(mSetLimits.accountType);
-        auto accountTypeLimits = AccountTypeLimitsFrame::loadLimits(*mSetLimits.accountType, db, &delta);
+		auto accountTypeLimitsHelper = AccountTypeLimitsHelper::Instance();
+        auto accountTypeLimits = accountTypeLimitsHelper->loadLimits(*mSetLimits.accountType, db, &delta);
         if (accountTypeLimits)
         {
             accountTypeLimits->setLimits(mSetLimits.limits);
-            accountTypeLimits->storeChange(delta, db);
+            EntryHelperProvider::storeChangeEntry(delta, db, accountTypeLimits->mEntry);
         }
         else
         {
@@ -88,7 +92,7 @@ SetLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
             entry.accountType = *mSetLimits.accountType;
             entry.limits = mSetLimits.limits;
             auto accountTypeLimitsFrame = std::make_shared<AccountTypeLimitsFrame>(le);
-            accountTypeLimitsFrame->storeAdd(delta, db);
+			EntryHelperProvider::storeAddEntry(delta, db, accountTypeLimitsFrame->mEntry);
         }
     }
 

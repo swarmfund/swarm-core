@@ -4,7 +4,10 @@
 
 #include "ReviewIssuanceRequestHelper.h"
 #include "ledger/AssetFrame.h"
+#include "ledger/AssetHelper.h"
 #include "ledger/BalanceFrame.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/ReviewableRequestHelper.h"
 
 
 
@@ -15,7 +18,8 @@ namespace txtest
 {
 	std::shared_ptr<IssuanceRequest> ReviewIssuanceRequestHelper::tryLoadIssuanceRequest(uint64_t requestID)
 	{
-		auto request = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getDB());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
 		if (!request) {
 			return nullptr;
 		}
@@ -32,13 +36,15 @@ namespace txtest
 	{
 		// check asset
 		REQUIRE(!!assetFrameBeforeTx);
-		auto assetFrameAfterTx = AssetFrame::loadAsset(issuanceRequest.asset, mTestManager->getDB());
+		auto assetHelper = AssetHelper::Instance();
+		auto assetFrameAfterTx = assetHelper->loadAsset(issuanceRequest.asset, mTestManager->getDB());
 		REQUIRE(!!assetFrameAfterTx);
 		REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() - issuanceRequest.amount);
 		REQUIRE(assetFrameAfterTx->getIssued() == assetFrameBeforeTx->getIssued() + issuanceRequest.amount);
 		// check balance
 		REQUIRE(!!balanceBeforeTx);
-		auto balanceAfterTx = BalanceFrame::loadBalance(issuanceRequest.receiver, mTestManager->getDB());
+		auto balanceHelper = BalanceHelper::Instance();
+		auto balanceAfterTx = balanceHelper->loadBalance(issuanceRequest.receiver, mTestManager->getDB());
 		REQUIRE(!!balanceAfterTx);
 		REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + issuanceRequest.amount);
 	}
@@ -50,7 +56,8 @@ namespace txtest
 		if (issuanceRequest == nullptr) {
 			return nullptr;
 		}
-		return AssetFrame::loadAsset(issuanceRequest->asset, mTestManager->getDB());
+		auto assetHelper = AssetHelper::Instance();
+		return assetHelper->loadAsset(issuanceRequest->asset, mTestManager->getDB());
 	}
 
 	BalanceFrame::pointer ReviewIssuanceRequestHelper::tryLoadBalanceForRequest(uint64_t requestID)
@@ -59,8 +66,8 @@ namespace txtest
 		if (issuanceRequest == nullptr) {
 			return nullptr;
 		}
-
-		return BalanceFrame::loadBalance(issuanceRequest->receiver, mTestManager->getDB());
+		auto balanceHelper = BalanceHelper::Instance();
+		return balanceHelper->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
 	}
 
 	ReviewIssuanceRequestHelper::ReviewIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)
@@ -82,7 +89,8 @@ namespace txtest
 
 	ReviewRequestResult ReviewIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
 	{
-		auto request = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getDB());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
 		REQUIRE(request);
 		return applyReviewRequestTx(source, requestID, request->getHash(), request->getRequestType(), action, rejectReason, expectedResult);
 	}

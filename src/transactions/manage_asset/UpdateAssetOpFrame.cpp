@@ -5,6 +5,8 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include "UpdateAssetOpFrame.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
 
 #include "database/Database.h"
 
@@ -60,15 +62,16 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
         return false;
     }
 
-    auto assetFrame = AssetFrame::loadAsset(mAssetUpdateRequest.code, getSourceID(), db, &delta);
-    if (!assetFrame) {
-        innerResult().code(ManageAssetResultCode::ASSET_NOT_FOUND);
-        return false;
-    }
+	auto assetHelper = AssetHelper::Instance();
+	auto assetFrame = assetHelper->loadAsset(mAssetUpdateRequest.code, getSourceID(), db, &delta);
+	if (!assetFrame) {
+		innerResult().code(ManageAssetResultCode::ASSET_NOT_FOUND);
+		return false;
+	}
 
     bool isStats = checkAssetPolicy(AssetPolicy::STATS_QUOTE_ASSET);
     if (isStats) {
-        auto statsAssetFrame = AssetFrame::loadStatsAsset(db);
+        auto statsAssetFrame = assetHelper->loadStatsAsset(db);
         if (statsAssetFrame && mAssetUpdateRequest.code != statsAssetFrame->getCode()) {
             innerResult().code(ManageAssetResultCode::STATS_ASSET_ALREADY_EXISTS);
             return false;
@@ -76,14 +79,15 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
     }
 
 	if (mManageAsset.requestID == 0) {
-		request->storeAdd(delta, db);
+		EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	}
 	else {
-		request->storeChange(delta, db);
+		EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
 	}
 
     bool fulfilled = false;
-    auto requestor = AccountFrame::loadAccount(getSourceID(), db);
+	auto accountHelper = AccountHelper::Instance();
+    auto requestor = accountHelper->loadAccount(getSourceID(), db);
     if (!requestor)
         throw std::runtime_error("Unexpected state. Source account supposed to exist");
     bool isMaster = requestor->getAccountType() == AccountType::MASTER;

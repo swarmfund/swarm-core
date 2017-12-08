@@ -20,20 +20,34 @@
 #include "xdrpp/message.h"
 #include "database/Database.h"
 #include "ledger/EntryFrame.h"
+#include "ledger/EntryHelper.h"
 #include "ledger/AccountFrame.h"
+#include "ledger/AccountHelper.h"
 #include "ledger/BalanceFrame.h"
+#include "ledger/BalanceHelper.h"
 #include "ledger/AssetPairFrame.h"
+#include "ledger/AssetPairHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
+#include "ledger/FeeHelper.h"
 #include "ledger/OfferFrame.h"
+#include "ledger/OfferHelper.h"
 #include "ledger/PaymentRequestFrame.h"
+#include "ledger/PaymentRequestHelper.h"
 #include "ledger/AssetFrame.h"
+#include "ledger/AssetHelper.h"
 #include "ledger/ReferenceFrame.h"
+#include "ledger/ReferenceHelper.h"
 #include "ledger/AccountTypeLimitsFrame.h"
+#include "ledger/AccountTypeLimitsHelper.h"
 #include "ledger/TrustFrame.h"
+#include "ledger/TrustHelper.h"
 #include "ledger/AccountLimitsFrame.h"
+#include "ledger/AccountLimitsHelper.h"
 #include "ledger/StatisticsFrame.h"
+#include "ledger/StatisticsHelper.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/InvoiceHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "medida/medida.h"
@@ -505,59 +519,44 @@ checkDBAgainstBuckets(medida::MetricsRegistry& metrics,
     // Step 3: scan the superbucket, checking each object against the DB and
     // counting objects along the way.
 
-	std::map<LedgerEntryType, BucketCounter::pointer> counters = {
-        { LedgerEntryType::ACCOUNT, BucketCounter::create(AccountFrame::countObjects)},
-		{ LedgerEntryType::FEE, BucketCounter::create(FeeFrame::countObjects) },
-		{ LedgerEntryType::BALANCE, BucketCounter::create(BalanceFrame::countObjects) },
-		{ LedgerEntryType::PAYMENT_REQUEST, BucketCounter::create(PaymentRequestFrame::countObjects) },
-		{ LedgerEntryType::ASSET, BucketCounter::create(AssetFrame::countObjects) },
-		{ LedgerEntryType::REFERENCE_ENTRY, BucketCounter::create(ReferenceFrame::countObjects) },
-		{ LedgerEntryType::ACCOUNT_TYPE_LIMITS, BucketCounter::create(AccountTypeLimitsFrame::countObjects) },
-		{ LedgerEntryType::STATISTICS, BucketCounter::create(StatisticsFrame::countObjects) },
-		{ LedgerEntryType::TRUST, BucketCounter::create(TrustFrame::countObjects) },
-		{ LedgerEntryType::ACCOUNT_LIMITS, BucketCounter::create(AccountLimitsFrame::countObjects) },
-		{ LedgerEntryType::ASSET_PAIR, BucketCounter::create(AssetPairFrame::countObjects) },
-		{ LedgerEntryType::OFFER_ENTRY, BucketCounter::create(OfferFrame::countObjects) },
-		{ LedgerEntryType::INVOICE, BucketCounter::create(InvoiceFrame::countObjects) },
-		{ LedgerEntryType::REVIEWABLE_REQUEST, BucketCounter::create(ReviewableRequestFrame::countObjects)},
-                { LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID, BucketCounter::create(ExternalSystemAccountIDFrame::countObjects) },
-	};
-    {
-        auto& meter = metrics.NewMeter({"bucket", "checkdb", "object-compare"},
-                                       "comparison");
-        auto compareTimer =
-            metrics.NewTimer({"bucket", "checkdb", "compare"}).TimeScope();
-        for (Bucket::InputIterator iter(superBucket); iter; ++iter)
-        {
-            meter.Mark();
-            auto& e = *iter;
-            if (e.type() == BucketEntryType::LIVEENTRY)
-            {
-				
+	std::map<LedgerEntryType, uint64_t> counters;
+	{
+		auto& meter = metrics.NewMeter({ "bucket", "checkdb", "object-compare" },
+			"comparison");
+		auto compareTimer =
+			metrics.NewTimer({ "bucket", "checkdb", "compare" }).TimeScope();
+		for (Bucket::InputIterator iter(superBucket); iter; ++iter)
+		{
+			meter.Mark();
+			auto& e = *iter;
+			if (e.type() == BucketEntryType::LIVEENTRY)
+			{
 				auto entryType = e.liveEntry().data.type();
 				auto counter = counters.find(entryType);
 				if (counter == counters.end())
 				{
-					CLOG(ERROR, "Bucket") << "Unexpected live entry type " << static_cast<int32_t >(entryType) << " while counting entries";
-					throw std::runtime_error("Unexpected live entry type");
+					counters.insert(std::pair<LedgerEntryType, uint64_t>(entryType, (uint64_t)1));
+				}
+				else
+				{
+					counter->second++;
 				}
 
-				counter->second->mCounter++;
-                EntryFrame::checkAgainstDatabase(e.liveEntry(), db);
-                if (meter.count() % 100 == 0)
-                {
-                    CLOG(INFO, "Bucket") << "CheckDB compared " << meter.count()
-                                         << " objects";
-                }
-            }
-        }
-    }
+				EntryHelperProvider::checkAgainstDatabase(e.liveEntry(), db);
+				if (meter.count() % 100 == 0)
+				{
+					CLOG(INFO, "Bucket") << "CheckDB compared " << meter.count()
+						<< " objects";
+				}
+			}
+		}
+	}
 
     // Step 4: confirm size of datasets matches size of datasets in DB.
     soci::session& sess = db.getSession();
 	for (auto& counter : counters)
 	{
-		compareSizes(xdr::xdr_traits<LedgerEntryType>::enum_name(counter.first), counter.second->mDBCounter(sess), counter.second->mCounter);
+		compareSizes(xdr::xdr_traits<LedgerEntryType>::enum_name(counter.first), EntryHelperProvider::countObjectsEntry(sess, counter.first), counter.second);
 	}
 }
 }

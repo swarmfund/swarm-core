@@ -46,29 +46,5 @@ public:
     static bool isValid(ExternalSystemAccountID const& oe);
     bool isValid() const;
 
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-
-    // Static helpers that don't assume an instance.
-    static void storeDelete(LedgerDelta& delta, Database& db,
-                            LedgerKey const& key);
-    static bool exists(Database& db, LedgerKey const& key);
-    static bool exists(Database& db, AccountID accountID,
-                       ExternalSystemType externalSystemType);
-    static uint64_t countObjects(soci::session& sess);
-
-    static void dropAll(Database& db);
-
-    // load - loads external system account ID by accountID and externalSystemType. If not found returns nullptr.
-    static pointer load(const AccountID accountID, const ExternalSystemType externalSystemType, Database& db, LedgerDelta* delta = nullptr);
-
-private:
-    static const char* select;
-
-    void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
-    static void
-        load(StatementContext& prep, std::function<void(LedgerEntry const&)> processor);
 };
 }

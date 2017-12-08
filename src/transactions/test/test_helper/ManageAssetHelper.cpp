@@ -67,6 +67,7 @@ namespace txtest
                     REQUIRE(assetEntry.description == request.updateAsset().description);
                     REQUIRE(assetEntry.externalResourceLink == request.updateAsset().externalResourceLink);
                     REQUIRE(assetEntry.policies == request.updateAsset().policies);
+					REQUIRE(assetEntry.logoID == request.updateAsset().logoID);
                     break;
                 }
                 default:
@@ -123,7 +124,15 @@ namespace txtest
 		return txFromOperation(source, op, nullptr);
 	}
 
-	ManageAssetOp::_request_t ManageAssetHelper::createAssetCreationRequest(AssetCode code, std::string name, AccountID preissuedAssetSigner, std::string description, std::string externalResourceLink, uint64_t maxIssuanceAmount, uint32_t policies)
+	ManageAssetOp::_request_t ManageAssetHelper::createAssetCreationRequest(
+			AssetCode code,
+			std::string name,
+			AccountID preissuedAssetSigner,
+			std::string description,
+			std::string externalResourceLink,
+			uint64_t maxIssuanceAmount,
+			uint32_t policies,
+			std::string logoID)
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CREATE_ASSET_CREATION_REQUEST);
@@ -135,10 +144,17 @@ namespace txtest
 		assetCreationRequest.name = name;
 		assetCreationRequest.policies = policies;
 		assetCreationRequest.preissuedAssetSigner = preissuedAssetSigner;
+		assetCreationRequest.logoID = logoID;
 		return request;
 	}
 
-	ManageAssetOp::_request_t ManageAssetHelper::createAssetUpdateRequest(AssetCode code, std::string description, std::string externalResourceLink, uint32_t policies)
+	ManageAssetOp::_request_t ManageAssetHelper::createAssetUpdateRequest(
+			AssetCode code,
+			std::string description,
+			std::string externalResourceLink,
+			uint32_t policies,
+			std::string logoID
+	)
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST);
@@ -147,6 +163,7 @@ namespace txtest
 		assetUpdateRequest.description = description;
 		assetUpdateRequest.externalResourceLink = externalResourceLink;
 		assetUpdateRequest.policies = policies;
+		assetUpdateRequest.logoID = logoID;
 		return request;
 	}
 
@@ -159,7 +176,7 @@ namespace txtest
 	void ManageAssetHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root)
 	{
 		auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
-			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0);
+			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0, "123");
         auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 
 		auto accountHelper = AccountHelper::Instance();
@@ -180,7 +197,7 @@ namespace txtest
     {
         uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
         auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
-              "Description can be quiete long", "https://testusd.usd", UINT64_MAX, baseAssetPolicy);
+              "Description can be quiete long", "https://testusd.usd", UINT64_MAX, baseAssetPolicy, "123");
         auto creationResult = applyManageAssetTx(root, 0, creationRequest);
     }
 }

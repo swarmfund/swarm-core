@@ -100,6 +100,7 @@ namespace stellar {
     void OfferHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, LedgerEntry const &entry) {
 
         auto offerFrame = make_shared<OfferFrame>(entry);
+		auto offerEntry = offerFrame->getOffer();
 
         offerFrame->touch(delta);
 
@@ -134,32 +135,32 @@ namespace stellar {
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
-        auto offer = offerFrame->getOffer();
-        std::string actIDStrKey = PubKeyUtils::toStrKey(offer.ownerID);
-        std::string baseAssetCode = offer.base;
-        std::string quoteAssetCode = offer.quote;
-        std::string quoteBalanceID = BalanceKeyUtils::toStrKey(offer.quoteBalance);
-        std::string baseBalanceID = BalanceKeyUtils::toStrKey(offer.baseBalance);
-        auto offerVersion = static_cast<int32_t >(offer.ext.v());
+
+        std::string actIDStrKey = PubKeyUtils::toStrKey(offerEntry.ownerID);
+        std::string baseAssetCode = offerEntry.base;
+        std::string quoteAssetCode = offerEntry.quote;
+        std::string quoteBalanceID = BalanceKeyUtils::toStrKey(offerEntry.quoteBalance);
+        std::string baseBalanceID = BalanceKeyUtils::toStrKey(offerEntry.baseBalance);
+        auto offerVersion = static_cast<int32_t >(offerEntry.ext.v());
 
         if (insert)
         {
             st.exchange(use(actIDStrKey, "sid"));
         }
-        st.exchange(use(offerFrame->getOfferID(), "oid"));
+        st.exchange(use(offerEntry.offerID, "oid"));
         st.exchange(use(baseAssetCode, "sac"));
         st.exchange(use(quoteAssetCode, "bac"));
-        st.exchange(use(offer.baseAmount, "ba"));
-        st.exchange(use(offer.quoteAmount, "qa"));
-        st.exchange(use(offer.price, "p"));
-        st.exchange(use(offer.fee, "f"));
-        st.exchange(use(offer.percentFee, "pf"));
-        int isBuy = offer.isBuy ? 1 : 0;
+        st.exchange(use(offerEntry.baseAmount, "ba"));
+        st.exchange(use(offerEntry.quoteAmount, "qa"));
+        st.exchange(use(offerEntry.price, "p"));
+        st.exchange(use(offerEntry.fee, "f"));
+        st.exchange(use(offerEntry.percentFee, "pf"));
+        int isBuy = offerEntry.isBuy ? 1 : 0;
         st.exchange(use(isBuy, "ib"));
         st.exchange(use(baseBalanceID, "sbi"));
         st.exchange(use(quoteBalanceID, "bbi"));
-        st.exchange(use(offer.createdAt, "ca"));
-        st.exchange(use(offerFrame->getLastModified(), "l"));
+        st.exchange(use(offerEntry.createdAt, "ca"));
+        st.exchange(use(offerFrame->mEntry.lastModifiedLedgerSeq, "l"));
         st.exchange(use(offerVersion, "v"));
         st.define_and_bind();
 

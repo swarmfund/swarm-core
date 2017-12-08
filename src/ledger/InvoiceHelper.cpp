@@ -188,6 +188,8 @@ namespace stellar {
     void InvoiceHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, LedgerEntry const &entry) {
 
         auto invoiceFrame = make_shared<InvoiceFrame>(entry);
+		auto invoiceEntry = invoiceFrame->getInvoice();
+
         invoiceFrame->touch(delta);
 
         if (!invoiceFrame->isValid())
@@ -224,13 +226,13 @@ namespace stellar {
         auto& st = prep.statement();
         auto state = static_cast<int32_t >(invoiceFrame->getState());
 
-        st.exchange(use(invoiceFrame->getID(), "id"));
+        st.exchange(use(invoiceEntry.invoiceID, "id"));
         st.exchange(use(sender, "s"));
         st.exchange(use(receiverAccount, "ra"));
         st.exchange(use(receiverBalance, "rb"));
-        st.exchange(use(invoiceFrame->getAmount(), "am"));
+        st.exchange(use(invoiceEntry.amount, "am"));
         st.exchange(use(state, "st"));
-        st.exchange(use(invoiceFrame->getLastModified(), "lm"));
+        st.exchange(use(invoiceFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.exchange(use(invoiceVersion, "v"));
         st.define_and_bind();
 

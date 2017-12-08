@@ -24,6 +24,7 @@ namespace stellar
 	AccountHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry)
 	{
 		auto accountFrame = make_shared<AccountFrame>(entry);
+		auto accountEntry = accountFrame->getAccount();
 
 		bool isValid = accountFrame->isValid();
 		assert(isValid);
@@ -70,11 +71,11 @@ namespace stellar
 			soci::statement& st = prep.statement();
 			st.exchange(use(actIDStrKey, "id"));
 			st.exchange(use(thresholds, "th"));
-			st.exchange(use(accountFrame->getLastModified(), "lm"));
+			st.exchange(use(accountFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 			st.exchange(use(accountType, "type"));
-			st.exchange(use(accountFrame->getBlockReasons(), "br"));
+			st.exchange(use(accountEntry.blockReasons, "br"));
 			st.exchange(use(refIDStrKey, "ref"));
-			st.exchange(use(accountFrame->getShareForReferrer(), "sref"));
+			st.exchange(use(accountEntry.shareForReferrer, "sref"));
 			st.exchange(use(newAccountPolicies, "p"));
 			st.exchange(use(newAccountVersion, "v"));
 
@@ -429,7 +430,7 @@ namespace stellar
 				"WHERE  accountid=:v1");
 		auto& st = prep.statement();
 		st.exchange(into(thresholds));
-		st.exchange(into(res->getLastModified()));
+		st.exchange(into(res->mEntry.lastModifiedLedgerSeq));
 		st.exchange(into(accountType));
 		st.exchange(into(account.blockReasons));
 		st.exchange(into(referrer));

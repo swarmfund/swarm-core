@@ -43,6 +43,7 @@ namespace stellar
 	AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry)
 	{
 		auto assetFrame = make_shared<AssetFrame>(entry);
+		auto assetEntry = assetFrame->getAsset();
 
 		assetFrame->touch(delta);
 
@@ -91,11 +92,11 @@ namespace stellar
 		st.exchange(use(preissuedAssetSigner, "preissued_asset_signer"));
 		st.exchange(use(desc, "description"));
 		st.exchange(use(externalLink, "external_resource_link"));
-		st.exchange(use(assetFrame->getMaxIssuanceAmount(), "max_issuance_amount"));
-		st.exchange(use(assetFrame->getAvailableForIssuance(), "available_for_issueance"));
-		st.exchange(use(assetFrame->getIssued(), "issued"));
-		st.exchange(use(assetFrame->getPolicies(), "policies"));
-		st.exchange(use(assetFrame->getLastModified(), "lm"));
+		st.exchange(use(assetEntry.maxIssuanceAmount, "max_issuance_amount"));
+		st.exchange(use(assetEntry.availableForIssueance, "available_for_issueance"));
+		st.exchange(use(assetEntry.issued, "issued"));
+		st.exchange(use(assetEntry.policies, "policies"));
+		st.exchange(use(assetFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 		st.exchange(use(assetVersion, "v"));
 		st.define_and_bind();
 

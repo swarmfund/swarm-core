@@ -97,15 +97,15 @@ namespace stellar {
     PaymentRequestHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, LedgerEntry const &entry) {
 
         auto paymentRequestFrame = make_shared<PaymentRequestFrame>(entry);
+		auto paymentRequestEntry = paymentRequestFrame->getPaymentRequest();
 
         paymentRequestFrame->touch(delta);
 
         if (!paymentRequestFrame->isValid())
         {
-            auto paymentRequest = paymentRequestFrame->getPaymentRequest();
             CLOG(ERROR, Logging::ENTRY_LOGGER)
                     << "Unexpected state - payment request is invalid: "
-                    << xdr::xdr_to_string(paymentRequest);
+                    << xdr::xdr_to_string(paymentRequestEntry);
             throw std::runtime_error("Unexpected state - payment request is invalid");
         }
 
@@ -131,15 +131,15 @@ namespace stellar {
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        st.exchange(use(paymentRequestFrame->getPaymentID(), "id"));
+        st.exchange(use(paymentRequestEntry.paymentID, "id"));
         st.exchange(use(sourceBalance, "sb"));
-        st.exchange(use(paymentRequestFrame->getSourceSend(), "ss"));
-        st.exchange(use(paymentRequestFrame->getSourceSendUniversal(), "ssu"));
+        st.exchange(use(paymentRequestEntry.sourceSend, "ss"));
+        st.exchange(use(paymentRequestEntry.sourceSendUniversal, "ssu"));
         st.exchange(use(destBalance, "db"));
-        st.exchange(use(paymentRequestFrame->getDestinationReceive(), "ds"));
-        st.exchange(use(paymentRequestFrame->getCreatedAt(), "ca"));
+        st.exchange(use(paymentRequestEntry.destinationReceive, "ds"));
+        st.exchange(use(paymentRequestEntry.createdAt, "ca"));
         st.exchange(use(invoiceID, "iid"));
-        st.exchange(use(paymentRequestFrame->getLastModified(), "lm"));
+        st.exchange(use(paymentRequestFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.exchange(use(paymentRequestVersion, "v"));
         st.define_and_bind();
 

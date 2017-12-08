@@ -105,14 +105,15 @@ namespace stellar {
     void FeeHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, LedgerEntry const &entry) {
 
         auto feeFrame = make_shared<FeeFrame>(entry);
+		auto feeEntry = feeFrame->getFee();
+
         feeFrame->touch(delta);
 
         if (!feeFrame->isValid())
         {
-            auto fee = feeFrame->getFee();
             CLOG(ERROR, Logging::ENTRY_LOGGER)
                     << "Unexpected state - fee is invalid: "
-                    << xdr::xdr_to_string(fee);
+                    << xdr::xdr_to_string(feeEntry);
             throw std::runtime_error("Unexpected state - fee is invalid");
         }
 
@@ -132,42 +133,36 @@ namespace stellar {
                     "WHERE  lower_bound=:lb AND upper_bound=:ub AND hash=:hash";
         }
 
-
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        auto fee = feeFrame->getFee();
-
-        auto feeType = static_cast<int32_t >(fee.feeType);
-        string assetCode = fee.asset;
+        auto feeType = static_cast<int32_t >(feeEntry.feeType);
+        string assetCode = feeEntry.asset;
         st.exchange(use(feeType, "ft"));
         st.exchange(use(assetCode, "as"));
-        st.exchange(use(fee.fixedFee, "f"));
-        st.exchange(use(fee.percentFee, "p"));
+        st.exchange(use(feeEntry.fixedFee, "f"));
+        st.exchange(use(feeEntry.percentFee, "p"));
 
         std::string actIDStrKey = "";
-        if (fee.accountID)
+        if (feeEntry.accountID)
         {
-            actIDStrKey = PubKeyUtils::toStrKey(*fee.accountID);
+            actIDStrKey = PubKeyUtils::toStrKey(*feeEntry.accountID);
         }
         st.exchange(use(actIDStrKey, "aid"));
 
         int32_t accountType = EMPTY_VALUE;
-        if(fee.accountType)
-            accountType = static_cast<int32_t >(*fee.accountType);
+        if(feeEntry.accountType)
+            accountType = static_cast<int32_t >(*feeEntry.accountType);
         st.exchange(use(accountType, "at"));
+        st.exchange(use(feeEntry.subtype, "subt"));
+        st.exchange(use(feeFrame->mEntry.lastModifiedLedgerSeq, "lm"));
+        st.exchange(use(feeEntry.lowerBound, "lb"));
+        st.exchange(use(feeEntry.upperBound, "ub"));
 
-        st.exchange(use(fee.subtype, "subt"));
-        st.exchange(use(feeFrame->getLastModified(), "lm"));
-
-        st.exchange(use(fee.lowerBound, "lb"));
-        st.exchange(use(fee.upperBound, "ub"));
-
-
-        string hash(binToHex(fee.hash));
+        string hash(binToHex(feeEntry.hash));
         st.exchange(use(hash, "hash"));
 
-        auto feeVersion = static_cast<int32_t >(fee.ext.v());
+        auto feeVersion = static_cast<int32_t >(feeEntry.ext.v());
         st.exchange(use(feeVersion, "v"));
 
         st.define_and_bind();

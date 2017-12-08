@@ -45,6 +45,8 @@ namespace stellar
 	BalanceHelper::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry)
 	{
 		auto balanceFrame = make_shared<BalanceFrame>(entry);
+		auto balanceEntry = balanceFrame->getBalance();
+
 		balanceFrame->touch(delta);
 
 		bool isValid = balanceFrame->isValid();
@@ -80,10 +82,10 @@ namespace stellar
 
 		st.exchange(use(balanceID, "id"));
 		st.exchange(use(asset, "as"));
-		st.exchange(use(balanceFrame->getAmount(), "am"));
-		st.exchange(use(balanceFrame->getLocked(), "ld"));
+		st.exchange(use(balanceEntry.amount, "am"));
+		st.exchange(use(balanceEntry.locked, "ld"));
 		st.exchange(use(accountID, "aid"));
-		st.exchange(use(balanceFrame->getLastModified(), "lm"));
+		st.exchange(use(balanceFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 		st.exchange(use(balanceVersion, "v"));
 		st.define_and_bind();
 

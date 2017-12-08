@@ -25,11 +25,12 @@ namespace stellar {
 
     void ReferenceHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
 
-        auto reference = make_shared<ReferenceFrame>(entry);
+        auto referenceFrame = make_shared<ReferenceFrame>(entry);
+		auto referenceEntry = referenceFrame->getReference();
 
-        reference->touch(delta);
+        referenceFrame->touch(delta);
 
-        if (!reference->isValid())
+        if (!referenceFrame->isValid())
         {
             CLOG(ERROR, Logging::ENTRY_LOGGER) << "Invalid reference: " << xdr::xdr_to_string(entry);
             throw std::runtime_error("Invalid reference");
@@ -40,9 +41,9 @@ namespace stellar {
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        st.exchange(use(reference->getReferenceString(), "r"));
-        st.exchange(use(reference->getSender(), "se"));
-        st.exchange(use(reference->getLastModified(), "lm"));
+        st.exchange(use(referenceEntry.reference, "r"));
+        st.exchange(use(referenceEntry.sender, "se"));
+        st.exchange(use(referenceFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.define_and_bind();
 
         auto timer = db.getInsertTimer("reference");
@@ -52,7 +53,7 @@ namespace stellar {
             throw std::runtime_error("could not update SQL");
         }
 
-        delta.addEntry(*reference);
+        delta.addEntry(*referenceFrame);
     }
 
     void ReferenceHelper::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {

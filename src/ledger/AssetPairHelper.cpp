@@ -48,6 +48,8 @@ namespace stellar
 	AssetPairHelper::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry)
 	{
 		auto assetPairFrame = make_shared<AssetPairFrame>(entry);
+		auto assetPairEntry = assetPairFrame->getAssetPair();
+
 		assetPairFrame->touch(delta);
 
 		bool isValid = assetPairFrame->isValid();
@@ -83,12 +85,12 @@ namespace stellar
 
 		st.exchange(use(base, "b"));
 		st.exchange(use(quote, "q"));
-		st.exchange(use(assetPairFrame->getCurrentPrice(), "cp"));
-		st.exchange(use(assetPairFrame->getAssetPair().physicalPrice, "pp"));
-		st.exchange(use(assetPairFrame->getAssetPair().physicalPriceCorrection, "ppc"));
-		st.exchange(use(assetPairFrame->getAssetPair().maxPriceStep, "mps"));
-		st.exchange(use(assetPairFrame->getAssetPair().policies, "p"));
-		st.exchange(use(assetPairFrame->getLastModified(), "lm"));
+		st.exchange(use(assetPairEntry.currentPrice, "cp"));
+		st.exchange(use(assetPairEntry.physicalPrice, "pp"));
+		st.exchange(use(assetPairEntry.physicalPriceCorrection, "ppc"));
+		st.exchange(use(assetPairEntry.maxPriceStep, "mps"));
+		st.exchange(use(assetPairEntry.policies, "p"));
+		st.exchange(use(assetPairFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 		st.exchange(use(assetPairVersion, "v"));
 		st.define_and_bind();
 

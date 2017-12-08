@@ -202,7 +202,7 @@ namespace stellar {
 			soci::statement& st = prep.statement();
 			st.exchange(use(actIDStrKey, "id"));
 			st.exchange(use(balIDStrKey, "v2"));
-			st.exchange(use(trustFrame->getLastModified(), "v3"));
+			st.exchange(use(trustFrame->mEntry.lastModifiedLedgerSeq, "v3"));
 			st.define_and_bind();
 			{
 				auto timer = insert ? db.getInsertTimer("trusts")

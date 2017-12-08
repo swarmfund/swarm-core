@@ -77,17 +77,18 @@ namespace stellar {
         return count;
     }
 
-    void StatisticsHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, const LedgerEntry &entry) {
+    void StatisticsHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, const LedgerEntry &entry) 
+	{
         auto statisticsFrame = make_shared<StatisticsFrame>(entry);
+		auto statisticsEntry = statisticsFrame->getStatistics();
 
         statisticsFrame->touch(delta);
 
         bool isValid = statisticsFrame->isValid();
 
         if (!isValid) {
-            auto trust = statisticsFrame->getStatistics();
             CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state - statistics is invalid: "
-                                               << xdr::xdr_to_string(trust);
+                                               << xdr::xdr_to_string(statisticsEntry);
             throw std::runtime_error("Unexpected state - asset is invalid");
         }
 
@@ -112,12 +113,12 @@ namespace stellar {
         auto &st = prep.statement();
 
         st.exchange(use(strAccountID, "aid"));
-        st.exchange(use(statisticsFrame->getDailyOutcome(), "d_out"));
-        st.exchange(use(statisticsFrame->getWeeklyOutcome(), "w_out"));
-        st.exchange(use(statisticsFrame->getMonthlyOutcome(), "m_out"));
-        st.exchange(use(statisticsFrame->getAnnualOutcome(), "a_out"));
-        st.exchange(use(statisticsFrame->getUpdateAt(), "up"));
-        st.exchange(use(statisticsFrame->getLastModified(), "lm"));
+        st.exchange(use(statisticsEntry.dailyOutcome, "d_out"));
+        st.exchange(use(statisticsEntry.weeklyOutcome, "w_out"));
+        st.exchange(use(statisticsEntry.monthlyOutcome, "m_out"));
+        st.exchange(use(statisticsEntry.annualOutcome, "a_out"));
+        st.exchange(use(statisticsEntry.updatedAt, "up"));
+        st.exchange(use(statisticsFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.exchange(use(statisticsVersion, "v"));
         st.define_and_bind();
 

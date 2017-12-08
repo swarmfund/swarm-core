@@ -34,6 +34,7 @@ namespace stellar
 	AccountLimitsHelper::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry)
 	{
 		auto accountLimitsFrame = make_shared<AccountLimitsFrame>(entry);
+		auto accountLimitsEntry = accountLimitsFrame->getAccountLimits();
 
 		accountLimitsFrame->touch(delta);
 
@@ -66,15 +67,15 @@ namespace stellar
 
 		auto prep = db.getPreparedStatement(sql);
 		auto& st = prep.statement();
-		std::string actIDStrKey = PubKeyUtils::toStrKey(accountLimitsFrame->getAccountLimits().accountID);
+		std::string actIDStrKey = PubKeyUtils::toStrKey(accountLimitsEntry.accountID);
 		auto limits = accountLimitsFrame->getLimits();
-		int32_t limitsVersion = static_cast<int32_t >(accountLimitsFrame->getAccountLimits().ext.v());
+		int32_t limitsVersion = static_cast<int32_t >(accountLimitsEntry.ext.v());
 		st.exchange(use(actIDStrKey, "id"));
 		st.exchange(use(limits.dailyOut, "v2"));
 		st.exchange(use(limits.weeklyOut, "v3"));
 		st.exchange(use(limits.monthlyOut, "v4"));
 		st.exchange(use(limits.annualOut, "v6"));
-		st.exchange(use(accountLimitsFrame->getLastModified(), "v7"));
+		st.exchange(use(accountLimitsFrame->mEntry.lastModifiedLedgerSeq, "v7"));
 		st.exchange(use(limitsVersion, "v8"));
 
 		st.define_and_bind();

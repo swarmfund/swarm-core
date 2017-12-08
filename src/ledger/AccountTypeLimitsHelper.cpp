@@ -33,6 +33,8 @@ namespace stellar
 	AccountTypeLimitsHelper::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry)
 	{
 		auto accountTypeLimitsFrame = make_shared<AccountTypeLimitsFrame>(entry);
+		auto accountTypeLimitsEntry = accountTypeLimitsFrame->getAccountTypeLimits();
+
 		accountTypeLimitsFrame->touch(delta);
 		auto key = accountTypeLimitsFrame->getKey();
 		flushCachedEntry(key, db);
@@ -56,14 +58,14 @@ namespace stellar
 
 		auto prep = db.getPreparedStatement(sql);
 		auto& st = prep.statement();
-		int accountType = static_cast<int32_t >(accountTypeLimitsFrame->getAccountTypeLimits().accountType);
+		int accountType = static_cast<int32_t >(accountTypeLimitsEntry.accountType);
 		auto limits =accountTypeLimitsFrame->getLimits();
 		st.exchange(use(accountType, "at"));
 		st.exchange(use(limits.dailyOut, "do"));
 		st.exchange(use(limits.weeklyOut, "wo"));
 		st.exchange(use(limits.monthlyOut, "mo"));
 		st.exchange(use(limits.annualOut, "ao"));
-		st.exchange(use(accountTypeLimitsFrame->getLastModified(), "lm"));
+		st.exchange(use(accountTypeLimitsFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 		st.define_and_bind();
 
 		auto timer =

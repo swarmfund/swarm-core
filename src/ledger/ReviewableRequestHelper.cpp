@@ -91,29 +91,31 @@ namespace stellar {
     }
 
     void ReviewableRequestHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
-                                                    const LedgerEntry &entry) {
-        auto reviewableRequest = make_shared<ReviewableRequestFrame>(entry);
+                                                    const LedgerEntry &entry) 
+	{
+        auto reviewableRequestFrame = make_shared<ReviewableRequestFrame>(entry);
+		auto reviewableRequestEntry = reviewableRequestFrame->getRequestEntry();
 
-        reviewableRequest->touch(delta);
+        reviewableRequestFrame->touch(delta);
 
-        if (!reviewableRequest->isValid())
+        if (!reviewableRequestFrame->isValid())
         {
             CLOG(ERROR, Logging::ENTRY_LOGGER)
                     << "Unexpected state - request is invalid: "
-                    << xdr::xdr_to_string(reviewableRequest->getRequestEntry());
+                    << xdr::xdr_to_string(reviewableRequestEntry);
             throw std::runtime_error("Unexpected state - reviewable request is invalid");
         }
 
-        auto key = reviewableRequest->getKey();
+        auto key = reviewableRequestFrame->getKey();
         flushCachedEntry(key, db);
         string sql;
 
-        std::string hash = binToHex(reviewableRequest->getHash());
-        auto bodyBytes = xdr::xdr_to_opaque(reviewableRequest->getRequestEntry().body);
+        std::string hash = binToHex(reviewableRequestFrame->getHash());
+        auto bodyBytes = xdr::xdr_to_opaque(reviewableRequestFrame->getRequestEntry().body);
         std::string strBody = bn::encode_b64(bodyBytes);
-        std::string requestor = PubKeyUtils::toStrKey(reviewableRequest->getRequestor());
-        std::string rejectReason = reviewableRequest->getRejectReason();
-        auto version = static_cast<int32_t>(reviewableRequest->getRequestEntry().ext.v());
+        std::string requestor = PubKeyUtils::toStrKey(reviewableRequestFrame->getRequestor());
+        std::string rejectReason = reviewableRequestFrame->getRejectReason();
+        auto version = static_cast<int32_t>(reviewableRequestFrame->getRequestEntry().ext.v());
 
         if (insert)
         {
@@ -129,16 +131,15 @@ namespace stellar {
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        st.exchange(use(reviewableRequest->getRequestID(), "id"));
+        st.exchange(use(reviewableRequestEntry.requestID, "id"));
         st.exchange(use(hash, "hash"));
         st.exchange(use(strBody, "body"));
-        st.exchange(use(reviewableRequest->getRequestor(), "requestor"));
-        st.exchange(use(reviewableRequest->getReviewer(), "reviewer"));
-		auto ref = reviewableRequest->getReference();
-        st.exchange(use(ref, "reference"));
+        st.exchange(use(reviewableRequestEntry.requestor, "requestor"));
+        st.exchange(use(reviewableRequestEntry.reviewer, "reviewer"));
+        st.exchange(use(reviewableRequestEntry.reference, "reference"));
         st.exchange(use(rejectReason, "reject_reason"));
         st.exchange(use(version, "v"));
-        st.exchange(use(reviewableRequest->getLastModified(), "lm"));
+        st.exchange(use(reviewableRequestFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.define_and_bind();
 
         auto timer = insert ? db.getInsertTimer("reviewable_request") : db.getUpdateTimer("reviewable_request");
@@ -151,11 +152,11 @@ namespace stellar {
 
         if (insert)
         {
-            delta.addEntry(*reviewableRequest);
+            delta.addEntry(*reviewableRequestFrame);
         }
         else
         {
-            delta.modEntry(*reviewableRequest);
+            delta.modEntry(*reviewableRequestFrame);
         }
     }
 

@@ -125,14 +125,6 @@ Config::loadQset(std::shared_ptr<cpptoml::toml_group> group, SCPQuorumSet& qset,
                 qset.validators.emplace_back(nodeID);
             }
         }
-        else if (item.first == "BTC_ADDRESSES")
-        {
-            BTC_ADDRESSES = readStrVector(item.first, item.second);
-        }
-        else if (item.first == "ETH_ADDRESSES")
-        {
-            ETH_ADDRESSES = readStrVector(item.first, item.second);
-        }
         else
         { // must be a subset
             try
@@ -639,6 +631,14 @@ Config::load(std::string const& filename)
                 }
                 INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE =
                         item.second->as<bool>()->value();
+            }
+            else if (item.first == "BTC_ADDRESSES")
+            {
+                BTC_ADDRESSES = readStrVector(item.first, item.second);
+            }
+            else if (item.first == "ETH_ADDRESSES")
+            {
+                ETH_ADDRESSES = readStrVector(item.first, item.second);
             }
             else
             {

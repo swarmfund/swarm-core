@@ -574,21 +574,6 @@ Config::load(std::string const& filename)
                 }
                 BASE_EXCHANGE_NAME = item.second->as<std::string>()->value();
             }
-            else if (item.first == "BASE_ASSETS")
-            {
-                if (!item.second->is_array())
-                {
-                    throw std::invalid_argument("BASE_ASSETS must be an array");
-                }
-                for (auto v : item.second->as_array()->array())
-                {
-                    BASE_ASSETS.push_back(getAssetCode(v, "Invalid BASE_ASSETS element"));
-                }
-            }
-			else if (item.first == "STATS_QUOTE_ASSET")
-			{
-				STATS_QUOTE_ASSET = getAssetCode(item.second, "Invalid STATS_QUOTE_ASSET");
-			}
             else if (item.first == "TX_EXPIRATION_PERIOD")
             {
                 if (!item.second->as<int64_t>())
@@ -727,30 +712,6 @@ Config::validateConfig()
 		throw std::invalid_argument("BASE_EXCHANGE_NAME must not be empty");
 	}
 
-	if (STATS_QUOTE_ASSET.empty())
-	{
-		throw std::invalid_argument("STATS_QUOTE_ASSET must be set");
-	}
-
-	if (BASE_ASSETS.empty())
-	{
-		throw std::invalid_argument("BASE_ASSETS must not be empty");
-	}
-
-	bool statsQuoteAssetInBaseAssets = false;
-	for (auto baseAsset : BASE_ASSETS)
-	{
-		if (baseAsset == STATS_QUOTE_ASSET)
-		{
-			statsQuoteAssetInBaseAssets = true;
-			break;
-		}
-	}
-
-	if (!statsQuoteAssetInBaseAssets)
-	{
-		throw std::invalid_argument("STATS_QUOTE_ASSET must be set in BASE_ASSETS");
-	}
 
 	if (TX_EXPIRATION_PERIOD_WINDOW == 0)
 		throw std::invalid_argument("TX_EXPIRATION_PERIOD_WINDOW must be set");

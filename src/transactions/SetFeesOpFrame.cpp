@@ -150,7 +150,12 @@ namespace stellar
 
 	bool SetFeesOpFrame::mustBaseAsset(FeeEntry const & fee, Application& app)
 	{
-		if (fee.asset == app.getBaseAsset())
+        vector<AssetFrame::pointer> baseAssets;
+        AssetFrame::loadBaseAssets(baseAssets, app.getDatabase());
+        if (baseAssets.empty())
+            throw std::runtime_error("Unable to create referral fee - there is no base assets in the system");
+
+		if (fee.asset == baseAssets[0]->getCode())
 			return true;
 
 		innerResult().code(SetFeesResultCode::SUB_TYPE_NOT_EXIST);

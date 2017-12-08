@@ -1,6 +1,8 @@
 // Copyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
+#include <transactions/test/test_helper/TestManager.h>
+#include <transactions/test/test_helper/ManageAssetHelper.h>
 #include "main/Application.h"
 #include "util/Timer.h"
 #include "main/Config.h"
@@ -35,6 +37,11 @@ TEST_CASE("create account", "[tx][create_account]")
     // set up world
     SecretKey rootKP = getRoot();
 	Salt rootSeq = 1;
+    auto testManager = TestManager::make(app);
+    ManageAssetHelper manageAssetHelper(testManager);
+    Account rootAccount = {rootKP, rootSeq};
+    AssetCode baseAsset = "USD";
+    manageAssetHelper.createBaseAsset(rootAccount, rootKP, baseAsset);
 
         SECTION("External system account id are generated")
         {
@@ -125,7 +132,7 @@ TEST_CASE("create account", "[tx][create_account]")
         }
         
         AccountID validReferrer = rootKP.getPublicKey();
-		auto feeFrame = FeeFrame::create(FeeType::REFERRAL_FEE, 0, int64_t(0.5*ONE), app.getBaseAsset());
+		auto feeFrame = FeeFrame::create(FeeType::REFERRAL_FEE, 0, int64_t(0.5*ONE), baseAsset);
 		auto fee = feeFrame->getFee();
 		applySetFees(app, rootKP, 0, &fee, false, nullptr);
 		applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::GENERAL, nullptr, &validReferrer);

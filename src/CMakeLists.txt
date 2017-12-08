@@ -19,7 +19,7 @@ include_directories(${XDRS_PATH})
 
 set(NOT_COMMON_SOURCE_FILES
         transactions/CounterpartyDetails.h
-        )
+        transactions/review_request/ReviewRequestHelper.cpp transactions/review_request/ReviewRequestHelper.h)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

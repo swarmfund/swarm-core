@@ -217,10 +217,6 @@ namespace stellar {
     }
 
 
-    std::vector<AssetCode> ApplicationImpl::getBaseAssets() const {
-        return mConfig.BASE_ASSETS;
-    }
-
     uint64 ApplicationImpl::getTxExpirationPeriod() const {
         assert(mConfig.TX_EXPIRATION_PERIOD > 0);
         return mConfig.TX_EXPIRATION_PERIOD;
@@ -272,9 +268,6 @@ namespace stellar {
 
         if (mConfig.NETWORK_PASSPHRASE.empty()) {
             throw std::invalid_argument("NETWORK_PASSPHRASE not configured");
-        }
-        if (mConfig.BASE_ASSETS.size() == 0) {
-            throw std::invalid_argument("BASE_ASSETS not configured");
         }
         if (mConfig.BASE_EXCHANGE_NAME.size() == 0) {
             throw std::invalid_argument("BASE_EXCHANGE_NAME not configured");

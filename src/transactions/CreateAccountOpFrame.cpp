@@ -88,9 +88,13 @@ void CreateAccountOpFrame::trySetReferrer(Application& app, Database& db,
     if (!referrer)
         return;
 
+    vector<AssetFrame::pointer> baseAssets;
+    AssetFrame::loadBaseAssets(baseAssets, db);
+    if (baseAssets.empty())
+        throw std::runtime_error("Unable to create referral fee - there is no base assets in the system");
     // amount is not applyable for referral fee
     auto referralFeeFrame = FeeFrame::loadForAccount(FeeType::REFERRAL_FEE,
-                                                     app.getBaseAsset(),
+                                                     baseAssets[0]->getCode(),
                                                      FeeFrame::SUBTYPE_ANY,
                                                      referrer, 0, db);
 
@@ -131,8 +135,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
                                          LedgerManager& ledgerManager)
 {
     auto& db = app.getDatabase();
-    auto destAccountFrame = make_shared<AccountFrame
-    >(mCreateAccount.destination);
+    auto destAccountFrame = make_shared<AccountFrame>(mCreateAccount.destination);
     auto& destAccount = destAccountFrame->getAccount();
 
     destAccount.accountType = mCreateAccount.accountType;
@@ -144,14 +147,12 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
 
     AccountManager accountManager(app, db, delta, ledgerManager);
     accountManager.createStats(destAccountFrame);
-    // create balance for all availabe assets
-    std::vector<AssetFrame::pointer> assets;
-    AssetFrame::loadAssets(assets, db);
-    for (auto baseAsset : assets)
+    // create balance for all availabe base assets
+    std::vector<AssetFrame::pointer> baseAssets;
+    AssetFrame::loadBaseAssets(baseAssets, db);
+    for (auto baseAsset : baseAssets)
     {
-        BalanceID balanceID = mCreateAccount.destination;
-        if (!(baseAsset->getCode() == app.getBaseAsset()))
-            balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination,
+        BalanceID balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination,
                                                     delta.getHeaderFrame().
                                                           generateID(LedgerEntryType::BALANCE));
         auto balanceFrame = BalanceFrame::createNew(balanceID,

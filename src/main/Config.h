@@ -134,7 +134,9 @@ class Config : public std::enable_shared_from_this<Config>
     bool PUBLIC_HTTP_PORT;          // if you accept commands from not localhost
     int HTTP_MAX_CLIENT;  // maximum number of http clients, i.e backlog
     std::string NETWORK_PASSPHRASE; // identifier for the network
+    [[deprecated]]
     std::vector<AssetCode> BASE_ASSETS; // codes of base assets
+    [[deprecated]]
 	AssetCode STATS_QUOTE_ASSET;
 
 	PublicKey masterID; // account id of master account

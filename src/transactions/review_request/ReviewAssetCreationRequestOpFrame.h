@@ -15,6 +15,8 @@ protected:
 	bool handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) override;
 
 	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+
+    void createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta, uint64_t ledgerCloseTime);
   public:
 
 	  ReviewAssetCreationRequestOpFrame(Operation const& op, OperationResult& res,

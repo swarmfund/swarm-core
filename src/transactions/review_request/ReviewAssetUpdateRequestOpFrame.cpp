@@ -19,6 +19,22 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
+void ReviewAssetUpdateRequestOpFrame::createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta, uint64_t ledgerCloseTime)
+{
+    auto systemAccounts = app.getSystemAccounts();
+    for (auto& systemAccount : systemAccounts)
+    {
+        auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode, app.getDatabase(), &delta);
+        if (!balanceFrame) {
+            BalanceID balanceID = BalanceKeyUtils::forAccount(systemAccount,
+                                                              delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
+            balanceFrame = BalanceFrame::createNew(balanceID, systemAccount, assetCode, ledgerCloseTime);
+
+            balanceFrame->storeAdd(delta, app.getDatabase());
+        }
+    }
+}
+
 bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager, ReviewableRequestFrame::pointer request)
 {
 	if (request->getRequestType() != ReviewableRequestType::ASSET_UPDATE) {
@@ -39,12 +55,19 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 			"request id: " << request->getRequestID();
 		throw std::runtime_error("Received approval for update request not initiated by owner of asset.");
 	}
-
+    bool wasBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
+    
 	AssetEntry& assetEntry = assetFrame->getAsset();
 	assetEntry.description = assetUpdateRequest.description;
 	assetEntry.externalResourceLink = assetUpdateRequest.externalResourceLink;
 	assetEntry.policies = assetUpdateRequest.policies;
+    
 	assetFrame->storeChange(delta, db);
+    bool isBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
+    
+    if (!wasBase && isBase)
+        createSystemBalances(assetFrame->getCode(), app, delta, ledgerManager.getCloseTime());
+    
 	request->storeDelete(delta, db);
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;

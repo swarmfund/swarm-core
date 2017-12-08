@@ -1,6 +1,7 @@
 // Copyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
+#include <transactions/test/test_helper/IssuanceRequestHelper.h>
 #include "main/Config.h"
 #include "main/test.h"
 #include "lib/catch.hpp"
@@ -28,9 +29,11 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
 
     auto root = Account{getRoot(), Salt(0)};
 
-    SECTION("Root happy path")
+    SECTION("Syndicate happy path")
     {
-        testManageAssetHappyPath(testManager, root, root);
+        auto syndicate = Account{SecretKey::random(), Salt(0)};
+        applyCreateAccountTx(app, root.key, syndicate.key, 0, AccountType::SYNDICATE);
+        testManageAssetHappyPath(testManager, syndicate, root);
     }
     SECTION("Cancel asset request")
     {
@@ -122,9 +125,9 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             manageAssetHelper.applyManageAssetTx(root, 0, request);
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
-                                                 REQUEST_ALREADY_EXISTS);
+                                                 ASSET_ALREADY_EXISTS);
         }
-        SECTION("Trying to create asset wich is already exist")
+        SECTION("Trying to create asset which is already exist")
         {
             const AssetCode assetCode = "EUR";
             manageAssetHelper.createAsset(root, root.key, assetCode, root);
@@ -171,8 +174,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             applyCreateAccountTx(testManager->getApp(), root.key, syndicate.key,
                                  0, AccountType::SYNDICATE);
             const AssetCode assetCode = "BTC";
-            manageAssetHelper.createAsset(syndicate, syndicate.key, assetCode,
-                                          root);
+            manageAssetHelper.createAsset(syndicate, syndicate.key, assetCode, root);
             // try to update with root
             const auto request = manageAssetHelper.
                 createAssetUpdateRequest(assetCode, "Long desciption'as'd.", "",
@@ -180,6 +182,76 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  ASSET_NOT_FOUND);
+        }
+    }
+    SECTION("create base asset")
+    {
+        uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
+        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto preissuedSigner = SecretKey::random();
+
+        SECTION("create base asset")
+        {
+            AssetCode baseAsset = "ILS";
+            auto assetCreationRequest = manageAssetHelper.
+                    createAssetCreationRequest(baseAsset, "ILS", SecretKey::random().getPublicKey(),
+                                               "Israeli new shekel", "http://ils.com",
+                                               UINT64_MAX, baseAssetPolicy);
+            auto creationResult = manageAssetHelper.applyManageAssetTx(root, 0, assetCreationRequest);
+        }
+
+        SECTION("create asset then make it base by updating policies")
+        {
+            AssetCode assetCode = "UAH";
+            manageAssetHelper.createAsset(root, preissuedSigner, assetCode, root);
+
+            auto assetUpdateRequest = manageAssetHelper.
+                    createAssetUpdateRequest(assetCode, "long description", "http://bank.gov.ua", baseAssetPolicy);
+            manageAssetHelper.applyManageAssetTx(root, 0, assetUpdateRequest);
+        }
+
+        SECTION("remove base asset by updating policies")
+        {
+            AssetCode assetCode = "ILS";
+            manageAssetHelper.createBaseAsset(root, preissuedSigner, assetCode);
+
+            auto assetUpdateRequest = manageAssetHelper.
+                    createAssetUpdateRequest(assetCode, "Description", "http://ils.com", 0);
+            manageAssetHelper.applyManageAssetTx(root, 0, assetUpdateRequest);
+            std::vector<AssetFrame::pointer> baseAssets;
+            AssetFrame::loadBaseAssets(baseAssets, testManager->getDB());
+            REQUIRE(baseAssets.empty());
+        }
+    }
+
+    SECTION("create stats asset")
+    {
+        ManageAssetHelper manageAssetHelper(testManager);
+        uint32 statsPolicy = static_cast<uint32>(AssetPolicy::STATS_QUOTE_ASSET);
+        SECTION("create stats asset")
+        {
+            AssetCode statsAsset = "BYN";
+            SecretKey preissuedSigner = SecretKey::random();
+            auto createAssetRequest = manageAssetHelper.
+                    createAssetCreationRequest(statsAsset, "BYN", preissuedSigner.getPublicKey(), "long description",
+                                               "http://byn.com", UINT64_MAX, statsPolicy);
+            manageAssetHelper.applyManageAssetTx(root, 0, createAssetRequest);
+        }
+
+        SECTION("attempt to create several stats assets")
+        {
+            AssetCode statsAsset = "BYN";
+            SecretKey preissuedSigner = SecretKey::random();
+            auto createFirst = manageAssetHelper.
+                    createAssetCreationRequest(statsAsset, "BYN", preissuedSigner.getPublicKey(), "long description",
+                                               "http://byn.com", UINT64_MAX, statsPolicy);
+            manageAssetHelper.applyManageAssetTx(root, 0, createFirst);
+
+            auto createSecond = manageAssetHelper.
+                createAssetCreationRequest("CZK", "CZK", preissuedSigner.getPublicKey(), "long description",
+                "http://czk.com", UINT64_MAX, statsPolicy);
+            manageAssetHelper.applyManageAssetTx(root, 0, createSecond,
+                                                ManageAssetResultCode::STATS_ASSET_ALREADY_EXISTS);
         }
     }
 }

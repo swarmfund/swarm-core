@@ -188,6 +188,22 @@ void AssetFrame::loadAssets(std::vector<AssetFrame::pointer>& retAssets,
 	});
 }
 
+void AssetFrame::loadBaseAssets(std::vector<AssetFrame::pointer>& retAssets,
+                            Database& db)
+{
+    std::string sql = assetColumnSelector;
+    sql += " WHERE policies & :bp = :bp "
+           " ORDER BY code ";
+    uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
+    auto prep = db.getPreparedStatement(sql);
+    prep.statement().exchange(use(baseAssetPolicy, "bp"));
+
+    auto timer = db.getSelectTimer("asset");
+    loadAssets(prep, [&retAssets](LedgerEntry const& asset)
+    {
+        retAssets.push_back(make_shared<AssetFrame>(asset));
+    });
+}
 
 AssetFrame::pointer
 AssetFrame::loadAsset(AssetCode code, Database& db,
@@ -216,7 +232,7 @@ AssetFrame::loadAsset(AssetCode code, Database& db,
                    retAsset = make_shared<AssetFrame>(asset);
                });
 
-	if (!retAsset) 
+	if (!retAsset)
 	{
 		putCachedEntry(key, nullptr, db);
 		return nullptr;
@@ -228,6 +244,25 @@ AssetFrame::loadAsset(AssetCode code, Database& db,
 	}
 	retAsset->putCachedEntry(db);
 	return retAsset;
+}
+
+AssetFrame::pointer AssetFrame::loadStatsAsset(Database &db)
+{
+    uint32 statsAssetPolicy = static_cast<uint32>(AssetPolicy::STATS_QUOTE_ASSET);
+
+    AssetFrame::pointer retAsset;
+    std::string sql = assetColumnSelector;
+    sql += " WHERE policies & :sp = :sp";
+    auto prep = db.getPreparedStatement(sql);
+    auto& st = prep.statement();
+    st.exchange(use(statsAssetPolicy, "sp"));
+
+    auto timer = db.getSelectTimer("asset");
+    loadAssets(prep, [&retAsset](LedgerEntry const& asset)
+                {
+                    retAsset = make_shared<AssetFrame>(asset);
+                });
+    return retAsset;
 }
 
 AssetFrame::pointer AssetFrame::loadAsset(AssetCode code, AccountID const & owner, Database & db, LedgerDelta * delta)
@@ -242,6 +277,7 @@ AssetFrame::pointer AssetFrame::loadAsset(AssetCode code, AccountID const & owne
 
 	return nullptr;
 }
+
 
 void
 AssetFrame::loadAssets(StatementContext& prep,
@@ -289,7 +325,6 @@ AssetFrame::loadAssets(StatementContext& prep,
         st.fetch();
     }
 }
-
 
 uint64_t
 AssetFrame::countObjects(soci::session& sess)

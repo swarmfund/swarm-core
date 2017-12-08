@@ -172,34 +172,6 @@ LedgerManagerImpl::startNewLedger()
     genesisHeader.txExpirationPeriod = mApp.getConfig().TX_EXPIRATION_PERIOD;
 
     LedgerDelta delta(genesisHeader, getDatabase());
-    
-    auto baseAssetCodes = mApp.getBaseAssets();
-    for (auto baseAssetCode: baseAssetCodes)
-    {
-		// TODO fix me
-		auto baseAssetFrame = AssetFrame::createSystemAsset(baseAssetCode, mApp.getMasterID());
-		baseAssetFrame->storeAdd(delta, this->getDatabase());
-
-		for (auto systemAccount : systemAccounts)
-		{
-			BalanceID balanceID; 
-			if (baseAssetCode == mApp.getBaseAsset())
-			{
-				balanceID = systemAccount->getID();
-			}
-			else {
-				balanceID = BalanceKeyUtils::forAccount(systemAccount->getID(), delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
-			}
-
-			auto balance = BalanceFrame::createNew(balanceID,
-				systemAccount->getID(), baseAssetCode, 1);
-			balance->storeAdd(delta, this->getDatabase());
-		}
-
-		int32_t assetPairPolicies = baseAssetCode == mApp.getStatsQuoteAsset() ? 0 : static_cast<int32_t >(AssetPairPolicy::TRADEABLE);
-		auto assetPair = AssetPairFrame::create(baseAssetCode, mApp.getStatsQuoteAsset(), ONE, ONE, 0, 0, assetPairPolicies);
-		assetPair->storeAdd(delta, this->getDatabase());
-    }
 
 	AccountManager accountManager(mApp, this->getDatabase(), delta, mApp.getLedgerManager());
 	for (auto systemAccount : systemAccounts)

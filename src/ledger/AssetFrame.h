@@ -137,8 +137,13 @@ public:
 	static pointer loadAsset(AssetCode code, AccountID const& owner,
 		Database& db, LedgerDelta* delta = nullptr);
 
+    static pointer loadStatsAsset(Database& db);
+
 	static void loadAssets(std::vector<AssetFrame::pointer>& retAssets,
 		Database& db);
+
+    static void loadBaseAssets(std::vector<AssetFrame::pointer>& retAssets,
+                           Database& db);
 
     static void dropAll(Database& db);
 };

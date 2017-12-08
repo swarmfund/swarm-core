@@ -98,3 +98,19 @@ bool bigDivide(uint64_t& result, uint64_t A, uint64_t B, uint64_t C, Rounding ro
 
 bool iequals(std::string const& a, std::string const& b);
 }
+
+namespace std {
+
+    template <>
+    struct hash<stellar::ExternalSystemIDGeneratorType>
+    {
+        size_t operator()(const stellar::ExternalSystemIDGeneratorType& k) const
+        {
+            using std::size_t;
+            using std::hash;
+            const auto rawKey = static_cast<int32_t>(k);
+            return hash<int32_t>()(rawKey);
+        }
+    };
+
+}

@@ -2,7 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/TestManager.h>
-#include <transactions/test/test_helper/ManageAssetHelper.h>
+#include <transactions/test/test_helper/ManageAssetTestHelper.h>
 #include "main/Application.h"
 #include "util/Timer.h"
 #include "main/Config.h"
@@ -40,7 +40,7 @@ TEST_CASE("create account", "[tx][create_account]")
     SecretKey rootKP = getRoot();
 	Salt rootSeq = 1;
     auto testManager = TestManager::make(app);
-    ManageAssetHelper manageAssetHelper(testManager);
+    ManageAssetTestHelper manageAssetHelper(testManager);
     Account rootAccount = {rootKP, rootSeq};
     AssetCode baseAsset = "USD";
     manageAssetHelper.createBaseAsset(rootAccount, rootKP, baseAsset);

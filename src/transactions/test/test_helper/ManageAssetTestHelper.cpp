@@ -4,7 +4,7 @@
 
 #include <transactions/test/TxTests.h>
 #include <cstdint>
-#include "ManageAssetHelper.h"
+#include "ManageAssetTestHelper.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
@@ -19,11 +19,11 @@ namespace stellar
 
 namespace txtest
 {
-	ManageAssetHelper::ManageAssetHelper(TestManager::pointer testManager) : TxHelper(testManager)
+	ManageAssetTestHelper::ManageAssetTestHelper(TestManager::pointer testManager) : TxHelper(testManager)
 	{
 	}
 
-	ManageAssetResult ManageAssetHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
+	ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
 	{
 		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
@@ -88,7 +88,7 @@ namespace txtest
 		return manageAssetResult;
 	}
 
-	TransactionFramePtr ManageAssetHelper::createManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request)
+	TransactionFramePtr ManageAssetTestHelper::createManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request)
 	{
 		Operation op;
 		op.body.type(OperationType::MANAGE_ASSET);
@@ -98,7 +98,7 @@ namespace txtest
 		return txFromOperation(source, op, nullptr);
 	}
 
-	ManageAssetOp::_request_t ManageAssetHelper::createAssetCreationRequest(
+	ManageAssetOp::_request_t ManageAssetTestHelper::createAssetCreationRequest(
 			AssetCode code,
 			std::string name,
 			AccountID preissuedAssetSigner,
@@ -122,7 +122,7 @@ namespace txtest
 		return request;
 	}
 
-	ManageAssetOp::_request_t ManageAssetHelper::createAssetUpdateRequest(
+	ManageAssetOp::_request_t ManageAssetTestHelper::createAssetUpdateRequest(
 			AssetCode code,
 			std::string description,
 			std::string externalResourceLink,
@@ -141,13 +141,13 @@ namespace txtest
 		return request;
 	}
 
-	ManageAssetOp::_request_t ManageAssetHelper::createCancelRequest()
+	ManageAssetOp::_request_t ManageAssetTestHelper::createCancelRequest()
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CANCEL_ASSET_REQUEST);
 		return request;
 	}
-	void ManageAssetHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root)
+	void ManageAssetTestHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root)
 	{
 		auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
 			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0, "123");
@@ -167,7 +167,7 @@ namespace txtest
 			ReviewRequestOpAction::APPROVE, "");
 	}
 
-    void ManageAssetHelper::createBaseAsset(Account &root, SecretKey &preIssuedSigner, AssetCode assetCode)
+    void ManageAssetTestHelper::createBaseAsset(Account &root, SecretKey &preIssuedSigner, AssetCode assetCode)
     {
         uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
         auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
@@ -175,7 +175,7 @@ namespace txtest
         auto creationResult = applyManageAssetTx(root, 0, creationRequest);
     }
 
-    void ManageAssetHelper::validateManageAssetEffect(ManageAssetOp::_request_t request) {
+    void ManageAssetTestHelper::validateManageAssetEffect(ManageAssetOp::_request_t request) {
         AssetCode assetCode;
         auto assetHelper = AssetHelper::Instance();
         switch (request.action()) {

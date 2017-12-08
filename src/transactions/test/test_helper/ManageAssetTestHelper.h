@@ -11,12 +11,12 @@ namespace stellar
 {
 namespace txtest 
 {	
-	class ManageAssetHelper : TxHelper
+	class ManageAssetTestHelper : TxHelper
 	{
     private:
         void validateManageAssetEffect(ManageAssetOp::_request_t request);
 	public:
-		ManageAssetHelper(TestManager::pointer testManager);
+		ManageAssetTestHelper(TestManager::pointer testManager);
 
 		ManageAssetResult applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request,
 			ManageAssetResultCode expectedResult = ManageAssetResultCode::SUCCESS);

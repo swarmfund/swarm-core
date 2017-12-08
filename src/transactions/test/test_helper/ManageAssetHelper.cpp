@@ -33,12 +33,12 @@ namespace txtest
 		auto actualResultCode = ManageAssetOpFrame::getInnerCode(opResult);
 		REQUIRE(actualResultCode == expectedResult);
 
-		uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
-		if (expectedResult != ManageAssetResultCode::SUCCESS)
-		{
-			REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
-			return ManageAssetResult{};
-		}
+        uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+        if (expectedResult != ManageAssetResultCode::SUCCESS)
+        {
+            REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
+            return ManageAssetResult{};
+        }
 
         auto sourceFrame = AccountFrame::loadAccount(source.key.getPublicKey(), mTestManager->getDB());
         auto manageAssetResult = opResult.tr().manageAssetResult();
@@ -82,8 +82,7 @@ namespace txtest
             REQUIRE(!!requestBeforeTx);
         }
 
-		auto manageAssetResult = opResult.tr().manageAssetResult();
-		auto requestAfterTx = reviewableRequestHelper->loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
+		auto requestAfterTx = ReviewableRequestFrame::loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
 		if (request.action() == ManageAssetAction::CANCEL_ASSET_REQUEST) {
 			REQUIRE(!requestAfterTx);
 			return manageAssetResult;

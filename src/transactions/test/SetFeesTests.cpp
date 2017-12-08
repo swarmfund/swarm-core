@@ -10,6 +10,7 @@
 
 #include "TxTests.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/FeeHelper.h"
 #include "transactions/SetFeesOpFrame.h"
 
 #include "crypto/SHA.h"
@@ -35,6 +36,8 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
     // set up world
     SecretKey root = getRoot();
     Salt rootSeq = 1;
+
+	auto feeHelper = FeeHelper::Instance();
 
     SECTION("Only Master account with admin signer can set fee")
     {
@@ -69,14 +72,14 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
         auto aPubKey = a.getPublicKey();
         applyCreateAccountTx(app, root, a, rootSeq++, AccountType::GENERAL);
         auto accountFrame = loadAccount(a, app);
-        auto accountFee = FeeFrame::loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
+        auto accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
             accountFrame, 0, app.getDatabase());
 
         REQUIRE(!accountFee);
 
         auto feeEntry = createFeeEntry(FeeType::PAYMENT_FEE, 1, 2, app.getBaseAsset(), &aPubKey);
 		applySetFees(app, root, rootSeq++, &feeEntry, false, nullptr);
-        accountFee = FeeFrame::loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
+        accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
             accountFrame, 0, app.getDatabase());
 
         REQUIRE(accountFee->getFee() == feeEntry);
@@ -87,14 +90,14 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
         auto a = SecretKey::random();
         applyCreateAccountTx(app, root, a, rootSeq++, AccountType::GENERAL);
         auto accountFrame = loadAccount(a, app);
-        auto accountFee = FeeFrame::loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
+        auto accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
             accountFrame, 0, app.getDatabase());
 
         REQUIRE(!accountFee);
 
         auto feeEntry = createFeeEntry(FeeType::PAYMENT_FEE, 10, 20, app.getBaseAsset(), nullptr, &accountType);
 		applySetFees(app, root, rootSeq++, &feeEntry, false, nullptr);
-        accountFee = FeeFrame::loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
+        accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
             accountFrame, 0, app.getDatabase());
 
         REQUIRE(accountFee->getFee() == feeEntry);

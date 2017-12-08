@@ -7,7 +7,12 @@
 #include "ledger/AssetPairFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountLimitsFrame.h"
+#include "ledger/AccountLimitsHelper.h"
 #include "ledger/AccountTypeLimitsFrame.h"
+#include "ledger/AccountTypeLimitsHelper.h"
+#include "ledger/AssetPairHelper.h"
+#include "ledger/EntryHelper.h"
+#include "ledger/StatisticsHelper.h"
 
 namespace stellar
 {
@@ -28,7 +33,7 @@ namespace stellar
         stats.weeklyOutcome = 0;
         stats.monthlyOutcome = 0;
         stats.annualOutcome = 0;
-        statsFrame->storeAdd(mDelta, mDb);
+		EntryHelperProvider::storeAddEntry(mDelta, mDb, statsFrame->mEntry);
 	}
 
 	AccountManager::Result AccountManager::processTransfer(AccountFrame::pointer account, BalanceFrame::pointer balance, int64 amount, int64& universalAmount, bool requireReview, bool ignoreLimits)
@@ -45,7 +50,8 @@ namespace stellar
                 return UNDERFUNDED;
         }
 
-        auto assetPairFrame = AssetPairFrame::mustLoadAssetPair(balance->getAsset(), mApp.getStatsQuoteAsset(), mDb, &mDelta);
+		auto assetPairHelper = AssetPairHelper::Instance();
+        auto assetPairFrame = assetPairHelper->mustLoadAssetPair(balance->getAsset(), mApp.getStatsQuoteAsset(), mDb, &mDelta);
 
         if (!bigDivide(universalAmount, amount, assetPairFrame->getCurrentPrice(),
             ONE, ROUND_UP))
@@ -53,8 +59,8 @@ namespace stellar
             return STATS_OVERFLOW;
         }
 
-		
-		auto stats = StatisticsFrame::mustLoadStatistics(balance->getAccountID(), mDb, &mDelta);
+		auto statisticsHelper = StatisticsHelper::Instance();
+		auto stats = statisticsHelper->mustLoadStatistics(balance->getAccountID(), mDb, &mDelta);
 
 		auto now = mLm.getCloseTime();		
 		if (!stats->add(universalAmount, now, now))
@@ -67,7 +73,7 @@ namespace stellar
 			return LIMITS_EXCEEDED;
 		}
         
-        stats->storeChange(mDelta, mDb);
+        EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
 		return SUCCESS;
 	}
     
@@ -79,7 +85,8 @@ namespace stellar
             return false;
         }
 
-		auto stats = StatisticsFrame::mustLoadStatistics(balance->getAccountID(), mDb, &mDelta);
+		auto statisticsHelper = StatisticsHelper::Instance();
+		auto stats = statisticsHelper->mustLoadStatistics(balance->getAccountID(), mDb, &mDelta);
 		uint64_t now = mLm.getCloseTime();
 
 		auto accIdStrKey = PubKeyUtils::toStrKey(balance->getAccountID());
@@ -89,14 +96,15 @@ namespace stellar
 			throw std::runtime_error("Failed to rever statistics");
 		}
 
-        stats->storeChange(mDelta, mDb);
+        EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
         return true;
 	}
         
     bool AccountManager::validateStats(AccountFrame::pointer account, BalanceFrame::pointer balance,
         StatisticsFrame::pointer statsFrame) {
         auto stats = statsFrame->getStatistics();
-        auto accountLimits = AccountLimitsFrame::loadLimits(balance->getAccountID(), mDb);
+		auto accountLimitsHelper = AccountLimitsHelper::Instance();
+        auto accountLimits = accountLimitsHelper->loadLimits(balance->getAccountID(), mDb);
         
         Limits limits;
         
@@ -118,8 +126,9 @@ namespace stellar
 
     Limits AccountManager::getDefaultLimits(AccountType accountType)
     {
-        auto defaultLimitsFrame = AccountTypeLimitsFrame::loadLimits(
-            accountType, mDb);
+		auto accountTypeLimitsHelper = AccountTypeLimitsHelper::Instance();
+		auto defaultLimitsFrame = accountTypeLimitsHelper->loadLimits(
+			accountType, mDb);
         Limits limits;
 
         if (defaultLimitsFrame)

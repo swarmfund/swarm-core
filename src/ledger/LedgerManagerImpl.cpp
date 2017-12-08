@@ -10,6 +10,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerManagerImpl.h"
 #include "ledger/AssetPairFrame.h"
+#include "ledger/AccountHelper.h"
 
 #include "overlay/OverlayManager.h"
 #include "util/make_unique.h"
@@ -176,7 +177,7 @@ LedgerManagerImpl::startNewLedger()
 	AccountManager accountManager(mApp, this->getDatabase(), delta, mApp.getLedgerManager());
 	for (auto systemAccount : systemAccounts)
 	{
-		systemAccount->storeAdd(delta, this->getDatabase());
+		EntryHelperProvider::storeAddEntry(delta, this->getDatabase(), systemAccount->mEntry);
 		accountManager.createStats(systemAccount);
 		
 	}
@@ -823,8 +824,9 @@ void
 LedgerManagerImpl::checkDbState()
 {
 	// TODO move to invariant
+	auto accountHelper = AccountHelper::Instance();
     std::unordered_map<AccountID, AccountFrame::pointer> aData =
-        AccountFrame::checkDB(getDatabase());
+		accountHelper->checkDB(getDatabase());
 
 }
 

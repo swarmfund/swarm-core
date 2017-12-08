@@ -14,6 +14,9 @@
 #include "transactions/TransactionFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountLimitsFrame.h"
+#include "ledger/AccountLimitsHelper.h"
+#include "ledger/AccountTypeLimitsHelper.h"
+#include "ledger/StatisticsHelper.h"
 
 
 using namespace stellar;
@@ -60,6 +63,11 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
     limits.weeklyOut = 200;
     limits.monthlyOut = 300;
     limits.annualOut = 300;
+
+	auto accountLimitsHelper = AccountLimitsHelper::Instance();
+	auto accountTypeLimitsHelper = AccountTypeLimitsHelper::Instance();
+	auto statisticsHelper = StatisticsHelper::Instance();
+
     SECTION("malformed")
     {
         applySetLimits(app, root, rootSeq++, nullptr, nullptr, limits, SetLimitsResultCode::MALFORMED);
@@ -70,7 +78,7 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
     SECTION("success account limits setting")
     {
         applySetLimits(app, root, rootSeq++, &account, nullptr, limits);
-        auto limitsAfter = AccountLimitsFrame::loadLimits(account,
+        auto limitsAfter = accountLimitsHelper->loadLimits(account,
             app.getDatabase());
         REQUIRE(limitsAfter);
         REQUIRE(limitsAfter->getLimits() == limits);
@@ -79,7 +87,7 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
         {
             limits.annualOut = INT64_MAX;
             applySetLimits(app, root, rootSeq++, &account, nullptr, limits);
-            auto limitsAfter = AccountLimitsFrame::loadLimits(account,
+            auto limitsAfter = accountLimitsHelper->loadLimits(account,
                 app.getDatabase());
             REQUIRE(limitsAfter);
             REQUIRE(limitsAfter->getLimits() == limits);
@@ -89,11 +97,11 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
 
     SECTION("success account type default limits update")
     {
-        auto limitsBefore = AccountTypeLimitsFrame::loadLimits(accountType, app.getDatabase(), &delta);
+        auto limitsBefore = accountTypeLimitsHelper->loadLimits(accountType, app.getDatabase(), &delta);
         REQUIRE(!limitsBefore);
 
         applySetLimits(app, root, rootSeq++, nullptr, &accountType, limits);
-        auto limitsAfterFrame = AccountTypeLimitsFrame::loadLimits(accountType, app.getDatabase(), &delta);
+        auto limitsAfterFrame = accountTypeLimitsHelper->loadLimits(accountType, app.getDatabase(), &delta);
         REQUIRE(limitsAfterFrame);
         auto limitsAfter = limitsAfterFrame->getLimits();
         REQUIRE(limitsAfter == limits);
@@ -125,7 +133,7 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
                 applyPaymentTx(app, a2, receiver,
                     account2Seq++, 1, getNoPaymentFee(), false, "", "", PaymentResultCode::LIMITS_EXCEEDED);
 
-				auto statistics = StatisticsFrame::loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
+				auto statistics = statisticsHelper->loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
 				REQUIRE(statistics.dailyOutcome == limits.dailyOut);
 				REQUIRE(statistics.weeklyOutcome == limits.dailyOut);
 				REQUIRE(statistics.annualOutcome == limits.dailyOut);
@@ -136,7 +144,7 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
                 applyManageForfeitRequestTx(app, a2,
                                             a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut, 0);
 
-				statistics = StatisticsFrame::loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
+				statistics = statisticsHelper->loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
 				REQUIRE(statistics.dailyOutcome == limits.dailyOut);
 				REQUIRE(statistics.weeklyOutcome == 2*limits.dailyOut);
 				REQUIRE(statistics.annualOutcome == 2*limits.dailyOut);
@@ -153,12 +161,11 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
 				closeLedgerOn(app, 6, 7, 8, 2017);
                 applyManageForfeitRequestTx(app, a2, a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut);
 
-				statistics = StatisticsFrame::loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
+				statistics = statisticsHelper->loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
 				REQUIRE(statistics.dailyOutcome == limits.dailyOut);
 				REQUIRE(statistics.weeklyOutcome == limits.dailyOut);
 				REQUIRE(statistics.annualOutcome == 3 * limits.dailyOut);
 				REQUIRE(statistics.monthlyOutcome == 3 * limits.dailyOut);
-
 
             }
         }

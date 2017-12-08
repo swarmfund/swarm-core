@@ -11,6 +11,7 @@
 #include "util/Logging.h"
 #include "util/XDRStream.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
 #include "crypto/SHA.h"
 #include "crypto/SecretKey.h"
 #include "database/Database.h"
@@ -121,6 +122,7 @@ TransactionFrame::loadAccount(LedgerDelta* delta, Database& db,
                               AccountID const& accountID)
 {
     AccountFrame::pointer res;
+	auto accountHelper = AccountHelper::Instance();
 
     if (mSigningAccount && mSigningAccount->getID() == accountID)
     {
@@ -128,11 +130,11 @@ TransactionFrame::loadAccount(LedgerDelta* delta, Database& db,
     }
     else if (delta)
     {
-        res = AccountFrame::loadAccount(*delta, accountID, db);
+        res = accountHelper->loadAccount(*delta, accountID, db);
     }
     else
     {
-        res = AccountFrame::loadAccount(accountID, db);
+        res = accountHelper->loadAccount(accountID, db);
     }
     return res;
 }

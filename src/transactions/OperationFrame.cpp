@@ -13,6 +13,7 @@
 #include "ledger/PaymentRequestFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/ReferenceFrame.h"
+#include "ledger/AccountHelper.h"
 #include "transactions/TransactionFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/PaymentOpFrame.h"
@@ -196,7 +197,7 @@ OperationFrame::createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, 
         entry.invoiceID.activate() = *invoiceID;
     
     auto paymentRequestFrame = std::make_shared<PaymentRequestFrame>(le);
-    paymentRequestFrame->storeAdd(delta, db);
+    EntryHelperProvider::storeAddEntry(delta, db, paymentRequestFrame->mEntry);
 
     return entry;
 }
@@ -211,7 +212,7 @@ OperationFrame::createReferenceEntry(string reference, LedgerDelta* delta, Datab
 
     entry.reference = reference;
     auto referenceFrame = std::make_shared<ReferenceFrame>(le);
-    referenceFrame->storeAdd(*delta, db);
+	EntryHelperProvider::storeAddEntry(*delta, db, referenceFrame->mEntry);
 }
 
 
@@ -294,7 +295,8 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
     
     for (auto& counterpartyPair : counterparties)
     {
-		counterpartyPair.second.mAccount  = AccountFrame::loadAccount(counterpartyPair.first, db);
+		auto accountHelper = AccountHelper::Instance();
+		counterpartyPair.second.mAccount  = accountHelper->loadAccount(counterpartyPair.first, db);
 		bool isExists = !!counterpartyPair.second.mAccount;
 
         if (!isExists)

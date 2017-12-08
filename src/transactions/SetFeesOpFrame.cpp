@@ -6,6 +6,8 @@
 #include "transactions/ManageOfferOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
+#include "ledger/FeeHelper.h"
+#include "ledger/AssetHelper.h"
 #include "ledger/AssetPairFrame.h"
 #include "database/Database.h"
 
@@ -35,7 +37,8 @@ namespace stellar
 
 
 		Hash hash = FeeFrame::calcHash(mSetFees.fee->feeType, mSetFees.fee->asset, mSetFees.fee->accountID.get(), mSetFees.fee->accountType.get(), mSetFees.fee->subtype);
-		auto feeFrame = FeeFrame::loadFee(hash, mSetFees.fee->lowerBound, mSetFees.fee->upperBound, db, &delta);
+		auto feeHelper = FeeHelper::Instance();
+		auto feeFrame = feeHelper->loadFee(hash, mSetFees.fee->lowerBound, mSetFees.fee->upperBound, db, &delta);
 		// delete
 		if (mSetFees.isDelete)
 		{
@@ -46,7 +49,7 @@ namespace stellar
 				return false;
 			}
 
-			feeFrame->storeDelete(delta, db);
+			EntryHelperProvider::storeDeleteEntry(delta, db, feeFrame->getKey());
 			return true;
 		}
 
@@ -56,12 +59,13 @@ namespace stellar
 			auto& fee = feeFrame->getFee();
 			fee.percentFee = mSetFees.fee->percentFee;
 			fee.fixedFee = mSetFees.fee->fixedFee;
-			feeFrame->storeChange(delta, db);
+			EntryHelperProvider::storeChangeEntry(delta, db, feeFrame->mEntry);
 			return true;
 		}
-
+		
 		// create 
-		if (!AssetFrame::exists(db, mSetFees.fee->asset))
+		auto assetHelper = AssetHelper::Instance();
+		if (!assetHelper->exists(db, mSetFees.fee->asset))
 		{
 			innerResult().code(SetFeesResultCode::ASSET_NOT_FOUND);
 			metrics.NewMeter({ "op-set-fees", "invalid", "asset-not-found" }, "operation").Mark();
@@ -71,7 +75,7 @@ namespace stellar
 		// for fererral fee and storage fee it is only allowed  to have full range, so we can update them without check for range overlap
 		if (mSetFees.fee->feeType != FeeType::REFERRAL_FEE)
 		{
-			if (FeeFrame::isBoundariesOverlap(hash, mSetFees.fee->lowerBound, mSetFees.fee->upperBound, db))
+			if (feeHelper->isBoundariesOverlap(hash, mSetFees.fee->lowerBound, mSetFees.fee->upperBound, db))
 			{
 				innerResult().code(SetFeesResultCode::RANGE_OVERLAP);
 				metrics.NewMeter({ "op-set-fees", "invalid", "boundaries-overlap" }, "operation").Mark();
@@ -83,13 +87,14 @@ namespace stellar
 		le.data.type(LedgerEntryType::FEE);
 		le.data.feeState() = *mSetFees.fee;
 		feeFrame = make_shared<FeeFrame>(le);
-		feeFrame->storeAdd(delta, db);
+		EntryHelperProvider::storeAddEntry(delta, db, feeFrame->mEntry);
 		return true;
 	}
 
 	bool SetFeesOpFrame::doCheckForfeitFee(medida::MetricsRegistry & metrics, Database & db, LedgerDelta & delta)
 	{
-		auto asset = AssetFrame::loadAsset(mSetFees.fee->asset, db);
+		auto assetHelper = AssetHelper::Instance();
+		auto asset = assetHelper->loadAsset(mSetFees.fee->asset, db);
 		if (!asset)
 		{
 			innerResult().code(SetFeesResultCode::ASSET_NOT_FOUND);
@@ -151,7 +156,8 @@ namespace stellar
 	bool SetFeesOpFrame::mustBaseAsset(FeeEntry const & fee, Application& app)
 	{
         vector<AssetFrame::pointer> baseAssets;
-        AssetFrame::loadBaseAssets(baseAssets, app.getDatabase());
+		auto assetHelper = AssetHelper::Instance();
+		assetHelper->loadBaseAssets(baseAssets, app.getDatabase());
         if (baseAssets.empty())
             throw std::runtime_error("Unable to create referral fee - there is no base assets in the system");
 

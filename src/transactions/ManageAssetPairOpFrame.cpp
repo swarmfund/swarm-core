@@ -6,6 +6,8 @@
 #include "transactions/ManageOfferOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AssetFrame.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/AssetPairHelper.h"
 #include "ledger/OfferFrame.h"
 
 #include "database/Database.h"
@@ -46,7 +48,9 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 {
 	Database& db = ledgerManager.getDatabase();
 	// already exists or reverced already exists
-	if (assetPair || AssetPairFrame::exists(db, mManageAssetPair.quote, mManageAssetPair.base))
+	
+	auto assetPairHelper = AssetPairHelper::Instance();
+	if (assetPair || assetPairHelper->exists(db, mManageAssetPair.quote, mManageAssetPair.base))
 	{
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid", "already-exists" },
 			"operation").Mark();
@@ -54,8 +58,9 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 		return false;
 	}
 
-	bool assetsExist = AssetFrame::exists(db, mManageAssetPair.base);
-	assetsExist = assetsExist && AssetFrame::exists(db, mManageAssetPair.quote);
+	auto assetHelper = AssetHelper::Instance();
+	bool assetsExist = assetHelper->exists(db, mManageAssetPair.base);
+	assetsExist = assetsExist && assetHelper->exists(db, mManageAssetPair.quote);
 	if (!assetsExist)
 	{
 		app.getMetrics().NewMeter({ "op-manage-asset-pair", "invalid", "asset-not-exists" },
@@ -67,7 +72,7 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 	assetPair = AssetPairFrame::create(mManageAssetPair.base, mManageAssetPair.quote, mManageAssetPair.physicalPrice,
 		mManageAssetPair.physicalPrice, mManageAssetPair.physicalPriceCorrection,
 		mManageAssetPair.maxPriceStep, mManageAssetPair.policies);
-	assetPair->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, assetPair->mEntry);
 	app.getMetrics().NewMeter({ "op-manage-asset-pair", "success", "apply" },
 		"operation").Mark();
 	innerResult().code(ManageAssetPairResultCode::SUCCESS);
@@ -80,7 +85,9 @@ ManageAssetPairOpFrame::doApply(Application& app,
                               LedgerDelta& delta, LedgerManager& ledgerManager)
 {
 	Database& db = ledgerManager.getDatabase();
-	AssetPairFrame::pointer assetPair = AssetPairFrame::loadAssetPair(mManageAssetPair.base, mManageAssetPair.quote, db, &delta);
+
+	auto assetPairHelper = AssetPairHelper::Instance();
+	AssetPairFrame::pointer assetPair = assetPairHelper->loadAssetPair(mManageAssetPair.base, mManageAssetPair.quote, db, &delta);
     if (mManageAssetPair.action == ManageAssetPairAction::CREATE)
     {
 		return createNewAssetPair(app, delta, ledgerManager, assetPair);
@@ -119,7 +126,7 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, assetPair->getMinAllowedPrice());
 	}
 
-	assetPair->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, assetPair->mEntry);
 
 	app.getMetrics().NewMeter({"op-manage-asset-pair", "success", "apply"},
 	                          "operation").Mark();

@@ -1,5 +1,6 @@
 #include "ReviewRequestHelper.h"
 #include "ReviewRequestOpFrame.h"
+#include "ledger/AccountHelper.h"
 
 
 namespace stellar {
@@ -67,7 +68,8 @@ std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(Trans
     opRes.code(OperationResultCode::opINNER);
     opRes.tr().type(OperationType::REVIEW_REQUEST);
     Database& db = mLedgerManager.getDatabase();
-    auto reviewerFrame = AccountFrame::loadAccount(reviewer, db);
+	auto accountHelper = AccountHelper::Instance();
+    auto reviewerFrame = accountHelper->loadAccount(reviewer, db);
     if (!reviewerFrame) {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: expected review to exist for request: "
                                                << xdr::xdr_to_string(mRequest->getRequestEntry());

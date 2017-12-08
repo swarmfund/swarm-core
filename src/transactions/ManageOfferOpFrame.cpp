@@ -7,6 +7,11 @@
 #include "OfferExchange.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetPairHelper.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/FeeHelper.h"
+#include "ledger/OfferHelper.h"
 #include "ledger/OfferFrame.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -30,7 +35,8 @@ ManageOfferOpFrame::ManageOfferOpFrame(Operation const& op,
 
 BalanceFrame::pointer ManageOfferOpFrame::loadBalanceValidForTrading(BalanceID const& balanceID, medida::MetricsRegistry& metrics, Database& db, LedgerDelta & delta)
 {
-	auto balance = BalanceFrame::loadBalance(balanceID, db, &delta);
+	auto balanceHelper = BalanceHelper::Instance();
+	auto balance = balanceHelper->loadBalance(balanceID, db, &delta);
 	if (!balance || !(balance->getAccountID() == getSourceID()))
 	{
 		metrics
@@ -47,7 +53,8 @@ BalanceFrame::pointer ManageOfferOpFrame::loadBalanceValidForTrading(BalanceID c
 
 AssetPairFrame::pointer ManageOfferOpFrame::loadTradableAssetPair(medida::MetricsRegistry& metrics, Database& db, LedgerDelta& delta)
 {
-	AssetPairFrame::pointer assetPair = AssetPairFrame::loadAssetPair(mBaseBalance->getAsset(), mQuoteBalance->getAsset(), db, &delta);
+	auto assetPairHelper = AssetPairHelper::Instance();
+	AssetPairFrame::pointer assetPair = assetPairHelper->loadAssetPair(mBaseBalance->getAsset(), mQuoteBalance->getAsset(), db, &delta);
 	if (assetPair && assetPair->checkPolicy(AssetPairPolicy::TRADEABLE))
 		return assetPair;
 
@@ -136,7 +143,9 @@ void ManageOfferOpFrame::removeOffersBelowPrice(Database& db, LedgerDelta& delta
 	if (price <= 0)
 		return;
 	std::vector<OfferFrame::pointer> offersToRemove;
-	OfferFrame::loadOffersWithPriceLower(assetPair->getBaseAsset(), assetPair->getQuoteAsset(), price, offersToRemove, db);
+	
+	auto offerHelper = OfferHelper::Instance();
+	offerHelper->loadOffersWithPriceLower(assetPair->getBaseAsset(), assetPair->getQuoteAsset(), price, offersToRemove, db);
 	for (OfferFrame::pointer offerToRemove : offersToRemove)
 	{
 		delta.recordEntry(*offerToRemove);
@@ -160,20 +169,23 @@ void ManageOfferOpFrame::deleteOffer(OfferFrame::pointer offerFrame, Database&db
 		balanceID = offer.baseBalance;
 		amountToUnlock = offer.baseAmount;
 	}
-	auto balanceFrame = BalanceFrame::loadBalance(balanceID, db, &delta);
+
+	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceFrame = balanceHelper->loadBalance(balanceID, db, &delta);
 	if (!balanceFrame)
 		throw new runtime_error("Invalid database state: failed to load balance to cancel order");
 
 	if (balanceFrame->lockBalance(-amountToUnlock) != BalanceFrame::Result::SUCCESS)
 		throw new runtime_error("Invalid database state: failed to unlocked locked amount for offer");
 
-	offerFrame->storeDelete(delta, db);
-	balanceFrame->storeChange(delta, db);
+	EntryHelperProvider::storeDeleteEntry(delta, db, offerFrame->getKey());
+	EntryHelperProvider::storeChangeEntry(delta, db, balanceFrame->mEntry);
 }
 
 bool ManageOfferOpFrame::deleteOffer(medida::MetricsRegistry& metrics, Database& db, LedgerDelta & delta)
 {
-	auto offer = OfferFrame::loadOffer(getSourceID(), mManageOffer.offerID, db, &delta);
+	auto offerHelper = OfferHelper::Instance();
+	auto offer = offerHelper->loadOffer(getSourceID(), mManageOffer.offerID, db, &delta);
 	if (!offer)
 	{
 		metrics
@@ -220,7 +232,8 @@ bool ManageOfferOpFrame::setFeeToBeCharged(OfferEntry& offer, AssetCode const& q
 	offer.fee = 0;
 	offer.percentFee = 0;
 
-	auto feeFrame = FeeFrame::loadForAccount(FeeType::OFFER_FEE, quoteAsset, FeeFrame::SUBTYPE_ANY, mSourceAccount, offer.quoteAmount, db);
+	auto feeHelper = FeeHelper::Instance();
+	auto feeFrame = feeHelper->loadForAccount(FeeType::OFFER_FEE, quoteAsset, FeeFrame::SUBTYPE_ANY, mSourceAccount, offer.quoteAmount, db);
 	if (!feeFrame)
 		return true;
 
@@ -320,11 +333,14 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     innerResult().code(ManageOfferResultCode::SUCCESS);
 
-	BalanceFrame::pointer commissionBalance = BalanceFrame::loadBalance(app.getCommissionID(), mAssetPair->getQuoteAsset(), db, &delta);
+	auto balanceHelper = BalanceHelper::Instance();
+	BalanceFrame::pointer commissionBalance = balanceHelper->loadBalance(app.getCommissionID(), mAssetPair->getQuoteAsset(), db, &delta);
 	assert(commissionBalance);
 
 	AccountManager accountManager(app, db, delta, ledgerManager);
-	auto commissionAccount = AccountFrame::loadAccount(delta, commissionBalance->getAccountID(), db);
+
+	auto accountHelper = AccountHelper::Instance();
+	auto commissionAccount = accountHelper->loadAccount(delta, commissionBalance->getAccountID(), db);
 
 	OfferExchange oe(accountManager, delta, ledgerManager, mAssetPair, commissionBalance);
 
@@ -371,9 +387,9 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 		if (!takenOffers.empty()) {
 			int64_t currentPrice = takenOffers[takenOffers.size() - 1].currentPrice;
 			mAssetPair->setCurrentPrice(currentPrice);
-			mAssetPair->storeChange(delta, db);
+			EntryHelperProvider::storeChangeEntry(delta, db, mAssetPair->mEntry);
 
-			commissionBalance->storeChange(delta, db);
+			EntryHelperProvider::storeChangeEntry(delta, db, commissionBalance->mEntry);
 		}
     
 
@@ -382,8 +398,8 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 
 		offerFrame->mEntry.data.offer().offerID = delta.getHeaderFrame().generateID(LedgerEntryType::OFFER_ENTRY);
 		innerResult().success().offer.effect(ManageOfferEffect::CREATED);
-		offerFrame->storeAdd(delta, db);
-		mSourceAccount->storeChange(delta, db);
+		EntryHelperProvider::storeAddEntry(delta, db, offerFrame->mEntry);
+		EntryHelperProvider::storeChangeEntry(delta, db, mSourceAccount->mEntry);
         innerResult().success().offer.offer() = offer;
     }
     else
@@ -395,8 +411,8 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 
 	innerResult().success().baseAsset = mAssetPair->getBaseAsset();
 	innerResult().success().quoteAsset = mAssetPair->getQuoteAsset();
-	mBaseBalance->storeChange(delta, db);
-	mQuoteBalance->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, mBaseBalance->mEntry);
+	EntryHelperProvider::storeChangeEntry(delta, db, mQuoteBalance->mEntry);
 
 
     app.getMetrics()

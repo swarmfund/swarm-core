@@ -20,6 +20,7 @@
 #include "main/Application.h"
 #include "main/test.h"
 #include "ledger/LedgerTestUtils.h"
+#include "ledger/AccountHelper.h"
 #include "util/Fs.h"
 #include "util/Logging.h"
 #include "util/Timer.h"
@@ -882,13 +883,16 @@ TEST_CASE("bucket apply", "[bucket]")
     CLOG(INFO, "Bucket") << "Applying bucket with " << live.size()
                          << " live entries";
     birth->apply(db);
-    auto count = AccountFrame::countObjects(sess);
+
+	auto accountHelper = AccountHelper::Instance();
+
+    auto count = accountHelper->countObjects(sess);
     REQUIRE(count == live.size() + 4 /* system accounts account */);
 
     CLOG(INFO, "Bucket") << "Applying bucket with " << dead.size()
                          << " dead entries";
     death->apply(db);
-    count = AccountFrame::countObjects(sess);
+    count = accountHelper->countObjects(sess);
     REQUIRE(count == 4);
 }
 

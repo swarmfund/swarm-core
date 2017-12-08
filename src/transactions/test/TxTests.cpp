@@ -31,6 +31,15 @@
 #include "ledger/AssetPairFrame.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/AssetPairHelper.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/FeeHelper.h"
+#include "ledger/InvoiceHelper.h"
+#include "ledger/OfferHelper.h"
+#include "ledger/PaymentRequestHelper.h"
+#include "ledger/StatisticsHelper.h"
 #include "crypto/SHA.h"
 #include "test_helper/TestManager.h"
 
@@ -44,6 +53,16 @@ using xdr::operator==;
 
 namespace txtest
 {
+	auto accountHelper = AccountHelper::Instance();
+	auto assetHelper = AssetHelper::Instance();
+	auto assetPairHelper = AssetPairHelper::Instance();
+	auto balanceHelper = BalanceHelper::Instance();
+	auto feeHelper = FeeHelper::Instance();
+	auto invoiceHelper = InvoiceHelper::Instance();
+	auto offerHelper = OfferHelper::Instance();
+	auto paymentRequestHelper = PaymentRequestHelper::Instance();
+	auto statisticsHelper = StatisticsHelper::Instance();
+
 
 FeeEntry createFeeEntry(FeeType type, int64_t fixed, int64_t percent,
     AssetCode asset, AccountID* accountID, AccountType* accountType, int64_t subtype,
@@ -171,7 +190,7 @@ void
 checkAccount(AccountID const& id, Application& app)
 {
     AccountFrame::pointer res =
-        AccountFrame::loadAccount(id, app.getDatabase());
+        accountHelper->loadAccount(id, app.getDatabase());
     REQUIRE(!!res);
 }
 
@@ -283,7 +302,7 @@ loadAccount(SecretKey const& k, Application& app, bool mustExist)
 AccountFrame::pointer
 loadAccount(PublicKey const& k, Application& app, bool mustExist)
 {
-	AccountFrame::pointer res = AccountFrame::loadAccount(k, app.getDatabase());
+	AccountFrame::pointer res = accountHelper->loadAccount(k, app.getDatabase());
 	if (mustExist)
 	{
 		REQUIRE(res);
@@ -295,7 +314,7 @@ BalanceFrame::pointer
 loadBalance(BalanceID bid, Application& app, bool mustExist)
 {
 	BalanceFrame::pointer res =
-		BalanceFrame::loadBalance(bid, app.getDatabase());
+		balanceHelper->loadBalance(bid, app.getDatabase());
 	if (mustExist)
 	{
 		REQUIRE(res);
@@ -317,7 +336,7 @@ getAccountBalance(SecretKey const& k, Application& app)
     AccountFrame::pointer account;
     account = loadAccount(k, app);
     std::vector<BalanceFrame::pointer> retBalances;
-    BalanceFrame::loadBalances(account->getID(), retBalances, app.getDatabase());
+    balanceHelper->loadBalances(account->getID(), retBalances, app.getDatabase());
     auto balanceFrame = retBalances[0];
     return balanceFrame->getBalance().amount;
 }
@@ -328,7 +347,7 @@ getAccountBalance(PublicKey const& k, Application& app)
     AccountFrame::pointer account;
     account = loadAccount(k, app);
     std::vector<BalanceFrame::pointer> retBalances;
-    BalanceFrame::loadBalances(account->getID(), retBalances, app.getDatabase());
+    balanceHelper->loadBalances(account->getID(), retBalances, app.getDatabase());
     auto balanceFrame = retBalances[0];
     return balanceFrame->getBalance().amount;
 }
@@ -337,7 +356,7 @@ int64_t
 getBalance(BalanceID const& k, Application& app)
 {
     
-    auto balance = BalanceFrame::loadBalance(k, app.getDatabase());
+    auto balance = balanceHelper->loadBalance(k, app.getDatabase());
     assert(balance);
     return balance->getAmount();
 }
@@ -458,7 +477,7 @@ applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
 		REQUIRE(!toAccountAfter->isBlocked());
 		REQUIRE(toAccountAfter->getAccountType() == accountType);
         
-        auto statisticsFrame = StatisticsFrame::loadStatistics(to.getPublicKey(), app.getDatabase());
+        auto statisticsFrame = statisticsHelper->loadStatistics(to.getPublicKey(), app.getDatabase());
         REQUIRE(statisticsFrame);
         auto statistics = statisticsFrame->getStatistics();
         REQUIRE(statistics.dailyOutcome == 0);
@@ -468,7 +487,7 @@ applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
         
         if (!toAccount) {
             std::vector<BalanceFrame::pointer> balances;
-            BalanceFrame::loadBalances(toAccountAfter->getAccount().accountID, balances, app.getDatabase());
+            balanceHelper->loadBalances(toAccountAfter->getAccount().accountID, balances, app.getDatabase());
 			for (BalanceFrame::pointer balance : balances)
 			{
 				REQUIRE(balance->getBalance().amount == 0);
@@ -500,7 +519,7 @@ OfferFrame::pointer
 loadOffer(SecretKey const& k, uint64 offerID, Application& app, bool mustExist)
 {
 	OfferFrame::pointer res =
-		OfferFrame::loadOffer(k.getPublicKey(), offerID, app.getDatabase());
+		offerHelper->loadOffer(k.getPublicKey(), offerID, app.getDatabase());
 	if (mustExist)
 	{
 		REQUIRE(res);
@@ -550,7 +569,7 @@ applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offer
 		if (!claimedOffers.empty())
 		{
 			auto currentPrice = claimedOffers[claimedOffers.size() - 1].currentPrice;
-			auto assetPair = AssetPairFrame::loadAssetPair(manageOfferResult.success().baseAsset, manageOfferResult.success().quoteAsset, db, nullptr);
+			auto assetPair = assetPairHelper->loadAssetPair(manageOfferResult.success().baseAsset, manageOfferResult.success().quoteAsset, db, nullptr);
 			REQUIRE(assetPair->getCurrentPrice() == currentPrice);
 		}
 
@@ -600,7 +619,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
     TransactionFramePtr txFrame;
 
     std::vector<BalanceFrame::pointer> balances;
-    BalanceFrame::loadBalances(account.getPublicKey(), balances, app.getDatabase());
+    balanceHelper->loadBalances(account.getPublicKey(), balances, app.getDatabase());
     
     
     txFrame = createManageBalanceTx(app.getNetworkID(), from, account, seq, balanceID, asset, action);
@@ -617,7 +636,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
     REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
 
     std::vector<BalanceFrame::pointer> balancesAfter;
-    BalanceFrame::loadBalances(account.getPublicKey(), balancesAfter, app.getDatabase());
+    balanceHelper->loadBalances(account.getPublicKey(), balancesAfter, app.getDatabase());
 
     auto opResult = txResult.result.results()[0].tr().manageBalanceResult();
 
@@ -629,9 +648,9 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
     {
         if (action == ManageBalanceAction::CREATE)
         {
-            auto assetFrame = AssetFrame::loadAsset(asset, app.getDatabase());
+            auto assetFrame = assetHelper->loadAsset(asset, app.getDatabase());
             REQUIRE(balances.size() == balancesAfter.size() - 1);
-            auto balance = BalanceFrame::loadBalance(balanceID, app.getDatabase());
+            auto balance = balanceHelper->loadBalance(balanceID, app.getDatabase());
             REQUIRE(balance);
             REQUIRE(balance->getBalance().accountID == account.getPublicKey());
             REQUIRE(balance->getBalance().amount == 0);
@@ -640,7 +659,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
         else
         {
             REQUIRE(balances.size() == balancesAfter.size() + 1);
-            REQUIRE(!BalanceFrame::loadBalance(balanceID, app.getDatabase()));
+            REQUIRE(!balanceHelper->loadBalance(balanceID, app.getDatabase()));
         }
     }
     return opResult;
@@ -683,8 +702,8 @@ applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode 
 	ManageAssetPairResultCode result)
 {
 
-	auto assetPairFrameBefore = AssetPairFrame::loadAssetPair(base, quote, app.getDatabase());
-	auto countBefore = AssetPairFrame::countObjects(app.getDatabase().getSession());
+	auto assetPairFrameBefore = assetPairHelper->loadAssetPair(base, quote, app.getDatabase());
+	auto countBefore = assetPairHelper->countObjects(app.getDatabase().getSession());
 
 	TransactionFramePtr txFrame;
 	txFrame = createManageAssetPairTx(app.getNetworkID(), source, seq, base, quote, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, action);
@@ -703,8 +722,8 @@ applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode 
 	auto opResult = txResult.result.results()[0].tr().manageAssetPairResult();
 
 	bool isCreate = action == ManageAssetPairAction::CREATE;
-	auto countAfter = AssetPairFrame::countObjects(app.getDatabase().getSession());
-	auto assetPairFrameAfter = AssetPairFrame::loadAssetPair(base, quote, app.getDatabase());
+	auto countAfter = assetPairHelper->countObjects(app.getDatabase().getSession());
+	auto assetPairFrameAfter = assetPairHelper->loadAssetPair(base, quote, app.getDatabase());
 
 	if (innerCode != ManageAssetPairResultCode::SUCCESS)
 	{
@@ -874,7 +893,7 @@ applyManageForfeitRequestTx(Application &app, SecretKey &from, BalanceID fromBal
     }
     else
     {
-        REQUIRE(PaymentRequestFrame::loadPaymentRequest(opResult.success().paymentID, app.getDatabase()));
+        REQUIRE(paymentRequestHelper->loadPaymentRequest(opResult.success().paymentID, app.getDatabase()));
         return opResult;
     }
     return opResult;
@@ -926,7 +945,7 @@ applyManageInvoice(Application& app, SecretKey& from, AccountID sender,
         if (invoiceID == 0)
         {
             auto createdInvoiceID = opResult.success().invoiceID;
-            auto invoiceFrame = InvoiceFrame::loadInvoice(createdInvoiceID, app.getDatabase());
+            auto invoiceFrame = invoiceHelper->loadInvoice(createdInvoiceID, app.getDatabase());
             REQUIRE(invoiceFrame);
             REQUIRE(invoiceFrame->getAmount() == amount);
             REQUIRE(invoiceFrame->getSender() == sender);
@@ -934,7 +953,7 @@ applyManageInvoice(Application& app, SecretKey& from, AccountID sender,
         }
         else
         {
-            REQUIRE(!InvoiceFrame::loadInvoice(invoiceID, app.getDatabase()));
+            REQUIRE(!invoiceHelper->loadInvoice(invoiceID, app.getDatabase()));
         }
     }
 
@@ -967,9 +986,9 @@ applyReviewPaymentRequestTx(Application& app, SecretKey& from, Salt seq,
     LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
                       app.getDatabase());
 
-    auto requests = PaymentRequestFrame::countObjects(app.getDatabase().getSession());
+    auto requests = paymentRequestHelper->countObjects(app.getDatabase().getSession());
 
-    auto request = PaymentRequestFrame::loadPaymentRequest(paymentID, app.getDatabase(), nullptr);
+    auto request = paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr);
     applyCheck(txFrame, delta, app);
 
     checkTransaction(*txFrame);
@@ -979,20 +998,20 @@ applyReviewPaymentRequestTx(Application& app, SecretKey& from, Salt seq,
 
     REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
 
-    auto newRequests = PaymentRequestFrame::countObjects(app.getDatabase().getSession());
+    auto newRequests = paymentRequestHelper->countObjects(app.getDatabase().getSession());
 
     if (innerCode == ReviewPaymentRequestResultCode::SUCCESS)
     {
         if (accept)
             REQUIRE(requests == newRequests + 1);
-        REQUIRE(!PaymentRequestFrame::loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
+        REQUIRE(!paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
         return (int32_t)txResult.result.results()[0].tr().reviewPaymentRequestResult().reviewPaymentResponse().state;
     }
     else
     {
         REQUIRE(requests == newRequests);
         if (innerCode != ReviewPaymentRequestResultCode::NOT_FOUND)
-            REQUIRE(PaymentRequestFrame::loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
+            REQUIRE(paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
         return -1;
     }
 }
@@ -1024,7 +1043,7 @@ void applyRecover(Application& app, SecretKey& source, Salt seq, AccountID accou
                       app.getDatabase());
 
     unsigned long signersSize = 0, signersSizeAfter = 0;
-    auto acc = AccountFrame::loadAccount(account, app.getDatabase());
+    auto acc = accountHelper->loadAccount(account, app.getDatabase());
     assert(acc);
     signersSize = acc->getAccount().signers.size();
     applyCheck(txFrame, delta, app);
@@ -1036,7 +1055,7 @@ void applyRecover(Application& app, SecretKey& source, Salt seq, AccountID accou
 
     REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
     
-    auto accAfter = AccountFrame::loadAccount(account, app.getDatabase());
+    auto accAfter = accountHelper->loadAccount(account, app.getDatabase());
     signersSizeAfter = accAfter->getAccount().signers.size();
 
     if (innerCode == RecoverResultCode::SUCCESS)
@@ -1262,7 +1281,7 @@ void applySetFees(Application& app, SecretKey& source, Salt seq, FeeEntry* fee, 
 	{
 		if (fee)
 		{
-			auto storedFee = FeeFrame::loadFee(fee->feeType, fee->asset,
+			auto storedFee = feeHelper->loadFee(fee->feeType, fee->asset,
 				fee->accountID.get(), fee->accountType.get(), fee->subtype, fee->lowerBound, fee->upperBound, app.getDatabase(), nullptr);
 			if (isDelete)
 				REQUIRE(!storedFee);

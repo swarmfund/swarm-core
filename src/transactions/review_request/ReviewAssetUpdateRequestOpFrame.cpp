@@ -5,6 +5,12 @@
 #include <transactions/manage_asset/ManageAssetHelper.h>
 #include "ReviewAssetUpdateRequestOpFrame.h"
 #include "database/Database.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/LedgerDelta.h"
+#include "ledger/ReviewableRequestFrame.h"
+#include "ledger/AssetFrame.h"
+#include "main/Application.h"
 #include "lib/util/format.h"
 
 namespace stellar
@@ -22,7 +28,9 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 
 	auto assetUpdateRequest = request->getRequestEntry().body.assetUpdateRequest();
 	Database& db = ledgerManager.getDatabase();
-	auto assetFrame = AssetFrame::loadAsset(assetUpdateRequest.code, db, &delta);
+
+	auto assetHelper = AssetHelper::Instance();
+	auto assetFrame = assetHelper->loadAsset(assetUpdateRequest.code, db, &delta);
 	if (!assetFrame) {
 		innerResult().code(ReviewRequestResultCode::ASSET_DOES_NOT_EXISTS);
 		return false;
@@ -40,13 +48,13 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 	assetEntry.externalResourceLink = assetUpdateRequest.externalResourceLink;
 	assetEntry.policies = assetUpdateRequest.policies;
     
-	assetFrame->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, assetFrame->mEntry);
     bool isBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
     
     if (!wasBase && isBase)
         ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta, ledgerManager.getCloseTime());
     
-	request->storeDelete(delta, db);
+	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }

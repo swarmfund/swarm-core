@@ -8,7 +8,9 @@
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/BalanceHelper.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/InvoiceHelper.h"
 
 namespace stellar
 {
@@ -43,7 +45,8 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
     Database& db = ledgerManager.getDatabase();
 	innerResult().code(ManageInvoiceResultCode::SUCCESS);
 
-    auto balance = BalanceFrame::loadBalance(mManageInvoice.receiverBalance, db);
+	auto balanceHelper = BalanceHelper::Instance();
+    auto balance = balanceHelper->loadBalance(mManageInvoice.receiverBalance, db);
 
     if (!balance || !(balance->getAccountID() == mSourceAccount->getID()) )
     {
@@ -53,7 +56,7 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-	auto senderBalance = BalanceFrame::loadBalance(mManageInvoice.sender, balance->getAsset(), db, &delta);
+	auto senderBalance = balanceHelper->loadBalance(mManageInvoice.sender, balance->getAsset(), db, &delta);
 	if (!senderBalance)
 	{
 		app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "sender-balance-not-found" },
@@ -65,7 +68,8 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
     uint64_t invoiceID;
     if (mManageInvoice.invoiceID == 0)
     {
-        int64_t totalForReceiver = InvoiceFrame::countForReceiverAccount(db, getSourceID());
+		auto invoiceHelper = InvoiceHelper::Instance();
+        int64_t totalForReceiver = invoiceHelper->countForReceiverAccount(db, getSourceID());
         if (totalForReceiver >= app.getMaxInvoicesForReceiverAccount())
         {
             app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "too-many-invoices" },
@@ -81,12 +85,13 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
         invoiceFrame->getInvoice().receiverBalance = mManageInvoice.receiverBalance;
         invoiceFrame->getInvoice().amount = mManageInvoice.amount;
         invoiceFrame->getInvoice().invoiceID = invoiceID;
-        invoiceFrame->storeAdd(delta, db);
+        EntryHelperProvider::storeAddEntry(delta, db, invoiceFrame->mEntry);
     }
     else
     {
         invoiceID = mManageInvoice.invoiceID;
-        auto invoiceFrame = InvoiceFrame::loadInvoice(invoiceID, db);
+		auto invoiceHelper = InvoiceHelper::Instance();
+        auto invoiceFrame = invoiceHelper->loadInvoice(invoiceID, db);
         if (!invoiceFrame)
         {
             app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "not-found" },
@@ -101,7 +106,7 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
             innerResult().code(ManageInvoiceResultCode::CAN_NOT_DELETE_IN_PROGRESS);
             return false;
         }
-        invoiceFrame->storeDelete(delta, db);
+        EntryHelperProvider::storeDeleteEntry(delta, db, invoiceFrame->getKey());
     }
     
     

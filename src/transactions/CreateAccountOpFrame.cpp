@@ -5,6 +5,11 @@
 #include "transactions/CreateAccountOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
+
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/FeeHelper.h"
+
 #include "exsysidgen/ExternalSystemIDGenerators.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -83,9 +88,10 @@ void CreateAccountOpFrame::trySetReferrer(Application& app, Database& db,
     if (referrerAccountID == app.getMasterID())
         return;
 
-    const auto referrer = AccountFrame::loadAccount(referrerAccountID, db);
-    if (!referrer)
-        return;
+	auto accountHelper = AccountHelper::Instance();
+	auto referrer = accountHelper->loadAccount(referrerAccountID, db);
+	if (!referrer)
+		return;
 
     destAccountFrame->setReferrer(*mCreateAccount.referrer);
 }
@@ -110,7 +116,7 @@ void CreateAccountOpFrame::storeExternalSystemsIDs(Application& app,
     auto newIDs = generator.generateNewIDs(account->getID());
     for (auto newID : newIDs)
     {
-        newID->storeAdd(delta, db);
+        EntryHelperProvider::storeAddEntry(delta, db, newID->mEntry);
         innerResult().success().externalSystemIDs.push_back(newID->getExternalSystemAccountID());
     }
 }
@@ -127,14 +133,15 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
     trySetReferrer(app, db, destAccountFrame);
     destAccount.policies = mCreateAccount.policies;
 
-    destAccountFrame->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, destAccountFrame->mEntry);
     storeExternalSystemsIDs(app, delta, db, destAccountFrame);
 
     AccountManager accountManager(app, db, delta, ledgerManager);
     accountManager.createStats(destAccountFrame);
     // create balance for all availabe base assets
     std::vector<AssetFrame::pointer> baseAssets;
-    AssetFrame::loadBaseAssets(baseAssets, db);
+	auto assetHelper = AssetHelper::Instance();
+	assetHelper->loadBaseAssets(baseAssets, db);
     for (auto baseAsset : baseAssets)
     {
         BalanceID balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination,
@@ -145,7 +152,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
                                                     baseAsset->getCode(),
                                                     ledgerManager.
                                                     getCloseTime());
-        balanceFrame->storeAdd(delta, db);
+        EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
     }
 
     app.getMetrics().NewMeter({"op-create-account", "success", "apply"},
@@ -160,8 +167,8 @@ CreateAccountOpFrame::doApply(Application& app,
     Database& db = ledgerManager.getDatabase();
     innerResult().code(CreateAccountResultCode::SUCCESS);
 
-    auto destAccountFrame = AccountFrame::
-        loadAccount(delta, mCreateAccount.destination, db);
+	auto accountHelper = AccountHelper::Instance();
+    auto destAccountFrame = accountHelper->loadAccount(delta, mCreateAccount.destination, db);
 
     if (ledgerManager.getCurrentLedgerHeader().ledgerVersion < static_cast<
             int32_t>(mCreateAccount.ext.v()))
@@ -191,7 +198,7 @@ CreateAccountOpFrame::doApply(Application& app,
     AccountEntry& accountEntry = destAccountFrame->getAccount();
     accountEntry.policies = mCreateAccount.policies;
 
-    destAccountFrame->storeChange(delta, db);
+    EntryHelperProvider::storeChangeEntry(delta, db, destAccountFrame->mEntry);
     storeExternalSystemsIDs(app, delta, db, destAccountFrame);
 
     app.getMetrics().NewMeter({"op-create-account", "success", "apply"},

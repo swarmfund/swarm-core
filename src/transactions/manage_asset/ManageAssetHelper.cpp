@@ -1,3 +1,4 @@
+#include <ledger/BalanceHelper.h>
 #include "ManageAssetHelper.h"
 
 namespace stellar
@@ -8,15 +9,16 @@ void ManageAssetHelper::createSystemBalances(AssetCode assetCode, Application &a
 {
     auto systemAccounts = app.getSystemAccounts();
 
+    auto balanceHelper = BalanceHelper::Instance();
     for (auto& systemAccount : systemAccounts)
     {
-        auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode, app.getDatabase(), &delta);
+        auto balanceFrame = balanceHelper->loadBalance(systemAccount, assetCode, app.getDatabase(), &delta);
         if (!balanceFrame) {
             BalanceID balanceID = BalanceKeyUtils::forAccount(systemAccount,
                                                               delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
             balanceFrame = BalanceFrame::createNew(balanceID, systemAccount, assetCode, ledgerCloseTime);
 
-            balanceFrame->storeAdd(delta, app.getDatabase());
+            EntryHelperProvider::storeAddEntry(delta, app.getDatabase(), balanceFrame->mEntry);
         }
     }
 }

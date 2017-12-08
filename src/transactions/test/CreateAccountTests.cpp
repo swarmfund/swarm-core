@@ -12,7 +12,9 @@
 #include "TxTests.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
+#include "ledger/ExternalSystemAccountIDHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -43,20 +45,23 @@ TEST_CASE("create account", "[tx][create_account]")
     AssetCode baseAsset = "USD";
     manageAssetHelper.createBaseAsset(rootAccount, rootKP, baseAsset);
 
+	auto accountHelper = AccountHelper::Instance();
+	auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
+
         SECTION("External system account id are generated")
         {
             auto randomAccount = SecretKey::random();
             applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::NOT_VERIFIED);
-            const auto btcKey = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
+            const auto btcKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
             REQUIRE(!!btcKey);
-            const auto ethKey = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
+            const auto ethKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
             REQUIRE(!!ethKey);
             SECTION("Can update account, but ext keys will be the same")
             {
                 applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::GENERAL);
-                const auto btcKeyAfterUpdate = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
+                const auto btcKeyAfterUpdate = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
                 REQUIRE(btcKey->getExternalSystemAccountID() == btcKeyAfterUpdate->getExternalSystemAccountID());
-                const auto ethKeyAfterUpdate = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
+                const auto ethKeyAfterUpdate = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
                 REQUIRE(ethKey->getExternalSystemAccountID() == ethKeyAfterUpdate->getExternalSystemAccountID());
             }
         }
@@ -78,7 +83,8 @@ TEST_CASE("create account", "[tx][create_account]")
 		auto checkAccountPolicies = [&app, &delta](AccountID accountID, LedgerVersion expectedAccountVersion,
 												   int32 expectedPolicies)
 		{
-			auto accountFrame = AccountFrame::loadAccount(accountID, app.getDatabase(), &delta);
+			auto accountHelper = AccountHelper::Instance();
+			auto accountFrame = accountHelper->loadAccount(accountID, app.getDatabase(), &delta);
 			REQUIRE(accountFrame);
 			REQUIRE(accountFrame->getAccount().ext.v() == expectedAccountVersion);
 			if (expectedPolicies != -1)
@@ -126,7 +132,7 @@ TEST_CASE("create account", "[tx][create_account]")
         {
             AccountID invalidReferrer = SecretKey::random().getPublicKey();
             applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::GENERAL, nullptr, &invalidReferrer);
-			auto accountFrame = AccountFrame::loadAccount(account.getPublicKey(), app.getDatabase());
+			auto accountFrame = accountHelper->loadAccount(account.getPublicKey(), app.getDatabase());
 			REQUIRE(accountFrame);
 			REQUIRE(!accountFrame->getReferrer());
         }
@@ -186,14 +192,14 @@ TEST_CASE("create account", "[tx][create_account]")
 		auto newAccount = SecretKey::random();
 		auto createAccount = createCreateAccountTx(app.getNetworkID(), rootKP, newAccount, rootSeq++, AccountType::NOT_VERIFIED);
 		REQUIRE(applyCheck(createAccount, delta, app));
-		auto newAccountFrame = AccountFrame::loadAccount(newAccount.getPublicKey(), app.getDatabase());
+		auto newAccountFrame = accountHelper->loadAccount(newAccount.getPublicKey(), app.getDatabase());
                 
 
 		REQUIRE(newAccountFrame);
 		REQUIRE(newAccountFrame->getAccountType() == AccountType::NOT_VERIFIED);
 
 		applyCreateAccountTx(app, rootKP, newAccount, rootSeq++, AccountType::GENERAL);
-		newAccountFrame = AccountFrame::loadAccount(newAccount.getPublicKey(), app.getDatabase());
+		newAccountFrame = accountHelper->loadAccount(newAccount.getPublicKey(), app.getDatabase());
 		REQUIRE(newAccountFrame->getAccountType() == AccountType::GENERAL);
 
 	}

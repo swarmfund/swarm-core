@@ -1353,16 +1353,6 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger)
     std::vector<LedgerUpgrade> upgrades;
 
     // see if we need to include some upgrades
-    xdr::xvector<ExternalSystemIDGeneratorType> generators;
-    auto avaialbeGenerators = mApp.getAvailableExternalSystemGenerator();
-    copy(avaialbeGenerators.begin(), avaialbeGenerators.end(), back_inserter(generators));
-    sort(generators.begin(), generators.end());
-    if (lcl.header.externalSystemIDGenerators != generators)
-    {
-        upgrades.emplace_back(LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR);
-        upgrades.back().newExternalSystemIDGenerators() = generators;
-    }
-
     if (lcl.header.txExpirationPeriod != mApp.getConfig().TX_EXPIRATION_PERIOD)
     {
         upgrades.emplace_back(LedgerUpgradeType::TX_EXPIRATION_PERIOD);
@@ -1381,6 +1371,16 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger)
         upgrades.emplace_back(LedgerUpgradeType::MAX_TX_SET_SIZE);
         upgrades.back().newMaxTxSetSize() =
             mApp.getConfig().DESIRED_MAX_TX_PER_LEDGER;
+    }
+
+    xdr::xvector<ExternalSystemIDGeneratorType> generators;
+    auto avaialbeGenerators = mApp.getAvailableExternalSystemGenerator();
+    copy(avaialbeGenerators.begin(), avaialbeGenerators.end(), back_inserter(generators));
+    sort(generators.begin(), generators.end());
+    if (lcl.header.externalSystemIDGenerators != generators)
+    {
+        upgrades.emplace_back(LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR);
+        upgrades.back().newExternalSystemIDGenerators() = generators;
     }
 
     for (auto const& upgrade : upgrades)

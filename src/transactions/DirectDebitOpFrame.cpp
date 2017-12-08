@@ -5,8 +5,10 @@
 #include "util/asio.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "database/Database.h"
+#include "ledger/AccountHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/TrustFrame.h"
+#include "ledger/TrustHelper.h"
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
@@ -46,7 +48,8 @@ DirectDebitOpFrame::doApply(Application& app, LedgerDelta& delta,
 {
     Database& db = ledgerManager.getDatabase();
 
-    if (!TrustFrame::exists(db, getSourceID(), mDirectDebit.paymentOp.sourceBalanceID))
+	auto trustHelper = TrustHelper::Instance();
+    if (!trustHelper->exists(db, getSourceID(), mDirectDebit.paymentOp.sourceBalanceID))
     {
         app.getMetrics()
             .NewMeter({"op-direct-debit", "failed", "apply"}, "operation")
@@ -65,7 +68,8 @@ DirectDebitOpFrame::doApply(Application& app, LedgerDelta& delta,
     opRes.tr().type(OperationType::PAYMENT);
     PaymentOpFrame payment(op, opRes, mParentTx);
     
-    auto fromAccount = AccountFrame::loadAccount(delta, mDirectDebit.from, db);
+	auto accountHelper = AccountHelper::Instance();
+    auto fromAccount = accountHelper->loadAccount(delta, mDirectDebit.from, db);
     
     payment.setSourceAccountPtr(fromAccount);
 

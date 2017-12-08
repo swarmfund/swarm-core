@@ -19,9 +19,6 @@ class StatementContext;
 
 class ReferenceFrame : public EntryFrame
 {
-    static void
-    loadReferences(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> referenceProcessor);
 
     ReferenceEntry& mReference;
 
@@ -54,27 +51,15 @@ class ReferenceFrame : public EntryFrame
         return mReference;
     }
 
+    AccountID& getSender(){
+        return mReference.sender;
+    }
+
+    std::string& getReferenceString(){
+        return mReference.reference;
+    }
+
     static bool isValid(ReferenceEntry const& oe);
     bool isValid() const;
-
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-
-    // Static helpers that don't assume an instance.
-    static void storeDelete(LedgerDelta& delta, Database& db,
-                            LedgerKey const& key);
-	static bool exists(Database& db, LedgerKey const& key);
-	static bool exists(Database& db, std::string reference, AccountID exchange);
-    static uint64_t countObjects(soci::session& sess);
-
-    // database utilities
-    static pointer loadReference(AccountID exchange, std::string reference,
-                             Database& db, LedgerDelta* delta = nullptr);
-
-
-
-    static void dropAll(Database& db);
 };
 }

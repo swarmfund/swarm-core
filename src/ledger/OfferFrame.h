@@ -20,15 +20,9 @@ namespace stellar
 
 	class OfferFrame : public EntryFrame
 	{
-		static void
-			loadOffers(StatementContext& prep,
-				std::function<void(LedgerEntry const&)> offerProcessor);
-
 		OfferEntry& mOffer;
 
 		OfferFrame(OfferFrame const& from);
-
-		void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert);
 
 	public:
 		typedef std::shared_ptr<OfferFrame> pointer;
@@ -38,59 +32,16 @@ namespace stellar
 
 		OfferFrame& operator=(OfferFrame const& other);
 
-		EntryFrame::pointer
-			copy() const override
-		{
-			return EntryFrame::pointer(new OfferFrame(*this));
-		}
+		EntryFrame::pointer copy() const override;
 
 		int64_t getPrice() const;
 		uint64 getOfferID() const;
 
-		OfferEntry const&
-			getOffer() const
-		{
-			return mOffer;
-		}
-		OfferEntry&
-			getOffer()
-		{
-			return mOffer;
-		}
+		OfferEntry& getOffer();
 
-		static bool isValid(OfferEntry const& oe);
+		OfferEntry const& getOffer() const;
+
 		bool isValid() const;
-
-		// Instance-based overrides of EntryFrame.
-		void storeDelete(LedgerDelta& delta, Database& db) const override;
-		void storeChange(LedgerDelta& delta, Database& db) override;
-		void storeAdd(LedgerDelta& delta, Database& db) override;
-
-		// Static helpers that don't assume an instance.
-		static void storeDelete(LedgerDelta& delta, Database& db,
-			LedgerKey const& key);
-		static bool exists(Database& db, LedgerKey const& key);
-		static uint64_t countObjects(soci::session& sess);
-
-		// database utilities
-		static pointer loadOffer(AccountID const& accountID, uint64_t offerID,
-			Database& db, LedgerDelta* delta = nullptr);
-
-		static void loadBestOffers(size_t numOffers, size_t offset,
-			AssetCode const& base, AssetCode const& quote,
-			bool isBuy,
-			std::vector<OfferFrame::pointer>& retOffers,
-			Database& db);
-
-		// load all offers from the database (very slow)
-		static std::unordered_map<AccountID, std::vector<OfferFrame::pointer>>
-			loadAllOffers(Database& db);
-
-		static void loadOffersWithPriceLower(AssetCode const& base, AssetCode const& quote,
-			int64_t price, std::vector<OfferFrame::pointer>& retOffers, Database& db);
-
-		static void dropAll(Database& db);
-		static const char* kSQLCreateStatement1;
-		static const char* kSQLCreateStatement2;
+		static bool isValid(OfferEntry const& oe);
 	};
 }

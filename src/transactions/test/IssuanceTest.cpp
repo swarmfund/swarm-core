@@ -4,6 +4,9 @@
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "lib/catch.hpp"
 #include "TxTests.h"
 #include "test_helper/TestManager.h"
@@ -25,14 +28,18 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 	// create new account with balance 
 	auto newAccountKP = SecretKey::random();
 	applyCreateAccountTx(testManager->getApp(), root.key, newAccountKP, root.getNextSalt(), AccountType::GENERAL);
-	auto newAccountBalance = BalanceFrame::loadBalance(newAccountKP.getPublicKey(), assetCode, testManager->getDB(), nullptr);
+
+	auto balanceHelper = BalanceHelper::Instance();
+	auto newAccountBalance = balanceHelper->loadBalance(newAccountKP.getPublicKey(), assetCode, testManager->getDB(), nullptr);
 	REQUIRE(newAccountBalance);
+
+	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 
 	SECTION("Auto review of issuance request")
 	{
 		auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, preIssuedAmount, newAccountBalance->getBalanceID(), newAccountKP.getStrKeyPublic());
 		REQUIRE(issuanceRequestResult.success().fulfilled);
-		auto issuanceRequest = ReviewableRequestFrame::loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
+		auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
 		REQUIRE(!issuanceRequest);
 	}
 	SECTION("Request was created but was not auto reviwed")
@@ -42,7 +49,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 		auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode,
 			issuanceRequestAmount, newAccountBalance->getBalanceID(), newAccountKP.getStrKeyPublic());
 		REQUIRE(!issuanceRequestResult.success().fulfilled);
-		auto newAccountBalanceAfterRequest = BalanceFrame::loadBalance(newAccountBalance->getBalanceID(), testManager->getDB());
+		auto newAccountBalanceAfterRequest = balanceHelper->loadBalance(newAccountBalance->getBalanceID(), testManager->getDB());
 		REQUIRE(newAccountBalanceAfterRequest->getAmount() == 0);
 
 		// try to review request
@@ -58,9 +65,11 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 			ReviewRequestOpAction::APPROVE, "");
 
 		// check state after request approval
-		newAccountBalanceAfterRequest = BalanceFrame::loadBalance(newAccountBalance->getBalanceID(), testManager->getDB());
+		newAccountBalanceAfterRequest = balanceHelper->loadBalance(newAccountBalance->getBalanceID(), testManager->getDB());
 		REQUIRE(newAccountBalanceAfterRequest->getAmount() == issuanceRequestAmount);
-		auto assetFrame = AssetFrame::loadAsset(assetCode, testManager->getDB());
+
+		auto assetHelper = AssetHelper::Instance();
+		auto assetFrame = assetHelper->loadAsset(assetCode, testManager->getDB());
 		REQUIRE(assetFrame->getIssued() == issuanceRequestAmount);
 		REQUIRE(assetFrame->getAvailableForIssuance() == preIssuedAmount);
 	}

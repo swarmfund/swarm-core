@@ -4,7 +4,11 @@
 
 #include <transactions/test/TxTests.h>
 #include "ManageAssetHelper.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
 #include "ReviewAssetRequestHelper.h"
 
@@ -20,9 +24,10 @@ namespace txtest
 
 	ManageAssetResult ManageAssetHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
 	{
-		auto reviewableRequestCountBeforeTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
 		LedgerDelta& delta = mTestManager->getLedgerDelta();
-		auto requestBeforeTx = ReviewableRequestFrame::loadRequest(requestID, mTestManager->getLedgerManager().getDatabase(), &delta);
+		auto requestBeforeTx = reviewableRequestHelper->loadRequest(requestID, mTestManager->getLedgerManager().getDatabase(), &delta);
 		auto txFrame = createManageAssetTx(source, requestID, request);
 
 		mTestManager->applyCheck(txFrame);
@@ -31,19 +36,26 @@ namespace txtest
 		auto actualResultCode = ManageAssetOpFrame::getInnerCode(opResult);
 		REQUIRE(actualResultCode == expectedResult);
 
-        uint64 reviewableRequestCountAfterTx = ReviewableRequestFrame::countObjects(mTestManager->getDB().getSession());
+        uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
         if (expectedResult != ManageAssetResultCode::SUCCESS)
         {
             REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
             return ManageAssetResult{};
         }
 
-        auto sourceFrame = AccountFrame::loadAccount(source.key.getPublicKey(), mTestManager->getDB());
+		auto accountHelper = AccountHelper::Instance();
+        auto sourceFrame = accountHelper->loadAccount(source.key.getPublicKey(), mTestManager->getDB());
         auto manageAssetResult = opResult.tr().manageAssetResult();
+
+		auto assetHelper = AssetHelper::Instance();
+		auto balanceHelper = BalanceHelper::Instance();
+
         if (sourceFrame->getAccountType() == AccountType::MASTER) {
             REQUIRE(reviewableRequestCountAfterTx == reviewableRequestCountBeforeTx);
             REQUIRE(manageAssetResult.success().fulfilled);
+
             validateManageAssetEffect(request);
+
             return manageAssetResult;
         }
 
@@ -52,7 +64,7 @@ namespace txtest
             REQUIRE(!!requestBeforeTx);
         }
 
-		auto requestAfterTx = ReviewableRequestFrame::loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
+		auto requestAfterTx = reviewableRequestHelper->loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
 		if (request.action() == ManageAssetAction::CANCEL_ASSET_REQUEST) {
 			REQUIRE(!requestAfterTx);
 			return manageAssetResult;
@@ -124,12 +136,14 @@ namespace txtest
 			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0);
         auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 
-        auto assetOwnerFrame = AccountFrame::loadAccount(assetOwner.key.getPublicKey(), mTestManager->getDB());
+		auto accountHelper = AccountHelper::Instance();
+        auto assetOwnerFrame = accountHelper->loadAccount(assetOwner.key.getPublicKey(), mTestManager->getDB());
         if (assetOwnerFrame->getAccountType() == AccountType::MASTER)
             return;
 
         LedgerDelta& delta = mTestManager->getLedgerDelta();
-        auto approvingRequest = ReviewableRequestFrame::loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+        auto approvingRequest = reviewableRequestHelper->loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
 		REQUIRE(approvingRequest);
 		auto reviewRequetHelper = ReviewAssetRequestHelper(mTestManager);
 		reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
@@ -146,6 +160,7 @@ namespace txtest
 
     void ManageAssetHelper::validateManageAssetEffect(ManageAssetOp::_request_t request) {
         AssetCode assetCode;
+        auto assetHelper = AssetHelper::Instance();
         switch (request.action()) {
             case ManageAssetAction::CREATE_ASSET_CREATION_REQUEST:
                 assetCode = request.createAsset().code;
@@ -153,7 +168,7 @@ namespace txtest
             case ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST:
             {
                 assetCode = request.updateAsset().code;
-                auto assetFrame = AssetFrame::loadAsset(assetCode, mTestManager->getDB());
+                auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
                 REQUIRE(assetFrame);
                 auto assetEntry = assetFrame->getAsset();
                 REQUIRE(assetEntry.description == request.updateAsset().description);
@@ -164,12 +179,13 @@ namespace txtest
             default:
                 throw std::runtime_error("Unexpected manage asset action from master account");
         }
-        auto assetFrame = AssetFrame::loadAsset(assetCode, mTestManager->getDB());
+        auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
         REQUIRE(assetFrame);
+        auto balanceHelper = BalanceHelper::Instance();
         if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET)) {
             auto systemAccounts = mTestManager->getApp().getSystemAccounts();
             for (auto systemAccount : systemAccounts) {
-                auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode,
+                auto balanceFrame = balanceHelper->loadBalance(systemAccount, assetCode,
                                                               mTestManager->getDB(), &mTestManager->getLedgerDelta());
                 REQUIRE(balanceFrame);
             }

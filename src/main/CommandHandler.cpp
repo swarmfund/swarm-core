@@ -26,6 +26,7 @@
 #include "ExternalQueue.h"
 
 #include <regex>
+#include <ledger/AssetHelper.h>
 #include "transactions/test/TxTests.h"
 using namespace stellar::txtest;
 
@@ -448,12 +449,13 @@ CommandHandler::info(std::string const& params, std::string& retStr)
 	info["operational_account_id"] = PubKeyUtils::toStrKey(mApp.getOperationalID());
     info["base_exchange_name"] = mApp.getConfig().BASE_EXCHANGE_NAME;
 
-    auto statsAssetFrame = AssetFrame::loadStatsAsset(mApp.getDatabase());
+    auto assetHelper = AssetHelper::Instance();
+    auto statsAssetFrame = assetHelper->loadStatsAsset(mApp.getDatabase());
     if (statsAssetFrame)
         info["statistics_quote_asset"] = statsAssetFrame->getCode();
 
     std::vector<AssetFrame::pointer> baseAssets;
-    AssetFrame::loadBaseAssets(baseAssets, mApp.getDatabase());
+    assetHelper->loadBaseAssets(baseAssets, mApp.getDatabase());
     for (auto asset: baseAssets)
     {
         info["base_assets"].append(asset->getCode());

@@ -25,25 +25,11 @@ class LedgerManager;
 
 class AccountFrame : public EntryFrame
 {
-    void storeUpdate(LedgerDelta& delta, Database& db, bool insert);
     bool mUpdateSigners;
 
     AccountEntry& mAccountEntry;
 
-    void normalize();
-
     AccountFrame(AccountFrame const& from);
-
-    bool isValid();
-
-    static std::vector<Signer> loadSigners(Database& db,
-                                           std::string const& actIDStrKey,
-										   LedgerDelta* delta);
-
-    void applySigners(Database& db, bool insert, LedgerDelta& delta);
-	void deleteSigner(Database& db, std::string const& accountID, AccountID const& pubKey);
-	void signerStoreChange(Database& db, LedgerDelta& delta, std::string const& accountID, std::vector<Signer>::iterator const& signer, bool insert);
-
 
   public:
     typedef std::shared_ptr<AccountFrame> pointer;
@@ -61,6 +47,10 @@ class AccountFrame : public EntryFrame
         return EntryFrame::pointer(new AccountFrame(*this));
     }
 
+	void normalize();
+
+	bool isValid();
+
 	static bool isLimitsValid(Limits const& limits)
 	{
 		if (limits.dailyOut < 0)
@@ -68,12 +58,19 @@ class AccountFrame : public EntryFrame
 		return limits.dailyOut <= limits.weeklyOut && limits.weeklyOut <= limits.monthlyOut && limits.monthlyOut <= limits.annualOut;
 	}
 
-    void
-    setUpdateSigners()
-    {
-        normalize();
-        mUpdateSigners = true;
-    }
+	void
+	setUpdateSigners(bool updateSigners)
+	{
+		normalize();
+		mUpdateSigners = updateSigners;
+	}
+
+	void initLoaded(bool updateSigners)
+	{
+		setUpdateSigners(updateSigners);
+		assert(isValid());
+		clearCached();
+	}
 
 	bool isBlocked() const;
     void setBlockReasons(uint32 reasonsToAdd, uint32 reasonsToRemove) const;
@@ -103,6 +100,11 @@ class AccountFrame : public EntryFrame
         return mAccountEntry;
     }
 
+	bool getUpdateSigners() const
+	{
+		return mUpdateSigners;
+	}
+
 	AccountType getAccountType() const
     {
 		return mAccountEntry.accountType;
@@ -128,36 +130,13 @@ class AccountFrame : public EntryFrame
 		return mAccountEntry.referrer.get();
     }
 
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-    
-    // Static helper that don't assume an instance.
-    static void storeDelete(LedgerDelta& delta, Database& db,
-                            LedgerKey const& key);
-    static bool exists(Database& db, LedgerKey const& key);
-    static uint64_t countObjects(soci::session& sess);
-
-    // database utilities
-    static AccountFrame::pointer
-    loadAccount(LedgerDelta& delta, AccountID const& accountID, Database& db);
-    static AccountFrame::pointer loadAccount(AccountID const& accountID,
-                                             Database& db, LedgerDelta* delta = nullptr);
-	static AccountFrame::pointer
-	mustLoadAccount(AccountID const& accountID, Database& db, LedgerDelta* delta = nullptr);
+	int32_t getPolicies() const
+	{
+		return mAccountEntry.policies;
+	}
 
     // compare signers, ignores weight
     static bool signerCompare(Signer const& s1, Signer const& s2);
 
-    // loads all accounts from database and checks for consistency (slow!)
-    static std::unordered_map<AccountID, AccountFrame::pointer>
-    checkDB(Database& db);
-
-    static void dropAll(Database& db);
-
-    static const char* kSQLCreateStatement1;
-    static const char* kSQLCreateStatement2;
-    static const char* kSQLCreateStatement3;
 };
 }

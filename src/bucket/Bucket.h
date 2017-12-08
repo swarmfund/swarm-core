@@ -116,23 +116,4 @@ void checkDBAgainstBuckets(medida::MetricsRegistry& metrics,
                            BucketManager& bucketManager, Database& db,
                            BucketList& bl);
 
-class BucketCounter {
-public:
-	typedef std::shared_ptr<BucketCounter> pointer;
-	uint64_t mCounter;
-	uint64_t (*mDBCounter)(soci::session& sess);
-
-	BucketCounter(uint64_t(*dbCounter)(soci::session& sess))
-	{
-		mDBCounter = dbCounter;
-		mCounter = 0;
-	}
-
-	static pointer create(uint64_t(*dbCounter)(soci::session& sess))
-	{
-		return std::make_shared<BucketCounter>(dbCounter);
-	}
-
-};
-
 }

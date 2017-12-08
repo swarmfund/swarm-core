@@ -4,35 +4,12 @@
 
 #include "ledger/StatisticsFrame.h"
 #include "database/Database.h"
-#include "crypto/SecretKey.h"
-#include "crypto/SHA.h"
-#include "LedgerDelta.h"
-#include "util/types.h"
-#include <time.h>
-
 
 using namespace std;
 using namespace soci;
 
 namespace stellar
 {
-const char* StatisticsFrame::kSQLCreateStatement1 =
-    "CREATE TABLE statistics"
-    "("
-	"account_id       VARCHAR(56) NOT NULL,"
-	"daily_out        BIGINT 	  NOT NULL,"
-	"weekly_out  	  BIGINT 	  NOT NULL,"
-	"monthly_out      BIGINT 	  NOT NULL,"
-	"annual_out	      BIGINT 	  NOT NULL,"
-	"updated_at       BIGINT 	  NOT NULL,"
-    "lastmodified     INT 		  NOT NULL,"
-	"version		  INT 		  NOT NULL	DEFAULT 0,"
-    "PRIMARY KEY  (account_id)"
-    ");";
-
-static const char* statisticsColumnSelector =
-    "SELECT account_id, daily_out, weekly_out, monthly_out, annual_out, updated_at, lastmodified, version "
-	"FROM   statistics";
 
 StatisticsFrame::StatisticsFrame() : EntryFrame(LedgerEntryType::STATISTICS), mStatistics(mEntry.data.stats())
 {
@@ -71,183 +48,6 @@ bool
 StatisticsFrame::isValid() const
 {
     return isValid(mStatistics);
-}
-
-StatisticsFrame::pointer StatisticsFrame::loadStatistics(AccountID const& accountID,
-    Database& db, LedgerDelta* delta)
-{
-	std::string strAccountID = PubKeyUtils::toStrKey(accountID);
-
-	std::string sql = statisticsColumnSelector;
-	sql += " WHERE account_id = :id";
-	auto prep = db.getPreparedStatement(sql);
-	auto& st = prep.statement();
-	st.exchange(use(strAccountID));
-
-	auto timer = db.getSelectTimer("statistics");
-	pointer retStatistics;
-	loadStatistics(prep, [&retStatistics](LedgerEntry const& statistics)
-	{
-		retStatistics = std::make_shared<StatisticsFrame>(statistics);
-	});
-
-	if (delta && retStatistics)
-	{
-		delta->recordEntry(*retStatistics);
-	}
-
-	return retStatistics;
-}
-
-void
-StatisticsFrame::loadStatistics(StatementContext& prep,
-                       std::function<void(LedgerEntry const&)> statisticsProcessor)
-{
-	std::string accountID;
-
-    LedgerEntry le;
-    le.data.type(LedgerEntryType::STATISTICS);
-    StatisticsEntry& se = le.data.stats();
-	int32_t statisticsVersion = 0;
-
-    statement& st = prep.statement();
-    st.exchange(into(accountID));
-
-	st.exchange(into(se.dailyOutcome));
-	st.exchange(into(se.weeklyOutcome));
-	st.exchange(into(se.monthlyOutcome));
-	st.exchange(into(se.annualOutcome));
-
-	st.exchange(into(se.updatedAt));
-    st.exchange(into(le.lastModifiedLedgerSeq));
-	st.exchange(into(statisticsVersion));
-    st.define_and_bind();
-    st.execute(true);
-    while (st.got_data())
-    {
-		se.accountID = PubKeyUtils::fromStrKey(accountID);
-		se.ext.v((LedgerVersion)statisticsVersion);
-
-        if (!isValid(se))
-        {
-            throw std::runtime_error("Invalid statistics");
-        }
-
-        statisticsProcessor(le);
-        st.fetch();
-    }
-}
-
-
-bool
-StatisticsFrame::exists(Database& db, LedgerKey const& key)
-{
-	std::string strAccountID = PubKeyUtils::toStrKey(key.stats().accountID);
-    int exists = 0;
-    auto timer = db.getSelectTimer("statistics-exists");
-    auto prep =
-        db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM statistics WHERE account_id=:id)");
-    auto& st = prep.statement();
-    st.exchange(use(strAccountID));
-    st.exchange(into(exists));
-    st.define_and_bind();
-    st.execute(true);
-    return exists != 0;
-}
-
-uint64_t
-StatisticsFrame::countObjects(soci::session& sess)
-{
-    uint64_t count = 0;
-    sess << "SELECT COUNT(*) FROM statistics;", into(count);
-    return count;
-}
-
-void
-StatisticsFrame::storeDelete(LedgerDelta& delta, Database& db) const
-{
-    storeDelete(delta, db, getKey());
-}
-
-void
-StatisticsFrame::storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key)
-{
-    return;
-}
-
-void
-StatisticsFrame::storeChange(LedgerDelta& delta, Database& db)
-{
-    storeUpdateHelper(delta, db, false);
-}
-
-void
-StatisticsFrame::storeAdd(LedgerDelta& delta, Database& db)
-{
-    storeUpdateHelper(delta, db, true);
-}
-
-void
-StatisticsFrame::storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert)
-{
-    touch(delta);
-
-    if (!isValid())
-    {
-        throw std::runtime_error("Invalid statistics");
-    }
-
-	std::string strAccountID = PubKeyUtils::toStrKey(mStatistics.accountID);
-	int32_t statisticsVersion = static_cast<int32_t >(mStatistics.ext.v());
-
-    string sql;
-
-    if (insert)
-    {
-		//  
-        sql = "INSERT INTO statistics (account_id, daily_out, "
-			  							"weekly_out, monthly_out, annual_out, updated_at, lastmodified, version) "
-			  "VALUES "
-              "(:aid, :d_out, :w_out, :m_out, :a_out, :up, :lm, :v)";
-    }
-    else
-    {
-        sql = "UPDATE statistics "
-			  "SET 	  daily_out=:d_out, weekly_out=:w_out, monthly_out=:m_out, annual_out=:a_out, "
-					 "updated_at=:up, lastmodified=:lm, version=:v "
-			  "WHERE  account_id=:aid";
-    }
-
-    auto prep = db.getPreparedStatement(sql);
-    auto& st = prep.statement();
-
-    st.exchange(use(strAccountID, "aid"));
-	st.exchange(use(mStatistics.dailyOutcome, "d_out"));
-	st.exchange(use(mStatistics.weeklyOutcome, "w_out"));
-	st.exchange(use(mStatistics.monthlyOutcome, "m_out"));
-	st.exchange(use(mStatistics.annualOutcome, "a_out"));
-	st.exchange(use(mStatistics.updatedAt, "up"));
-    st.exchange(use(getLastModified(), "lm"));
-	st.exchange(use(statisticsVersion, "v"));
-    st.define_and_bind();
-
-    auto timer =
-        insert ? db.getInsertTimer("statistics") : db.getUpdateTimer("statistics");
-    st.execute(true);
-
-    if (st.get_affected_rows() != 1)
-    {
-        throw std::runtime_error("could not update SQL");
-    }
-
-    if (insert)
-    {
-        delta.addEntry(*this);
-    }
-    else
-    {
-        delta.modEntry(*this);
-    }
 }
 
 void StatisticsFrame::clearObsolete(time_t rawCurrentTime)
@@ -327,12 +127,5 @@ bool StatisticsFrame::add(int64 outcome, time_t rawCurrentTime, time_t rawTimePe
     
     mStatistics.updatedAt = rawCurrentTime;
 	return mStatistics.dailyOutcome >= 0;
-}
-
-void
-StatisticsFrame::dropAll(Database& db)
-{
-    db.getSession() << "DROP TABLE IF EXISTS statistics;";
-    db.getSession() << kSQLCreateStatement1;
 }
 }

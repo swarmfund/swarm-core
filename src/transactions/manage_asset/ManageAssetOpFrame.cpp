@@ -7,6 +7,7 @@
 #include "CreateAssetOpFrame.h"
 #include "UpdateAssetOpFrame.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "main/Application.h"
 
 namespace stellar
@@ -56,6 +57,7 @@ ReviewableRequestFrame::pointer ManageAssetOpFrame::getOrCreateReviewableRequest
 		return ReviewableRequestFrame::createNew(delta, getSourceID(), app.getMasterID(), reference);
 	}
 
-	return ReviewableRequestFrame::loadRequest(mManageAsset.requestID, getSourceID(), requestType, db, &delta);
+	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+	return reviewableRequestHelper->loadRequest(mManageAsset.requestID, getSourceID(), requestType, db, &delta);
 }
 }

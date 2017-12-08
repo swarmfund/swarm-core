@@ -8,10 +8,11 @@
 #include "main/test.h"
 #include "util/types.h"
 #include "lib/catch.hpp"
+#include "ledger/FeeHelper.h"
+#include "ledger/BalanceHelper.h"
 
 #include "TxTests.h"
 #include "ledger/LedgerDelta.h"
-#include "transactions/SetFeesOpFrame.h"
 
 #include "crypto/SHA.h"
 
@@ -43,6 +44,8 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 	closeLedgerOn(app, 4, 1, 7, 2014);
     auto accountType = AccountType::GENERAL;
 
+	auto balanceHelper = BalanceHelper::Instance();
+	auto feeHelper = FeeHelper::Instance();
 
 	SECTION("Set global, set for account check global")
 	{
@@ -55,11 +58,11 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 		auto accountFee = createFeeEntry(FeeType::OFFER_FEE, 0, 10 * ONE, app.getBaseAsset(), &aPubKey, nullptr);
 		applySetFees(app, root, rootSeq++, &accountFee, false, nullptr);
 
-		auto globalFeeFrame = FeeFrame::loadFee(FeeType::OFFER_FEE, app.getBaseAsset(), nullptr, nullptr, 0, 0, INT64_MAX, app.getDatabase());
+		auto globalFeeFrame = feeHelper->loadFee(FeeType::OFFER_FEE, app.getBaseAsset(), nullptr, nullptr, 0, 0, INT64_MAX, app.getDatabase());
 		REQUIRE(globalFeeFrame);
 		REQUIRE(globalFeeFrame->getFee() == globalFee);
 
-		auto accountFeeFrame = FeeFrame::loadFee(FeeType::OFFER_FEE, app.getBaseAsset(), &aPubKey, nullptr, 0, 0, INT64_MAX, app.getDatabase());
+		auto accountFeeFrame = feeHelper->loadFee(FeeType::OFFER_FEE, app.getBaseAsset(), &aPubKey, nullptr, 0, 0, INT64_MAX, app.getDatabase());
 		REQUIRE(accountFeeFrame);
 		REQUIRE(accountFeeFrame->getFee() == accountFee);
 	}
@@ -116,18 +119,18 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 		auto buyer = SecretKey::random();
         auto buyerPubKey = buyer.getPublicKey();
 		applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
-		auto baseBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), base, db, nullptr);
+		auto baseBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), base, db, nullptr);
 		REQUIRE(baseBuyerBalance);
-		auto quoteBuyerBalance = BalanceFrame::loadBalance(buyer.getPublicKey(), quote, db, nullptr);
+		auto quoteBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), quote, db, nullptr);
 		REQUIRE(quoteBuyerBalance);
 		auto quoteAssetAmount = 1000 * ONE;
 		fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
 		auto seller = SecretKey::random();
         auto sellerPubKey = seller.getPublicKey();
 		applyCreateAccountTx(app, root, seller, rootSeq, AccountType::GENERAL);
-		auto baseSellerBalance = BalanceFrame::loadBalance(sellerPubKey, base, db, nullptr);
+		auto baseSellerBalance = balanceHelper->loadBalance(sellerPubKey, base, db, nullptr);
 		REQUIRE(baseBuyerBalance);
-		auto quoteSellerBalance = BalanceFrame::loadBalance(sellerPubKey, quote, db, nullptr);
+		auto quoteSellerBalance = balanceHelper->loadBalance(sellerPubKey, quote, db, nullptr);
 		REQUIRE(quoteSellerBalance);
 		auto baseAssetAmount = 200 * ONE;
 		fundAccount(app, root, issuance, rootSeq, baseSellerBalance->getBalanceID(), baseAssetAmount, base);
@@ -175,7 +178,7 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
             REQUIRE(quoteSellerBalance->getLocked() == 0);
             REQUIRE(quoteSellerBalance->getAmount() == quoteMatchAmount - sellerExpectedFee);
 
-            auto commissionQuoteBalance = BalanceFrame::loadBalance(app.getCommissionID(), quote, db, nullptr);
+            auto commissionQuoteBalance = balanceHelper->loadBalance(app.getCommissionID(), quote, db, nullptr);
             REQUIRE(commissionQuoteBalance);
             REQUIRE(commissionQuoteBalance->getAmount() == sellerExpectedFee + buyerExpectedFee);
         }

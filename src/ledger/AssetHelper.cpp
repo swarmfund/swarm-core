@@ -15,7 +15,7 @@ namespace stellar
 
 	static const char* assetColumnSelector =
 		"SELECT code, owner, name, preissued_asset_signer, description, external_resource_link, max_issuance_amount, available_for_issueance,"
-		" issued, policies, lastmodified, version FROM asset";
+		" issued, policies, logo_id, lastmodified, version FROM asset";
 
 	void
 	AssetHelper::dropAll(Database& db)
@@ -33,6 +33,7 @@ namespace stellar
 			"available_for_issueance NUMERIC(20,0) NOT NULL CHECK (available_for_issueance >= 0),"
 			"issued                  NUMERIC(20,0) NOT NULL CHECK (issued >= 0),"
 			"policies                INT           NOT NULL, "
+			"logo_id				 TEXT          NOT NULL, "
 			"lastmodified            INT           NOT NULL, "
 			"version                 INT           NOT NULL, "
 			"PRIMARY KEY (code)"
@@ -63,6 +64,7 @@ namespace stellar
 		string preissuedAssetSigner = PubKeyUtils::toStrKey(assetEntry.preissuedAssetSigner);
 		string desc = assetEntry.description;
 		string externalLink = assetEntry.externalResourceLink;
+		string logoID = assetEntry.logoID;
 		int32_t assetVersion = static_cast<int32_t>(assetEntry.ext.v());
 
 		string sql;
@@ -70,15 +72,15 @@ namespace stellar
 		if (insert)
 		{
 			sql = "INSERT INTO asset (code, owner, name, preissued_asset_signer, description, external_resource_link, max_issuance_amount,"
-				"available_for_issueance, issued, policies, lastmodified, version) "
+				"available_for_issueance, issued, policies, logo_id, lastmodified, version) "
 				"VALUES (:code, :owner, :name, :preissued_asset_signer, :description, :external_resource_link, :max_issuance_amount, "
-				":available_for_issueance, :issued, :policies, :lm, :v)";
+				":available_for_issueance, :issued, :policies, :logo_id, :lm, :v)";
 		}
 		else
 		{
 			sql = "UPDATE asset SET owner = :owner, name = :name, preissued_asset_signer = :preissued_asset_signer, description = :description,"
 				"external_resource_link = :external_resource_link, max_issuance_amount = :max_issuance_amount,"
-				"available_for_issueance = :available_for_issueance, issued = :issued, policies = :policies, lastmodified = :lm, version = :v "
+				"available_for_issueance = :available_for_issueance, issued = :issued, policies = :policies, logo_id = :logo_id, lastmodified = :lm, version = :v "
 				"WHERE code = :code";
 		}
 
@@ -95,6 +97,7 @@ namespace stellar
 		st.exchange(use(assetEntry.availableForIssueance, "available_for_issueance"));
 		st.exchange(use(assetEntry.issued, "issued"));
 		st.exchange(use(assetEntry.policies, "policies"));
+		st.exchange(use(logoID, "logo_id"));
 		st.exchange(use(assetFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 		st.exchange(use(assetVersion, "v"));
 		st.define_and_bind();
@@ -308,7 +311,7 @@ namespace stellar
 		LedgerEntry le;
 		le.data.type(LedgerEntryType::ASSET);
 		AssetEntry& oe = le.data.asset();
-		string code, owner, name, preissuedAssetSigner, description, externalResourceLink;
+		string code, owner, name, preissuedAssetSigner, description, externalResourceLink, logoID;
 		int32_t assetVersion;
 
 		statement& st = prep.statement();
@@ -322,6 +325,7 @@ namespace stellar
 		st.exchange(into(oe.availableForIssueance));
 		st.exchange(into(oe.issued));
 		st.exchange(into(oe.policies));
+		st.exchange(into(logoID));
 		st.exchange(into(le.lastModifiedLedgerSeq));
 		st.exchange(into(assetVersion));
 		st.define_and_bind();
@@ -335,6 +339,7 @@ namespace stellar
 			oe.preissuedAssetSigner = PubKeyUtils::fromStrKey(preissuedAssetSigner);
 			oe.description = description;
 			oe.externalResourceLink = externalResourceLink;
+			oe.logoID = logoID;
 			oe.ext.v((LedgerVersion)assetVersion);
 
 			bool isValid = AssetFrame::isValid(oe);

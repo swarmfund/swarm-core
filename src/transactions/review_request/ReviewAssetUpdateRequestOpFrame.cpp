@@ -47,6 +47,7 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 	assetEntry.description = assetUpdateRequest.description;
 	assetEntry.externalResourceLink = assetUpdateRequest.externalResourceLink;
 	assetEntry.policies = assetUpdateRequest.policies;
+    assetEntry.logoID = assetUpdateRequest.logoID;
     
 	EntryHelperProvider::storeChangeEntry(delta, db, assetFrame->mEntry);
     bool isBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);

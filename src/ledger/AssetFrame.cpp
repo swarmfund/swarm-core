@@ -60,6 +60,7 @@ AssetFrame::pointer AssetFrame::create(AssetCreationRequest const & request, Acc
 	asset.owner = owner;
 	asset.policies = request.policies;
 	asset.preissuedAssetSigner = request.preissuedAssetSigner;
+	asset.logoID = request.logoID;
 	return std::make_shared<AssetFrame>(le);
 }
 
@@ -78,6 +79,7 @@ AssetFrame::pointer AssetFrame::createSystemAsset(AssetCode code, AccountID cons
 	asset.owner = owner;
 	asset.policies = 0;
 	asset.preissuedAssetSigner = owner;
+	asset.logoID = "";
 	return std::make_shared<AssetFrame>(le);
 }
 

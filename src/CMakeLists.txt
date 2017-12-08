@@ -5,7 +5,9 @@ project(core)
 #definitions for compilers
 include(platform_definitions.cmake)
 
+#include headers directory
 include(platform_include.cmake)
+
 #path to .x
 set(XDRS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/xdr)
 
@@ -15,8 +17,7 @@ include(gen_xdr.cmake)
 #include generated files .h from .x
 include_directories(${XDRS_PATH})
 
-#include headers directory
-
+#include headers files without .cpp
 set(NOT_COMMON_SOURCE_FILES
         util/asio.h
         util/make_unique.h
@@ -44,5 +45,5 @@ file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)
 #create executeble file "core"
 add_executable(core ${STELLAR_CORE_SOURCE_FILES} ../config.h ${XDRS_PATH} ${H_GENERATE_FILES} ${NOT_COMMON_SOURCE_FILES})
 
-#link
+#link libs
 include(platform_libs.cmake)

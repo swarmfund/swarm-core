@@ -50,21 +50,20 @@ namespace stellar
 		bool isValid = assetFrame->isValid();
 		if (!isValid)
 		{
-			auto asset = assetFrame->getAsset();
-			CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state - asset is invalid: " << xdr::xdr_to_string(asset);
+			CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state - asset is invalid: " << xdr::xdr_to_string(assetEntry);
 			throw std::runtime_error("Unexpected state - asset is invalid");
 		}
-		
+
 		auto key = assetFrame->getKey();
 		flushCachedEntry(key, db);
 
-		string assetCode = assetFrame->getCode();
-		string owner = PubKeyUtils::toStrKey(assetFrame->getOwner());
-		string name = assetFrame->getAsset().name;
-		string preissuedAssetSigner = PubKeyUtils::toStrKey(assetFrame->getPreIssuedAssetSigner());
-		string desc = assetFrame->getAsset().description;
-		string externalLink = assetFrame->getAsset().externalResourceLink;
-		auto assetVersion = static_cast<int32_t>(assetFrame->getAsset().ext.v());
+		string assetCode = assetEntry.code;
+		string owner = PubKeyUtils::toStrKey(assetEntry.owner);
+		string name = assetEntry.name;
+		string preissuedAssetSigner = PubKeyUtils::toStrKey(assetEntry.preissuedAssetSigner);
+		string desc = assetEntry.description;
+		string externalLink = assetEntry.externalResourceLink;
+		int32_t assetVersion = static_cast<int32_t>(assetEntry.ext.v());
 
 		string sql;
 
@@ -254,11 +253,47 @@ namespace stellar
 		return nullptr;
 	}
 
+	AssetFrame::pointer 
+	AssetHelper::loadStatsAsset(Database &db) 
+	{
+		uint32 statsAssetPolicy = static_cast<uint32>(AssetPolicy::STATS_QUOTE_ASSET);
+
+		AssetFrame::pointer retAsset;
+		std::string sql = assetColumnSelector;
+		sql += " WHERE policies & :sp = :sp";
+		auto prep = db.getPreparedStatement(sql);
+		auto& st = prep.statement();
+		st.exchange(use(statsAssetPolicy, "sp"));
+
+		auto timer = db.getSelectTimer("asset");
+		loadAssets(prep, [&retAsset](LedgerEntry const& asset)
+		{
+			retAsset = make_shared<AssetFrame>(asset);
+		});
+		return retAsset;
+	}
+
 	void AssetHelper::loadAssets(std::vector<AssetFrame::pointer>& retAssets,
 		Database& db)
 	{
 		std::string sql = assetColumnSelector;
 		auto prep = db.getPreparedStatement(sql);
+
+		auto timer = db.getSelectTimer("asset");
+		loadAssets(prep, [&retAssets](LedgerEntry const& asset)
+		{
+			retAssets.push_back(make_shared<AssetFrame>(asset));
+		});
+	}
+
+	void AssetHelper::loadBaseAssets(std::vector<AssetFrame::pointer>& retAssets, Database& db)
+	{
+		std::string sql = assetColumnSelector;
+		sql += " WHERE policies & :bp = :bp "
+			" ORDER BY code ";
+		uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
+		auto prep = db.getPreparedStatement(sql);
+		prep.statement().exchange(use(baseAssetPolicy, "bp"));
 
 		auto timer = db.getSelectTimer("asset");
 		loadAssets(prep, [&retAssets](LedgerEntry const& asset)

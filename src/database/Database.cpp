@@ -289,7 +289,6 @@ Database::initialize()
     LedgerHeaderFrame::dropAll(*this);
     TransactionFrame::dropAll(*this);
     HistoryManager::dropAll(*this);
-    ExternalSystemAccountIDFrame::dropAll(*this);
     BucketManager::dropAll(mApp);
     putSchemaVersion(1);
 }

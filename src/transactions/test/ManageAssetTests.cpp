@@ -4,6 +4,7 @@
 #include <transactions/test/test_helper/IssuanceRequestHelper.h>
 #include "main/Config.h"
 #include "main/test.h"
+#include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "lib/catch.hpp"
 #include "TxTests.h"
@@ -29,6 +30,8 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     auto testManager = TestManager::make(app);
 
     auto root = Account{getRoot(), Salt(0)};
+
+	auto assetHelper = AssetHelper::Instance();
 
     SECTION("Syndicate happy path")
     {
@@ -220,7 +223,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
                     createAssetUpdateRequest(assetCode, "Description", "http://ils.com", 0);
             manageAssetHelper.applyManageAssetTx(root, 0, assetUpdateRequest);
             std::vector<AssetFrame::pointer> baseAssets;
-            AssetFrame::loadBaseAssets(baseAssets, testManager->getDB());
+			assetHelper->loadBaseAssets(baseAssets, testManager->getDB());
             REQUIRE(baseAssets.empty());
         }
     }
@@ -273,6 +276,9 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
                                        "https://testusd.usd", 0, 0);
         auto creationResult = manageAssetHelper.applyManageAssetTx(account, 0,
                                                                    creationRequest);
+
+		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+
         SECTION("Can cancel creation request")
         {
             manageAssetHelper.applyManageAssetTx(account,
@@ -295,8 +301,8 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
         SECTION("Given approved asset")
         {
             auto& delta = testManager->getLedgerDelta();
-            auto approvingRequest = ReviewableRequestFrame::
-                loadRequest(creationResult.success().requestID,
+            auto approvingRequest = reviewableRequestHelper->
+				loadRequest(creationResult.success().requestID,
                             testManager->getDB(), &delta);
             REQUIRE(approvingRequest);
             auto reviewRequetHelper = ReviewAssetRequestHelper(testManager);
@@ -314,7 +320,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
                                              "https://updatedlink.token", 0);
                 auto updateResult = manageAssetHelper.
                     applyManageAssetTx(account, 0, updateRequestBody);
-                approvingRequest = ReviewableRequestFrame::
+                approvingRequest = reviewableRequestHelper->
                     loadRequest(updateResult.success().requestID,
                                 testManager->getDB(), &delta);
                 REQUIRE(approvingRequest);

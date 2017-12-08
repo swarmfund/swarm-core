@@ -777,6 +777,9 @@
     <ClCompile Include="..\..\src\ledger\TrustHelper.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelper.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1494,6 +1497,9 @@
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ledger\TrustHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelper.h">
       <Filter>ledger</Filter>
     </ClInclude>
   </ItemGroup>

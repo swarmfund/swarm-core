@@ -204,6 +204,7 @@
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountID.cpp" />
     <ClCompile Include="..\..\src\ledger\BalanceHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\EntryHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\InvoiceFrame.cpp" />
@@ -443,6 +444,7 @@
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountID.h" />
     <ClInclude Include="..\..\src\ledger\BalanceHelper.h" />
     <ClInclude Include="..\..\src\ledger\EntryHelper.h" />
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelper.h" />
     <ClInclude Include="..\..\src\ledger\FeeFrame.h" />
     <ClInclude Include="..\..\src\ledger\FeeHelper.h" />
     <ClInclude Include="..\..\src\ledger\InvoiceFrame.h" />

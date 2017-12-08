@@ -95,11 +95,13 @@ void CreateAccountOpFrame::trySetReferrer(Application& app, Database& db,
 		return;
 
     vector<AssetFrame::pointer> baseAssets;
-    AssetFrame::loadBaseAssets(baseAssets, db);
+	auto assetHelper = AssetHelper::Instance();
+	assetHelper->loadBaseAssets(baseAssets, db);
     if (baseAssets.empty())
         throw std::runtime_error("Unable to create referral fee - there is no base assets in the system");
     // amount is not applyable for referral fee
-    auto referralFeeFrame = FeeFrame::loadForAccount(FeeType::REFERRAL_FEE,
+	auto feeHelper = FeeHelper::Instance();
+    auto referralFeeFrame = feeHelper->loadForAccount(FeeType::REFERRAL_FEE,
                                                      baseAssets[0]->getCode(),
                                                      FeeFrame::SUBTYPE_ANY,
                                                      referrer, 0, db);
@@ -131,7 +133,7 @@ void CreateAccountOpFrame::storeExternalSystemsIDs(Application& app,
     auto newIDs = generator.generateNewIDs(account->getID());
     for (auto newID : newIDs)
     {
-        newID->storeAdd(delta, db);
+        EntryHelperProvider::storeAddEntry(delta, db, newID->mEntry);
         innerResult().success().externalSystemIDs.push_back(newID->getExternalSystemAccountID());
     }
 }
@@ -148,14 +150,15 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
     trySetReferrer(app, db, destAccountFrame);
     destAccount.policies = mCreateAccount.policies;
 
-    destAccountFrame->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, destAccountFrame->mEntry);
     storeExternalSystemsIDs(app, delta, db, destAccountFrame);
 
     AccountManager accountManager(app, db, delta, ledgerManager);
     accountManager.createStats(destAccountFrame);
     // create balance for all availabe base assets
     std::vector<AssetFrame::pointer> baseAssets;
-    AssetFrame::loadBaseAssets(baseAssets, db);
+	auto assetHelper = AssetHelper::Instance();
+	assetHelper->loadBaseAssets(baseAssets, db);
     for (auto baseAsset : baseAssets)
     {
         BalanceID balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination,
@@ -166,7 +169,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
                                                     baseAsset->getCode(),
                                                     ledgerManager.
                                                     getCloseTime());
-        balanceFrame->storeAdd(delta, db);
+        EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
     }
 
     innerResult().success().referrerFee = destAccountFrame->
@@ -214,7 +217,7 @@ CreateAccountOpFrame::doApply(Application& app,
     AccountEntry& accountEntry = destAccountFrame->getAccount();
     accountEntry.policies = mCreateAccount.policies;
 
-    destAccountFrame->storeChange(delta, db);
+    EntryHelperProvider::storeChangeEntry(delta, db, destAccountFrame->mEntry);
     storeExternalSystemsIDs(app, delta, db, destAccountFrame);
 
     innerResult().success().referrerFee = destAccountFrame->

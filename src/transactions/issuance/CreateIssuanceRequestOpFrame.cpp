@@ -143,7 +143,8 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
-        auto balance = BalanceFrame::loadBalance(mCreateIssuanceRequest.request.receiver, db);
+	auto balanceHelper = BalanceHelper::Instance();
+    auto balance = balanceHelper->loadBalance(mCreateIssuanceRequest.request.receiver, db);
 	if (!balance || balance->getAsset() != asset->getCode()) {
 		innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
 		return nullptr;
@@ -154,7 +155,7 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 	body.type(ReviewableRequestType::ISSUANCE_CREATE);
 	body.issuanceRequest() = mCreateIssuanceRequest.request;
 	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference, body);
-	request->storeAdd(delta, db);
+	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	return request;
 }
 

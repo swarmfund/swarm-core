@@ -111,34 +111,5 @@ public:
 
     static bool isValid(AssetEntry const& oe);
     bool isValid() const;
-
-    // Instance-based overrides of EntryFrame.
-    void storeDelete(LedgerDelta& delta, Database& db) const override;
-    void storeChange(LedgerDelta& delta, Database& db) override;
-    void storeAdd(LedgerDelta& delta, Database& db) override;
-
-    // Static helpers that don't assume an instance.
-    static void storeDelete(LedgerDelta& delta, Database& db,
-                            LedgerKey const& key);
-	static bool exists(Database& db, LedgerKey const& key);
-	static bool exists(Database& db, AssetCode code);
-    static uint64_t countObjects(soci::session& sess);
-
-    // database utilities
-    static pointer loadAsset(AssetCode code,
-                             Database& db, LedgerDelta* delta = nullptr);
-	// returns nullptr, if not found
-	static pointer loadAsset(AssetCode code, AccountID const& owner,
-		Database& db, LedgerDelta* delta = nullptr);
-
-    static pointer loadStatsAsset(Database& db);
-
-	static void loadAssets(std::vector<AssetFrame::pointer>& retAssets,
-		Database& db);
-
-    static void loadBaseAssets(std::vector<AssetFrame::pointer>& retAssets,
-                           Database& db);
-
-    static void dropAll(Database& db);
 };
 }

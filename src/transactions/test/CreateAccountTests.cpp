@@ -14,6 +14,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
+#include "ledger/ExternalSystemAccountIDHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -44,20 +45,23 @@ TEST_CASE("create account", "[tx][create_account]")
     AssetCode baseAsset = "USD";
     manageAssetHelper.createBaseAsset(rootAccount, rootKP, baseAsset);
 
+	auto accountHelper = AccountHelper::Instance();
+	auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
+
         SECTION("External system account id are generated")
         {
             auto randomAccount = SecretKey::random();
             applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::NOT_VERIFIED);
-            const auto btcKey = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
+            const auto btcKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
             REQUIRE(!!btcKey);
-            const auto ethKey = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
+            const auto ethKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
             REQUIRE(!!ethKey);
             SECTION("Can update account, but ext keys will be the same")
             {
                 applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::GENERAL);
-                const auto btcKeyAfterUpdate = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
+                const auto btcKeyAfterUpdate = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
                 REQUIRE(btcKey->getExternalSystemAccountID() == btcKeyAfterUpdate->getExternalSystemAccountID());
-                const auto ethKeyAfterUpdate = ExternalSystemAccountIDFrame::load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
+                const auto ethKeyAfterUpdate = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
                 REQUIRE(ethKey->getExternalSystemAccountID() == ethKeyAfterUpdate->getExternalSystemAccountID());
             }
         }

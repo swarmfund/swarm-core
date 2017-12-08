@@ -5,10 +5,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "ledger/EntryHelper.h"
-#include "ledger/LedgerManager.h"
-#include <functional>
-#include <unordered_map>
-#include "AssetFrame.h"
+#include "ledger/ExternalSystemAccountID.h"
 
 namespace soci
 {
@@ -19,11 +16,11 @@ namespace stellar
 {
 	class StatementContext;
 
-	class AssetHelper : public EntryHelper {
+	class ExternalSystemAccountIDHelper : public EntryHelper {
 	public:
 
-		static AssetHelper *Instance() {
-			static AssetHelper singleton;
+		static ExternalSystemAccountIDHelper *Instance() {
+			static ExternalSystemAccountIDHelper singleton;
 			return&singleton;
 		}
 
@@ -37,31 +34,24 @@ namespace stellar
 		EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
 		uint64_t countObjects(soci::session& sess) override;
 
+		bool exists(Database& db, AccountID accountID, ExternalSystemType externalSystemType);
 
-		AssetFrame::pointer loadAsset(AssetCode code,
-			Database& db, LedgerDelta *delta = nullptr);
-
-		AssetFrame::pointer loadAsset(AssetCode code, AccountID const& owner,
-			Database& db, LedgerDelta* delta = nullptr);
-
-		AssetFrame::pointer loadStatsAsset(Database &db);
-
-		void loadAssets(std::vector<AssetFrame::pointer>& retAssets, Database& db);
-
-		void loadBaseAssets(std::vector<AssetFrame::pointer>& retAssets, Database& db);
-
-		bool exists(Database& db, AssetCode code);
+		// load - loads external system account ID by accountID and externalSystemType. If not found returns nullptr.
+		ExternalSystemAccountIDFrame::pointer
+			load(const AccountID accountID, const ExternalSystemType externalSystemType, Database& db, LedgerDelta* delta = nullptr);
 
 	private:
-		AssetHelper() { ; }
-		~AssetHelper() { ; }
+		ExternalSystemAccountIDHelper() { ; }
+		~ExternalSystemAccountIDHelper() { ; }
 
-		AssetHelper(AssetHelper const&) = delete;
-		AssetHelper& operator= (AssetHelper const&) = delete;
+		ExternalSystemAccountIDHelper(ExternalSystemAccountIDHelper const&) = delete;
+		ExternalSystemAccountIDHelper& operator=(ExternalSystemAccountIDHelper const&) = delete;
 
-		void loadAssets(StatementContext& prep, std::function<void(LedgerEntry const&)> AssetProcessor);
+		static const char* select;
 
 		void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
+		void load(StatementContext& prep, std::function<void(LedgerEntry const&)> processor);
 
 	};
+
 }

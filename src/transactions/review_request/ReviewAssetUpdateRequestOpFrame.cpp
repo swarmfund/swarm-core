@@ -8,6 +8,7 @@
 #include "util/types.h"
 #include "database/Database.h"
 #include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetFrame.h"
@@ -25,13 +26,14 @@ void ReviewAssetUpdateRequestOpFrame::createSystemBalances(AssetCode assetCode, 
     auto systemAccounts = app.getSystemAccounts();
     for (auto& systemAccount : systemAccounts)
     {
-        auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode, app.getDatabase(), &delta);
+		auto balanceHelper = BalanceHelper::Instance();
+        auto balanceFrame = balanceHelper->loadBalance(systemAccount, assetCode, app.getDatabase(), &delta);
         if (!balanceFrame) {
             BalanceID balanceID = BalanceKeyUtils::forAccount(systemAccount,
                                                               delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
             balanceFrame = BalanceFrame::createNew(balanceID, systemAccount, assetCode, ledgerCloseTime);
 
-            balanceFrame->storeAdd(delta, app.getDatabase());
+            EntryHelperProvider::storeAddEntry(delta, app.getDatabase(), balanceFrame->mEntry);
         }
     }
 }
@@ -65,13 +67,13 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 	assetEntry.externalResourceLink = assetUpdateRequest.externalResourceLink;
 	assetEntry.policies = assetUpdateRequest.policies;
     
-	assetFrame->storeChange(delta, db);
+	EntryHelperProvider::storeChangeEntry(delta, db, assetFrame->mEntry);
     bool isBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
     
     if (!wasBase && isBase)
         createSystemBalances(assetFrame->getCode(), app, delta, ledgerManager.getCloseTime());
     
-	request->storeDelete(delta, db);
+	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }

@@ -129,12 +129,14 @@ TEST_CASE("HKDF test vector", "[crypto]")
 
 TEST_CASE("sign tests", "[crypto]")
 {
-    auto sk = SecretKey::random();
+    const SecretKey sk = SecretKey::random();
     auto pk = sk.getPublicKey();
     LOG(DEBUG) << "generated random secret key seed: " << sk.getStrKeySeed();
     LOG(DEBUG) << "corresponding public key: " << PubKeyUtils::toStrKey(pk);
 
-    CHECK(SecretKey::fromStrKeySeed(sk.getStrKeySeed()) == sk);
+	SecretKey actual = SecretKey::fromStrKeySeed(sk.getStrKeySeed());
+	bool isEqual = actual == sk;
+    CHECK(isEqual);
 
     std::string msg = "hello";
     auto sig = sk.sign(msg);

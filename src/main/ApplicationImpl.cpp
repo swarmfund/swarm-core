@@ -63,6 +63,9 @@ namespace stellar {
         mStopSignals.add(SIGTERM);
 #endif
 
+        ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::BITCOIN_BASIC);
+        ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::ETHEREUM_BASIC);
+
         std::srand(static_cast<uint32>(clock.now().time_since_epoch().count()));
 
         mNetworkID = sha256(mConfig.NETWORK_PASSPHRASE);
@@ -214,10 +217,6 @@ namespace stellar {
     }
 
 
-    std::vector<AssetCode> ApplicationImpl::getBaseAssets() const {
-        return mConfig.BASE_ASSETS;
-    }
-
     uint64 ApplicationImpl::getTxExpirationPeriod() const {
         assert(mConfig.TX_EXPIRATION_PERIOD > 0);
         return mConfig.TX_EXPIRATION_PERIOD;
@@ -269,9 +268,6 @@ namespace stellar {
 
         if (mConfig.NETWORK_PASSPHRASE.empty()) {
             throw std::invalid_argument("NETWORK_PASSPHRASE not configured");
-        }
-        if (mConfig.BASE_ASSETS.size() == 0) {
-            throw std::invalid_argument("BASE_ASSETS not configured");
         }
         if (mConfig.BASE_EXCHANGE_NAME.size() == 0) {
             throw std::invalid_argument("BASE_EXCHANGE_NAME not configured");
@@ -612,7 +608,41 @@ namespace stellar {
         return result;
     }
 
-    Invariants &ApplicationImpl::getInvariants() {
+bool ApplicationImpl::areAllExternalSystemGeneratorsAvailable(
+    xdr::xvector<ExternalSystemIDGeneratorType> ex) const
+{
+        for (auto generator : ex)
+        {
+            if (mAvailableExternalSystemIDGenerators.find(generator) == mAvailableExternalSystemIDGenerators.end())
+                return false;
+        }
+
+        return true;
+}
+
+void ApplicationImpl::addAvailableExternalSystemGenerator(
+    const ExternalSystemIDGeneratorType ex)
+{
+    mAvailableExternalSystemIDGenerators.insert(ex);
+}
+
+const std::unordered_set<ExternalSystemIDGeneratorType>& ApplicationImpl::
+getAvailableExternalSystemGenerator()
+{
+    return mAvailableExternalSystemIDGenerators;
+}
+
+const std::vector<std::string>& ApplicationImpl::getBTCAddresses() const
+{
+    return mConfig.BTC_ADDRESSES;
+}
+
+const std::vector<std::string>& ApplicationImpl::getETHAddresses() const
+{
+    return mConfig.ETH_ADDRESSES;
+}
+
+Invariants &ApplicationImpl::getInvariants() {
         return *mInvariants;
     }
 }

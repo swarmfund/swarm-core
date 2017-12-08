@@ -396,7 +396,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (oe.offerNeedsMore(offer))
     {
 
-		offerFrame->mEntry.data.offer().offerID = delta.getHeaderFrame().generateID();
+		offerFrame->mEntry.data.offer().offerID = delta.getHeaderFrame().generateID(LedgerEntryType::OFFER_ENTRY);
 		innerResult().success().offer.effect(ManageOfferEffect::CREATED);
 		EntryHelperProvider::storeAddEntry(delta, db, offerFrame->mEntry);
 		EntryHelperProvider::storeChangeEntry(delta, db, mSourceAccount->mEntry);

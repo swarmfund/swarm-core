@@ -138,8 +138,6 @@ namespace stellar {
 
         virtual std::vector<PublicKey> getSystemAccounts() const override;
 
-        virtual std::vector<AssetCode> getBaseAssets() const override;
-
         virtual AssetCode getBaseAsset() const override;
 
         virtual std::string getBaseExchangeName() const override;
@@ -205,10 +203,21 @@ namespace stellar {
         AccountID masterID;
         AccountID commissionID;
 
+        std::unordered_set<ExternalSystemIDGeneratorType> mAvailableExternalSystemIDGenerators;
+
         void shutdownMainIOService();
 
         void runWorkerThread(unsigned i);
 
         std::vector<std::unique_ptr<Invariant>> enabledInvariants();
+    public:
+        bool areAllExternalSystemGeneratorsAvailable(
+            xdr::xvector<ExternalSystemIDGeneratorType> ex) const override;
+        void addAvailableExternalSystemGenerator(
+            ExternalSystemIDGeneratorType ex) override;
+        const std::unordered_set<ExternalSystemIDGeneratorType>&
+        getAvailableExternalSystemGenerator() override;
+        const std::vector<std::string>& getBTCAddresses() const override;
+        const std::vector<std::string>& getETHAddresses() const override;
     };
 }

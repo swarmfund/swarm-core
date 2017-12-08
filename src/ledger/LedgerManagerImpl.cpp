@@ -163,51 +163,16 @@ LedgerManagerImpl::startNewLedger()
 	}
 
     LedgerHeader genesisHeader;
-    genesisHeader.idPool = 2;
     // all fields are initialized by default to 0
     // set the ones that are not 0
     genesisHeader.baseFee = 0;
     genesisHeader.baseReserve = 0;
     genesisHeader.maxTxSetSize = 100; // 100 tx/ledger max
     genesisHeader.ledgerSeq = 1;
-
-	auto issuanceKeys = mApp.getConfig().ISSUANCE_KEYS;
-	for (int i = 0; i < issuanceKeys.size(); i++)
-	{
-		genesisHeader.issuanceKeys.push_back(issuanceKeys[i]);
-	}
    
     genesisHeader.txExpirationPeriod = mApp.getConfig().TX_EXPIRATION_PERIOD;
 
     LedgerDelta delta(genesisHeader, getDatabase());
-    
-    auto baseAssetCodes = mApp.getBaseAssets();
-    for (auto baseAssetCode: baseAssetCodes)
-    {
-		// TODO fix me
-		auto baseAssetFrame = AssetFrame::createSystemAsset(baseAssetCode, mApp.getMasterID());
-		EntryHelperProvider::storeAddEntry(delta, this->getDatabase(), baseAssetFrame->mEntry);
-
-		for (auto systemAccount : systemAccounts)
-		{
-			BalanceID balanceID; 
-			if (baseAssetCode == mApp.getBaseAsset())
-			{
-				balanceID = systemAccount->getID();
-			}
-			else {
-				balanceID = BalanceKeyUtils::forAccount(systemAccount->getID(), delta.getHeaderFrame().generateID());
-			}
-
-			auto balance = BalanceFrame::createNew(balanceID,
-				systemAccount->getID(), baseAssetCode, 1);
-			EntryHelperProvider::storeAddEntry(delta, this->getDatabase(), balance->mEntry);
-		}
-
-		int32_t assetPairPolicies = baseAssetCode == mApp.getStatsQuoteAsset() ? 0 : static_cast<int32_t >(AssetPairPolicy::TRADEABLE);
-		auto assetPair = AssetPairFrame::create(baseAssetCode, mApp.getStatsQuoteAsset(), ONE, ONE, 0, 0, assetPairPolicies);
-		EntryHelperProvider::storeAddEntry(delta, this->getDatabase(), assetPair->mEntry);
-    }
 
 	AccountManager accountManager(mApp, this->getDatabase(), delta, mApp.getLedgerManager());
 	for (auto systemAccount : systemAccounts)
@@ -791,8 +756,8 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const& ledgerData)
         case LedgerUpgradeType::MAX_TX_SET_SIZE:
             ledgerDelta.getHeader().maxTxSetSize = lupgrade.newMaxTxSetSize();
             break;
-        case LedgerUpgradeType::ISSUANCE_KEYS:
-            ledgerDelta.getHeader().issuanceKeys = lupgrade.newIssuanceKeys();
+        case LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR:
+            ledgerDelta.getHeader().externalSystemIDGenerators = lupgrade.newExternalSystemIDGenerators();
             break;
         case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
             ledgerDelta.getHeader().txExpirationPeriod = lupgrade.newTxExpirationPeriod();

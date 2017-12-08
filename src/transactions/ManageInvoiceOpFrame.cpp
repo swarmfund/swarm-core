@@ -77,7 +77,7 @@ ManageInvoiceOpFrame::doApply(Application& app, LedgerDelta& delta,
             innerResult().code(ManageInvoiceResultCode::TOO_MANY_INVOICES);
             return false;
         }
-        invoiceID = delta.getHeaderFrame().generateID();
+        invoiceID = delta.getHeaderFrame().generateID(LedgerEntryType::INVOICE);
 
         auto invoiceFrame = std::make_shared<InvoiceFrame>();
         invoiceFrame->getInvoice().sender = mManageInvoice.sender;

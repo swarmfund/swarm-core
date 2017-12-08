@@ -41,21 +41,21 @@ ReviewableRequestFrame& ReviewableRequestFrame::operator=(ReviewableRequestFrame
     return *this;
 }
 
-ReviewableRequestFrame::pointer ReviewableRequestFrame::createNew(uint64 id, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference)
+ReviewableRequestFrame::pointer ReviewableRequestFrame::createNew(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference)
 {
 	LedgerEntry entry;
 	entry.data.type(LedgerEntryType::REVIEWABLE_REQUEST);
 	auto& request = entry.data.reviewableRequest();
 	request.requestor = requestor;
 	request.reviewer = reviewer;
-	request.requestID = id;
+	request.requestID = delta.getHeaderFrame().generateID(LedgerEntryType::REVIEWABLE_REQUEST);
 	request.reference = reference;
 	return make_shared<ReviewableRequestFrame>(entry);
 }
 
-ReviewableRequestFrame::pointer ReviewableRequestFrame::createNewWithHash(uint64 id, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body)
+ReviewableRequestFrame::pointer ReviewableRequestFrame::createNewWithHash(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body)
 {
-	auto result = createNew(id, requestor, reviewer, reference);
+	auto result = createNew(delta, requestor, reviewer, reference);
 	auto& reviewableRequestEntry = result->getRequestEntry();
 	reviewableRequestEntry.body = body;
 	result->recalculateHashRejectReason();

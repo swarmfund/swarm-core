@@ -64,4 +64,9 @@ bool CancelAssetRequestOpFrame::doCheckValid(Application& app)
 
     return true;
 }
+
+string CancelAssetRequestOpFrame::getAssetCode() const
+{
+    throw runtime_error("Unexpected method call. No asset code is required for asset request cancelation.");
+}
 }

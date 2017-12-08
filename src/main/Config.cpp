@@ -446,20 +446,7 @@ Config::load(std::string const& filename)
             }
             else if (item.first == "PREFERRED_PEERS")
             {
-                if (!item.second->is_array())
-                {
-                    throw std::invalid_argument(
-                        "PREFERRED_PEERS must be an array");
-                }
-                for (auto v : item.second->as_array()->array())
-                {
-                    if (!v->as<std::string>())
-                    {
-                        throw std::invalid_argument(
-                            "invalid element of PREFERRED_PEERS");
-                    }
-                    PREFERRED_PEERS.push_back(v->as<std::string>()->value());
-                }
+                PREFERRED_PEERS = readStrVector(item.first, item.second);
             }
             else if (item.first == "PREFERRED_PEER_KEYS")
             {
@@ -475,36 +462,7 @@ Config::load(std::string const& filename)
             }
             else if (item.first == "KNOWN_PEERS")
             {
-                if (!item.second->is_array())
-                {
-                    throw std::invalid_argument("KNOWN_PEERS must be an array");
-                }
-                for (auto v : item.second->as_array()->array())
-                {
-                    if (!v->as<std::string>())
-                    {
-                        throw std::invalid_argument(
-                            "invalid element of KNOWN_PEERS");
-                    }
-                    KNOWN_PEERS.push_back(v->as<std::string>()->value());
-                }
-            }
-            else if (item.first == "ISSUANCE_KEYS")
-            {
-                if (!item.second->is_array())
-                {
-                    throw std::invalid_argument("ISSUANCE_KEYS must be an array");
-                }
-                for (auto v : item.second->as_array()->array())
-                {
-                    if (!v->as<std::string>())
-                    {
-                        throw std::invalid_argument(
-                            "invalid element of ISSUANCE_KEYS");
-                    }
-                    auto issuanceKey = PubKeyUtils::fromStrKey(v->as<std::string>()->value());
-                    ISSUANCE_KEYS.push_back(issuanceKey);
-                }
+                KNOWN_PEERS = readStrVector(item.first, item.second);
             }
             else if (item.first == "QUORUM_SET")
             {
@@ -512,19 +470,7 @@ Config::load(std::string const& filename)
             }
             else if (item.first == "COMMANDS")
             {
-                if (!item.second->is_array())
-                {
-                    throw std::invalid_argument("COMMANDS must be an array");
-                }
-                for (auto v : item.second->as_array()->array())
-                {
-                    if (!v->as<std::string>())
-                    {
-                        throw std::invalid_argument(
-                            "invalid element of COMMANDS");
-                    }
-                    COMMANDS.push_back(v->as<std::string>()->value());
-                }
+                COMMANDS = readStrVector(item.first, item.second);
             }
             else if (item.first == "MAX_CONCURRENT_SUBPROCESSES")
             {
@@ -628,21 +574,6 @@ Config::load(std::string const& filename)
                 }
                 BASE_EXCHANGE_NAME = item.second->as<std::string>()->value();
             }
-            else if (item.first == "BASE_ASSETS")
-            {
-                if (!item.second->is_array())
-                {
-                    throw std::invalid_argument("BASE_ASSETS must be an array");
-                }
-                for (auto v : item.second->as_array()->array())
-                {
-                    BASE_ASSETS.push_back(getAssetCode(v, "Invalid BASE_ASSETS element"));
-                }
-            }
-			else if (item.first == "STATS_QUOTE_ASSET")
-			{
-				STATS_QUOTE_ASSET = getAssetCode(item.second, "Invalid STATS_QUOTE_ASSET");
-			}
             else if (item.first == "TX_EXPIRATION_PERIOD")
             {
                 if (!item.second->as<int64_t>())
@@ -685,6 +616,14 @@ Config::load(std::string const& filename)
                 }
                 INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE =
                         item.second->as<bool>()->value();
+            }
+            else if (item.first == "BTC_ADDRESSES")
+            {
+                BTC_ADDRESSES = readStrVector(item.first, item.second);
+            }
+            else if (item.first == "ETH_ADDRESSES")
+            {
+                ETH_ADDRESSES = readStrVector(item.first, item.second);
             }
             else
             {
@@ -773,30 +712,6 @@ Config::validateConfig()
 		throw std::invalid_argument("BASE_EXCHANGE_NAME must not be empty");
 	}
 
-	if (STATS_QUOTE_ASSET.empty())
-	{
-		throw std::invalid_argument("STATS_QUOTE_ASSET must be set");
-	}
-
-	if (BASE_ASSETS.empty())
-	{
-		throw std::invalid_argument("BASE_ASSETS must not be empty");
-	}
-
-	bool statsQuoteAssetInBaseAssets = false;
-	for (auto baseAsset : BASE_ASSETS)
-	{
-		if (baseAsset == STATS_QUOTE_ASSET)
-		{
-			statsQuoteAssetInBaseAssets = true;
-			break;
-		}
-	}
-
-	if (!statsQuoteAssetInBaseAssets)
-	{
-		throw std::invalid_argument("STATS_QUOTE_ASSET must be set in BASE_ASSETS");
-	}
 
 	if (TX_EXPIRATION_PERIOD_WINDOW == 0)
 		throw std::invalid_argument("TX_EXPIRATION_PERIOD_WINDOW must be set");
@@ -1015,5 +930,27 @@ Config::resolveNodeID(std::string const& s, PublicKey& retKey) const
         retKey = PubKeyUtils::fromStrKey(s);
     }
     return true;
+}
+
+std::vector<std::string> Config::readStrVector(const std::string name,
+    std::shared_ptr<cpptoml::toml_base> values)
+{
+    if (!values->is_array())
+    {
+        throw std::invalid_argument(name + " must be an array");
+    }
+
+    std::vector<std::string> results;
+    for (auto v : values->as_array()->array())
+    {
+        if (!v->as<std::string>())
+        {
+            throw std::invalid_argument(
+                "invalid element of " + name);
+        }
+        results.push_back(v->as<std::string>()->value());
+    }
+
+    return results;
 }
 }

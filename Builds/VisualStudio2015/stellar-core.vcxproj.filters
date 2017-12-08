@@ -109,6 +109,9 @@
     <Filter Include="transactions\test\helper">
       <UniqueIdentifier>{23c65bbc-34e6-486b-91bf-1fd7959df62d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="exsysidgen">
+      <UniqueIdentifier>{fc723017-8941-498f-b5ed-a37fe1f55483}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -594,9 +597,6 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewRequestHelper.cpp">
-      <Filter>transactions\test\helper</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\test_helper\TestManager.cpp">
       <Filter>transactions\test\helper</Filter>
     </ClCompile>
@@ -710,6 +710,27 @@
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\IssuanceTest.cpp">
       <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountID.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\exsysidgen\BTCIDGenerator.cpp">
+      <Filter>exsysidgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\exsysidgen\ETHIDGenerator.cpp">
+      <Filter>exsysidgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\exsysidgen\ExternalSystemIDGenerators.cpp">
+      <Filter>exsysidgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\exsysidgen\Generator.cpp">
+      <Filter>exsysidgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewRequestHelper.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\ledger\EntryHelper.cpp">
       <Filter>ledger</Filter>
@@ -1352,9 +1373,6 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestHelper.h">
-      <Filter>transactions\test\helper</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\test_helper\TestManager.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
@@ -1407,6 +1425,30 @@
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\catcher.cpp">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountID.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\exsysidgen\BTCIDGenerator.h">
+      <Filter>exsysidgen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\exsysidgen\ETHIDGenerator.h">
+      <Filter>exsysidgen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\exsysidgen\ExternalSystemIDGenerators.h">
+      <Filter>exsysidgen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\exsysidgen\Generator.h">
+      <Filter>exsysidgen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewRequestHelper.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ledger\EntryHelper.h">
@@ -1657,6 +1699,9 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-issuance-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-external-system-id.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

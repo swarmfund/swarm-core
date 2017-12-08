@@ -66,7 +66,7 @@ ManageForfeitRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    uint64 paymentID = delta.getHeaderFrame().generateID();
+    uint64 paymentID = delta.getHeaderFrame().generateID(LedgerEntryType::PAYMENT_REQUEST);
 
     int64 amountToCharge = mManageForfeitRequest.amount;
     AccountManager accountManager(app, db, delta, ledgerManager);

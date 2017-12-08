@@ -5,7 +5,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "overlay/StellarXDR.h"
-#include "ReviewRequestHelper.h"
+#include "ReviewRequestTestHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetFrame.h"
 

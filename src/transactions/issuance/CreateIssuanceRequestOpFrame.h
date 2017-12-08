@@ -30,12 +30,7 @@ class CreateIssuanceRequestOpFrame : public OperationFrame
 	ReviewableRequestFrame::pointer tryCreateIssuanceRequest(Application& app, LedgerDelta& delta,
 		LedgerManager& ledgerManager);
 
-	std::pair<bool, ReviewRequestResult> tryReviewIssuanceRequest(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager, ReviewableRequestFrame::pointer request);
-
-	ReviewRequestResultCode approveIssuanceRequest(Application& app, LedgerDelta& delta,
-		LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request);
-
-  public:
+public:
 
     CreateIssuanceRequestOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);

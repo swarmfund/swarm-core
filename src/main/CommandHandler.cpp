@@ -446,13 +446,7 @@ CommandHandler::info(std::string const& params, std::string& retStr)
 	info["master_account_id"] = PubKeyUtils::toStrKey(mApp.getMasterID());
 	info["commission_account_id"] = PubKeyUtils::toStrKey(mApp.getCommissionID());
 	info["operational_account_id"] = PubKeyUtils::toStrKey(mApp.getOperationalID());
-	info["statistics_quote_asset"] = mApp.getStatsQuoteAsset();
 	info["base_exchange_name"] = mApp.getConfig().BASE_EXCHANGE_NAME;
-
-    for (auto asset: mApp.getConfig().BASE_ASSETS)
-    {
-        info["base_assets"].append(asset);
-    }
 
     auto& statusMessages = mApp.getStatusManager();
     auto counter = 0;

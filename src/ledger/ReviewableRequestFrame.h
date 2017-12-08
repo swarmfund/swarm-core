@@ -38,9 +38,9 @@ class ReviewableRequestFrame : public EntryFrame
 
     ReviewableRequestFrame& operator=(ReviewableRequestFrame const& other);
 
-	static pointer createNew(uint64 id, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference);
+	static pointer createNew(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference);
 	// creates new reviewable request and calculates hash for it
-	static pointer createNewWithHash(uint64 id, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body);
+	static pointer createNewWithHash(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body);
 
 	void setBody(ReviewableRequestEntry::_body_t body) {
 		mRequest.body = body;

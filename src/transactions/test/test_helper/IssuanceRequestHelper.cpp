@@ -131,7 +131,7 @@ namespace txtest
 	}
 	void IssuanceRequestHelper::createAssetWithPreIssuedAmount(Account & assetOwner, AssetCode assetCode, uint64_t preIssuedAmount, Account& root) {
 		auto manageAssetHelper = ManageAssetHelper(mTestManager);
-		manageAssetHelper.createAsset(assetOwner, assetOwner.key, assetCode, root);
+		manageAssetHelper.createBaseAsset(root, root.key, assetCode);
 		authorizePreIssuedAmount(assetOwner, assetOwner, assetCode, preIssuedAmount, root);
 	}
 	void IssuanceRequestHelper::authorizePreIssuedAmount(Account & assetOwner, Account & preIssuedAssetSigner, AssetCode assetCode, uint64_t preIssuedAmount, Account & root)

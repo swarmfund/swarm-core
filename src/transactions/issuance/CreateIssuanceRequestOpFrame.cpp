@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/review_request/ReviewRequestHelper.h>
 #include "util/asio.h"
 #include "CreateIssuanceRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
@@ -41,8 +42,8 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	auto reviewResultCode = approveIssuanceRequest(app, delta, ledgerManager, request);
-	bool isFulfilled = false;
+    const auto reviewResultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
+	bool isFulfilled;
 	switch (reviewResultCode) {
 	case ReviewRequestResultCode::SUCCESS:
 	{
@@ -142,8 +143,8 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
-	auto balanceHelper = BalanceHelper::Instance();
-	if (!balanceHelper->exists(db, mCreateIssuanceRequest.request.receiver)) {
+        auto balance = BalanceFrame::loadBalance(mCreateIssuanceRequest.request.receiver, db);
+	if (!balance || balance->getAsset() != asset->getCode()) {
 		innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
 		return nullptr;
 	}
@@ -152,74 +153,9 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 	ReviewableRequestEntry::_body_t body;
 	body.type(ReviewableRequestType::ISSUANCE_CREATE);
 	body.issuanceRequest() = mCreateIssuanceRequest.request;
-	auto request = ReviewableRequestFrame::createNewWithHash(delta.getHeaderFrame().generateID(), getSourceID(), asset->getOwner(), reference, body);
-	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
+	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference, body);
+	request->storeAdd(delta, db);
 	return request;
-}
-
-std::pair<bool, ReviewRequestResult>  CreateIssuanceRequestOpFrame::tryReviewIssuanceRequest(Application & app, LedgerDelta & delta,
-	LedgerManager & ledgerManager, ReviewableRequestFrame::pointer request)
-{
-	Operation op;
-	auto reviewer = request->getReviewer();
-	op.sourceAccount = xdr::pointer<stellar::AccountID>(new AccountID(reviewer));
-	op.body.type(OperationType::REVIEW_REQUEST);
-	ReviewRequestOp& reviewRequestOp = op.body.reviewRequestOp();
-	reviewRequestOp.action = ReviewRequestOpAction::APPROVE;
-	reviewRequestOp.requestHash = request->getHash();
-	reviewRequestOp.requestID = request->getRequestID();
-	reviewRequestOp.requestType = request->getRequestType();
-
-	OperationResult opRes;
-	opRes.code(OperationResultCode::opINNER);
-	opRes.tr().type(OperationType::REVIEW_REQUEST);
-	Database& db = ledgerManager.getDatabase();
-	
-	auto accountHelper = AccountHelper::Instance();
-	auto reviewerFrame = accountHelper->loadAccount(reviewer, db);
-	if (!reviewerFrame) {
-		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: expected review to exist for request: " << xdr::xdr_to_string(request->getRequestEntry());
-		throw std::runtime_error("Unexpected state expected reviewer to exist");
-	}
-
-	auto reviewRequestOpFrame = std::make_shared<ReviewIssuanceCreationRequestOpFrame>(op, opRes, mParentTx);
-	reviewRequestOpFrame->setSourceAccountPtr(reviewerFrame);
-	bool isApplied = reviewRequestOpFrame->doCheckValid(app) && reviewRequestOpFrame->doApply(app, delta, ledgerManager);
-	if (reviewRequestOpFrame->getResultCode() != OperationResultCode::opINNER)
-	{
-		throw std::runtime_error("Unexpected error code from review issuance creation request");
-	}
-
-	return std::pair<bool, ReviewRequestResult>(isApplied, reviewRequestOpFrame->getResult().tr().reviewRequestResult());
-}
-
-ReviewRequestResultCode CreateIssuanceRequestOpFrame::approveIssuanceRequest(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager,
-	ReviewableRequestFrame::pointer request)
-{
-	Database& db = ledgerManager.getDatabase();
-	// shield outer scope of any side effects by using
-    // a sql transaction for ledger state and LedgerDelta
-	soci::transaction reviewRequestTx(db.getSession());
-	LedgerDelta reviewRequestDelta(delta);
-
-	auto result = tryReviewIssuanceRequest(app, reviewRequestDelta, ledgerManager, request);
-	bool isApplied = result.first;
-	ReviewRequestResult reviewRequestResult = result.second;
-	if (!isApplied)
-	{
-		return reviewRequestResult.code();
-	}
-
-	auto resultCode = reviewRequestResult.code();
-	if (resultCode != ReviewRequestResultCode::SUCCESS) {
-		CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: doApply returned true, but result code is not success: " << xdr::xdr_to_string(request->getRequestEntry());
-		throw std::runtime_error("Unexpected state: doApply returned true, but result code is not success:  for review create issuance request");
-	}
-
-	reviewRequestTx.commit();
-	reviewRequestDelta.commit();
-	
-	return resultCode;
 }
 
 }

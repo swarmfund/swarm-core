@@ -4,13 +4,8 @@
 
 #include "util/asio.h"
 #include "ReviewAssetCreationRequestOpFrame.h"
-#include "util/Logging.h"
-#include "util/types.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/ReviewableRequestFrame.h"
-#include "ledger/AssetFrame.h"
-#include "ledger/AssetHelper.h"
 #include "main/Application.h"
 
 namespace stellar
@@ -18,6 +13,24 @@ namespace stellar
 
 using namespace std;
 using xdr::operator==;
+
+void ReviewAssetCreationRequestOpFrame::createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta,
+                                                             uint64_t ledgerCloseTime)
+{
+    auto systemAccounts = app.getSystemAccounts();
+
+    for (auto& systemAccount : systemAccounts)
+    {
+        auto balanceFrame = BalanceFrame::loadBalance(systemAccount, assetCode, app.getDatabase(), &delta);
+        if (!balanceFrame) {
+            BalanceID balanceID = BalanceKeyUtils::forAccount(systemAccount,
+                                                              delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
+            balanceFrame = BalanceFrame::createNew(balanceID, systemAccount, assetCode, ledgerCloseTime);
+
+            balanceFrame->storeAdd(delta, app.getDatabase());
+        }
+    }
+}
 
 bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager, ReviewableRequestFrame::pointer request)
 {
@@ -37,8 +50,12 @@ bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerD
 	}
 
 	auto assetFrame = AssetFrame::create(assetCreationRequest, request->getRequestor());
-	EntryHelperProvider::storeAddEntry(delta, db, assetFrame->mEntry);
-	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
+	assetFrame->storeAdd(delta, db);
+
+    if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET))
+        createSystemBalances(assetFrame->getCode(), app, delta, ledgerManager.getCloseTime());
+
+	request->storeDelete(delta, db);
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
 }

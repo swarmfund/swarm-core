@@ -134,14 +134,15 @@ class Config : public std::enable_shared_from_this<Config>
     bool PUBLIC_HTTP_PORT;          // if you accept commands from not localhost
     int HTTP_MAX_CLIENT;  // maximum number of http clients, i.e backlog
     std::string NETWORK_PASSPHRASE; // identifier for the network
+    [[deprecated]]
     std::vector<AssetCode> BASE_ASSETS; // codes of base assets
+    [[deprecated]]
 	AssetCode STATS_QUOTE_ASSET;
 
 	PublicKey masterID; // account id of master account
 	PublicKey commissionID; // account id of commission account
 	PublicKey operationalID; // account id of operational account
 
-    std::vector<PublicKey> ISSUANCE_KEYS;
     std::string BASE_EXCHANGE_NAME;
     int64 TX_EXPIRATION_PERIOD;
     int64 TX_EXPIRATION_PERIOD_WINDOW = 60*60;
@@ -205,6 +206,9 @@ class Config : public std::enable_shared_from_this<Config>
 
     std::string NTP_SERVER; // ntp server used to check if time is valid on host
 
+    std::vector<std::string> BTC_ADDRESSES;
+    std::vector<std::string> ETH_ADDRESSES;
+
     Config();
 
     void load(std::string const& filename);
@@ -217,5 +221,7 @@ class Config : public std::enable_shared_from_this<Config>
 	std::vector<PublicKey> getSystemAccounts() const {
 		return{ masterID, commissionID, operationalID };
 	}
+
+    static std::vector<std::string> readStrVector(std::string name, std::shared_ptr<cpptoml::toml_base> values);
 };
 }

@@ -168,6 +168,10 @@
     <ClCompile Include="..\..\src\database\Database.cpp" />
     <ClCompile Include="..\..\src\database\DatabaseTests.cpp" />
     <ClCompile Include="..\..\src\database\Marshaler.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\BTCIDGenerator.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\ETHIDGenerator.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\ExternalSystemIDGenerators.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\Generator.cpp" />
     <ClCompile Include="..\..\src\herder\Herder.cpp" />
     <ClCompile Include="..\..\src\herder\HerderImpl.cpp" />
     <ClCompile Include="..\..\src\herder\HerderTests.cpp" />
@@ -197,6 +201,7 @@
     <ClCompile Include="..\..\src\ledger\AssetPairFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\AssetPairHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\BalanceFrame.cpp" />
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountID.cpp" />
     <ClCompile Include="..\..\src\ledger\BalanceHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\EntryHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeFrame.cpp" />
@@ -316,6 +321,7 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewIssuanceCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewPaymentRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewPreIssuanceCreationRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\test\AccountManagerTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CreateAccountTests.cpp" />
@@ -340,7 +346,7 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewPreIssuanceRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.cpp" />
-    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\TestManager.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\TxHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\TxEnvelopeTests.cpp" />
@@ -395,6 +401,7 @@
     <ClCompile Include="..\..\src\work\WorkTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\lib\catcher.cpp" />
     <ClInclude Include="..\..\lib\catch.hpp" />
     <ClInclude Include="..\..\src\bucket\Bucket.h" />
     <ClInclude Include="..\..\src\bucket\BucketApplicator.h" />
@@ -412,6 +419,10 @@
     <ClInclude Include="..\..\src\crypto\StrKey.h" />
     <ClInclude Include="..\..\src\database\Database.h" />
     <ClInclude Include="..\..\src\database\Marshaler.h" />
+    <ClInclude Include="..\..\src\exsysidgen\BTCIDGenerator.h" />
+    <ClInclude Include="..\..\src\exsysidgen\ETHIDGenerator.h" />
+    <ClInclude Include="..\..\src\exsysidgen\ExternalSystemIDGenerators.h" />
+    <ClInclude Include="..\..\src\exsysidgen\Generator.h" />
     <ClInclude Include="..\..\src\history\HistoryWork.h" />
     <ClInclude Include="..\..\src\history\InferredQuorum.h" />
     <ClInclude Include="..\..\src\history\StateSnapshot.h" />
@@ -429,6 +440,7 @@
     <ClInclude Include="..\..\src\ledger\AssetPairFrame.h" />
     <ClInclude Include="..\..\src\ledger\AssetPairHelper.h" />
     <ClInclude Include="..\..\src\ledger\BalanceFrame.h" />
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountID.h" />
     <ClInclude Include="..\..\src\ledger\BalanceHelper.h" />
     <ClInclude Include="..\..\src\ledger\EntryHelper.h" />
     <ClInclude Include="..\..\src\ledger\FeeFrame.h" />
@@ -531,6 +543,7 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewIssuanceCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewPaymentRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewPreIssuanceCreationRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\Account.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\IssuanceRequestHelper.h" />
@@ -538,7 +551,7 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPreIssuanceRequestHelper.h" />
-    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\TestManager.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\TxHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\TxTests.h" />
@@ -925,6 +938,12 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-issuance.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-external-system-id.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

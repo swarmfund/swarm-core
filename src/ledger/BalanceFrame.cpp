@@ -45,8 +45,7 @@ BalanceFrame& BalanceFrame::operator=(BalanceFrame const& other)
     return *this;
 }
 
-BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, AssetCode asset, uint64 ledgerCloseTime,
-    uint64 initialAmount)
+BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, AssetCode asset, uint64 initialAmount)
 {
 	LedgerEntry le;
 	le.data.type(LedgerEntryType::BALANCE);

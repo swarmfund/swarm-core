@@ -65,7 +65,7 @@ class AccountFrame : public EntryFrame
 		mUpdateSigners = updateSigners;
 	}
 
-	void initLoaded(bool updateSigners) 
+	void initLoaded(bool updateSigners)
 	{
 		setUpdateSigners(updateSigners);
 		assert(isValid());
@@ -128,16 +128,6 @@ class AccountFrame : public EntryFrame
 	AccountID* getReferrer() const
     {
 		return mAccountEntry.referrer.get();
-    }
-
-    void setShareForReferrer(int64 share)
-    {
-        mAccountEntry.shareForReferrer = share;
-    }
-
-    int64 getShareForReferrer() const
-    {
-        return mAccountEntry.shareForReferrer;
     }
 
 	int32_t getPolicies() const

@@ -72,16 +72,12 @@ namespace stellar
 			return false;
 		}
 
-		// for fererral fee and storage fee it is only allowed  to have full range, so we can update them without check for range overlap
-		if (mSetFees.fee->feeType != FeeType::REFERRAL_FEE)
-		{
-			if (feeHelper->isBoundariesOverlap(hash, mSetFees.fee->lowerBound, mSetFees.fee->upperBound, db))
-			{
-				innerResult().code(SetFeesResultCode::RANGE_OVERLAP);
-				metrics.NewMeter({ "op-set-fees", "invalid", "boundaries-overlap" }, "operation").Mark();
-				return false;
-			}
-		}
+        if (feeHelper->isBoundariesOverlap(hash, mSetFees.fee->lowerBound, mSetFees.fee->upperBound, db))
+        {
+            innerResult().code(SetFeesResultCode::RANGE_OVERLAP);
+            metrics.NewMeter({ "op-set-fees", "invalid", "boundaries-overlap" }, "operation").Mark();
+            return false;
+        }
 
 		LedgerEntry le;
 		le.data.type(LedgerEntryType::FEE);
@@ -173,13 +169,6 @@ namespace stellar
 	{
 		if (fee.fixedFee >= 0 && fee.percentFee >= 0 && fee.percentFee <= 100 * ONE)
 		{
-			if (fee.feeType == FeeType::REFERRAL_FEE)
-			{
-				if (fee.percentFee == 100 * ONE)
-				{
-					return false;
-				}
-			}
 			return true;
 		}
 
@@ -247,31 +236,7 @@ namespace stellar
 	}
 
 
-	bool SetFeesOpFrame::isReferralFeeValid(FeeEntry const& fee, Application& app)
-	{
-		assert(fee.feeType == FeeType::REFERRAL_FEE);
-		auto& metrics = app.getMetrics();
-
-		if (!mustValidFeeAmounts(fee, metrics))
-			return false;
-
-		if (!mustFullRange(fee, metrics))
-			return false;
-
-		if (!mustEmptyFixed(fee, metrics))
-			return false;
-
-		if (!mustDefaultSubtype(fee, metrics))
-			return false;
-
-		if (!mustBaseAsset(fee, app))
-			return false;
-
-		return true;
-	}
-
-
-	std::unordered_map<AccountID, CounterpartyDetails> SetFeesOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
+    std::unordered_map<AccountID, CounterpartyDetails> SetFeesOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 	{
 		if (!mSetFees.fee || !mSetFees.fee->accountID)
 			return{ };
@@ -332,9 +297,6 @@ namespace stellar
 			break;
 		case FeeType::OFFER_FEE:
 			isValidFee = isOfferFeeValid(*mSetFees.fee, app.getMetrics());
-			break;
-		case FeeType::REFERRAL_FEE:
-			isValidFee = isReferralFeeValid(*mSetFees.fee, app);
 			break;
 		case FeeType::FORFEIT_FEE:
 			isValidFee = isForfeitFeeValid(*mSetFees.fee, app.getMetrics());

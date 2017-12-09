@@ -5,7 +5,9 @@ project(core)
 #definitions for compilers
 include(platform_definitions.cmake)
 
+#include headers directory
 include(platform_include.cmake)
+
 #path to .x
 set(XDRS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/xdr)
 
@@ -15,18 +17,33 @@ include(gen_xdr.cmake)
 #include generated files .h from .x
 include_directories(${XDRS_PATH})
 
-#include headers directory
-
+#include headers files without .cpp
 set(NOT_COMMON_SOURCE_FILES
+        util/asio.h
+        util/make_unique.h
+        util/must_use.h
+        util/NonCopyable.h
+        util/optional.h
+        util/XDRStream.h
+        work/WorkManager.h
+        crypto/ByteSlice.h
+        bucket/LedgerCmp.h
+        bucket/BucketManager.h
+        ledger/LedgerManager.h
+        history/HistoryManager.h
+        overlay/BanManager.h
+        overlay/StellarXDR.h
+        overlay/OverlayManager.h
+        process/ProcessManager.h
+        transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
-        transactions/review_request/ReviewRequestHelper.cpp transactions/review_request/ReviewRequestHelper.h)
+)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)
-#file(GLOB STELLAR_CORE_SOURCE_FILES_H **/*.h)
 
 #create executeble file "core"
 add_executable(core ${STELLAR_CORE_SOURCE_FILES} ../config.h ${XDRS_PATH} ${H_GENERATE_FILES} ${NOT_COMMON_SOURCE_FILES})
 
-#link
+#link libs
 include(platform_libs.cmake)

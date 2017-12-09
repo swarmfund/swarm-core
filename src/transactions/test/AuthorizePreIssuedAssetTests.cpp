@@ -7,7 +7,7 @@
 #include "lib/catch.hpp"
 #include "TxTests.h"
 #include "test_helper/TestManager.h"
-#include "test_helper/ManageAssetHelper.h"
+#include "transactions/test/test_helper/ManageAssetTestHelper.h"
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ReviewPreIssuanceRequestHelper.h"
@@ -21,7 +21,7 @@ typedef std::unique_ptr<Application> appPtr;
 void testAuthPreissuedAssetHappyPath(TestManager::pointer testManager, Account& account, Account& root) {
 	auto preissuedSigner = SecretKey::random();
 	AssetCode assetCode = "EUR";
-	auto manageAssetHelper = ManageAssetHelper(testManager);
+	auto manageAssetHelper = ManageAssetTestHelper(testManager);
     manageAssetHelper.createAsset(account, preissuedSigner, assetCode, root);
 	auto issuanceRequestHelper = IssuanceRequestHelper(testManager);
 	auto reviewPreIssuanceRequestHelper = ReviewPreIssuanceRequestHelper(testManager);

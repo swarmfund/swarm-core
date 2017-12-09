@@ -9,7 +9,7 @@
 #include "lib/catch.hpp"
 #include "TxTests.h"
 #include "test_helper/TestManager.h"
-#include "test_helper/ManageAssetHelper.h"
+#include "transactions/test/test_helper/ManageAssetTestHelper.h"
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 
@@ -41,7 +41,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     }
     SECTION("Cancel asset request")
     {
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         SECTION("Invalid ID")
         {
             manageAssetHelper.applyManageAssetTx(root, 0,
@@ -79,13 +79,13 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     }
     SECTION("Asset creation request")
     {
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         SECTION("Invalid asset code")
         {
             const auto request = manageAssetHelper.
                 createAssetCreationRequest("USD S", "USDS",
                                            root.key.getPublicKey(), "", "", 100,
-                                           0);
+                                           0, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  INVALID_CODE);
@@ -94,7 +94,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         {
             const auto request = manageAssetHelper.
                 createAssetCreationRequest("USDS", "", root.key.getPublicKey(),
-                                           "", "", 100, 0);
+                                           "", "", 100, 0, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  INVALID_NAME);
@@ -104,7 +104,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             const auto request = manageAssetHelper.
                 createAssetCreationRequest("USDS", "USD S",
                                            root.key.getPublicKey(), "", "", 100,
-                                           UINT32_MAX);
+                                           UINT32_MAX, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  INVALID_POLICIES);
@@ -114,7 +114,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             const auto request = manageAssetHelper.
                 createAssetCreationRequest("USDS", "USDS",
                                            root.key.getPublicKey(), "", "", 100,
-                                           0);
+                                           0, "123");
             manageAssetHelper.applyManageAssetTx(root, 1, request,
                                                  ManageAssetResultCode::
                                                  REQUEST_NOT_FOUND);
@@ -125,7 +125,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             const auto request = manageAssetHelper.
                 createAssetCreationRequest(assetCode, "USDS",
                                            root.key.getPublicKey(), "", "", 100,
-                                           0);
+                                           0, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, request);
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
@@ -138,7 +138,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             const auto request = manageAssetHelper.
                 createAssetCreationRequest(assetCode, "USDS",
                                            root.key.getPublicKey(), "", "", 100,
-                                           0);
+                                           0, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  ASSET_ALREADY_EXISTS);
@@ -146,12 +146,12 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     }
     SECTION("Asset update request")
     {
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         SECTION("Invalid asset code")
         {
             const auto request = manageAssetHelper.
                 createAssetUpdateRequest("USD S", "Long desciption'as'd.", "",
-                                         0);
+                                         0, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  INVALID_CODE);
@@ -160,7 +160,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         {
             const auto request = manageAssetHelper.
                 createAssetUpdateRequest("USDS", "Long desciption'as'd.", "",
-                                         UINT32_MAX);
+                                         UINT32_MAX, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  INVALID_POLICIES);
@@ -168,7 +168,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         SECTION("Trying to update non existsing request")
         {
             const auto request = manageAssetHelper.
-                createAssetUpdateRequest("USDS", "Long desciption'as'd.", "", 0);
+                createAssetUpdateRequest("USDS", "Long desciption'as'd.", "", 0, "123");
             manageAssetHelper.applyManageAssetTx(root, 12, request, ManageAssetResultCode::REQUEST_NOT_FOUND);
         }
         SECTION("Trying to update not my asset")
@@ -182,7 +182,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             // try to update with root
             const auto request = manageAssetHelper.
                 createAssetUpdateRequest(assetCode, "Long desciption'as'd.", "",
-                                         0);
+                                         0, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  ASSET_NOT_FOUND);
@@ -191,7 +191,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     SECTION("create base asset")
     {
         uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         auto preissuedSigner = SecretKey::random();
 
         SECTION("create base asset")
@@ -200,7 +200,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             auto assetCreationRequest = manageAssetHelper.
                     createAssetCreationRequest(baseAsset, "ILS", SecretKey::random().getPublicKey(),
                                                "Israeli new shekel", "http://ils.com",
-                                               UINT64_MAX, baseAssetPolicy);
+                                               UINT64_MAX, baseAssetPolicy, "123");
             auto creationResult = manageAssetHelper.applyManageAssetTx(root, 0, assetCreationRequest);
         }
 
@@ -210,7 +210,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             manageAssetHelper.createAsset(root, preissuedSigner, assetCode, root);
 
             auto assetUpdateRequest = manageAssetHelper.
-                    createAssetUpdateRequest(assetCode, "long description", "http://bank.gov.ua", baseAssetPolicy);
+                    createAssetUpdateRequest(assetCode, "long description", "http://bank.gov.ua", baseAssetPolicy, "321");
             manageAssetHelper.applyManageAssetTx(root, 0, assetUpdateRequest);
         }
 
@@ -220,7 +220,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             manageAssetHelper.createBaseAsset(root, preissuedSigner, assetCode);
 
             auto assetUpdateRequest = manageAssetHelper.
-                    createAssetUpdateRequest(assetCode, "Description", "http://ils.com", 0);
+                    createAssetUpdateRequest(assetCode, "Description", "http://ils.com", 0, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, assetUpdateRequest);
             std::vector<AssetFrame::pointer> baseAssets;
 			assetHelper->loadBaseAssets(baseAssets, testManager->getDB());
@@ -230,7 +230,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
 
     SECTION("create stats asset")
     {
-        ManageAssetHelper manageAssetHelper(testManager);
+        ManageAssetTestHelper manageAssetHelper(testManager);
         uint32 statsPolicy = static_cast<uint32>(AssetPolicy::STATS_QUOTE_ASSET);
         SECTION("create stats asset")
         {
@@ -238,7 +238,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             SecretKey preissuedSigner = SecretKey::random();
             auto createAssetRequest = manageAssetHelper.
                     createAssetCreationRequest(statsAsset, "BYN", preissuedSigner.getPublicKey(), "long description",
-                                               "http://byn.com", UINT64_MAX, statsPolicy);
+                                               "http://byn.com", UINT64_MAX, statsPolicy, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, createAssetRequest);
         }
 
@@ -248,12 +248,12 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             SecretKey preissuedSigner = SecretKey::random();
             auto createFirst = manageAssetHelper.
                     createAssetCreationRequest(statsAsset, "BYN", preissuedSigner.getPublicKey(), "long description",
-                                               "http://byn.com", UINT64_MAX, statsPolicy);
+                                               "http://byn.com", UINT64_MAX, statsPolicy, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, createFirst);
 
             auto createSecond = manageAssetHelper.
                 createAssetCreationRequest("CZK", "CZK", preissuedSigner.getPublicKey(), "long description",
-                "http://czk.com", UINT64_MAX, statsPolicy);
+                "http://czk.com", UINT64_MAX, statsPolicy, "123");
             manageAssetHelper.applyManageAssetTx(root, 0, createSecond,
                                                 ManageAssetResultCode::STATS_ASSET_ALREADY_EXISTS);
         }
@@ -267,13 +267,13 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
     SECTION("Can create asset")
     {
         auto preissuedSigner = SecretKey::random();
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         const AssetCode assetCode = "EURT";
         auto creationRequest = manageAssetHelper.
             createAssetCreationRequest(assetCode, "New USD token",
                                        preissuedSigner.getPublicKey(),
                                        "Description can be quiete long",
-                                       "https://testusd.usd", 0, 0);
+                                       "https://testusd.usd", 0, 0, "123");
         auto creationResult = manageAssetHelper.applyManageAssetTx(account, 0,
                                                                    creationRequest);
 
@@ -317,7 +317,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
                 const auto updateRequestBody = manageAssetHelper.
                     createAssetUpdateRequest(assetCode,
                                              "Updated token descpition",
-                                             "https://updatedlink.token", 0);
+                                             "https://updatedlink.token", 0, "321");
                 auto updateResult = manageAssetHelper.
                     applyManageAssetTx(account, 0, updateRequestBody);
                 approvingRequest = reviewableRequestHelper->

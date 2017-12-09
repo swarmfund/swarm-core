@@ -31,7 +31,6 @@ namespace stellar
 		bool isPaymentFeeValid(FeeEntry const& fee, medida::MetricsRegistry& media);
 		bool isOfferFeeValid(FeeEntry const& fee, medida::MetricsRegistry& media);
         bool isForfeitFeeValid(FeeEntry const& fee, medida::MetricsRegistry& media);
-		bool isReferralFeeValid(FeeEntry const& fee, Application& app);
         bool isEmissionFeeValid(FeeEntry const& fee, medida::MetricsRegistry& media);
 
 		bool trySetFee(medida::MetricsRegistry& media, Database& db, LedgerDelta& delta);

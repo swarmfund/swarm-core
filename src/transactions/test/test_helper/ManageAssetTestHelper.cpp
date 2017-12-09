@@ -3,7 +3,8 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <transactions/test/TxTests.h>
-#include "ManageAssetHelper.h"
+#include <cstdint>
+#include "ManageAssetTestHelper.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
@@ -18,11 +19,11 @@ namespace stellar
 
 namespace txtest
 {
-	ManageAssetHelper::ManageAssetHelper(TestManager::pointer testManager) : TxHelper(testManager)
+	ManageAssetTestHelper::ManageAssetTestHelper(TestManager::pointer testManager) : TxHelper(testManager)
 	{
 	}
 
-	ManageAssetResult ManageAssetHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
+	ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
 	{
 		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
@@ -53,35 +54,9 @@ namespace txtest
         if (sourceFrame->getAccountType() == AccountType::MASTER) {
             REQUIRE(reviewableRequestCountAfterTx == reviewableRequestCountBeforeTx);
             REQUIRE(manageAssetResult.success().fulfilled);
-            AssetCode assetCode;
-            switch (request.action()) {
-                case ManageAssetAction::CREATE_ASSET_CREATION_REQUEST:
-                    assetCode = request.createAsset().code;
-                    break;
-                case ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST:
-                {
-                    assetCode = request.updateAsset().code;
-                    auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
-                    REQUIRE(assetFrame);
-                    auto assetEntry = assetFrame->getAsset();
-                    REQUIRE(assetEntry.description == request.updateAsset().description);
-                    REQUIRE(assetEntry.externalResourceLink == request.updateAsset().externalResourceLink);
-                    REQUIRE(assetEntry.policies == request.updateAsset().policies);
-                    break;
-                }
-                default:
-                    throw std::runtime_error("Unexpected manage asset action from master account");
-            }
-            auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
-            REQUIRE(assetFrame);
-            if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET)) {
-                auto systemAccounts = mTestManager->getApp().getSystemAccounts();
-                for (auto systemAccount : systemAccounts) {
-                    auto balanceFrame = balanceHelper->loadBalance(systemAccount, assetCode,
-                                                                  mTestManager->getDB(), &delta);
-                    REQUIRE(balanceFrame);
-                }
-            }
+
+            validateManageAssetEffect(request);
+
             return manageAssetResult;
         }
 
@@ -113,7 +88,7 @@ namespace txtest
 		return manageAssetResult;
 	}
 
-	TransactionFramePtr ManageAssetHelper::createManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request)
+	TransactionFramePtr ManageAssetTestHelper::createManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request)
 	{
 		Operation op;
 		op.body.type(OperationType::MANAGE_ASSET);
@@ -123,7 +98,15 @@ namespace txtest
 		return txFromOperation(source, op, nullptr);
 	}
 
-	ManageAssetOp::_request_t ManageAssetHelper::createAssetCreationRequest(AssetCode code, std::string name, AccountID preissuedAssetSigner, std::string description, std::string externalResourceLink, uint64_t maxIssuanceAmount, uint32_t policies)
+	ManageAssetOp::_request_t ManageAssetTestHelper::createAssetCreationRequest(
+			AssetCode code,
+			std::string name,
+			AccountID preissuedAssetSigner,
+			std::string description,
+			std::string externalResourceLink,
+			uint64_t maxIssuanceAmount,
+			uint32_t policies,
+			std::string logoID)
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CREATE_ASSET_CREATION_REQUEST);
@@ -135,10 +118,17 @@ namespace txtest
 		assetCreationRequest.name = name;
 		assetCreationRequest.policies = policies;
 		assetCreationRequest.preissuedAssetSigner = preissuedAssetSigner;
+		assetCreationRequest.logoID = logoID;
 		return request;
 	}
 
-	ManageAssetOp::_request_t ManageAssetHelper::createAssetUpdateRequest(AssetCode code, std::string description, std::string externalResourceLink, uint32_t policies)
+	ManageAssetOp::_request_t ManageAssetTestHelper::createAssetUpdateRequest(
+			AssetCode code,
+			std::string description,
+			std::string externalResourceLink,
+			uint32_t policies,
+			std::string logoID
+	)
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST);
@@ -147,19 +137,20 @@ namespace txtest
 		assetUpdateRequest.description = description;
 		assetUpdateRequest.externalResourceLink = externalResourceLink;
 		assetUpdateRequest.policies = policies;
+		assetUpdateRequest.logoID = logoID;
 		return request;
 	}
 
-	ManageAssetOp::_request_t ManageAssetHelper::createCancelRequest()
+	ManageAssetOp::_request_t ManageAssetTestHelper::createCancelRequest()
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CANCEL_ASSET_REQUEST);
 		return request;
 	}
-	void ManageAssetHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root)
+	void ManageAssetTestHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root)
 	{
 		auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
-			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0);
+			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0, "123");
         auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 
 		auto accountHelper = AccountHelper::Instance();
@@ -176,12 +167,46 @@ namespace txtest
 			ReviewRequestOpAction::APPROVE, "");
 	}
 
-    void ManageAssetHelper::createBaseAsset(Account &root, SecretKey &preIssuedSigner, AssetCode assetCode)
+    void ManageAssetTestHelper::createBaseAsset(Account &root, SecretKey &preIssuedSigner, AssetCode assetCode)
     {
         uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
         auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
-              "Description can be quiete long", "https://testusd.usd", UINT64_MAX, baseAssetPolicy);
+              "Description can be quiete long", "https://testusd.usd", UINT64_MAX, baseAssetPolicy, "123");
         auto creationResult = applyManageAssetTx(root, 0, creationRequest);
+    }
+
+    void ManageAssetTestHelper::validateManageAssetEffect(ManageAssetOp::_request_t request) {
+        AssetCode assetCode;
+        auto assetHelper = AssetHelper::Instance();
+        switch (request.action()) {
+            case ManageAssetAction::CREATE_ASSET_CREATION_REQUEST:
+                assetCode = request.createAsset().code;
+                break;
+            case ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST:
+            {
+                assetCode = request.updateAsset().code;
+                auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
+                REQUIRE(assetFrame);
+                auto assetEntry = assetFrame->getAsset();
+                REQUIRE(assetEntry.description == request.updateAsset().description);
+                REQUIRE(assetEntry.externalResourceLink == request.updateAsset().externalResourceLink);
+                REQUIRE(assetEntry.policies == request.updateAsset().policies);
+                break;
+            }
+            default:
+                throw std::runtime_error("Unexpected manage asset action from master account");
+        }
+        auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
+        REQUIRE(assetFrame);
+        auto balanceHelper = BalanceHelper::Instance();
+        if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET)) {
+            auto systemAccounts = mTestManager->getApp().getSystemAccounts();
+            for (auto systemAccount : systemAccounts) {
+                auto balanceFrame = balanceHelper->loadBalance(systemAccount, assetCode,
+                                                              mTestManager->getDB(), &mTestManager->getLedgerDelta());
+                REQUIRE(balanceFrame);
+            }
+        }
     }
 }
 

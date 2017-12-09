@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AssetFrame.h>
 #include "transactions/AccountManager.h"
 #include "main/Application.h"
 #include "ledger/AssetPairFrame.h"
@@ -11,6 +12,7 @@
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/AccountTypeLimitsHelper.h"
 #include "ledger/AssetPairHelper.h"
+#include "ledger/AssetHelper.h"
 #include "ledger/EntryHelper.h"
 #include "ledger/StatisticsHelper.h"
 
@@ -50,8 +52,15 @@ namespace stellar
                 return UNDERFUNDED;
         }
 
-		auto assetPairHelper = AssetPairHelper::Instance();
-        auto assetPairFrame = assetPairHelper->mustLoadAssetPair(balance->getAsset(), mApp.getStatsQuoteAsset(), mDb, &mDelta);
+        auto assetHelper = AssetHelper::Instance();
+        auto statsAssetFrame = assetHelper->loadStatsAsset(mDb);
+        if (!statsAssetFrame)
+            return SUCCESS;
+
+        auto assetPairHelper = AssetPairHelper::Instance();
+        auto assetPairFrame = assetPairHelper->loadAssetPair(balance->getAsset(), statsAssetFrame->getCode(), mDb, &mDelta);
+        if (!assetPairFrame)
+            return SUCCESS;
 
         if (!bigDivide(universalAmount, amount, assetPairFrame->getCurrentPrice(),
             ONE, ROUND_UP))

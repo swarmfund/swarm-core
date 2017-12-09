@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/manage_asset/ManageAssetHelper.h>
 #include "util/asio.h"
 #include "ReviewAssetCreationRequestOpFrame.h"
 #include "database/Database.h"
@@ -15,25 +16,6 @@ namespace stellar
 
 using namespace std;
 using xdr::operator==;
-
-void ReviewAssetCreationRequestOpFrame::createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta,
-                                                             uint64_t ledgerCloseTime)
-{
-    auto systemAccounts = app.getSystemAccounts();
-
-    for (auto& systemAccount : systemAccounts)
-    {
-		auto balanceHelper = BalanceHelper::Instance();
-        auto balanceFrame = balanceHelper->loadBalance(systemAccount, assetCode, app.getDatabase(), &delta);
-        if (!balanceFrame) {
-            BalanceID balanceID = BalanceKeyUtils::forAccount(systemAccount,
-                                                              delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
-            balanceFrame = BalanceFrame::createNew(balanceID, systemAccount, assetCode, ledgerCloseTime);
-
-            EntryHelperProvider::storeAddEntry(delta, app.getDatabase(), balanceFrame->mEntry);
-        }
-    }
-}
 
 bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager, ReviewableRequestFrame::pointer request)
 {
@@ -56,7 +38,7 @@ bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerD
 	EntryHelperProvider::storeAddEntry(delta, db, assetFrame->mEntry);
 
     if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET))
-        createSystemBalances(assetFrame->getCode(), app, delta, ledgerManager.getCloseTime());
+        ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta, ledgerManager.getCloseTime());
 
 	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);

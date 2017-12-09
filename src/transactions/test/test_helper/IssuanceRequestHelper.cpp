@@ -13,7 +13,7 @@
 #include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
 #include "ReviewPreIssuanceRequestHelper.h"
 #include "ReviewIssuanceRequestHelper.h"
-#include "ManageAssetHelper.h"
+#include "ManageAssetTestHelper.h"
 
 
 namespace stellar
@@ -130,7 +130,7 @@ namespace txtest
 		return txFromOperation(source, op, nullptr);
 	}
 	void IssuanceRequestHelper::createAssetWithPreIssuedAmount(Account & assetOwner, AssetCode assetCode, uint64_t preIssuedAmount, Account& root) {
-		auto manageAssetHelper = ManageAssetHelper(mTestManager);
+		auto manageAssetHelper = ManageAssetTestHelper(mTestManager);
 		manageAssetHelper.createBaseAsset(root, root.key, assetCode);
 		authorizePreIssuedAmount(assetOwner, assetOwner, assetCode, preIssuedAmount, root);
 	}

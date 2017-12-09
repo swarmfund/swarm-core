@@ -22,9 +22,9 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageBalanceOpFrame::getCoun
 {
 	std::vector<AccountType> allowedCounterparties;
 	if (getSourceID() == mManageBalance.destination)
-		allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED };
+		allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE };
 	else
-		allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED };
+		allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE };
 	return{
 		{ mManageBalance.destination, CounterpartyDetails(allowedCounterparties, true, true)}
 	};
@@ -34,7 +34,7 @@ SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(std::unordered_map<A
 {
 	std::vector<AccountType> allowedSourceAccounts;
 	if (getSourceID() == mManageBalance.destination)
-		allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED};
+		allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE};
 	else
 		allowedSourceAccounts = {};
 	return SourceDetails(allowedSourceAccounts, mSourceAccount->getLowThreshold(), static_cast<int32_t >(SignerType::BALANCE_MANAGER));

@@ -66,17 +66,6 @@ AccountFrame::normalize()
 bool
 AccountFrame::isValid()
 {
-	// if we do not have referrer, share for referrer must be 0
-	if (!mAccountEntry.referrer && mAccountEntry.shareForReferrer != 0)
-		return false;
-
-	if (mAccountEntry.shareForReferrer < 0)
-		return false;
-
-	// it is not valid behaviour if we have shareForReferrer == 100%. DO NOT EDIT!
-	if (mAccountEntry.shareForReferrer >= int64(100 * ONE))
-		return false;
-
     auto const& a = mAccountEntry;
     return std::is_sorted(a.signers.begin(), a.signers.end(),
                           &AccountFrame::signerCompare);

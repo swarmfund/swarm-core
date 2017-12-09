@@ -49,15 +49,15 @@ namespace stellar
 		{
 			sql = std::string(
 				"INSERT INTO accounts (accountid, thresholds, lastmodified, account_type, block_reasons,"
-				"referrer, share_for_referrer, policies, version) "
-				"VALUES (:id, :th, :lm, :type, :br, :ref, :sref, :p, :v)");
+				"referrer, policies, version) "
+				"VALUES (:id, :th, :lm, :type, :br, :ref, :p, :v)");
 		}
 		else
 		{
 			sql = std::string(
 				"UPDATE accounts "
 				"SET    thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
-				"       referrer=:ref, share_for_referrer=:sref, policies=:p, version=:v "
+				"       referrer=:ref, policies=:p, version=:v "
 				"WHERE  accountid=:id");
 		}
 
@@ -75,7 +75,6 @@ namespace stellar
 			st.exchange(use(accountType, "type"));
 			st.exchange(use(accountEntry.blockReasons, "br"));
 			st.exchange(use(refIDStrKey, "ref"));
-			st.exchange(use(accountEntry.shareForReferrer, "sref"));
 			st.exchange(use(newAccountPolicies, "p"));
 			st.exchange(use(newAccountVersion, "v"));
 
@@ -289,7 +288,6 @@ namespace stellar
 			"account_type       INT          NOT NULL,"
 			"block_reasons      INT          NOT NULL,"
 			"referrer           VARCHAR(56)  NOT NULL,"
-			"share_for_referrer BIGINT       NOT NULL,"
 			"policies           INT          NOT NULL           DEFAULT 0,"
 			"version            INT          NOT NULL           DEFAULT 0"
 			");";
@@ -425,7 +423,7 @@ namespace stellar
 		int32_t accountVersion;
 		auto prep =
 			db.getPreparedStatement("SELECT thresholds, lastmodified, account_type, block_reasons,"
-				"referrer, share_for_referrer, policies, version "
+				"referrer, policies, version "
 				"FROM   accounts "
 				"WHERE  accountid=:v1");
 		auto& st = prep.statement();
@@ -434,7 +432,6 @@ namespace stellar
 		st.exchange(into(accountType));
 		st.exchange(into(account.blockReasons));
 		st.exchange(into(referrer));
-		st.exchange(into(account.shareForReferrer));
 		st.exchange(into(accountPolicies));
 		st.exchange(into(accountVersion));
 		st.exchange(use(actIDStrKey));

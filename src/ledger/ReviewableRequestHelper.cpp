@@ -127,7 +127,7 @@ namespace stellar {
             sql = "UPDATE reviewable_request SET hash=:hash, body = :body, requestor = :requestor, reviewer = :reviewer, reference = :reference, reject_reason = :reject_reason, version=:v, lastmodified=:lm"
                     " WHERE id = :id";
         }
-		auto logger = db.captureAndLogSQL(Logging::ENTRY_LOGGER);
+
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 

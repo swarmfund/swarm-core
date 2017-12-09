@@ -79,7 +79,6 @@ void CreateAccountOpFrame::trySetReferrer(Application& app, Database& db,
                                           AccountFrame::pointer
                                           destAccountFrame) const
 {
-    destAccountFrame->setShareForReferrer(0);
     if (!mCreateAccount.referrer)
     {
         return;
@@ -94,22 +93,6 @@ void CreateAccountOpFrame::trySetReferrer(Application& app, Database& db,
 	if (!referrer)
 		return;
 
-    vector<AssetFrame::pointer> baseAssets;
-	auto assetHelper = AssetHelper::Instance();
-	assetHelper->loadBaseAssets(baseAssets, db);
-    if (baseAssets.empty())
-        throw std::runtime_error("Unable to create referral fee - there is no base assets in the system");
-    // amount is not applyable for referral fee
-	auto feeHelper = FeeHelper::Instance();
-    auto referralFeeFrame = feeHelper->loadForAccount(FeeType::REFERRAL_FEE,
-                                                     baseAssets[0]->getCode(),
-                                                     FeeFrame::SUBTYPE_ANY,
-                                                     referrer, 0, db);
-
-    const auto referralFee = referralFeeFrame
-                                 ? referralFeeFrame->getPercentFee()
-                                 : 0;
-    destAccountFrame->setShareForReferrer(referralFee);
     destAccountFrame->setReferrer(*mCreateAccount.referrer);
 }
 
@@ -172,8 +155,6 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
         EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
     }
 
-    innerResult().success().referrerFee = destAccountFrame->
-        getShareForReferrer();
     app.getMetrics().NewMeter({"op-create-account", "success", "apply"},
                               "operation").Mark();
     return true;
@@ -220,8 +201,6 @@ CreateAccountOpFrame::doApply(Application& app,
     EntryHelperProvider::storeChangeEntry(delta, db, destAccountFrame->mEntry);
     storeExternalSystemsIDs(app, delta, db, destAccountFrame);
 
-    innerResult().success().referrerFee = destAccountFrame->
-        getShareForReferrer();
     app.getMetrics().NewMeter({"op-create-account", "success", "apply"},
                               "operation").Mark();
     return true;

@@ -14,9 +14,7 @@ class UpdateAssetOpFrame : public ManageAssetOpFrame
 {
 	AssetUpdateRequest const& mAssetUpdateRequest;
 
-    bool checkAssetPolicy(AssetPolicy policy) const;
-
-	// Returns update already existing request from db or creates new one.
+    // Returns update already existing request from db or creates new one.
 	// if fails to load request, returns nullptr
 	ReviewableRequestFrame::pointer getUpdatedOrCreateReviewableRequest(Application& app, Database& db, LedgerDelta& delta);
 

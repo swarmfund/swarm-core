@@ -9,7 +9,7 @@
 #include "lib/catch.hpp"
 #include "TxTests.h"
 #include "test_helper/TestManager.h"
-#include "test_helper/ManageAssetHelper.h"
+#include "transactions/test/test_helper/ManageAssetTestHelper.h"
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 
@@ -41,7 +41,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     }
     SECTION("Cancel asset request")
     {
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         SECTION("Invalid ID")
         {
             manageAssetHelper.applyManageAssetTx(root, 0,
@@ -79,7 +79,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     }
     SECTION("Asset creation request")
     {
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         SECTION("Invalid asset code")
         {
             const auto request = manageAssetHelper.
@@ -146,7 +146,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     }
     SECTION("Asset update request")
     {
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         SECTION("Invalid asset code")
         {
             const auto request = manageAssetHelper.
@@ -191,7 +191,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     SECTION("create base asset")
     {
         uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         auto preissuedSigner = SecretKey::random();
 
         SECTION("create base asset")
@@ -230,7 +230,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
 
     SECTION("create stats asset")
     {
-        ManageAssetHelper manageAssetHelper(testManager);
+        ManageAssetTestHelper manageAssetHelper(testManager);
         uint32 statsPolicy = static_cast<uint32>(AssetPolicy::STATS_QUOTE_ASSET);
         SECTION("create stats asset")
         {
@@ -267,7 +267,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
     SECTION("Can create asset")
     {
         auto preissuedSigner = SecretKey::random();
-        auto manageAssetHelper = ManageAssetHelper(testManager);
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
         const AssetCode assetCode = "EURT";
         auto creationRequest = manageAssetHelper.
             createAssetCreationRequest(assetCode, "New USD token",

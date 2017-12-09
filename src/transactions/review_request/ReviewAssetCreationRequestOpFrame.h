@@ -16,8 +16,7 @@ protected:
 
 	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
-    void createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta, uint64_t ledgerCloseTime);
-  public:
+public:
 
 	  ReviewAssetCreationRequestOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);

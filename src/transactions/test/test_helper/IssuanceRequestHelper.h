@@ -16,22 +16,32 @@ namespace txtest
 	public:
 		IssuanceRequestHelper(TestManager::pointer testManager);
 
-		CreatePreIssuanceRequestResult applyCreatePreIssuanceRequest(Account& source, SecretKey& preIssuedAssetSigner, AssetCode assetCode, uint64_t amount,
-			std::string reference, CreatePreIssuanceRequestResultCode expectedResult = CreatePreIssuanceRequestResultCode::SUCCESS);
-		TransactionFramePtr createPreIssuanceRequest(Account& source, SecretKey& preIssuedAssetSigner, AssetCode assetCode, uint64_t amount,
-			std::string reference);
+		CreatePreIssuanceRequestResult applyCreatePreIssuanceRequest(Account& source, SecretKey& preIssuedAssetSigner,
+                                                          AssetCode assetCode, uint64_t amount, std::string reference,
+                      CreatePreIssuanceRequestResultCode expectedResult = CreatePreIssuanceRequestResultCode::SUCCESS);
 
-		static DecoratedSignature createPreIssuanceRequestSignature(SecretKey& preIssuedAssetSigner, AssetCode assetCode, uint64_t amount,
-			std::string reference);
+		TransactionFramePtr createPreIssuanceRequestTx(Account &source, const PreIssuanceRequest &request);
+
+        PreIssuanceRequest createPreIssuanceRequest(SecretKey &preIssuedAssetSigner, AssetCode assetCode, uint64_t amount,
+                                                    std::string reference);
+
+		static DecoratedSignature createPreIssuanceRequestSignature(SecretKey& preIssuedAssetSigner, AssetCode assetCode,
+                                                                    uint64_t amount, std::string reference);
 
 		CreateIssuanceRequestResult applyCreateIssuanceRequest(Account& source, AssetCode assetCode, uint64_t amount, BalanceID receiver,
 			std::string reference, CreateIssuanceRequestResultCode expectedResult = CreateIssuanceRequestResultCode::SUCCESS);
-		TransactionFramePtr createIssuanceRequest(Account& source, AssetCode assetCode, uint64_t amount, BalanceID receiver, std::string reference);
+
+		TransactionFramePtr createIssuanceRequestTx(Account &source, const IssuanceRequest &request, std::string reference);
+
+        IssuanceRequest createIssuanceRequest(AssetCode assetCode, uint64_t amount, BalanceID receiver);
+
+
 
 
 		void createAssetWithPreIssuedAmount(Account& assetOwner, AssetCode assetCode, uint64_t preIssuedAmount, Account& root);
 
-		void authorizePreIssuedAmount(Account& assetOwner, Account& preIssuedAssetSigner, AssetCode assetCode, uint64_t preIssuedAmount, Account& root);
+		void authorizePreIssuedAmount(Account &assetOwner, SecretKey &preIssuedAssetSigner, AssetCode assetCode,
+                                      uint64_t preIssuedAmount, Account &root);
 	};
 }
 }

@@ -53,7 +53,7 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
     bool isBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
     
     if (!wasBase && isBase)
-        ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta, ledgerManager.getCloseTime());
+        ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta);
     
 	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);

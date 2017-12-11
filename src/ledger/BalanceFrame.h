@@ -89,8 +89,7 @@ class BalanceFrame : public EntryFrame
 	// returns false if total amount of funds (balance amount + locked) exceeds UINT64_MAX
 	bool tryFundAccount(uint64_t amount);
 
-	static pointer createNew(BalanceID id, AccountID owner, AssetCode asset,
-        uint64 ledgerCloseTime, uint64 initialAmount = 0);
+	static pointer createNew(BalanceID id, AccountID owner, AssetCode asset, uint64 initialAmount = 0);
 
 };
 }

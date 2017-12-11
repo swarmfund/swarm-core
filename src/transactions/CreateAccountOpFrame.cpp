@@ -149,9 +149,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
                                                           generateID(LedgerEntryType::BALANCE));
         auto balanceFrame = BalanceFrame::createNew(balanceID,
                                                     mCreateAccount.destination,
-                                                    baseAsset->getCode(),
-                                                    ledgerManager.
-                                                    getCloseTime());
+                                                    baseAsset->getCode());
         EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
     }
 

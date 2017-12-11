@@ -38,7 +38,12 @@ bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerD
 	EntryHelperProvider::storeAddEntry(delta, db, assetFrame->mEntry);
 
     if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET))
-        ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta, ledgerManager.getCloseTime());
+    {
+        ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta);
+    } else
+    {
+        ManageAssetHelper::createBalanceForAccount(assetFrame->getOwner(), assetFrame->getCode(), app, delta);
+    }
 
 	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);

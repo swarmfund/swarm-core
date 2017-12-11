@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
+#include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
@@ -28,7 +29,8 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 	issuanceRequestHelper.createAssetWithPreIssuedAmount(assetOwner, assetCode, preIssuedAmount, root);
 	// create new account with balance 
 	auto newAccountKP = SecretKey::random();
-	applyCreateAccountTx(testManager->getApp(), root.key, newAccountKP, root.getNextSalt(), AccountType::GENERAL);
+    CreateAccountTestHelper createAccountTestHelper(testManager);
+	createAccountTestHelper.applyCreateAccountTx(root, newAccountKP.getPublicKey(), AccountType::GENERAL);
 
 	auto balanceHelper = BalanceHelper::Instance();
 	auto newAccountBalance = balanceHelper->loadBalance(newAccountKP.getPublicKey(), assetCode, testManager->getDB(), nullptr);
@@ -81,8 +83,9 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 
 void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account &assetOwner, Account &root)
 {
-    ManageAssetTestHelper manageAssetTestHelper = ManageAssetTestHelper(testManager);
-    IssuanceRequestHelper issuanceRequestHelper = IssuanceRequestHelper(testManager);
+    ManageAssetTestHelper manageAssetTestHelper(testManager);
+    IssuanceRequestHelper issuanceRequestHelper(testManager);
+    CreateAccountTestHelper createAccountTestHelper(testManager);
 
     //create one base asset
     AssetCode assetCode = "UAH";
@@ -138,7 +141,7 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
         //create one more account
         SecretKey syndicate = SecretKey::random();
         Account syndicateAccount = Account{syndicate, Salt(0)};
-        applyCreateAccountTx(testManager->getApp(), root.key, syndicate, 0, AccountType::SYNDICATE);
+        createAccountTestHelper.applyCreateAccountTx(root, syndicate.getPublicKey(), AccountType::SYNDICATE);
 
         //root is asset owner, syndicate tries to preissue some amount of asset
         issuanceRequestHelper.applyCreatePreIssuanceRequest(syndicateAccount, preissuedSigner, assetCode, amount, reference,
@@ -191,7 +194,7 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
         {
             //issue some amount first
             SecretKey receiver = SecretKey::random();
-            applyCreateAccountTx(testManager->getApp(), root.key, receiver, 0, AccountType::GENERAL);
+            createAccountTestHelper.applyCreateAccountTx(root, receiver.getPublicKey(), AccountType::GENERAL);
             auto balanceHelper = BalanceHelper::Instance();
             auto receiverBalance = balanceHelper->loadBalance(receiver.getPublicKey(), assetCode, testManager->getDB(), nullptr);
             REQUIRE(receiverBalance);
@@ -212,6 +215,7 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
 {
     ManageAssetTestHelper manageAssetTestHelper = ManageAssetTestHelper(testManager);
     IssuanceRequestHelper issuanceRequestHelper = IssuanceRequestHelper(testManager);
+    CreateAccountTestHelper createAccountTestHelper(testManager);
 
     //create one base asset
     AssetCode assetCode = "UAH";
@@ -228,7 +232,7 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
 
     //create receiver account
     SecretKey receiverKP = SecretKey::random();
-    applyCreateAccountTx(testManager->getApp(), root.key, receiverKP, 0, AccountType::GENERAL);
+    createAccountTestHelper.applyCreateAccountTx(root, receiverKP.getPublicKey(), AccountType::GENERAL);
     auto balanceHelper = BalanceHelper::Instance();
     auto receiverBalance = balanceHelper->loadBalance(receiverKP.getPublicKey(), assetCode, testManager->getDB(),
                                                       nullptr);
@@ -270,8 +274,8 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
 
     SECTION("try to issue non-existing asset")
     {
-        AssetCode nonExistintAsset = "CCC";
-        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, nonExistintAsset, amount, receiverBalance->getBalanceID(),
+        AssetCode nonExistentAsset = "CCC";
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, nonExistentAsset, amount, receiverBalance->getBalanceID(),
                                                          reference, CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
     }
 
@@ -280,7 +284,7 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
         //create syndicate account
         SecretKey syndicateKP = SecretKey::random();
         Account syndicate = Account{syndicateKP, Salt(0)};
-        applyCreateAccountTx(testManager->getApp(), root.key, syndicateKP, 0, AccountType::SYNDICATE);
+        createAccountTestHelper.applyCreateAccountTx(root, syndicateKP.getPublicKey(), AccountType::SYNDICATE);
 
         //try to issue some amount from syndicate account
         issuanceRequestHelper.applyCreateIssuanceRequest(syndicate, assetCode, amount, receiverBalance->getBalanceID(),

@@ -92,7 +92,7 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
     auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, "UAH", preissuedSigner.getPublicKey(),
                                                                                  "long description", "http://bank.gov.ua",
                                                                                  maxIssuanceAmount, baseAssetPolicy, "123");
-    manageAssetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
+    manageAssetTestHelper.applyManageAssetTx(assetOwner, 0, assetCreationRequest);
 
     uint64 amount = 10000;
     std::string reference = SecretKey::random().getStrKeyPublic();
@@ -100,36 +100,36 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
     SECTION("asset code malformed")
     {
         AssetCode invailAssetCode = "0X!";
-        issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, invailAssetCode, amount, reference,
+        issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, invailAssetCode, amount, reference,
                                                             CreatePreIssuanceRequestResultCode::ASSET_NOT_FOUND);
     }
 
     SECTION("try to pre-issue zero amount")
     {
-        issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, assetCode, 0, reference,
+        issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, assetCode, 0, reference,
                                                             CreatePreIssuanceRequestResultCode::INVALID_AMOUNT);
     }
 
     SECTION("try to create request with empty reference")
     {
-        issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, assetCode, amount, "",
+        issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, assetCode, amount, "",
                                                             CreatePreIssuanceRequestResultCode::INVALID_REFERENCE);
     }
 
     SECTION("preissuance requests duplication")
     {
         //first request
-        issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, assetCode, amount, reference);
+        issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, assetCode, amount, reference);
 
         //try create request with the same reference
-        issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, assetCode, amount, reference,
+        issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, assetCode, amount, reference,
                                                             CreatePreIssuanceRequestResultCode::REFERENCE_DUPLICATION);
     }
 
     SECTION("try pre-issue non-existing asset")
     {
         AssetCode nonExistingAsset = "AAA";
-        issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, nonExistingAsset, amount, reference,
+        issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, nonExistingAsset, amount, reference,
                                                             CreatePreIssuanceRequestResultCode::ASSET_NOT_FOUND);
     }
 
@@ -156,7 +156,7 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
     SECTION("try to pre-issue without pre-issued asset signer's signature")
     {
         SecretKey adversary = SecretKey::random();
-        issuanceRequestHelper.applyCreatePreIssuanceRequest(root, adversary, assetCode, amount, reference,
+        issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, adversary, assetCode, amount, reference,
                                                             CreatePreIssuanceRequestResultCode::INVALID_SIGNATURE);
     }
 
@@ -166,24 +166,24 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
 
         SECTION("successful pre-issuance")
         {
-            issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, assetCode, bigAmount, reference);
+            issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, assetCode, bigAmount, reference);
         }
 
         SECTION("exceed max issuance amount of asset")
         {
             uint64_t bigEnoughAmount = bigAmount + 2;
-            issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, assetCode, bigEnoughAmount, reference,
+            issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, assetCode, bigEnoughAmount, reference,
                                                                 CreatePreIssuanceRequestResultCode::EXCEEDED_MAX_AMOUNT);
         }
 
         SECTION("exceed by overflowing asset's available for issuance amount")
         {
             //pre-issue some amount first
-            issuanceRequestHelper.authorizePreIssuedAmount(root, preissuedSigner, assetCode, bigAmount, root);
+            issuanceRequestHelper.authorizePreIssuedAmount(assetOwner, preissuedSigner, assetCode, bigAmount, root);
 
             //overflow
             uint64_t bigEnoughAmount = 2 * bigAmount;
-            issuanceRequestHelper.applyCreatePreIssuanceRequest(root, preissuedSigner, assetCode, bigEnoughAmount, reference,
+            issuanceRequestHelper.applyCreatePreIssuanceRequest(assetOwner, preissuedSigner, assetCode, bigEnoughAmount, reference,
                                                                 CreatePreIssuanceRequestResultCode::EXCEEDED_MAX_AMOUNT);
         }
 
@@ -196,8 +196,8 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
             auto receiverBalance = balanceHelper->loadBalance(receiver.getPublicKey(), assetCode, testManager->getDB(), nullptr);
             REQUIRE(receiverBalance);
 
-            issuanceRequestHelper.authorizePreIssuedAmount(root, preissuedSigner, assetCode, bigAmount, root);
-            issuanceRequestHelper.applyCreateIssuanceRequest(root, assetCode, bigAmount, receiverBalance->getBalanceID(), reference);
+            issuanceRequestHelper.authorizePreIssuedAmount(assetOwner, preissuedSigner, assetCode, bigAmount, root);
+            issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, bigAmount, receiverBalance->getBalanceID(), reference);
 
             //try to pre-issue amount that will overflow asset's issued amount
             uint64_t bigEnoughAmount = 2 * bigAmount;
@@ -206,6 +206,100 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
                                                                 CreatePreIssuanceRequestResultCode::EXCEEDED_MAX_AMOUNT);
         }
     }
+}
+
+void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &assetOwner, Account &root)
+{
+    ManageAssetTestHelper manageAssetTestHelper = ManageAssetTestHelper(testManager);
+    IssuanceRequestHelper issuanceRequestHelper = IssuanceRequestHelper(testManager);
+
+    //create one base asset
+    AssetCode assetCode = "UAH";
+    uint64_t maxIssuanceAmount = UINT64_MAX/2;
+    SecretKey preissuedSigner = SecretKey::random();
+    uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
+    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, "UAH", preissuedSigner.getPublicKey(),
+                                                                                 "long description", "http://bank.gov.ua",
+                                                                                 maxIssuanceAmount, baseAssetPolicy, "123");
+    manageAssetTestHelper.applyManageAssetTx(assetOwner, 0, assetCreationRequest);
+
+    //pre-issue some amount
+    issuanceRequestHelper.authorizePreIssuedAmount(assetOwner, preissuedSigner, assetCode, maxIssuanceAmount - 1, root);
+
+    //create receiver account
+    SecretKey receiverKP = SecretKey::random();
+    applyCreateAccountTx(testManager->getApp(), root.key, receiverKP, 0, AccountType::GENERAL);
+    auto balanceHelper = BalanceHelper::Instance();
+    auto receiverBalance = balanceHelper->loadBalance(receiverKP.getPublicKey(), assetCode, testManager->getDB(),
+                                                      nullptr);
+    REQUIRE(receiverBalance);
+
+    //declare here for convenience
+    std::string reference = SecretKey::random().getStrKeyPublic();
+    uint64 amount = 10000;
+
+    SECTION("invalid asset code")
+    {
+        AssetCode invalidAssetCode = "U0H";
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, invalidAssetCode, amount, receiverBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
+    }
+
+    SECTION("try to issue zero amount")
+    {
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, 0, receiverBalance->getBalanceID(), reference,
+                                                         CreateIssuanceRequestResultCode::INVALID_AMOUNT);
+    }
+
+    SECTION("empty reference")
+    {
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, receiverBalance->getBalanceID(), "",
+                                                         CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
+    }
+
+    SECTION("try to use the same reference twice")
+    {
+        uint64_t issuanceAmount = amount/4;
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, issuanceAmount, receiverBalance->getBalanceID(),
+                                                         reference);
+
+        //try to issue issuanceAmount again using the same reference
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, issuanceAmount, receiverBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
+    }
+
+    SECTION("try to issue non-existing asset")
+    {
+        AssetCode nonExistintAsset = "CCC";
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, nonExistintAsset, amount, receiverBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
+    }
+
+    SECTION("try to issue not my asset")
+    {
+        //create syndicate account
+        SecretKey syndicateKP = SecretKey::random();
+        Account syndicate = Account{syndicateKP, Salt(0)};
+        applyCreateAccountTx(testManager->getApp(), root.key, syndicateKP, 0, AccountType::SYNDICATE);
+
+        //try to issue some amount from syndicate account
+        issuanceRequestHelper.applyCreateIssuanceRequest(syndicate, assetCode, amount, receiverBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::NOT_AUTHORIZED);
+    }
+
+    SECTION("exceed max issuance amount")
+    {
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, maxIssuanceAmount + 1, receiverBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::EXCEEDS_MAX_ISSUANCE_AMOUNT);
+    }
+
+    SECTION("try to issue to non-existing receiver")
+    {
+        BalanceID nonExistingReceiver = SecretKey::random().getPublicKey();
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, nonExistingReceiver, reference,
+                                                         CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
+    }
+
 }
 
 TEST_CASE("Issuance", "[tx][issuance]")
@@ -223,9 +317,14 @@ TEST_CASE("Issuance", "[tx][issuance]")
 		createIssuanceRequestHappyPath(testManager, root, root);
 	}
 
-    SECTION("PreIssuance hard path")
+    SECTION("create pre-issuance request hard path")
     {
         createPreIssuanceRequestHardPath(testManager, root, root);
+    }
+
+    SECTION("create issuance request hard path")
+    {
+        createIssuanceRequestHardPath(testManager, root, root);
     }
 
 }

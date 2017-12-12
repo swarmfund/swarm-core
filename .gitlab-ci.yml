@@ -11,12 +11,10 @@ before_script:
   -  git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/
 
 stages:
-  - prebuild
   - build
   - test
   - delivery
   - deploy
-  - postdeploy
 
 build:
   stage: build
@@ -34,7 +32,6 @@ build:
       paths:
         - src/stellar-core
   only:
-    - master
     - staging
     - dev
 
@@ -53,7 +50,6 @@ tx-test:
   script:
     - ./src/stellar-core --test [tx]
   only:
-    - master
     - staging
     - dev
 
@@ -63,7 +59,6 @@ delivery:
   script:
     - rsync src/stellar-core ubuntu@$HOST_DEV:artifacts/core/${CI_COMMIT_SHA:0:8}/
   only:
-    - master
     - staging
     - dev
 
@@ -76,8 +71,6 @@ deploy-dev:
   when: manual
   only:
     - dev
-    # TODO: remove this when the dev branch is added
-    - master
 
 deploy-staging:
   image: shebgregor/alpine-rsync-git

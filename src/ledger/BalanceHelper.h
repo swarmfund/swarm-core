@@ -46,7 +46,7 @@ namespace stellar
 			Database& db, LedgerDelta *delta = nullptr);
 
 		BalanceFrame::pointer loadBalance(AccountID account, AssetCode asset, Database& db,
-			LedgerDelta *delta);
+			LedgerDelta *delta = nullptr);
 
 		BalanceFrame::pointer mustLoadBalance(BalanceID balanceID, Database& db, LedgerDelta* delta = nullptr)
 		{
@@ -68,6 +68,8 @@ namespace stellar
 			loadBalances(AccountID const& accountID, Database& db);
 
 		bool exists(Database& db, BalanceID balanceID);
+
+		BalanceID generateNewBalanceID(AccountID const& owner, uint64_t id);
 
 	private:
 		BalanceHelper() { ; }

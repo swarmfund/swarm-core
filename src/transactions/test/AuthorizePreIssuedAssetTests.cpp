@@ -22,7 +22,7 @@ void testAuthPreissuedAssetHappyPath(TestManager::pointer testManager, Account& 
 	auto preissuedSigner = SecretKey::random();
 	AssetCode assetCode = "EUR";
 	auto manageAssetHelper = ManageAssetTestHelper(testManager);
-    manageAssetHelper.createAsset(account, preissuedSigner, assetCode, root);
+    manageAssetHelper.createAsset(account, preissuedSigner, assetCode, root, 0);
 	auto issuanceRequestHelper = IssuanceRequestHelper(testManager);
 	auto reviewPreIssuanceRequestHelper = ReviewPreIssuanceRequestHelper(testManager);
 	auto assetHelper = AssetHelper::Instance();

@@ -12,42 +12,54 @@
 
 namespace medida
 {
-	class MetricsRegistry;
+class MetricsRegistry;
 }
 
 namespace stellar
 {
-	class Application;
-	class Database;
+class Application;
+class Database;
 
-	class AccountManager
-	{
-	protected:
-		Application& mApp;
-		Database& mDb;
-		LedgerDelta& mDelta;
-        LedgerManager& mLm;
+class AccountManager
+{
+protected:
+    Application& mApp;
+    Database& mDb;
+    LedgerDelta& mDelta;
+    LedgerManager& mLm;
 
-	private:
-	public:
-    	void createStats(AccountFrame::pointer account);
+private:
+public:
+    void createStats(AccountFrame::pointer account);
 
-		enum Result {SUCCESS, LINE_FULL, UNDERFUNDED,
-            STATS_OVERFLOW, LIMITS_EXCEEDED};
+    enum Result
+    {
+        SUCCESS,
+        LINE_FULL,
+        UNDERFUNDED,
+        STATS_OVERFLOW,
+        LIMITS_EXCEEDED
+    };
 
-		AccountManager(Application& app, Database& db, LedgerDelta& delta,
-            LedgerManager& lm);
+    AccountManager(Application& app, Database& db, LedgerDelta& delta,
+                   LedgerManager& lm);
 
-		Result processTransfer(AccountFrame::pointer account, BalanceFrame::pointer balance, int64 amount,
-            int64& universalAmount, bool requireReview = false, bool ignoreLimits = false);
+    Result processTransfer(AccountFrame::pointer account,
+                           BalanceFrame::pointer balance, int64 amount,
+                           int64& universalAmount, bool requireReview = false,
+                           bool ignoreLimits = false);
 
-        bool revertRequest(AccountFrame::pointer account, BalanceFrame::pointer balance, int64 amount,
-            int64 universalAmount, time_t timePerformed);
+    bool revertRequest(AccountFrame::pointer account,
+                       BalanceFrame::pointer balance, int64 amount,
+                       int64 universalAmount, time_t timePerformed);
 
 
-        bool validateStats(AccountFrame::pointer account, BalanceFrame::pointer balance,
-            StatisticsFrame::pointer statsFrame);
+    bool validateStats(AccountFrame::pointer account,
+                       BalanceFrame::pointer balance,
+                       StatisticsFrame::pointer statsFrame);
 
-        Limits getDefaultLimits(AccountType accountType);
-	};
+    Limits getDefaultLimits(AccountType accountType);
+
+    bool isFeeMatches(AccountFrame::pointer account, Fee fee, FeeType feeType, int64_t subtype, AssetCode assetCode, uint64_t amount) const;
+};
 }

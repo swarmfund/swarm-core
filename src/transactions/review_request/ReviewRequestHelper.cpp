@@ -62,7 +62,7 @@ std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(Trans
     reviewRequestOp.action = ReviewRequestOpAction::APPROVE;
     reviewRequestOp.requestHash = mRequest->getHash();
     reviewRequestOp.requestID = mRequest->getRequestID();
-    reviewRequestOp.requestType = mRequest->getRequestType();
+    reviewRequestOp.requestDetails.requestType(mRequest->getRequestType());
 
     OperationResult opRes;
     opRes.code(OperationResultCode::opINNER);

@@ -269,6 +269,21 @@ bool safeSum(uint64_t a, uint64_t b, uint64_t& result)
 	return result >= a && result >= b;
 }
 
+bool safeSum(uint64_t& result, std::vector<uint64_t> params)
+{
+    result = 0;
+    for (auto a : params)
+    {
+        const uint64_t b = result;
+        if (!safeSum(a, b, result))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int64_t
 bigDivide(int64_t A, int64_t B, int64_t C, Rounding rounding)
 {

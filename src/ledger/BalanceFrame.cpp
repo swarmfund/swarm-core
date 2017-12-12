@@ -19,111 +19,152 @@ using namespace std;
 
 namespace stellar
 {
-using xdr::operator<;
+    using xdr::operator<;
 
-BalanceFrame::BalanceFrame() : EntryFrame(LedgerEntryType::BALANCE), mBalance(mEntry.data.balance())
-{
-}
-
-BalanceFrame::BalanceFrame(LedgerEntry const& from)
-    : EntryFrame(from), mBalance(mEntry.data.balance())
-{
-}
-
-BalanceFrame::BalanceFrame(BalanceFrame const& from) : BalanceFrame(from.mEntry)
-{
-}
-
-BalanceFrame& BalanceFrame::operator=(BalanceFrame const& other)
-{
-    if (&other != this)
+    BalanceFrame::BalanceFrame() : EntryFrame(LedgerEntryType::BALANCE), mBalance(mEntry.data.balance())
     {
-        mBalance = other.mBalance;
-        mKey = other.mKey;
-        mKeyCalculated = other.mKeyCalculated;
     }
-    return *this;
-}
 
-BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, AssetCode asset, uint64 initialAmount)
-{
-	LedgerEntry le;
-	le.data.type(LedgerEntryType::BALANCE);
-	BalanceEntry& entry = le.data.balance();
+    BalanceFrame::BalanceFrame(LedgerEntry const& from)
+        : EntryFrame(from), mBalance(mEntry.data.balance())
+    {
+    }
 
-	entry.balanceID = id;
-	entry.accountID = owner;
-	entry.asset = asset;
-	entry.amount = initialAmount;
-	entry.locked = 0;
-	return std::make_shared<BalanceFrame>(le);
-}
+    BalanceFrame::BalanceFrame(BalanceFrame const& from) : BalanceFrame(from.mEntry)
+    {
+    }
 
-bool
-BalanceFrame::isValid(BalanceEntry const& oe)
-{
-    return AssetFrame::isAssetCodeValid(oe.asset) && oe.locked >= 0 && oe.amount >= 0;
-}
+    BalanceFrame& BalanceFrame::operator=(BalanceFrame const& other)
+    {
+        if (&other != this)
+        {
+            mBalance = other.mBalance;
+            mKey = other.mKey;
+            mKeyCalculated = other.mKeyCalculated;
+        }
+        return *this;
+    }
 
-bool
-BalanceFrame::isValid() const
-{
-    return isValid(mBalance);
-}
+    BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, AssetCode asset)
+    {
+        LedgerEntry le;
+        le.data.type(LedgerEntryType::BALANCE);
+        BalanceEntry& entry = le.data.balance();
+
+        entry.balanceID = id;
+        entry.accountID = owner;
+        entry.asset = asset;
+        entry.amount = 0;
+        entry.locked = 0;
+        return std::make_shared<BalanceFrame>(le);
+    }
+
+    bool
+        BalanceFrame::isValid(BalanceEntry const& oe)
+    {
+        return AssetFrame::isAssetCodeValid(oe.asset) && oe.locked >= 0 && oe.amount >= 0;
+    }
+
+    bool
+        BalanceFrame::isValid() const
+    {
+        return isValid(mBalance);
+    }
 
 
-bool BalanceFrame::addBalance(int64_t delta)
-{
-	int64_t availableBalance = getAmount();
-	if (availableBalance + delta < 0)
-		return false;
-	if (mBalance.amount + delta < 0)
-		return false;
-	mBalance.amount += delta;
-    int64_t totalFunds = mBalance.amount + mBalance.locked;
-    if (totalFunds < 0)
-        return false;
-	return true;
-}
+    bool BalanceFrame::addBalance(int64_t delta)
+    {
+        int64_t availableBalance = getAmount();
+        if (availableBalance + delta < 0)
+            return false;
+        if (mBalance.amount + delta < 0)
+            return false;
+        mBalance.amount += delta;
+        int64_t totalFunds = mBalance.amount + mBalance.locked;
+        if (totalFunds < 0)
+            return false;
+        return true;
+    }
 
-bool BalanceFrame::addLocked(int64_t delta)
-{
-	if (mBalance.locked + delta < 0)
-		return false;
-	mBalance.locked += delta;
-    int64_t totalFunds = mBalance.amount + mBalance.locked;
-    if (totalFunds < 0)
-        return false;
-	return true;
-}
+    bool BalanceFrame::addLocked(int64_t delta)
+    {
+        if (mBalance.locked + delta < 0)
+            return false;
+        mBalance.locked += delta;
+        int64_t totalFunds = mBalance.amount + mBalance.locked;
+        if (totalFunds < 0)
+            return false;
+        return true;
+    }
 
-BalanceFrame::Result BalanceFrame::lockBalance(int64_t delta)
-{
-	int64_t availableBalance = getAmount();
-	if (availableBalance - delta < 0)
-		return Result::UNDERFUNDED;
-    if (mBalance.locked + delta < 0)
-		return Result::LINE_FULL;
-	mBalance.amount -= delta;
-    mBalance.locked += delta;
-	return Result::SUCCESS;
-}
+    BalanceFrame::Result BalanceFrame::lockBalance(int64_t delta)
+    {
+        int64_t availableBalance = getAmount();
+        if (availableBalance - delta < 0)
+            return Result::UNDERFUNDED;
+        if (mBalance.locked + delta < 0)
+            return Result::LINE_FULL;
+        mBalance.amount -= delta;
+        mBalance.locked += delta;
+        return Result::SUCCESS;
+    }
 
-bool BalanceFrame::tryFundAccount(uint64_t amount)
-{
-	uint64_t updatedAmount;
-	if (!safeSum(mBalance.amount, amount, updatedAmount)) {
-		return false;
-	}
+    bool BalanceFrame::tryFundAccount(uint64_t amount)
+    {
+        uint64_t updatedAmount;
+        if (!safeSum(mBalance.amount, amount, updatedAmount)) {
+            return false;
+        }
 
-	uint64_t totalFunds;
-	if (!safeSum(updatedAmount, mBalance.locked, totalFunds)) {
-		return false;
-	}
+        uint64_t totalFunds;
+        if (!safeSum(updatedAmount, mBalance.locked, totalFunds)) {
+            return false;
+        }
 
-	mBalance.amount = updatedAmount;
-	return true;
-}
+        mBalance.amount = updatedAmount;
+        return true;
+    }
 
+    BalanceFrame::Result BalanceFrame::tryLock(const uint64_t amountToBeLocked)
+    {
+        if (mBalance.amount < amountToBeLocked)
+        {
+            return UNDERFUNDED;
+        }
+
+        mBalance.amount -= amountToBeLocked;
+
+        uint64_t updatedLockedAmount;
+        if (!safeSum(mBalance.locked, amountToBeLocked, updatedLockedAmount))
+        {
+            return LINE_FULL;
+        }
+
+        mBalance.locked = updatedLockedAmount;
+        return SUCCESS;
+
+    }
+
+    bool BalanceFrame::tryChargeFromLocked(uint64_t amountToCharge)
+    {
+        if (mBalance.locked < amountToCharge)
+        {
+            return false;
+        }
+
+        mBalance.locked -= amountToCharge;
+        return true;
+    }
+
+    bool BalanceFrame::unlock(uint64_t amountToUnlock)
+    {
+        if (mBalance.locked < amountToUnlock)
+        {
+            return false;
+        }
+
+        mBalance.locked -= amountToUnlock;
+        return tryFundAccount(amountToUnlock);
+    }
 }
 

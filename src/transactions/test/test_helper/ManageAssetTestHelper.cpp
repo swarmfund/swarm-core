@@ -147,35 +147,46 @@ namespace txtest
 		request.action(ManageAssetAction::CANCEL_ASSET_REQUEST);
 		return request;
 	}
-	void ManageAssetTestHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root)
+	void ManageAssetTestHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root, uint32_t policies)
 	{
-		auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
-			"Description can be quiete long", "https://testusd.usd", UINT64_MAX, 0, "123");
-        auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
+            auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
+                "Description can be quiete long", "https://testusd.usd", UINT64_MAX, policies, "123");
+            auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 
-		auto accountHelper = AccountHelper::Instance();
-        auto assetOwnerFrame = accountHelper->loadAccount(assetOwner.key.getPublicKey(), mTestManager->getDB());
-        if (assetOwnerFrame->getAccountType() == AccountType::MASTER)
-            return;
+            auto accountHelper = AccountHelper::Instance();
+            auto assetOwnerFrame = accountHelper->loadAccount(assetOwner.key.getPublicKey(), mTestManager->getDB());
+            if (assetOwnerFrame->getAccountType() == AccountType::MASTER)
+                return;
 
-        LedgerDelta& delta = mTestManager->getLedgerDelta();
-		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-        auto approvingRequest = reviewableRequestHelper->loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
-		REQUIRE(approvingRequest);
-		auto reviewRequetHelper = ReviewAssetRequestHelper(mTestManager);
-		reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
-			ReviewRequestOpAction::APPROVE, "");
+            LedgerDelta& delta = mTestManager->getLedgerDelta();
+            auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+            auto approvingRequest = reviewableRequestHelper->loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
+            REQUIRE(approvingRequest);
+            auto reviewRequetHelper = ReviewAssetRequestHelper(mTestManager);
+            reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
+                ReviewRequestOpAction::APPROVE, "");
 	}
 
-    void ManageAssetTestHelper::createBaseAsset(Account &root, SecretKey &preIssuedSigner, AssetCode assetCode)
-    {
-        uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
-        auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
-              "Description can be quiete long", "https://testusd.usd", UINT64_MAX, baseAssetPolicy, "123");
-        auto creationResult = applyManageAssetTx(root, 0, creationRequest);
-    }
+void ManageAssetTestHelper::updateAsset(Account& assetOwner,
+    AssetCode assetCode, Account& root, uint32_t policies)
+{
+    const auto updateRequest = createAssetUpdateRequest(assetCode,
+        "Description can be quiete long", "https://testusd.usd", policies, "123");
+    auto updateResult = applyManageAssetTx(assetOwner, 0, updateRequest);
 
-    void ManageAssetTestHelper::validateManageAssetEffect(ManageAssetOp::_request_t request) {
+    if (assetOwner.key.getPublicKey() == root.key.getPublicKey())
+        return;
+
+    LedgerDelta& delta = mTestManager->getLedgerDelta();
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    auto approvingRequest = reviewableRequestHelper->loadRequest(updateResult.success().requestID, mTestManager->getDB(), &delta);
+    REQUIRE(approvingRequest);
+    auto reviewRequetHelper = ReviewAssetRequestHelper(mTestManager);
+    reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
+        ReviewRequestOpAction::APPROVE, "");
+}
+
+void ManageAssetTestHelper::validateManageAssetEffect(ManageAssetOp::_request_t request) {
         AssetCode assetCode;
         auto assetHelper = AssetHelper::Instance();
         switch (request.action()) {

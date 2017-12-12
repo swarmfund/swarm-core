@@ -29,6 +29,7 @@ class ReviewableRequestFrame : public EntryFrame
 	static bool isAssetUpdateValid(AssetUpdateRequest const& request);
 	static bool isPreIssuanceValid(PreIssuanceRequest const& request);
 	static bool isIssuanceValid(IssuanceRequest const& request);
+        static bool isWithdrawalValid(WithdrawalRequest const& request);
 
   public:
     typedef std::shared_ptr<ReviewableRequestFrame> pointer;

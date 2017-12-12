@@ -8,6 +8,7 @@
 #include "ReviewAssetUpdateRequestOpFrame.h"
 #include "ReviewIssuanceCreationRequestOpFrame.h"
 #include "ReviewPreIssuanceCreationRequestOpFrame.h"
+#include "ReviewWithdrawalRequestOpFrame.h"
 #include "util/Logging.h"
 #include "util/types.h"
 #include "database/Database.h"
@@ -52,7 +53,7 @@ ReviewRequestOpFrame::ReviewRequestOpFrame(Operation const& op,
 
 ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, OperationResult & res, TransactionFrame & parentTx)
 {
-	switch (op.body.reviewRequestOp().requestType) {
+	switch (op.body.reviewRequestOp().requestDetails.requestType()) {
 	case ReviewableRequestType::ASSET_CREATE:
 		return new ReviewAssetCreationRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::ASSET_UPDATE:
@@ -61,6 +62,8 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewIssuanceCreationRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::PRE_ISSUANCE_CREATE:
 		return new ReviewPreIssuanceCreationRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::WITHDRAW:
+            return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}
@@ -97,7 +100,7 @@ ReviewRequestOpFrame::doApply(Application& app,
 	Database& db = ledgerManager.getDatabase();
 	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 	auto request = reviewableRequestHelper->loadRequest(mReviewRequest.requestID, db, &delta);
-	if (!request) {
+	if (!request || !(request->getReviewer() == getSourceID())) {
 		innerResult().code(ReviewRequestResultCode::NOT_FOUND);
 		return false;
 	}
@@ -107,7 +110,7 @@ ReviewRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	if (request->getRequestType() != mReviewRequest.requestType) {
+	if (request->getRequestType() != mReviewRequest.requestDetails.requestType()) {
 		innerResult().code(ReviewRequestResultCode::TYPE_MISMATCHED);
 		return false;
 	}

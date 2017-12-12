@@ -120,14 +120,13 @@ TEST_CASE("payment", "[dep_tx][payment]")
 		auto paymentAmount = 600;
         auto account = SecretKey::random();
 		auto accSeq = 1;
-		auto balanceID = SecretKey::random().getPublicKey();
 		std::string accountID = PubKeyUtils::toStrKey(account.getPublicKey());
         
         applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
 
         applyManageAssetTx(app, root, rootSeq++, secondAsset);
 
-		applyManageBalanceTx(app, account, account, accSeq++, balanceID, secondAsset);
+		applyManageBalanceTx(app, account, account, accSeq++, secondAsset);
 
         auto accBalanceForSecondAsset = balanceHelper->loadBalance(account.getPublicKey(), secondAsset, app.getDatabase(), &delta);
 

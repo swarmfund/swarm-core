@@ -356,7 +356,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                 {
 					// not found to delete
 					TransactionFramePtr tx_b = createManageBalanceTx(networkID, b1, b1, b1Seq++,
-						b1.getPublicKey(), "AETH", ManageBalanceAction::CREATE);
+						"AETH", ManageBalanceAction::CREATE);
 
                     tx_b->getEnvelope()
                         .tx.operations[0]
@@ -386,7 +386,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 						SetOptionsResultCode::SUCCESS);
                     REQUIRE(ManageBalanceOpFrame::getInnerCode(
                                     tx->getOperations()[1]->getResult()) ==
-						ManageBalanceResultCode::ALREADY_EXISTS);
+						ManageBalanceResultCode::ASSET_NOT_FOUND);
                 }
                 SECTION("both success")
                 {

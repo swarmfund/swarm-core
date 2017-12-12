@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/IssuanceRequestHelper.h>
+#include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include "main/Config.h"
 #include "main/test.h"
 #include "ledger/AssetHelper.h"
@@ -32,11 +33,12 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     auto root = Account{getRoot(), Salt(0)};
 
 	auto assetHelper = AssetHelper::Instance();
+    CreateAccountTestHelper createAccountTestHelper(testManager);
 
     SECTION("Syndicate happy path")
     {
         auto syndicate = Account{SecretKey::random(), Salt(0)};
-        applyCreateAccountTx(app, root.key, syndicate.key, 0, AccountType::SYNDICATE);
+        createAccountTestHelper.applyCreateAccountTx(root, syndicate.key.getPublicKey(), AccountType::SYNDICATE);
         testManageAssetHappyPath(testManager, syndicate, root);
     }
     SECTION("Cancel asset request")
@@ -175,8 +177,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         {
             // create asset by syndicate
             auto syndicate = Account{SecretKey::random(), Salt(0)};
-            applyCreateAccountTx(testManager->getApp(), root.key, syndicate.key,
-                                 0, AccountType::SYNDICATE);
+            createAccountTestHelper.applyCreateAccountTx(root, syndicate.key.getPublicKey(), AccountType::SYNDICATE);
             const AssetCode assetCode = "BTC";
             manageAssetHelper.createAsset(syndicate, syndicate.key, assetCode, root, 0);
             // try to update with root

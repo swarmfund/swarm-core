@@ -789,6 +789,9 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1521,6 +1524,9 @@
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
   </ItemGroup>

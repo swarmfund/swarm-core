@@ -186,57 +186,5 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 
     }
 
-	SECTION("Custom forfeit fee")
-    {
-		auto account2 = SecretKey::random();
-        auto account2PubKey = account2.getPublicKey();
-		applyCreateAccountTx(app, root, account2, rootSeq++, AccountType::GENERAL);
-        auto specificFeeFrame = FeeFrame::create(FeeType::FORFEIT_FEE, 25, 0, app.getBaseAsset(), &account2PubKey, nullptr, FeeFrame::SUBTYPE_ANY);
-        auto specificFee = specificFeeFrame->getFee();
-        applySetFees(app, root, rootSeq++, &specificFee, false, nullptr);
-
-        uint64_t amountToForfeit = 10 * ONE;
-        int64_t balanceAmount = amountToForfeit * 10;
-
-        fundAccount(app, root, issuance, rootSeq, account2PubKey, balanceAmount);
-
-        closeLedgerOn(app, 5, 2, 7, 2014);
-        applyManageForfeitRequestTx(app, account2,
-                                    account2PubKey, rootSeq++, rootPK, amountToForfeit, 0, "",
-                                    ManageForfeitRequestResultCode::FEE_MISMATCH);
-
-        applyManageForfeitRequestTx(app, account2, account2PubKey, rootSeq++, rootPK, amountToForfeit, 25);
-        
-        auto balance2 = loadBalance(account2PubKey, app, true);
-        REQUIRE(balance2->getAmount() == (balanceAmount - amountToForfeit - 25));
-    }
-
-	SECTION("Custom forfeit fee (fixed and percent)")
-    {
-		auto account2 = SecretKey::random();
-        auto account2PubKey = account2.getPublicKey();
-		applyCreateAccountTx(app, root, account2, rootSeq++, AccountType::GENERAL);
-
-		const int64_t amount = 100 * ONE;
-        auto feeFrame = FeeFrame::create(FeeType::FORFEIT_FEE, 1, 5 * ONE, app.getBaseAsset(), nullptr, nullptr, FeeFrame::SUBTYPE_ANY);
-
-		auto feeToSet = feeFrame->getFee();
-        applySetFees(app, root, rootSeq++, &feeToSet, false, nullptr);
-
-        int64_t expectedPercentFee = feeFrame->calculatePercentFee(9 * amount);
-        int64_t expectedFixedFee = feeFrame->getFee().fixedFee;
-        int64_t totalFee = expectedFixedFee + expectedPercentFee;
-
-        int64_t amountToForfeit = 9 * amount;
-        int64_t balanceAmount = amountToForfeit * 10;
-
-        fundAccount(app, root, issuance, rootSeq, account2.getPublicKey(), balanceAmount);
-        auto result = applyManageForfeitRequestTx(app, account2, account2PubKey, rootSeq++, rootPK, amountToForfeit, totalFee);
-        REQUIRE(result.code() == ManageForfeitRequestResultCode::SUCCESS);
-
-        auto balance2 = loadBalance(account2PubKey, app, true);
-        REQUIRE(balance2->getAmount() == (balanceAmount - amountToForfeit - expectedPercentFee - expectedFixedFee));
-    }
-
 
 }

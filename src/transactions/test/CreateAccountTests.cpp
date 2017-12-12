@@ -43,7 +43,7 @@ TEST_CASE("create account", "[tx][create_account]")
     ManageAssetTestHelper manageAssetHelper(testManager);
     Account rootAccount = {rootKP, rootSeq};
     AssetCode baseAsset = "USD";
-    manageAssetHelper.createBaseAsset(rootAccount, rootKP, baseAsset);
+    manageAssetHelper.createAsset(rootAccount, rootKP, baseAsset, rootAccount, static_cast<uint32_t>(AssetPolicy::BASE_ASSET));
 
 	auto accountHelper = AccountHelper::Instance();
 	auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();

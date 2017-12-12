@@ -32,7 +32,7 @@ namespace stellar
 	bool SetFeesOpFrame::trySetFee(medida::MetricsRegistry& metrics, Database& db, LedgerDelta& delta)
 	{
 		assert(mSetFees.fee);
-		if (mSetFees.fee->feeType == FeeType::FORFEIT_FEE && !doCheckForfeitFee(metrics, db, delta))
+		if (mSetFees.fee->feeType == FeeType::WITHDRAWAL_FEE && !doCheckForfeitFee(metrics, db, delta))
 			return false;
 
 
@@ -191,7 +191,7 @@ namespace stellar
 
 	bool SetFeesOpFrame::isForfeitFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics)
 	{
-		assert(fee.feeType == FeeType::FORFEIT_FEE);
+		assert(fee.feeType == FeeType::WITHDRAWAL_FEE);
 		if (!mustValidFeeAmounts(fee, metrics))
 			return false;
 
@@ -298,7 +298,7 @@ namespace stellar
 		case FeeType::OFFER_FEE:
 			isValidFee = isOfferFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
-		case FeeType::FORFEIT_FEE:
+		case FeeType::WITHDRAWAL_FEE:
 			isValidFee = isForfeitFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
 		case FeeType::EMISSION_FEE:

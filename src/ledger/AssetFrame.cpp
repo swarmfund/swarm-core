@@ -129,6 +129,17 @@ bool AssetFrame::tryAddAvailableForIssuance(uint64_t amount) {
 	return true;
 }
 
+bool AssetFrame::tryWithdraw(const uint64_t amount)
+{
+    if (mAsset.issued < amount)
+    {
+        return false;
+    }
+
+    mAsset.issued -= amount;
+    return true;
+}
+
 bool AssetFrame::isAssetCodeValid(AssetCode const & code)
 {
 	bool zeros = false;

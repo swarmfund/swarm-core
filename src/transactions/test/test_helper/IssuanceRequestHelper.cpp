@@ -84,10 +84,11 @@ namespace txtest
 		auto assetHelper = AssetHelper::Instance();
 		auto assetBeforeTx = assetHelper->loadAsset(assetCode, mTestManager->getDB());
 
-		auto balanceHelper = BalanceHelper::Instance();
-		auto balanceBeforeTx = balanceHelper->loadBalance(receiver, mTestManager->getDB());
-
 		auto txFrame = createIssuanceRequest(source, assetCode, amount, receiver, reference);
+
+                auto issuanceRequest = txFrame->getEnvelope().tx.operations[0].body.createIssuanceRequestOp().request;
+                auto reviewIssuanceChecker = ReviewIssuanceChecker(mTestManager, std::make_shared<IssuanceRequest>(issuanceRequest));
+
 		mTestManager->applyCheck(txFrame);
 		auto txResult = txFrame->getResult();
 		auto opResult = txResult.result.results()[0];
@@ -110,10 +111,7 @@ namespace txtest
 		REQUIRE(expectedReviewableRequestAfterTx == reviewableRequestCountAfterTx);
 		// if request was auto fulfilled, lets check if receiver actually got assets
 		if (result.success().fulfilled) {
-			auto reviewIssuanceRequestHelper = ReviewIssuanceRequestHelper(mTestManager);
-			// as we do not have stored issuance request, we need to get it from tx
-			auto issuanceRequest = txFrame->getEnvelope().tx.operations[0].body.createIssuanceRequestOp().request;
-			reviewIssuanceRequestHelper.checkApproval(issuanceRequest, assetBeforeTx, balanceBeforeTx);
+                    reviewIssuanceChecker.checkApprove(nullptr);
 		}
 
 		return result;
@@ -131,7 +129,7 @@ namespace txtest
 	}
 	void IssuanceRequestHelper::createAssetWithPreIssuedAmount(Account & assetOwner, AssetCode assetCode, uint64_t preIssuedAmount, Account& root) {
 		auto manageAssetHelper = ManageAssetTestHelper(mTestManager);
-		manageAssetHelper.createBaseAsset(root, root.key, assetCode);
+		manageAssetHelper.createAsset(root, root.key, assetCode, root, static_cast<uint32_t>(AssetPolicy::BASE_ASSET));
 		authorizePreIssuedAmount(assetOwner, assetOwner, assetCode, preIssuedAmount, root);
 	}
 	void IssuanceRequestHelper::authorizePreIssuedAmount(Account & assetOwner, Account & preIssuedAssetSigner, AssetCode assetCode, uint64_t preIssuedAmount, Account & root)

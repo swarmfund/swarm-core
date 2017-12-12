@@ -82,6 +82,20 @@ bool ReviewableRequestFrame::isIssuanceValid(IssuanceRequest const & request)
 	return AssetFrame::isAssetCodeValid(request.asset) && request.amount != 0;
 }
 
+bool ReviewableRequestFrame::isWithdrawalValid(WithdrawalRequest const& request)
+{
+    auto isValid = true;
+    switch (request.details.withdrawalType())
+    {
+    case WithdrawalType::AUTO_CONVERSION:
+        {
+        isValid = isValid && AssetFrame::isAssetCodeValid(request.details.autoConversion().destAsset) && request.details.autoConversion().expectedAmount > 0;
+        }
+    default: break;
+    }
+    return isValid && request.amount > 0;
+}
+
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
 {
 	return sha256(xdr::xdr_to_opaque(body));
@@ -102,6 +116,8 @@ ReviewableRequestFrame::isValid(ReviewableRequestEntry const& oe)
 		return isIssuanceValid(oe.body.issuanceRequest());
 	case ReviewableRequestType::PRE_ISSUANCE_CREATE:
 		return isPreIssuanceValid(oe.body.preIssuanceRequest());
+        case ReviewableRequestType::WITHDRAW:
+            return isWithdrawalValid(oe.body.withdrawalRequest());            
 	default:
 		return false;
 	}

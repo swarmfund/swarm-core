@@ -88,8 +88,12 @@ class BalanceFrame : public EntryFrame
 	Result lockBalance(int64_t delta);
 	// returns false if total amount of funds (balance amount + locked) exceeds UINT64_MAX
 	bool tryFundAccount(uint64_t amount);
+        // tryLock - changes from balance and add to locked
+        Result tryLock(uint64_t amountToBeLocked);
+        // chargeFromLocked - Charges specified amount from locked. Returns false, if failed to do it.
+        bool tryChargeFromLocked(uint64_t amountToCharge);
 
-	static pointer createNew(BalanceID id, AccountID owner, AssetCode asset, uint64 initialAmount = 0);
+	static pointer createNew(BalanceID id, AccountID owner, AssetCode asset);
 
 };
 }

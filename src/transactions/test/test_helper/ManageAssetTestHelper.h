@@ -41,9 +41,8 @@ namespace txtest
 
 		ManageAssetOp::_request_t createCancelRequest();
 
-		void createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root);
-
-		void createBaseAsset(Account &root, SecretKey &preIssuedSigner, AssetCode assetCode);
+		void createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root, uint32_t policies);
+                void updateAsset(Account& assetOwner, AssetCode assetCode, Account& root, uint32_t policies);
 	};
 }
 }

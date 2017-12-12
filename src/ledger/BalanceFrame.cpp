@@ -45,7 +45,7 @@ BalanceFrame& BalanceFrame::operator=(BalanceFrame const& other)
     return *this;
 }
 
-BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, AssetCode asset, uint64 initialAmount)
+BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, AssetCode asset)
 {
 	LedgerEntry le;
 	le.data.type(LedgerEntryType::BALANCE);
@@ -54,7 +54,7 @@ BalanceFrame::pointer BalanceFrame::createNew(BalanceID id, AccountID owner, Ass
 	entry.balanceID = id;
 	entry.accountID = owner;
 	entry.asset = asset;
-	entry.amount = initialAmount;
+	entry.amount = 0;
 	entry.locked = 0;
 	return std::make_shared<BalanceFrame>(le);
 }
@@ -125,5 +125,35 @@ bool BalanceFrame::tryFundAccount(uint64_t amount)
 	return true;
 }
 
+BalanceFrame::Result BalanceFrame::tryLock(const uint64_t amountToBeLocked)
+{
+    if (mBalance.amount < amountToBeLocked)
+    {
+        return UNDERFUNDED;
+    }
+
+    mBalance.amount -= amountToBeLocked;
+
+    uint64_t updatedLockedAmount;
+    if (!safeSum(mBalance.locked, amountToBeLocked, updatedLockedAmount))
+    {
+        return LINE_FULL;
+    }
+
+    mBalance.locked = updatedLockedAmount;
+    return SUCCESS;
+
+}
+
+bool BalanceFrame::tryChargeFromLocked(uint64_t amountToCharge)
+{
+    if (mBalance.locked < amountToCharge)
+    {
+        return false;
+    }
+
+    mBalance.locked -= amountToCharge;
+    return true;
+}
 }
 

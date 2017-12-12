@@ -52,6 +52,9 @@ namespace stellar
 			return result;
 		}
 
+                // tryLoadAssetPairForAssets - tries to load code1/code2 asset pair, if not found loads code2/code1 
+                AssetPairFrame::pointer tryLoadAssetPairForAssets(AssetCode code1, AssetCode code2, Database& db, LedgerDelta * delta = nullptr);
+
 		void loadAssetPairsByQuote(AssetCode quoteAsset, Database& db, std::vector<AssetPairFrame::pointer>& retAssetPairs);
 
 	private:

@@ -20,7 +20,6 @@
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
-#include "transactions/ManageForfeitRequestOpFrame.h"
 #include "transactions/RecoverOpFrame.h"
 #include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
@@ -838,65 +837,6 @@ applyPaymentTx(Application& app, SecretKey& from, BalanceID fromBalanceID,
     REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
 
     return txResult.result.results()[0].tr().paymentResult();
-}
-
-
-TransactionFramePtr
-createManageForfeitRequestTx(Hash const &networkID, SecretKey &from, BalanceID fromBalance, Salt seq,
-                             AccountID reviewer, int64_t amount, int64_t totalFee, std::string details)
-{
-    Operation op;
-    op.body.type(OperationType::MANAGE_FORFEIT_REQUEST);
-    op.body.manageForfeitRequestOp().amount = amount;
-    op.body.manageForfeitRequestOp().balance = fromBalance;
-    op.body.manageForfeitRequestOp().details = details;
-    op.body.manageForfeitRequestOp().totalFee = totalFee;
-	op.body.manageForfeitRequestOp().reviewer = reviewer;
-
-    return transactionFromOperation(networkID, from, seq, op);
-}
-
-ManageForfeitRequestResult
-applyManageForfeitRequestTx(Application &app, SecretKey &from, BalanceID fromBalance, Salt seq, AccountID reviewer,
-                            int64_t amount, int64_t totalFee, std::string details,
-                            ManageForfeitRequestResultCode result)
-{
-    TransactionFramePtr txFrame;
-
-    auto fromBalanceFrame = loadBalance(fromBalance, app, false);
-
-    txFrame = createManageForfeitRequestTx(app.getNetworkID(), from, fromBalance, seq, reviewer, amount, totalFee,
-                                           details);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-
-
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    auto txResult = txFrame->getResult();
-    auto innerCode = ManageForfeitRequestOpFrame::getInnerCode(txResult.result.results()[0]);
-    REQUIRE(innerCode == result);
-
-    REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
-
-    auto fromBalanceAfterFrame = loadBalance(fromBalance, app, false);
-
-    auto opResult = txResult.result.results()[0].tr().manageForfeitRequestResult();
-
-    auto accountFrame = loadAccount(from, app, true);
-
-    if (innerCode != ManageForfeitRequestResultCode::SUCCESS)
-    {
-		REQUIRE(fromBalanceFrame->getAmount() == fromBalanceAfterFrame->getAmount());            
-    }
-    else
-    {
-        REQUIRE(paymentRequestHelper->loadPaymentRequest(opResult.success().paymentID, app.getDatabase()));
-        return opResult;
-    }
-    return opResult;
 }
 
 

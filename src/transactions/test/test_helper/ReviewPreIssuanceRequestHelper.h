@@ -13,12 +13,20 @@ namespace stellar
 {
 namespace txtest 
 {	
+    class ReviewPreIssuanceChecker : public ReviewChecker
+    {
+    public:
+        ReviewPreIssuanceChecker(
+            const TestManager::pointer& testManager, const uint64_t requestID);
+
+        void checkApprove(ReviewableRequestFrame::pointer) override;
+    protected:
+        std::shared_ptr<PreIssuanceRequest> preIssuanceRequest;
+        AssetFrame::pointer assetFrameBeforeTx;
+
+    };
 	class ReviewPreIssuanceRequestHelper : public ReviewRequestHelper
 	{
-	protected:
-		void checkApproval(ReviewableRequestFrame::pointer requestBeforeTx, AssetFrame::pointer assetFrameBeforeTx);
-
-		AssetFrame::pointer tryLoadAssetFrameForRequest(uint64_t requestID);
 	public:
 		ReviewPreIssuanceRequestHelper(TestManager::pointer testManager);
 

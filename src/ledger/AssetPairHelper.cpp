@@ -269,6 +269,18 @@ namespace stellar
 		return retAssetPair;
 	}
 
+AssetPairFrame::pointer AssetPairHelper::tryLoadAssetPairForAssets(
+    const AssetCode code1, const AssetCode code2, Database& db, LedgerDelta* delta)
+{
+    auto assetPair = loadAssetPair(code1, code2, db, delta);
+    if (!!assetPair)
+    {
+        return assetPair;
+    }
+
+    return loadAssetPair(code2, code1, db, delta);
+}
+
 	void AssetPairHelper::loadAssetPairsByQuote(AssetCode quoteAsset, Database& db, std::vector<AssetPairFrame::pointer>& retAssetPairs)
 	{
 

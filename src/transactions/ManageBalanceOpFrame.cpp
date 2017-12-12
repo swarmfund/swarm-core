@@ -87,7 +87,7 @@ ManageBalanceOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	balanceFrame = BalanceFrame::createNew(mManageBalance.balanceID, mManageBalance.destination, mManageBalance.asset, ledgerManager.getCloseTime());
+	balanceFrame = BalanceFrame::createNew(mManageBalance.balanceID, mManageBalance.destination, mManageBalance.asset);
 	EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
     
 	app.getMetrics().NewMeter({"op-manage-balance", "success", "apply"},

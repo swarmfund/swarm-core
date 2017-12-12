@@ -14,7 +14,6 @@
 #include "ledger/BalanceHelper.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
-#include "ledger/ReviewableRequestHelper.h"
 
 namespace stellar
 {
@@ -31,58 +30,25 @@ bool ReviewWithdrawalRequestOpFrame::handleApprove(
             "Unexpected request type. Expected WITHDRAW, but got " << xdr::
             xdr_traits<ReviewableRequestType>::
             enum_name(request->getRequestType());
-        throw std::
+        throw
             invalid_argument("Unexpected request type for review withdraw request");
     }
 
     auto& withdrawRequest = request->getRequestEntry().body.withdrawalRequest();
-    withdrawRequest.externalDetails = mReviewRequest.requestDetails.withdrawal()
-                                                    .externalDetails;
-    request->recalculateHashRejectReason();
 
     Database& db = ledgerManager.getDatabase();
-    // update is required here to update reviewable request in horizon
-    ReviewableRequestHelper::Instance()->
-        storeChange(delta, db, request->mEntry);
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
-
-    uint64_t totalFee;
-    if (!safeSum(withdrawRequest.fee.percent, withdrawRequest.fee.fixed, totalFee))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate total fee for withdrawal request: " << request->getRequestID();
-        throw runtime_error("Failed to calculate total fee for withdrawal request");
-    }
-
-    uint64_t totalAmountToCharge;
-    if (!safeSum(withdrawRequest.amount, totalFee, totalAmountToCharge))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate total amount ot be charged for withdrawal request: " << request->getRequestID();
-        throw runtime_error("Failed to calculate total amount to be charged for withdrawal request");
-    }
-
-
+ 
     auto balance = BalanceHelper::Instance()->mustLoadBalance(withdrawRequest.balance, db, &delta);
+    const auto totalAmountToCharge = getTotalAmountToCharge(request->getRequestID(), withdrawRequest);
     if (!balance->tryChargeFromLocked(totalAmountToCharge))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state. Failed to charge from locked amount which must be locked. requestID: " << request->getRequestID();
-        throw std::runtime_error("Unexected db state. Failed to charge from locked");
+        throw runtime_error("Unexected db state. Failed to charge from locked");
     }
     EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
 
-    auto commissionBalance = BalanceHelper::Instance()->loadBalance(app.getCommissionID(), balance->getAsset(), db, &delta);
-    if (!commissionBalance)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: reviewing withdrwal requet - and there is no commission balance for that asset" << request->getRequestID();
-        throw std::runtime_error("Unexpected state: no commission balance");
-    }
-
-    if (!commissionBalance->tryFundAccount(totalFee))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to fund commission balance with fee for withdrawal - overflow" << request->getRequestID();
-        throw runtime_error("Failed to fund commission balance with fee");
-    }
-
-    EntryHelperProvider::storeChangeEntry(delta, db, commissionBalance->mEntry);
+    transferFee(app, db, delta, request, balance);
 
     auto assetFrame = AssetHelper::Instance()->loadAsset(balance->getAsset(), db, &delta);
     if (!assetFrame)
@@ -115,9 +81,61 @@ SourceDetails ReviewWithdrawalRequestOpFrame::getSourceAccountDetails(
     std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
 const
 {
-    return SourceDetails({AccountType::MASTER},
+    return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE},
                          mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::ASSET_MANAGER));
+}
+
+uint64_t ReviewWithdrawalRequestOpFrame::getTotalFee(const uint64_t requestID, WithdrawalRequest& withdrawRequest)
+{
+    uint64_t totalFee;
+    if (!safeSum(withdrawRequest.fee.percent, withdrawRequest.fee.fixed, totalFee))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate total fee for withdrawal request: " << requestID;
+        throw runtime_error("Failed to calculate total fee for withdrawal request");
+    }
+
+    return totalFee;
+}
+
+uint64_t ReviewWithdrawalRequestOpFrame::getTotalAmountToCharge(
+    const uint64_t requestID, WithdrawalRequest& withdrawalRequest)
+{
+    const auto totalFee = getTotalFee(requestID, withdrawalRequest);
+    uint64_t totalAmountToCharge;
+    if (!safeSum(withdrawalRequest.amount, totalFee, totalAmountToCharge))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate total amount ot be charged for withdrawal request: " << requestID;
+        throw runtime_error("Failed to calculate total amount to be charged for withdrawal request");
+    }
+
+    return totalAmountToCharge;
+}
+
+void ReviewWithdrawalRequestOpFrame::transferFee(Application& app, Database& db, LedgerDelta& delta, ReviewableRequestFrame::pointer request,
+    BalanceFrame::pointer balance)
+{
+    auto withdrawRequest = request->getRequestEntry().body.withdrawalRequest();
+    const auto totalFee = getTotalFee(request->getRequestID(), withdrawRequest);
+    if (totalFee == 0)
+    {
+	return;
+    }
+    
+    auto commissionBalance = BalanceHelper::Instance()->loadBalance(app.getCommissionID(), balance->getAsset(), db, &delta);
+    if (!commissionBalance)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: reviewing withdrwal requet - and there is no commission balance for that asset" << request->getRequestID();
+        throw runtime_error("Unexpected state: no commission balance");
+    }
+
+    if (!commissionBalance->tryFundAccount(totalFee))
+    {
+	CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to fund commission balance with fee for withdrawal - overflow" << request->getRequestID();
+	throw runtime_error("Failed to fund commission balance with fee");
+    }
+
+    EntryHelperProvider::storeChangeEntry(delta, db, commissionBalance->mEntry);
 }
 
 ReviewWithdrawalRequestOpFrame::ReviewWithdrawalRequestOpFrame(
@@ -126,5 +144,32 @@ ReviewWithdrawalRequestOpFrame::ReviewWithdrawalRequestOpFrame(
                                                                                                 res,
                                                                                                 parentTx)
 {
+}
+
+bool ReviewWithdrawalRequestOpFrame::handlePermanentReject(Application& app,
+    LedgerDelta& delta, LedgerManager& ledgerManager,
+    ReviewableRequestFrame::pointer request)
+{
+    if (request->getRequestType() != ReviewableRequestType::WITHDRAW)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) <<
+            "Unexpected request type. Expected WITHDRAW, but got " << xdr::
+            xdr_traits<ReviewableRequestType>::
+            enum_name(request->getRequestType());
+        throw
+            invalid_argument("Unexpected request type for review withdraw request");
+    }
+
+    auto& withdrawRequest = request->getRequestEntry().body.withdrawalRequest();
+    Database& db = app.getDatabase();
+    auto balance = BalanceHelper::Instance()->mustLoadBalance(withdrawRequest.balance, db, &delta);
+    const auto totalAmountToCharge = getTotalAmountToCharge(request->getRequestID(), withdrawRequest);
+    if (!balance->unlock(totalAmountToCharge))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state. Failed to unlock locked amount. requestID: " << request->getRequestID();
+        throw runtime_error("Unexected db state. Failed to unlock locked amount");
+    }
+    EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
+    return ReviewRequestOpFrame::handlePermanentReject(app, delta, ledgerManager, request);
 }
 }

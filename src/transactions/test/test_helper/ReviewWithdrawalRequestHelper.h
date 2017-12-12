@@ -24,6 +24,7 @@ class WithdrawReviewChecker : public ReviewChecker
 public:
     WithdrawReviewChecker(TestManager::pointer testManager, uint64_t requestID);
     void checkApprove(ReviewableRequestFrame::pointer) override;
+    void checkPermanentReject(ReviewableRequestFrame::pointer) override;
 };
 
 class ReviewWithdrawRequestHelper : public ReviewRequestHelper

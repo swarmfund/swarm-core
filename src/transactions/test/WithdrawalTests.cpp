@@ -66,6 +66,14 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
         const auto withdrawRequest = WithdrawRequestHelper::createWithdrawRequest(withdrawerBalance->getBalanceID(), amountToWithdraw,
             Fee{ 0, 0 }, "{}", withdrawDestAsset, expectedAmountInDestAsset);
         auto withdrawResult = WithdrawRequestHelper(testManager).applyCreateWithdrawRequest(withdrawer, withdrawRequest);
-        ReviewWithdrawRequestHelper(testManager).applyReviewRequestTx(root, withdrawResult.success().requestID, ReviewRequestOpAction::APPROVE,"");
+        SECTION("Approve")
+        {
+            ReviewWithdrawRequestHelper(testManager).applyReviewRequestTx(root, withdrawResult.success().requestID, ReviewRequestOpAction::APPROVE, "");
+        }
+        SECTION("Reject")
+        {
+            ReviewWithdrawRequestHelper(testManager).applyReviewRequestTx(root, withdrawResult.success().requestID, ReviewRequestOpAction::PERMANENT_REJECT,
+                "Invalid external details");
+        }
     }
 }

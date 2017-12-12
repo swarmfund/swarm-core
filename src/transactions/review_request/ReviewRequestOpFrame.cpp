@@ -100,7 +100,7 @@ ReviewRequestOpFrame::doApply(Application& app,
 	Database& db = ledgerManager.getDatabase();
 	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 	auto request = reviewableRequestHelper->loadRequest(mReviewRequest.requestID, db, &delta);
-	if (!request) {
+	if (!request || !(request->getReviewer() == getSourceID())) {
 		innerResult().code(ReviewRequestResultCode::NOT_FOUND);
 		return false;
 	}

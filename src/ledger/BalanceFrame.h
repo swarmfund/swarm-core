@@ -92,6 +92,8 @@ class BalanceFrame : public EntryFrame
         Result tryLock(uint64_t amountToBeLocked);
         // chargeFromLocked - Charges specified amount from locked. Returns false, if failed to do it.
         bool tryChargeFromLocked(uint64_t amountToCharge);
+        // unlock - removes from lock and adds to balance specified amount. Returns false - if fails
+        bool unlock(uint64_t amountToUnlock);
 
 	static pointer createNew(BalanceID id, AccountID owner, AssetCode asset);
 

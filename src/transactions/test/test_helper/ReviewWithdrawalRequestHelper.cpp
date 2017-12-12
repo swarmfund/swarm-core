@@ -62,6 +62,17 @@ void WithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(assetBeforeTx->getAvailableForIssuance() == assetAfterTx->getAvailableForIssuance());
 }
 
+void WithdrawReviewChecker::checkPermanentReject(
+    ReviewableRequestFrame::pointer)
+{
+    auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
+    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + withdrawalRequest->amount + withdrawalRequest->fee.percent + withdrawalRequest->fee.percent);
+    REQUIRE(balanceBeforeTx->getLocked() == balanceAfterTx->getLocked() + withdrawalRequest->amount + withdrawalRequest->fee.percent + withdrawalRequest->fee.percent);
+    
+    auto assetAfterTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
+    REQUIRE(assetAfterTx->getIssued() == assetBeforeTx->getIssued());
+}
+
 TransactionFramePtr ReviewWithdrawRequestHelper::createReviewRequestTx(
     Account& source, uint64_t requestID, Hash requestHash,
     ReviewableRequestType requestType, ReviewRequestOpAction action,

@@ -118,13 +118,12 @@ loadOffer(SecretKey const& k, uint64 offerID, Application& app, bool mustExist =
 
 TransactionFramePtr createManageBalanceTx(Hash const& networkID,
                                           SecretKey& from, SecretKey& account,
-                                          Salt seq, AssetCode asset, ManageBalanceAction action);
+                                          Salt seq, BalanceID balanceID, AssetCode asset, ManageBalanceAction action);
 
 ManageBalanceResult
-applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account, Salt seq,
-					 AssetCode asset = "AETH",
-					 ManageBalanceAction action  = ManageBalanceAction::CREATE, 
-					 ManageBalanceResultCode result = ManageBalanceResultCode::SUCCESS);
+applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account, Salt seq, BalanceID balanceID,
+        AssetCode asset = "AETH",
+        ManageBalanceAction action  = ManageBalanceAction::CREATE, ManageBalanceResultCode result = ManageBalanceResultCode::SUCCESS);
 
 
 TransactionFramePtr createManageAssetTx(Hash const& networkID, SecretKey& source,

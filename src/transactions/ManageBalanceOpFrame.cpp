@@ -66,11 +66,16 @@ ManageBalanceOpFrame::doApply(Application& app,
         return false;
     }
 
-	BalanceID newBalanceID = BalanceKeyUtils::forAccount(mManageBalance.destination, 
-		delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
-
 	auto balanceHelper = BalanceHelper::Instance();
 	auto balanceFrame = balanceHelper->loadBalance(mManageBalance.destination, mManageBalance.asset, db, &delta);
+
+	if (balanceFrame || balanceHelper->exists(db, mManageBalance.balanceID))
+	{
+		app.getMetrics().NewMeter({ "op-manage-balance", "invalid", "already-exists" },
+			"operation").Mark();
+		innerResult().code(ManageBalanceResultCode::ALREADY_EXISTS);
+		return false;
+	}
 
 	auto assetHelper = AssetHelper::Instance();
 	auto assetFrame = assetHelper->loadAsset(mManageBalance.asset, db);
@@ -82,7 +87,7 @@ ManageBalanceOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	balanceFrame = BalanceFrame::createNew(newBalanceID, mManageBalance.destination, mManageBalance.asset);
+	balanceFrame = BalanceFrame::createNew(mManageBalance.balanceID, mManageBalance.destination, mManageBalance.asset);
 	EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
     
 	app.getMetrics().NewMeter({"op-manage-balance", "success", "apply"},

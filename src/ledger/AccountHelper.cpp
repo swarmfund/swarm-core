@@ -354,20 +354,7 @@ namespace stellar
 			return true;
 		}
 
-		std::string actIDStrKey = PubKeyUtils::toStrKey(key.account().accountID);
-		int exists = 0;
-		{
-			auto timer = db.getSelectTimer("account-exists");
-			auto prep =
-				db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM accounts "
-					"WHERE accountid=:v1)");
-			auto& st = prep.statement();
-			st.exchange(use(actIDStrKey));
-			st.exchange(into(exists));
-			st.define_and_bind();
-			st.execute(true);
-		}
-		return exists != 0;
+		return exists(key.account().accountID, db);
 	}
 
 	LedgerKey
@@ -541,6 +528,23 @@ namespace stellar
 			}
 		}
 		return state;
+	}
+
+	bool AccountHelper::exists(AccountID const &accountID, Database &db) {
+		std::string actIDStrKey = PubKeyUtils::toStrKey(accountID);
+		int exists = 0;
+		{
+			auto timer = db.getSelectTimer("account-exists");
+			auto prep =
+					db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM accounts "
+													"WHERE accountid=:v1)");
+			auto& st = prep.statement();
+			st.exchange(use(actIDStrKey));
+			st.exchange(into(exists));
+			st.define_and_bind();
+			st.execute(true);
+		}
+		return exists != 0;
 	}
 
 }

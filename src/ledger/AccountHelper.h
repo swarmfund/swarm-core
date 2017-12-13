@@ -38,6 +38,7 @@ namespace stellar
 		void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
 		void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key) override;
 		bool exists(Database& db, LedgerKey const& key) override;
+		bool exists(AccountID const& accountID, Database& db);
 		LedgerKey getLedgerKey(LedgerEntry const& from) override;
 		EntryFrame::pointer storeLoad(LedgerKey const& key, Database& db) override;
 		EntryFrame::pointer fromXDR(LedgerEntry const& from) override;

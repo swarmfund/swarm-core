@@ -6,47 +6,50 @@
 
 #include "transactions/OperationFrame.h"
 
-namespace stellar
-{
-class CreateAccountOpFrame : public OperationFrame
-{
-    CreateAccountResult& innerResult()
-    {
-        return mResult.tr().createAccountResult();
-    }
+namespace stellar {
+    class CreateAccountOpFrame : public OperationFrame {
+    public:
 
-    CreateAccountOp const& mCreateAccount;
+        CreateAccountOpFrame(Operation const &op, OperationResult &res,
+                             TransactionFrame &parentTx);
 
-    std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(
-        Database& db, LedgerDelta* delta) const override;
-    SourceDetails getSourceAccountDetails(
-        std::unordered_map<AccountID, CounterpartyDetails>
-        counterpartiesDetails) const override;
+        bool doCheckValid(Application &app) override;
+        bool doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) override;
+        bool tryUpdateAccountType(Application &app, LedgerDelta &delta, Database &db,
+                                  AccountFrame::pointer &destAccountFrame);
 
-    bool createAccount(Application& app, LedgerDelta& delta,
-                       LedgerManager& ledgerManager);
+        static CreateAccountResultCode getInnerCode(OperationResult const &res) {
+            return res.tr().createAccountResult().code();
+        }
 
-    void trySetReferrer(Application& app, Database& db,
-                        AccountFrame::pointer destAccount) const;
+    private:
 
-    bool isAllowedToUpdateAccountType(AccountFrame::pointer destAccount) const;
+        typedef std::function<uint32_t()> AllowedSignerGetter;
+        typedef void (*Store)(LedgerDelta &, Database &, LedgerEntry const &);
 
-    void storeExternalSystemsIDs(Application& app, LedgerDelta& delta,
-        Database& db, const AccountFrame::pointer account);
+        CreateAccountResult &innerResult() {
+            return mResult.tr().createAccountResult();
+        }
 
+        template<Store storeAccount>
+        void storeAccount(Application &app, LedgerDelta &delta, AccountFrame::pointer destAccountFrame);
+        void trySetReferrer(Application &app, Database &db, AccountFrame::pointer destAccount) const;
+        void storeExternalSystemsIDs(Application &app, LedgerDelta &delta,
+                                     Database &db, const AccountFrame::pointer account);
 
-public:
+        bool isAllowedToUpdateAccountType(AccountFrame::pointer destAccount) const;
+        bool createAccount(Application &app, LedgerDelta &delta,
+                           LedgerManager &ledgerManager);
 
-    CreateAccountOpFrame(Operation const& op, OperationResult& res,
-                         TransactionFrame& parentTx);
+        std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(
+                Database &db, LedgerDelta *delta) const override;
 
-    bool doApply(Application& app, LedgerDelta& delta,
-                 LedgerManager& ledgerManager) override;
-    bool doCheckValid(Application& app) override;
+        SourceDetails getSourceAccountDetails(
+                std::unordered_map<AccountID, CounterpartyDetails>
+                counterpartiesDetails) const override;
 
-    static CreateAccountResultCode getInnerCode(OperationResult const& res)
-    {
-        return res.tr().createAccountResult().code();
-    }
-};
+        CreateAccountOp const &mCreateAccount;
+
+        std::map<AccountType, AllowedSignerGetter> detailsHelper;
+    };
 }

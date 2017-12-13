@@ -69,8 +69,6 @@ namespace stellar
 
 		bool exists(Database& db, BalanceID balanceID);
 
-		BalanceID generateNewBalanceID(AccountID const& owner, uint64_t id);
-
 	private:
 		BalanceHelper() { ; }
 		~BalanceHelper() { ; }

@@ -178,16 +178,6 @@ PaymentResult applyPaymentTx(Application& app, SecretKey& from, SecretKey& to,
                     PaymentResultCode result = PaymentResultCode::SUCCESS,
                     InvoiceReference* invoiceReference = nullptr);
 
-
-TransactionFramePtr
-createManageForfeitRequestTx(Hash const &networkID, SecretKey &from, BalanceID fromBalance, Salt seq,
-							 AccountID reviewer, int64_t amount = 0, int64_t totalFee = 0, std::string details = "");
-
-ManageForfeitRequestResult
-applyManageForfeitRequestTx(Application &app, SecretKey &from, BalanceID fromBalance, Salt seq, AccountID reviewer,
-							int64_t amount = 0, int64_t totalFee = 0, std::string details = "",
-							ManageForfeitRequestResultCode result = ManageForfeitRequestResultCode::SUCCESS);
-
 TransactionFramePtr
 createManageInvoice(Hash const& networkID, SecretKey& from, AccountID sender,
                 BalanceID receiverBalance, int64_t amount = 0, uint64_t invoiceID = 0);

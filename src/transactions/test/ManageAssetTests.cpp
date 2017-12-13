@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/IssuanceRequestHelper.h>
+#include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include "main/Config.h"
 #include "main/test.h"
 #include "ledger/AssetHelper.h"
@@ -32,11 +33,12 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
     auto root = Account{getRoot(), Salt(0)};
 
 	auto assetHelper = AssetHelper::Instance();
+    CreateAccountTestHelper createAccountTestHelper(testManager);
 
     SECTION("Syndicate happy path")
     {
         auto syndicate = Account{SecretKey::random(), Salt(0)};
-        applyCreateAccountTx(app, root.key, syndicate.key, 0, AccountType::SYNDICATE);
+        createAccountTestHelper.applyCreateAccountTx(root, syndicate.key.getPublicKey(), AccountType::SYNDICATE);
         testManageAssetHappyPath(testManager, syndicate, root);
     }
     SECTION("Cancel asset request")
@@ -64,7 +66,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             // 2. create pre issuance request for it
             // 3. try to cancel it with asset request
             const AssetCode asset = "USDT";
-            manageAssetHelper.createAsset(root, root.key, asset, root);
+            manageAssetHelper.createAsset(root, root.key, asset, root, 0);
             auto issuanceHelper = IssuanceRequestHelper(testManager);
             auto requestResult = issuanceHelper.
                 applyCreatePreIssuanceRequest(root, root.key, asset, 10000,
@@ -134,7 +136,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         SECTION("Trying to create asset which is already exist")
         {
             const AssetCode assetCode = "EUR";
-            manageAssetHelper.createAsset(root, root.key, assetCode, root);
+            manageAssetHelper.createAsset(root, root.key, assetCode, root, 0);
             const auto request = manageAssetHelper.
                 createAssetCreationRequest(assetCode, "USDS",
                                            root.key.getPublicKey(), "", "", 100,
@@ -175,10 +177,9 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         {
             // create asset by syndicate
             auto syndicate = Account{SecretKey::random(), Salt(0)};
-            applyCreateAccountTx(testManager->getApp(), root.key, syndicate.key,
-                                 0, AccountType::SYNDICATE);
+            createAccountTestHelper.applyCreateAccountTx(root, syndicate.key.getPublicKey(), AccountType::SYNDICATE);
             const AssetCode assetCode = "BTC";
-            manageAssetHelper.createAsset(syndicate, syndicate.key, assetCode, root);
+            manageAssetHelper.createAsset(syndicate, syndicate.key, assetCode, root, 0);
             // try to update with root
             const auto request = manageAssetHelper.
                 createAssetUpdateRequest(assetCode, "Long desciption'as'd.", "",
@@ -207,7 +208,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         SECTION("create asset then make it base by updating policies")
         {
             AssetCode assetCode = "UAH";
-            manageAssetHelper.createAsset(root, preissuedSigner, assetCode, root);
+            manageAssetHelper.createAsset(root, preissuedSigner, assetCode, root, 0);
 
             auto assetUpdateRequest = manageAssetHelper.
                     createAssetUpdateRequest(assetCode, "long description", "http://bank.gov.ua", baseAssetPolicy, "321");
@@ -217,7 +218,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         SECTION("remove base asset by updating policies")
         {
             AssetCode assetCode = "ILS";
-            manageAssetHelper.createBaseAsset(root, preissuedSigner, assetCode);
+            manageAssetHelper.createAsset(root, preissuedSigner, assetCode, root, static_cast<uint32_t>(AssetPolicy::BASE_ASSET));
 
             auto assetUpdateRequest = manageAssetHelper.
                     createAssetUpdateRequest(assetCode, "Description", "http://ils.com", 0, "123");

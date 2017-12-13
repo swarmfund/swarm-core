@@ -16,75 +16,55 @@ namespace stellar
 
 namespace txtest
 {
-	std::shared_ptr<IssuanceRequest> ReviewIssuanceRequestHelper::tryLoadIssuanceRequest(uint64_t requestID)
-	{
-		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-		auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
-		if (!request) {
-			return nullptr;
-		}
 
-		if (request->getType() != ReviewableRequestType::ISSUANCE_CREATE) {
-			return nullptr;
-		}
+ReviewIssuanceChecker::ReviewIssuanceChecker(
+    const TestManager::pointer& testManager, const uint64_t requestID) : ReviewChecker(testManager)
+{
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
+    if (!request || request->getType() != ReviewableRequestType::ISSUANCE_CREATE) {
+        return;
+    }
+    issuanceRequest = std::make_shared<IssuanceRequest>(request->getRequestEntry().body.issuanceRequest());
+    assetFrameBeforeTx = AssetHelper::Instance()->loadAsset(issuanceRequest->asset, mTestManager->getDB());
+    balanceBeforeTx = BalanceHelper::Instance()->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
+}
 
-		return std::make_shared<IssuanceRequest>(request->getRequestEntry().body.issuanceRequest());
-	}
+ReviewIssuanceChecker::ReviewIssuanceChecker(
+    const TestManager::pointer& testManager,
+    std::shared_ptr<IssuanceRequest> request) : ReviewChecker(testManager)
+{
+    issuanceRequest = request;
+    assetFrameBeforeTx = AssetHelper::Instance()->loadAsset(issuanceRequest->asset, mTestManager->getDB());
+    balanceBeforeTx = BalanceHelper::Instance()->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
+}
 
-	void ReviewIssuanceRequestHelper::checkApproval(IssuanceRequest issuanceRequest, AssetFrame::pointer assetFrameBeforeTx,
-		BalanceFrame::pointer balanceBeforeTx)
-	{
-		// check asset
-		REQUIRE(!!assetFrameBeforeTx);
-		auto assetHelper = AssetHelper::Instance();
-		auto assetFrameAfterTx = assetHelper->loadAsset(issuanceRequest.asset, mTestManager->getDB());
-		REQUIRE(!!assetFrameAfterTx);
-		REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() - issuanceRequest.amount);
-		REQUIRE(assetFrameAfterTx->getIssued() == assetFrameBeforeTx->getIssued() + issuanceRequest.amount);
-		// check balance
-		REQUIRE(!!balanceBeforeTx);
-		auto balanceHelper = BalanceHelper::Instance();
-		auto balanceAfterTx = balanceHelper->loadBalance(issuanceRequest.receiver, mTestManager->getDB());
-		REQUIRE(!!balanceAfterTx);
-		REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + issuanceRequest.amount);
-	}
+void ReviewIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer)
+{
+    // check asset
+    REQUIRE(!!issuanceRequest);
+    REQUIRE(!!assetFrameBeforeTx);
+    auto assetFrameAfterTx = AssetHelper::Instance()->loadAsset(issuanceRequest->asset, mTestManager->getDB());
+    REQUIRE(!!assetFrameAfterTx);
+    REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() - issuanceRequest->amount);
+    REQUIRE(assetFrameAfterTx->getIssued() == assetFrameBeforeTx->getIssued() + issuanceRequest->amount);
+    // check balance
+    REQUIRE(!!balanceBeforeTx);
+    auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
+    REQUIRE(!!balanceAfterTx);
+    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + issuanceRequest->amount);
+}
 
-
-	AssetFrame::pointer ReviewIssuanceRequestHelper::tryLoadAssetFrameForRequest(uint64_t requestID)
-	{
-		auto issuanceRequest = tryLoadIssuanceRequest(requestID);
-		if (issuanceRequest == nullptr) {
-			return nullptr;
-		}
-		auto assetHelper = AssetHelper::Instance();
-		return assetHelper->loadAsset(issuanceRequest->asset, mTestManager->getDB());
-	}
-
-	BalanceFrame::pointer ReviewIssuanceRequestHelper::tryLoadBalanceForRequest(uint64_t requestID)
-	{
-		auto issuanceRequest = tryLoadIssuanceRequest(requestID);
-		if (issuanceRequest == nullptr) {
-			return nullptr;
-		}
-		auto balanceHelper = BalanceHelper::Instance();
-		return balanceHelper->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
-	}
-
-	ReviewIssuanceRequestHelper::ReviewIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)
+ReviewIssuanceRequestHelper::ReviewIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)
 	{
 	}
 
 	ReviewRequestResult ReviewIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash,
 		ReviewableRequestType requestType, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
 	{
-		auto assetFrameBeforeTx = tryLoadAssetFrameForRequest(requestID);
-		auto balanceFrameBeForeTx = tryLoadBalanceForRequest(requestID);
+            auto issuanceChecker = ReviewIssuanceChecker(mTestManager, requestID);
 		return ReviewRequestHelper::applyReviewRequestTx(source, requestID, requestHash, requestType, action, rejectReason, expectedResult,
-			[this, assetFrameBeforeTx, balanceFrameBeForeTx](ReviewableRequestFrame::pointer request) {
-			REQUIRE(!!request);
-			REQUIRE(request->getRequestEntry().body.type() == ReviewableRequestType::ISSUANCE_CREATE);
-			this->checkApproval(request->getRequestEntry().body.issuanceRequest(), assetFrameBeforeTx, balanceFrameBeForeTx);
-		});
+                    issuanceChecker);
 	}
 
 	ReviewRequestResult ReviewIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)

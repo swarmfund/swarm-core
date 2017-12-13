@@ -21,7 +21,7 @@
 #include "transactions/SetFeesOpFrame.h"
 #include "transactions/ManageAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
-#include "transactions/ManageForfeitRequestOpFrame.h"
+#include "transactions/CreateWithdrawalRequestOpFrame.h"
 #include "transactions/RecoverOpFrame.h"
 #include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
@@ -38,6 +38,7 @@
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "CreateWithdrawalRequestOpFrame.h"
 
 namespace stellar
 {
@@ -63,8 +64,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new SetFeesOpFrame(op, res, tx));
 	case OperationType::MANAGE_ACCOUNT:
 		return shared_ptr<OperationFrame>(new ManageAccountOpFrame(op, res, tx));
-	case OperationType::MANAGE_FORFEIT_REQUEST:
-		return shared_ptr<OperationFrame>(new ManageForfeitRequestOpFrame(op, res, tx));
+        case OperationType::CREATE_WITHDRAWAL_REQUEST:
+		return shared_ptr<OperationFrame>(new CreateWithdrawalRequestOpFrame(op, res, tx));
     case OperationType::RECOVER:
 		return shared_ptr<OperationFrame>(new RecoverOpFrame(op, res, tx));
     case OperationType::MANAGE_BALANCE:

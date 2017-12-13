@@ -94,17 +94,17 @@ public:
 	bool canAddAvailableForIssuance(uint64_t amount);
 	// returns true, if specified amount can be authorized to be issued
 	bool tryAddAvailableForIssuance(uint64_t amount);
+        // returns true, if able to withdrawl specified amount
+        bool tryWithdraw(uint64_t amount);
 
     void setPolicies(int32 policies)
     {
         mAsset.policies = policies;
     }
     
-    bool checkPolicy(AssetPolicy rawPolicy) const
+    bool checkPolicy(const AssetPolicy policy) const
     {
-		uint32_t policy = static_cast<uint32_t>(rawPolicy);
-		assert(policy >= 0);
-		return (mAsset.policies & policy) == policy;
+        return isSetFlag(mAsset.policies, policy);
     }
 
 	static bool isAssetCodeValid(AssetCode const& code);

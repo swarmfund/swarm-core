@@ -14,15 +14,22 @@ namespace stellar
 {
 namespace txtest 
 {	
+        class ReviewIssuanceChecker : public ReviewChecker
+        {
+        public:
+            ReviewIssuanceChecker(
+                const TestManager::pointer& testManager, const uint64_t requestID);
+            ReviewIssuanceChecker(const TestManager::pointer& testManager, std::shared_ptr<IssuanceRequest> issuanceRequest);
+
+            void checkApprove(ReviewableRequestFrame::pointer) override;
+        protected:
+            std::shared_ptr<IssuanceRequest> issuanceRequest;
+            AssetFrame::pointer assetFrameBeforeTx;
+            BalanceFrame::pointer balanceBeforeTx;
+            
+        };
 	class ReviewIssuanceRequestHelper : public ReviewRequestHelper
 	{
-	private:
-		std::shared_ptr<IssuanceRequest> tryLoadIssuanceRequest(uint64_t requestID);
-
-	protected:
-
-		AssetFrame::pointer tryLoadAssetFrameForRequest(uint64_t requestID);
-		BalanceFrame::pointer tryLoadBalanceForRequest(uint64_t requestID);
 	public:
 		ReviewIssuanceRequestHelper(TestManager::pointer testManager);
 
@@ -33,7 +40,6 @@ namespace txtest
 		ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason,
 			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS);
 
-		void checkApproval(IssuanceRequest issuanceRequest, AssetFrame::pointer assetFrameBeforeTx, BalanceFrame::pointer balanceBeforeTx);
 	};
 }
 }

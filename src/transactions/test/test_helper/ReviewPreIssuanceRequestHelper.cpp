@@ -14,33 +14,28 @@ namespace stellar
 
 namespace txtest
 {
-	void ReviewPreIssuanceRequestHelper::checkApproval(ReviewableRequestFrame::pointer requestBeforeTx, AssetFrame::pointer assetFrameBeforeTx)
-	{
-		REQUIRE(!!requestBeforeTx);
-		REQUIRE(!!assetFrameBeforeTx);
-		auto preIssuanceRequest = requestBeforeTx->getRequestEntry().body.preIssuanceRequest();
-		auto assetHelper = AssetHelper::Instance();
-		auto assetFrameAfterTx = assetHelper->loadAsset(preIssuanceRequest.asset, mTestManager->getDB());
-		REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() + preIssuanceRequest.amount);
-	}
+ReviewPreIssuanceChecker::ReviewPreIssuanceChecker(
+    const TestManager::pointer& testManager, const uint64_t requestID) : ReviewChecker(testManager)
+{
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
+    if (!request || request->getType() != ReviewableRequestType::PRE_ISSUANCE_CREATE) {
+        return;
+    }
+    preIssuanceRequest = std::make_shared<PreIssuanceRequest>(request->getRequestEntry().body.preIssuanceRequest());
+    assetFrameBeforeTx = AssetHelper::Instance()->loadAsset(preIssuanceRequest->asset, mTestManager->getDB());
+}
 
+void ReviewPreIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer requestBeforeTx)
+{
+    REQUIRE(!!requestBeforeTx);
+    REQUIRE(!!assetFrameBeforeTx);
+    auto preIssuanceRequest = requestBeforeTx->getRequestEntry().body.preIssuanceRequest();
+    auto assetHelper = AssetHelper::Instance();
+    auto assetFrameAfterTx = assetHelper->loadAsset(preIssuanceRequest.asset, mTestManager->getDB());
+    REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() + preIssuanceRequest.amount);
+}
 
-	AssetFrame::pointer ReviewPreIssuanceRequestHelper::tryLoadAssetFrameForRequest(uint64_t requestID)
-	{
-		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-		auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
-		if (!request) {
-			return nullptr;
-		}
-
-		if (request->getType() != ReviewableRequestType::PRE_ISSUANCE_CREATE) {
-			return nullptr;
-		}
-
-		auto requestEntry = request->getRequestEntry();
-		auto assetHelper = AssetHelper::Instance();
-		return assetHelper->loadAsset(requestEntry.body.preIssuanceRequest().asset, mTestManager->getDB());
-	}
 	ReviewPreIssuanceRequestHelper::ReviewPreIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)
 	{
 	}
@@ -48,11 +43,9 @@ namespace txtest
 	ReviewRequestResult ReviewPreIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash,
 		ReviewableRequestType requestType, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
 	{
-		auto assetFrameBeforeTx = tryLoadAssetFrameForRequest(requestID);
+            auto reviewPreIssuanceChecker = ReviewPreIssuanceChecker(mTestManager, requestID);
 		return ReviewRequestHelper::applyReviewRequestTx(source, requestID, requestHash, requestType, action, rejectReason, expectedResult,
-			[this, assetFrameBeforeTx](ReviewableRequestFrame::pointer request) {
-			this->checkApproval(request, assetFrameBeforeTx);
-		});
+                    reviewPreIssuanceChecker);
 	}
 
 	ReviewRequestResult ReviewPreIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)

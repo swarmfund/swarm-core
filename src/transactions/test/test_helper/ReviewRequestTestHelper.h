@@ -10,26 +10,61 @@
 
 namespace stellar
 {
-namespace txtest 
-{	
-	class ReviewRequestHelper : public TxHelper
-	{
+namespace txtest
+{
+class ReviewChecker
+{
+protected:
+    TestManager::pointer mTestManager;
+public:
+    ReviewChecker(TestManager::pointer testManager)
+    {
+        mTestManager = testManager;
+    }
 
-	protected:
-		ReviewRequestHelper(TestManager::pointer testManager);
+    virtual void checkApprove(ReviewableRequestFrame::pointer)
+    {
+    }
 
-		ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
-			ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult,
-			std::function<void(ReviewableRequestFrame::pointer requestBeforeTx)> checkApproval);
+    virtual void checkReject(ReviewableRequestFrame::pointer requestBeforeTx,
+                             ReviewableRequestFrame::pointer requestAfterTx)
+    {
+    }
 
-	public:
+    virtual void checkPermanentReject(ReviewableRequestFrame::pointer)
+    {
+    }
+};
 
-		virtual ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
-			ReviewRequestOpAction action, std::string rejectReason, 
-			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS) = 0;
+class ReviewRequestHelper : public TxHelper
+{
+protected:
+    ReviewRequestHelper(TestManager::pointer testManager);
 
-		TransactionFramePtr createReviewRequestTx(Account& source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType, 
-			ReviewRequestOpAction action, std::string rejectReason);
-	};
+
+    ReviewRequestResult applyReviewRequestTx(Account& source,
+                                             uint64_t requestID,
+                                             Hash requestHash,
+                                             ReviewableRequestType requestType,
+                                             ReviewRequestOpAction action,
+                                             std::string rejectReason,
+                                             ReviewRequestResultCode
+                                             expectedResult,
+                                             ReviewChecker& checker);
+
+public:
+
+    virtual ReviewRequestResult applyReviewRequestTx(
+        Account& source, uint64_t requestID, Hash requestHash,
+        ReviewableRequestType requestType,
+        ReviewRequestOpAction action, std::string rejectReason,
+        ReviewRequestResultCode expectedResult = ReviewRequestResultCode::
+            SUCCESS) = 0;
+
+    virtual TransactionFramePtr createReviewRequestTx(
+        Account& source, uint64_t requestID, Hash requestHash,
+        ReviewableRequestType requestType,
+        ReviewRequestOpAction action, std::string rejectReason);
+};
 }
 }

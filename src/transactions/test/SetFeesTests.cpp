@@ -159,28 +159,28 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
 	{
 		SECTION("Success")
 		{
-			auto fee = createFeeEntry(FeeType::FORFEIT_FEE, 1, 2 * ONE, app.getBaseAsset(), nullptr, nullptr, 1);
+			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 1, 2 * ONE, app.getBaseAsset(), nullptr, nullptr, 1);
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr);
             SECTION("update existing")
             {
-				auto fee = createFeeEntry(FeeType::FORFEIT_FEE, 0, 0, app.getBaseAsset(), nullptr, nullptr, 1);
+				auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, app.getBaseAsset(), nullptr, nullptr, 1);
                 applySetFees(app, root, rootSeq++, &fee, false, nullptr);
             }
 			SECTION("Can delete")
 			{
-				auto fee = createFeeEntry(FeeType::FORFEIT_FEE, 0, 0, app.getBaseAsset(), nullptr, nullptr, 1);
+				auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, app.getBaseAsset(), nullptr, nullptr, 1);
 				applySetFees(app, root, rootSeq++, &fee, true, nullptr);
 			}
             
 		}
 		SECTION("Success zero")
 		{
-			auto fee = createFeeEntry(FeeType::FORFEIT_FEE, 0, 0, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, app.getBaseAsset());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 		}
 		SECTION("Invalid percent fee")
 		{
-			auto fee = createFeeEntry(FeeType::FORFEIT_FEE, 0, 101 * ONE, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 101 * ONE, app.getBaseAsset());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr, SetFeesResultCode::INVALID_AMOUNT);
 		}
 	}

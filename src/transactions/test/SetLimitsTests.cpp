@@ -111,63 +111,6 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
 			auto receiver = SecretKey::random();
             applyCreateAccountTx(app, root, a2, rootSeq++, accountType);
 			applyCreateAccountTx(app, root, receiver, rootSeq++, accountType);
-
-            SECTION("can not go over default limits")
-            {
-				closeLedgerOn(app, 3, 2, 8, 2017);
-                SecretKey issuance = getIssuanceKey();
-                fundAccount(app, root, issuance, rootSeq, a2.getPublicKey(), limits.dailyOut * app.getConfig().EMISSION_UNIT);
-                auto account2Seq = 1;
-                applyPaymentTx(app, a2, receiver,
-                    account2Seq++, limits.dailyOut / 2, getNoPaymentFee(), false);
-
-                applyPaymentTx(app, a2, receiver,
-                    account2Seq++, limits.dailyOut, getNoPaymentFee(), false, "", "", PaymentResultCode::LIMITS_EXCEEDED);
-
-                applyManageForfeitRequestTx(app, a2,
-                                            a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut / 2 + 1, 0, "",
-                                            ManageForfeitRequestResultCode::LIMITS_EXCEEDED);
-
-                auto result = applyManageForfeitRequestTx(app, a2, a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut / 2);
-
-                applyPaymentTx(app, a2, receiver,
-                    account2Seq++, 1, getNoPaymentFee(), false, "", "", PaymentResultCode::LIMITS_EXCEEDED);
-
-				auto statistics = statisticsHelper->loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
-				REQUIRE(statistics.dailyOutcome == limits.dailyOut);
-				REQUIRE(statistics.weeklyOutcome == limits.dailyOut);
-				REQUIRE(statistics.annualOutcome == limits.dailyOut);
-				REQUIRE(statistics.monthlyOutcome == limits.dailyOut);
-
-				// one day has passed
-				closeLedgerOn(app, 4, 3, 8, 2017);
-                applyManageForfeitRequestTx(app, a2,
-                                            a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut, 0);
-
-				statistics = statisticsHelper->loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
-				REQUIRE(statistics.dailyOutcome == limits.dailyOut);
-				REQUIRE(statistics.weeklyOutcome == 2*limits.dailyOut);
-				REQUIRE(statistics.annualOutcome == 2*limits.dailyOut);
-				REQUIRE(statistics.monthlyOutcome == 2*limits.dailyOut);
-
-				// another day has passed
-				closeLedgerOn(app, 5, 4, 8, 2017);
-				// limis exceeded because of weekly limit
-                applyManageForfeitRequestTx(app, a2,
-                                            a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut, 0, "",
-                                            ManageForfeitRequestResultCode::LIMITS_EXCEEDED);
-
-				// week passed
-				closeLedgerOn(app, 6, 7, 8, 2017);
-                applyManageForfeitRequestTx(app, a2, a2.getPublicKey(), account2Seq++, rootPK, limits.dailyOut);
-
-				statistics = statisticsHelper->loadStatistics(a2.getPublicKey(), app.getDatabase())->getStatistics();
-				REQUIRE(statistics.dailyOutcome == limits.dailyOut);
-				REQUIRE(statistics.weeklyOutcome == limits.dailyOut);
-				REQUIRE(statistics.annualOutcome == 3 * limits.dailyOut);
-				REQUIRE(statistics.monthlyOutcome == 3 * limits.dailyOut);
-
-            }
         }
     }
 

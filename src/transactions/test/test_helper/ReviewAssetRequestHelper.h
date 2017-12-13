@@ -10,20 +10,41 @@
 
 namespace stellar
 {
-namespace txtest 
-{	
-	class ReviewAssetRequestHelper : public ReviewRequestHelper
-	{
-		void checkApproval(AssetCreationRequest const& request, AccountID const& requestor);
-		void checkApproval(AssetUpdateRequest const& request, AccountID const& requestor);
-	protected:
-		void checkApproval(ReviewableRequestFrame::pointer requestBeforeTx);
-	public:
-		ReviewAssetRequestHelper(TestManager::pointer testManager);
+namespace txtest
+{
 
-		ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
-			ReviewRequestOpAction action, std::string rejectReason,
-			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS) override;
-	};
+    class AssetReviewChecker : public ReviewChecker
+    {
+    protected:
+        void checkApproval(AssetCreationRequest const& request,
+            AccountID const& requestor) const;
+        void checkApproval(AssetUpdateRequest const& request,
+            AccountID const& requestor);
+    public:
+        explicit AssetReviewChecker(const TestManager::pointer& testManager)
+            : ReviewChecker(testManager)
+        {
+        }
+
+        void checkApprove(ReviewableRequestFrame::pointer) override;
+    };
+class ReviewAssetRequestHelper : public ReviewRequestHelper
+{
+protected:
+    void checkApproval(ReviewableRequestFrame::pointer requestBeforeTx);
+public:
+    ReviewAssetRequestHelper(TestManager::pointer testManager);
+
+    ReviewRequestResult applyReviewRequestTx(Account& source,
+                                             uint64_t requestID,
+                                             Hash requestHash,
+                                             ReviewableRequestType requestType,
+                                             ReviewRequestOpAction action,
+                                             std::string rejectReason,
+                                             ReviewRequestResultCode
+                                             expectedResult =
+                                                 ReviewRequestResultCode::
+                                                 SUCCESS) override;
+};
 }
 }

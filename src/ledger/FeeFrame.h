@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <stdio.h>
 #include "ledger/AccountFrame.h"
+#include "util/types.h"
 
 namespace soci
 {
@@ -48,8 +49,11 @@ namespace stellar
             return EntryFrame::pointer(new FeeFrame(*this));
         }
 
+                [[deprecated]]
 		// calculates percent fee of amount with rounding up
 		int64_t calculatePercentFee(int64_t amount, bool roundUp = true);
+
+                bool calculatePercentFee(uint64_t amount, uint64_t& result, Rounding rounding) const;
 
 		// calculaates percent fee for period amount*percentFee*periodPassed/basePeriod
 		int64_t calculatePercentFeeForPeriod(int64_t amount, int64_t periodPassed, int64_t basePeriod);

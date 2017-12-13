@@ -73,7 +73,19 @@ namespace stellar
 		return bigDivide(amount, mFee.percentFee, 100 * ONE, rounding);
 	}
 
-	int64_t FeeFrame::calculatePercentFeeForPeriod(int64_t amount, int64_t periodPassed, int64_t basePeriod)
+bool FeeFrame::calculatePercentFee(const uint64_t amount, uint64_t& result,
+                                   const Rounding rounding) const
+{
+    result = 0;
+    if (mFee.percentFee == 0)
+    {
+        return true;
+    }
+
+    return bigDivide(result, amount, mFee.percentFee, 100 * ONE, rounding);
+}
+
+int64_t FeeFrame::calculatePercentFeeForPeriod(int64_t amount, int64_t periodPassed, int64_t basePeriod)
 	{
 		if (mFee.percentFee == 0
             || periodPassed == 0

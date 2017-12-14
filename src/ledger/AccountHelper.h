@@ -27,6 +27,9 @@ namespace stellar
 
 	class AccountHelper : public EntryHelper {
 	public:
+		AccountHelper(AccountHelper const&) = delete;
+		AccountHelper &operator=(AccountHelper const&) = delete;
+
 		static AccountHelper* Instance() {
 			static AccountHelper singleton;
 			return &singleton;
@@ -56,9 +59,6 @@ namespace stellar
 	private:
 		AccountHelper() { ; }
 		~AccountHelper() { ; }
-
-		AccountHelper(AccountHelper const&) = delete;
-		AccountHelper &operator=(AccountHelper const&) = delete;
 
 		void storeUpdate(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
 

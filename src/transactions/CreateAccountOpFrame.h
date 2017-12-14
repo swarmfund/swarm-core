@@ -38,8 +38,11 @@ namespace stellar {
                                      Database &db, const AccountFrame::pointer account);
 
         bool isAllowedToUpdateAccountType(AccountFrame::pointer destAccount) const;
+
         bool createAccount(Application &app, LedgerDelta &delta,
                            LedgerManager &ledgerManager);
+
+        void createBalance(LedgerDelta& delta, Database &db);
 
         std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(
                 Database &db, LedgerDelta *delta) const override;

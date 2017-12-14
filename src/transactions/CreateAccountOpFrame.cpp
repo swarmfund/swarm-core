@@ -108,6 +108,11 @@ namespace stellar {
         AccountManager accountManager(app, db, delta, ledgerManager);
         accountManager.createStats(destAccountFrame);
         // create balance for all available base assets
+        createBalance(delta, db);
+        return true;
+    }
+
+    void CreateAccountOpFrame::createBalance(LedgerDelta &delta, Database &db) {
         std::vector<AssetFrame::pointer> baseAssets;
         AssetHelper::Instance()->loadBaseAssets(baseAssets, db);
         for (const auto &baseAsset : baseAssets) {
@@ -119,8 +124,6 @@ namespace stellar {
                                                         baseAsset->getCode());
             EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
         }
-
-        return true;
     }
 
     bool
@@ -203,4 +206,6 @@ namespace stellar {
         storeAccount(delta, db, destAccountFrame->mEntry);
         storeExternalSystemsIDs(app, delta, db, destAccountFrame);
     }
+
+
 }

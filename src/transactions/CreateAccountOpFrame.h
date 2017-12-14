@@ -25,13 +25,11 @@ namespace stellar {
     private:
 
         typedef std::function<uint32_t()> AllowedSignerGetter;
-        typedef void (*Store)(LedgerDelta &, Database &, LedgerEntry const &);
 
         CreateAccountResult &innerResult() {
             return mResult.tr().createAccountResult();
         }
 
-        template<Store storeAccount>
         void storeAccount(Application &app, LedgerDelta &delta, AccountFrame::pointer destAccountFrame);
         void trySetReferrer(Application &app, Database &db, AccountFrame::pointer destAccount) const;
         void storeExternalSystemsIDs(Application &app, LedgerDelta &delta,

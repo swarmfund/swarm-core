@@ -104,7 +104,7 @@ namespace stellar {
                                              LedgerManager &ledgerManager) {
         auto &db = app.getDatabase();
         auto destAccountFrame = make_shared<AccountFrame>(mCreateAccount.destination);
-        storeAccount<EntryHelperProvider::storeAddEntry>(app, delta, destAccountFrame);
+        storeAccount(app, delta, destAccountFrame);
         AccountManager accountManager(app, db, delta, ledgerManager);
         accountManager.createStats(destAccountFrame);
         // create balance for all available base assets
@@ -160,7 +160,7 @@ namespace stellar {
             return false;
         }
 
-        storeAccount<EntryHelperProvider::storeChangeEntry>(app, delta, destAccountFrame);
+        storeAccount(app, delta, destAccountFrame);
         return true;
     }
 
@@ -195,7 +195,6 @@ namespace stellar {
         return true;
     }
 
-    template<CreateAccountOpFrame::Store storeAccount>
     void
     CreateAccountOpFrame::storeAccount(Application &app, LedgerDelta &delta, AccountFrame::pointer destAccountFrame) {
         auto &db = app.getDatabase();
@@ -203,9 +202,7 @@ namespace stellar {
         destAccount.accountType = mCreateAccount.accountType;
         trySetReferrer(app, db, destAccountFrame);
         destAccount.policies = mCreateAccount.policies;
-        storeAccount(delta, db, destAccountFrame->mEntry);
+        EntryHelperProvider::storeAddOrChangeEntry(delta, db, destAccountFrame->mEntry);
         storeExternalSystemsIDs(app, delta, db, destAccountFrame);
     }
-
-
 }

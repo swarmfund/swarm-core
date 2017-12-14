@@ -23,11 +23,11 @@ namespace stellar {
                                                TransactionFrame &parentTx)
             : OperationFrame(op, res, parentTx), mCreateAccount(mOperation.body.createAccountOp()) {
 
-        detailsHelper[AccountType::NOT_VERIFIED] = [this]() {
+        allowedSignerClassHelper[AccountType::NOT_VERIFIED] = [this]() {
             return static_cast<uint32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
         };
 
-        detailsHelper[AccountType::GENERAL] = [this]() {
+        allowedSignerClassHelper[AccountType::GENERAL] = [this]() {
             if (mCreateAccount.policies != 0) {
                 return static_cast<uint32_t>(SignerType::GENERAL_ACC_MANAGER);
             }
@@ -35,7 +35,7 @@ namespace stellar {
                    | static_cast<uint32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
         };
 
-        detailsHelper[AccountType::SYNDICATE] = detailsHelper[AccountType::GENERAL];
+        allowedSignerClassHelper[AccountType::SYNDICATE] = allowedSignerClassHelper[AccountType::GENERAL];
 
     }
 
@@ -52,9 +52,9 @@ namespace stellar {
     const {
         const auto threshold = mSourceAccount->getMediumThreshold();
         uint32_t allowedSignerClass = 0;
-        auto allowedSignerClassHelper = detailsHelper.find(mCreateAccount.accountType);
-        if (allowedSignerClassHelper != detailsHelper.end()) {
-            allowedSignerClass = allowedSignerClassHelper->second();
+        auto allowedSignerClassIterator = allowedSignerClassHelper.find(mCreateAccount.accountType);
+        if (allowedSignerClassIterator != allowedSignerClassHelper.end()) {
+            allowedSignerClass = allowedSignerClassIterator->second();
         }
 
         return SourceDetails({AccountType::MASTER}, threshold, allowedSignerClass);

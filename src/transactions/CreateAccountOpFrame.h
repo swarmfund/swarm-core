@@ -51,6 +51,6 @@ namespace stellar {
 
         CreateAccountOp const &mCreateAccount;
 
-        std::map<AccountType, AllowedSignerGetter> detailsHelper;
+        std::map<AccountType, AllowedSignerGetter> allowedSignerClassHelper;
     };
 }

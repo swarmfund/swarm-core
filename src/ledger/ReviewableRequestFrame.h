@@ -87,6 +87,10 @@ class ReviewableRequestFrame : public EntryFrame
 		return mRequest.body.type();
 	}
 
+    time_t getCreatedAt() {
+        return mRequest.createdAt;
+    }
+
 	void setRejectReason(stellar::string256 rejectReason) {
 		mRequest.rejectReason = rejectReason;
 	}

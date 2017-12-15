@@ -66,8 +66,8 @@ void WithdrawReviewChecker::checkPermanentReject(
     ReviewableRequestFrame::pointer)
 {
     auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
-    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + withdrawalRequest->amount + withdrawalRequest->fee.percent + withdrawalRequest->fee.percent);
-    REQUIRE(balanceBeforeTx->getLocked() == balanceAfterTx->getLocked() + withdrawalRequest->amount + withdrawalRequest->fee.percent + withdrawalRequest->fee.percent);
+    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + withdrawalRequest->amount + withdrawalRequest->fee.fixed + withdrawalRequest->fee.percent);
+    REQUIRE(balanceBeforeTx->getLocked() == balanceAfterTx->getLocked() + withdrawalRequest->amount + withdrawalRequest->fee.fixed + withdrawalRequest->fee.percent);
     
     auto assetAfterTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
     REQUIRE(assetAfterTx->getIssued() == assetBeforeTx->getIssued());
@@ -105,7 +105,7 @@ ReviewRequestResult ReviewWithdrawRequestHelper::applyReviewRequestTx(
                                                      requestHash, requestType,
                                                      action, rejectReason,
                                                      expectedResult,
-        checker
+                                                     checker
                                                     );
 }
 

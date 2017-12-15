@@ -44,7 +44,7 @@ TEST_CASE("manage balance", "[tx][manage_balance]")
 	auto testManager = TestManager::make(app);
 	auto manageAssetHelper = ManageAssetTestHelper(testManager);
 	auto preissuedSigner = SecretKey::random();
-    manageAssetHelper.createAsset(root, preissuedSigner, asset, root);
+    manageAssetHelper.createAsset(root, preissuedSigner, asset, root, 1);
     
     SECTION("Can create for account by himself")
     {

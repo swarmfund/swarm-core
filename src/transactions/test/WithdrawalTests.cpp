@@ -43,6 +43,7 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
     //create stats asset and stats asset pair
     const AssetCode statsAsset = "UAH";
     assetHelper.createAsset(root, root.key, statsAsset, root, static_cast<uint32_t>(AssetPolicy::STATS_QUOTE_ASSET));
+    const uint64_t statsPricePerUnit = 25;
     const uint64_t statsPrice = 25 * ONE;
     assetPairHelper.createAssetPair(root, asset, statsAsset, statsPrice);
 
@@ -54,24 +55,24 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
     REQUIRE(!!withdrawerBalance);
     issuanceHelper.applyCreateIssuanceRequest(root, asset, preIssuedAmount, withdrawerBalance->getBalanceID(), "RANDOM ISSUANCE REFERENCE");
 
-    // create asset to withdraw to
-    const AssetCode withdrawDestAsset = "BTC";
-    assetHelper.createAsset(root, root.key, withdrawDestAsset, root, 0);
-    const uint64_t price = 2000 * ONE;
-    assetPairHelper.createAssetPair(root, withdrawDestAsset, asset, price);
-
-    //create withdraw request
-    uint64_t amountToWithdraw = 1000 * ONE;
-    withdrawerBalance = BalanceHelper::Instance()->loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
-    REQUIRE(withdrawerBalance->getAmount() >= amountToWithdraw);
-    const uint64_t expectedAmountInDestAsset = 0.5 * ONE;
-
-    auto withdrawRequest = withdrawRequestHelper.createWithdrawRequest(withdrawerBalance->getBalanceID(), amountToWithdraw,
-                                                                             Fee{ 0, 0 }, "{}", withdrawDestAsset,
-                                                                             expectedAmountInDestAsset);
-
     SECTION("Happy path")
     {
+        // create asset to withdraw to
+        const AssetCode withdrawDestAsset = "BTC";
+        assetHelper.createAsset(root, root.key, withdrawDestAsset, root, 0);
+        const uint64_t price = 2000 * ONE;
+        assetPairHelper.createAssetPair(root, withdrawDestAsset, asset, price);
+
+        //create withdraw request
+        uint64_t amountToWithdraw = 1000 * ONE;
+        withdrawerBalance = BalanceHelper::Instance()->loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
+        REQUIRE(withdrawerBalance->getAmount() >= amountToWithdraw);
+        const uint64_t expectedAmountInDestAsset = 0.5 * ONE;
+
+        auto withdrawRequest = withdrawRequestHelper.createWithdrawRequest(withdrawerBalance->getBalanceID(), amountToWithdraw,
+                                                                           Fee{ 0, 0 }, "{}", withdrawDestAsset,
+                                                                           expectedAmountInDestAsset);
+
         auto withdrawResult = WithdrawRequestHelper(testManager).applyCreateWithdrawRequest(withdrawer, withdrawRequest);
         SECTION("Approve")
         {
@@ -86,6 +87,28 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
 
     SECTION("create withdraw request hard path")
     {
+        // create asset to withdraw to
+        const AssetCode withdrawDestAsset = "CZK";
+        assetHelper.createAsset(root, root.key, withdrawDestAsset, root, 0);
+        const uint64_t pricePerUnit = 20;
+        const uint64_t price = pricePerUnit * ONE;
+        assetPairHelper.createAssetPair(root, asset, withdrawDestAsset, price);
+
+        //create withdraw request
+        uint64_t amountToWithdraw = 1000 * ONE;
+        withdrawerBalance = BalanceHelper::Instance()->loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
+        REQUIRE(withdrawerBalance->getAmount() >= amountToWithdraw);
+        const uint64_t expectedAmountInDestAsset = pricePerUnit * amountToWithdraw;
+
+        auto withdrawRequest = withdrawRequestHelper.createWithdrawRequest(withdrawerBalance->getBalanceID(), amountToWithdraw,
+                                                                           Fee{ 0, 0 }, "{}", withdrawDestAsset,
+                                                                           expectedAmountInDestAsset);
+
+        SECTION("successful application")
+        {
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest);
+        }
+
         SECTION("Try to withdraw zero amount")
         {
             withdrawRequest.amount = 0;
@@ -149,6 +172,59 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
             withdrawRequest.details.autoConversion().destAsset = nonExistingAsset;
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
                                                              CreateWithdrawalRequestResultCode::CONVERSION_PRICE_IS_NOT_AVAILABLE);
+        }
+
+        SECTION("overflow converted amount")
+        {
+            withdrawRequest.amount = UINT64_MAX/pricePerUnit + 1;
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+                                                             CreateWithdrawalRequestResultCode::CONVERSION_OVERFLOW);
+        }
+
+        SECTION("mismatch conversion amount")
+        {
+            withdrawRequest.details.autoConversion().expectedAmount = expectedAmountInDestAsset + 1;
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+                                                             CreateWithdrawalRequestResultCode::CONVERTED_AMOUNT_MISMATCHED);
+        }
+
+        SECTION("underfunded")
+        {
+            withdrawRequest.amount = preIssuedAmount + 1;
+            uint64_t convertedAmount = pricePerUnit * withdrawRequest.amount;
+            withdrawRequest.details.autoConversion().expectedAmount = convertedAmount;
+
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+                                                             CreateWithdrawalRequestResultCode::UNDERFUNDED);
+        }
+
+        SECTION("overflow statistics")
+        {
+            //issue some amount to withdrawer
+            uint64_t enoughToOverflow = UINT64_MAX/pricePerUnit - 1;
+            REQUIRE(statsPricePerUnit > pricePerUnit);
+            issuanceHelper.authorizePreIssuedAmount(root, root.key, asset, enoughToOverflow, root);
+            issuanceHelper.applyCreateIssuanceRequest(root, asset, enoughToOverflow, withdrawerBalance->getBalanceID(),
+                                                      SecretKey::random().getStrKeyPublic());
+            withdrawRequest.amount = enoughToOverflow;
+            withdrawRequest.details.autoConversion().expectedAmount = enoughToOverflow * pricePerUnit;
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+                                                             CreateWithdrawalRequestResultCode::STATS_OVERFLOW);
+        }
+
+        SECTION("exceed limits")
+        {
+            AccountManager accountManager(app, testManager->getDB(), testManager->getLedgerDelta(),
+                                          testManager->getLedgerManager());
+            Limits limits = accountManager.getDefaultLimits(AccountType::GENERAL);
+            limits.dailyOut = amountToWithdraw - 1;
+            AccountID withdrawerID = withdrawer.key.getPublicKey();
+
+            //set limits for withdrawer
+            applySetLimits(testManager->getApp(), root.key, root.getNextSalt(), &withdrawerID, nullptr, limits);
+
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+                                                             CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
         }
 
     }

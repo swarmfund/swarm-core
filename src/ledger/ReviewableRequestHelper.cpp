@@ -15,7 +15,7 @@ namespace stellar {
     using xdr::operator<;
 
     const char* selectorReviewableRequest = "SELECT id, hash, body, requestor, reviewer, reference, "
-            "reject_reason, version, lastmodified FROM reviewable_request";
+            "reject_reason, created_at, version, lastmodified FROM reviewable_request";
 
     void ReviewableRequestHelper::dropAll(Database &db) {
         db.getSession() << "DROP TABLE IF EXISTS reviewable_request;";
@@ -28,6 +28,7 @@ namespace stellar {
                 "reviewer      VARCHAR(56)   NOT NULL,"
                 "reference     VARCHAR(64),"
                 "reject_reason TEXT          NOT NULL,"
+                "created_at    BIGINT        NOT NULL,"
                 "version       INT           NOT NULL,"
                 "lastmodified  INT           NOT NULL,"
                 "PRIMARY KEY (id)"
@@ -119,12 +120,12 @@ namespace stellar {
 
         if (insert)
         {
-            sql = "INSERT INTO reviewable_request (id, hash, body, requestor, reviewer, reference, reject_reason, version, lastmodified)"
-                    " VALUES (:id, :hash, :body, :requestor, :reviewer, :reference, :reject_reason, :v, :lm)";
+            sql = "INSERT INTO reviewable_request (id, hash, body, requestor, reviewer, reference, reject_reason, created_at, version, lastmodified)"
+                  " VALUES (:id, :hash, :body, :requestor, :reviewer, :reference, :reject_reason, :created, :v, :lm)";
         }
         else
         {
-            sql = "UPDATE reviewable_request SET hash=:hash, body = :body, requestor = :requestor, reviewer = :reviewer, reference = :reference, reject_reason = :reject_reason, version=:v, lastmodified=:lm"
+            sql = "UPDATE reviewable_request SET hash=:hash, body = :body, requestor = :requestor, reviewer = :reviewer, reference = :reference, reject_reason = :reject_reason, created_at = :created, version=:v, lastmodified=:lm"
                     " WHERE id = :id";
         }
 
@@ -138,6 +139,7 @@ namespace stellar {
         st.exchange(use(reviewableRequestEntry.reviewer, "reviewer"));
         st.exchange(use(reviewableRequestEntry.reference, "reference"));
         st.exchange(use(rejectReason, "reject_reason"));
+        st.exchange(use(reviewableRequestEntry.createdAt, "created"));
         st.exchange(use(version, "v"));
         st.exchange(use(reviewableRequestFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.define_and_bind();
@@ -176,6 +178,7 @@ namespace stellar {
         st.exchange(into(oe.reviewer));
         st.exchange(into(oe.reference));
         st.exchange(into(rejectReason));
+        st.exchange(into(oe.createdAt));
         st.exchange(into(version));
         st.exchange(into(le.lastModifiedLedgerSeq));
         st.define_and_bind();

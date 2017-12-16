@@ -172,12 +172,12 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     BalanceHelper::Instance()->storeChange(delta, db, balanceFrame->mEntry);
 
-    auto request = ReviewableRequestFrame::createNew(delta, getSourceID(), assetFrame->getOwner(), nullptr);
+    auto request = ReviewableRequestFrame::createNew(delta, getSourceID(), assetFrame->getOwner(), nullptr,
+                                                     ledgerManager.getCloseTime());
     ReviewableRequestEntry& requestEntry = request->getRequestEntry();
     requestEntry.body.type(ReviewableRequestType::WITHDRAW);
     requestEntry.body.withdrawalRequest() = mCreateWithdrawalRequest.request;
     requestEntry.body.withdrawalRequest().universalAmount = universalAmount;
-    requestEntry.createdAt = ledgerManager.getCloseTime();
     request->recalculateHashRejectReason();
     ReviewableRequestHelper::Instance()->storeAdd(delta, db, request->mEntry);
 

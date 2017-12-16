@@ -28,7 +28,7 @@ namespace stellar {
                 "reviewer      VARCHAR(56)   NOT NULL,"
                 "reference     VARCHAR(64),"
                 "reject_reason TEXT          NOT NULL,"
-                "created_at    INT           NOT NULL,"
+                "created_at    BIGINT        NOT NULL,"
                 "version       INT           NOT NULL,"
                 "lastmodified  INT           NOT NULL,"
                 "PRIMARY KEY (id)"

@@ -69,8 +69,11 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
         REQUIRE(withdrawerBalance->getAmount() >= amountToWithdraw);
         const uint64_t expectedAmountInDestAsset = 0.5 * ONE;
 
+        Fee zeroFee;
+        zeroFee.fixed = 0;
+        zeroFee.percent = 0;
         auto withdrawRequest = withdrawRequestHelper.createWithdrawRequest(withdrawerBalance->getBalanceID(), amountToWithdraw,
-                                                                           Fee{ 0, 0 }, "{}", withdrawDestAsset,
+                                                                           zeroFee, "{}", withdrawDestAsset,
                                                                            expectedAmountInDestAsset);
 
         auto withdrawResult = WithdrawRequestHelper(testManager).applyCreateWithdrawRequest(withdrawer, withdrawRequest);
@@ -100,8 +103,11 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
         REQUIRE(withdrawerBalance->getAmount() >= amountToWithdraw);
         const uint64_t expectedAmountInDestAsset = pricePerUnit * amountToWithdraw;
 
+        Fee zeroFee;
+        zeroFee.fixed = 0;
+        zeroFee.percent = 0;
         auto withdrawRequest = withdrawRequestHelper.createWithdrawRequest(withdrawerBalance->getBalanceID(), amountToWithdraw,
-                                                                           Fee{ 0, 0 }, "{}", withdrawDestAsset,
+                                                                           zeroFee, "{}", withdrawDestAsset,
                                                                            expectedAmountInDestAsset);
 
         SECTION("successful application")
@@ -160,7 +166,9 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
 
         SECTION("fee doesn't match")
         {
-            Fee newFee{ONE, ONE};
+            Fee newFee;
+            newFee.fixed = ONE;
+            newFee.percent = ONE;
             withdrawRequest.fee = newFee;
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
                                                              CreateWithdrawalRequestResultCode::FEE_MISMATCHED);

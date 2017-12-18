@@ -14,6 +14,7 @@
 #include "ledger/BalanceHelper.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
+#include "ReviewRequestHelper.h"
 
 namespace stellar
 {
@@ -63,13 +64,18 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
 		throw std::runtime_error("Expected receiver to exist");
 	}
 
-	if (!receiver->tryFundAccount(issuanceCreationRequest.amount)) {
-		innerResult().code(ReviewRequestResultCode::FULL_LINE);
-		return false;
-	}
+    uint64_t totalFee = getTotalFee(request->getRequestID(), issuanceCreationRequest.fee);
+    assert(issuanceCreationRequest.amount > totalFee);
+    transferFee(app, ledgerManager.getDatabase(), delta, request);
+
+    uint64_t destinationReceive = issuanceCreationRequest.amount - totalFee;
+    if (!receiver->tryFundAccount(destinationReceive)) {
+        innerResult().code(ReviewRequestResultCode::FULL_LINE);
+        return false;
+    }
 
 	EntryHelperProvider::storeChangeEntry(delta, db, receiver->mEntry);
-	
+
 	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;
@@ -90,6 +96,25 @@ SourceDetails ReviewIssuanceCreationRequestOpFrame::getSourceAccountDetails(std:
 ReviewIssuanceCreationRequestOpFrame::ReviewIssuanceCreationRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :
 	ReviewRequestOpFrame(op, res, parentTx)
 {
+}
+
+void ReviewIssuanceCreationRequestOpFrame::transferFee(Application &app, Database &db, LedgerDelta &delta,
+                                                       ReviewableRequestFrame::pointer request)
+{
+    auto issuanceRequest = request->getRequestEntry().body.issuanceRequest();
+    uint64_t totalFee = getTotalFee(request->getRequestID(), issuanceRequest.fee);
+    if (totalFee == 0)
+        return;
+
+    auto commissionBalance = BalanceHelper::Instance()->mustLoadBalance(app.getCommissionID(), db);
+
+    if (!commissionBalance->tryFundAccount(totalFee)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to fund commission balance with fee for issuance - overflow:"
+                                               << request->getRequestID();
+        throw runtime_error("Failed to fund commission balance with fee");
+    }
+
+    EntryHelperProvider::storeChangeEntry(delta, db, commissionBalance->mEntry);
 }
 
 }

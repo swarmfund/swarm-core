@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <transactions/review_request/ReviewRequestHelper.h>
+#include <ledger/FeeHelper.h>
 #include "util/asio.h"
 #include "CreateIssuanceRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
@@ -70,6 +71,7 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 	innerResult().code(CreateIssuanceRequestResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();
 	innerResult().success().fulfilled = isFulfilled;
+    innerResult().success().fee = request->getRequestEntry().body.issuanceRequest().fee;
 	auto& db = app.getDatabase();
 	auto balanceHelper = BalanceHelper::Instance();
 	auto receiver = balanceHelper->mustLoadBalance(mCreateIssuanceRequest.request.receiver, db);
@@ -150,14 +152,40 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
+    Fee fee = calculateFee(balance->getAccountID(), db);
+
 	auto reference = xdr::pointer<stellar::string64>(new stellar::string64(mCreateIssuanceRequest.reference));
 	ReviewableRequestEntry::_body_t body;
 	body.type(ReviewableRequestType::ISSUANCE_CREATE);
 	body.issuanceRequest() = mCreateIssuanceRequest.request;
+    body.issuanceRequest().fee = fee;
 	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference,
                                                              body, ledgerManager.getCloseTime());
 	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	return request;
+}
+
+Fee CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db)
+{
+    // calculate fee which will be charged from receiver
+    Fee fee;
+    fee.percent = 0;
+    fee.fixed = 0;
+    auto receiverFrame = AccountHelper::Instance()->mustLoadAccount(receiver, db);
+    if (!isSystemAccountType(receiverFrame->getAccountType()))
+    {
+        auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::EMISSION_FEE, mCreateIssuanceRequest.request.asset,
+                                                              FeeFrame::SUBTYPE_ANY, receiverFrame,
+                                                              mCreateIssuanceRequest.request.amount, db);
+        if (feeFrame) {
+            fee.fixed = feeFrame->getFee().fixedFee;
+            feeFrame->calculatePercentFee(mCreateIssuanceRequest.request.amount, fee.percent, ROUND_UP);
+        }
+    }
+    if (fee.fixed + fee.percent > mCreateIssuanceRequest.request.amount)
+        throw std::runtime_error("Unexpected state. Total fee exceeds issuance amount");
+
+    return fee;
 }
 
 }

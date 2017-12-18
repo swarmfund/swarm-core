@@ -48,6 +48,7 @@ public:
 	std::string getInnerResultCodeAsStr() override {
 		return xdr::xdr_traits<CreateIssuanceRequestResultCode>::enum_name(innerResult().code());
 	}
-    
+
+    Fee calculateFee(AccountID receiver, Database &db);
 };
 }

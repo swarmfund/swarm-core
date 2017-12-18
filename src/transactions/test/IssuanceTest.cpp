@@ -3,6 +3,8 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
+#include <ledger/FeeHelper.h>
+#include <ledger/AccountHelper.h>
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
@@ -47,6 +49,30 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 		auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
 		REQUIRE(!issuanceRequest);
 	}
+    
+    SECTION("charge fee on issuance") 
+    {
+        //set EMISSION_FEE for newAccount
+        uint64_t percentFee = 1 * ONE;
+        AccountID account = newAccountKP.getPublicKey();
+        auto feeEntry = createFeeEntry(FeeType::EMISSION_FEE, 0, percentFee, assetCode, &account, nullptr);
+        applySetFees(testManager->getApp(), root.key, root.getNextSalt(), &feeEntry, false);
+        
+        auto accountFrame = AccountHelper::Instance()->loadAccount(account, testManager->getDB());
+        auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::EMISSION_FEE, assetCode, FeeFrame::SUBTYPE_ANY, 
+                                                              accountFrame, preIssuedAmount, testManager->getDB());
+        REQUIRE(feeFrame);
+                
+        auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, preIssuedAmount, 
+                                                         newAccountBalance->getBalanceID(), newAccountKP.getStrKeyPublic());
+        
+        uint64_t percentFeeToPay = 0;
+        feeFrame->calculatePercentFee(preIssuedAmount, percentFeeToPay, ROUND_UP);
+        
+        REQUIRE(issuanceRequestResult.success().fee.fixed == 0);
+        REQUIRE(issuanceRequestResult.success().fee.percent == percentFeeToPay);         
+    }
+    
 	SECTION("Request was created but was not auto reviwed")
 	{
 		// request was create but not fulfilleds as amount of pre issued asset is insufficient

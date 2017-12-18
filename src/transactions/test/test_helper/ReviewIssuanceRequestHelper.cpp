@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/review_request/ReviewRequestOpFrame.h>
 #include "ReviewIssuanceRequestHelper.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
@@ -28,6 +29,9 @@ ReviewIssuanceChecker::ReviewIssuanceChecker(
     issuanceRequest = std::make_shared<IssuanceRequest>(request->getRequestEntry().body.issuanceRequest());
     assetFrameBeforeTx = AssetHelper::Instance()->loadAsset(issuanceRequest->asset, mTestManager->getDB());
     balanceBeforeTx = BalanceHelper::Instance()->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
+    commissionBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(testManager->getApp().getCommissionID(),
+                                                                       issuanceRequest->asset, testManager->getDB(),
+                                                                       nullptr);    
 }
 
 ReviewIssuanceChecker::ReviewIssuanceChecker(
@@ -37,6 +41,9 @@ ReviewIssuanceChecker::ReviewIssuanceChecker(
     issuanceRequest = request;
     assetFrameBeforeTx = AssetHelper::Instance()->loadAsset(issuanceRequest->asset, mTestManager->getDB());
     balanceBeforeTx = BalanceHelper::Instance()->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
+    commissionBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(testManager->getApp().getCommissionID(), 
+                                                                       issuanceRequest->asset, testManager->getDB(),
+                                                                       nullptr);
 }
 
 void ReviewIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer)
@@ -48,11 +55,20 @@ void ReviewIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(!!assetFrameAfterTx);
     REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() - issuanceRequest->amount);
     REQUIRE(assetFrameAfterTx->getIssued() == assetFrameBeforeTx->getIssued() + issuanceRequest->amount);
+    //check commission balance change
+    REQUIRE(!!commissionBalanceBeforeTx);
+    uint64_t totalFee = issuanceRequest->fee.fixed + issuanceRequest->fee.percent;
+    auto commissionBalanceAfterTx = BalanceHelper::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
+                                                                           issuanceRequest->asset, mTestManager->getDB(),
+                                                                           nullptr);
+    REQUIRE(!!commissionBalanceAfterTx);
+    REQUIRE(commissionBalanceAfterTx->getAmount() == commissionBalanceBeforeTx->getAmount() + totalFee);
     // check balance
+    uint64_t destinationReceive = issuanceRequest->amount - totalFee;
     REQUIRE(!!balanceBeforeTx);
     auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
     REQUIRE(!!balanceAfterTx);
-    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + issuanceRequest->amount);
+    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + destinationReceive);
 }
 
 ReviewIssuanceRequestHelper::ReviewIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)

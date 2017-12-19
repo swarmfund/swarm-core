@@ -20,7 +20,7 @@ void AssetReviewChecker::checkApproval(AssetCreationRequest const& request,
         mTestManager->getDB(), &delta);
     REQUIRE(!!assetFrame);
     auto assetEntry = assetFrame->getAsset();
-    REQUIRE(assetEntry.availableForIssueance == 0);
+    REQUIRE(assetEntry.availableForIssueance == request.initialPreissuedAmount);
     REQUIRE(assetEntry.code == request.code);
     REQUIRE(assetEntry.description == request.description);
     REQUIRE(assetEntry.externalResourceLink == request.externalResourceLink);

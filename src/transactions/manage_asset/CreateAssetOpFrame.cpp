@@ -125,6 +125,12 @@ bool CreateAssetOpFrame::doCheckValid(Application & app)
 		return false;
 	}
 
+        if (mAssetCreationRequest.maxIssuanceAmount < mAssetCreationRequest.initialPreissuedAmount)
+        {
+            innerResult().code(ManageAssetResultCode::INITIAL_PREISSUED_EXCEEDS_MAX_ISSUANCE);
+            return false;
+        }
+
 	return true;
 }
 

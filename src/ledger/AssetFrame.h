@@ -78,6 +78,11 @@ public:
 		return mAsset.maxIssuanceAmount;
 	}
 
+        uint64_t getLockedIssuance() const
+    {
+            return mAsset.lockedIssuance;
+    }
+
 	AccountID const& getPreIssuedAssetSigner() const {
 		return mAsset.preissuedAssetSigner;
 	}
@@ -96,6 +101,8 @@ public:
 	bool tryAddAvailableForIssuance(uint64_t amount);
         // returns true, if able to withdrawl specified amount
         bool tryWithdraw(uint64_t amount);
+        // returns true, if able to lock issued amount
+        bool lockIssuedAmount(uint64_t amount);
 
     void setPolicies(int32 policies)
     {

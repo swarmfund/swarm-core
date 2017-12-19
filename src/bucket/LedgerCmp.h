@@ -157,6 +157,12 @@ struct LedgerEntryIdCmp
                     return false;
                 return ae.externalSystemType < be.externalSystemType;
             }
+        case LedgerEntryType::SALE:
+            {
+            auto const& as = a.sale();
+            auto const& bs = b.sale();
+            return as.saleID < bs.saleID;
+            }
         }
 
         return false;

@@ -54,6 +54,9 @@ protected:
 
 public:
 
+    virtual ReviewRequestResult applyReviewRequestTx(Account& source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason,
+        ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS);
+
     virtual ReviewRequestResult applyReviewRequestTx(
         Account& source, uint64_t requestID, Hash requestHash,
         ReviewableRequestType requestType,

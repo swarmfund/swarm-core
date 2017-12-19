@@ -41,14 +41,21 @@ ReviewableRequestFrame& ReviewableRequestFrame::operator=(ReviewableRequestFrame
     return *this;
 }
 
-ReviewableRequestFrame::pointer ReviewableRequestFrame::createNew(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference)
+ReviewableRequestFrame::pointer ReviewableRequestFrame::createNew(
+    LedgerDelta& delta, AccountID requestor, AccountID reviewer,
+    xdr::pointer<stellar::string64> reference)
+{
+    return createNew(delta.getHeaderFrame().generateID(LedgerEntryType::REVIEWABLE_REQUEST), requestor, reviewer, reference);
+}
+
+ReviewableRequestFrame::pointer ReviewableRequestFrame::createNew(uint64_t requestID, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference)
 {
 	LedgerEntry entry;
 	entry.data.type(LedgerEntryType::REVIEWABLE_REQUEST);
 	auto& request = entry.data.reviewableRequest();
 	request.requestor = requestor;
 	request.reviewer = reviewer;
-	request.requestID = delta.getHeaderFrame().generateID(LedgerEntryType::REVIEWABLE_REQUEST);
+	request.requestID = requestID;
 	request.reference = reference;
 	return make_shared<ReviewableRequestFrame>(entry);
 }
@@ -94,6 +101,18 @@ bool ReviewableRequestFrame::isWithdrawalValid(WithdrawalRequest const& request)
     default: break;
     }
     return isValid && request.amount > 0;
+}
+
+bool ReviewableRequestFrame::isSaleCreationValid(
+    SaleCreationRequest const& request)
+{
+    if (request.baseAsset == request.quoteAsset)
+        return false;
+    if (request.endTime <= request.startTime)
+        return false;
+    if (request.price == 0)
+        return false;
+    return request.softCap < request.hardCap;
 }
 
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)

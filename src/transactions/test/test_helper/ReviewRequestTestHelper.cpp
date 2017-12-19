@@ -76,6 +76,15 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
     return reviewResult;
 }
 
+ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(Account& source,
+    uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason,
+    ReviewRequestResultCode expectedResult)
+{
+    auto request = ReviewableRequestHelper::Instance()->loadRequest(requestID, mTestManager->getDB());
+    REQUIRE(!!request);
+    return applyReviewRequestTx(source, requestID, request->getHash(), request->getRequestType(), action, rejectReason, expectedResult);
+}
+
 TransactionFramePtr ReviewRequestHelper::createReviewRequestTx(
     Account& source, uint64_t requestID, Hash requestHash,
     ReviewableRequestType requestType, ReviewRequestOpAction action,

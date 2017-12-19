@@ -111,6 +111,16 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
                                                  ManageAssetResultCode::
                                                  INVALID_POLICIES);
         }
+        SECTION("Inital pre issuance amount exceeds max issuance")
+        {
+            const uint64_t maxIssuanceAmount = 100;
+            const auto request = manageAssetHelper.
+                createAssetCreationRequest("USDS", "USD S",
+                    root.key.getPublicKey(), "", "", maxIssuanceAmount,
+                    0, "123", maxIssuanceAmount + 1);
+            manageAssetHelper.applyManageAssetTx(root, 0, request,
+                ManageAssetResultCode::INITIAL_PREISSUED_EXCEEDS_MAX_ISSUANCE);
+        }
         SECTION("Trying to update non existsing request")
         {
             const auto request = manageAssetHelper.
@@ -201,7 +211,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             auto assetCreationRequest = manageAssetHelper.
                     createAssetCreationRequest(baseAsset, "ILS", SecretKey::random().getPublicKey(),
                                                "Israeli new shekel", "http://ils.com",
-                                               UINT64_MAX, baseAssetPolicy, "123");
+                                               UINT64_MAX, baseAssetPolicy, "123", 10203);
             auto creationResult = manageAssetHelper.applyManageAssetTx(root, 0, assetCreationRequest);
         }
 
@@ -270,11 +280,13 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
         auto preissuedSigner = SecretKey::random();
         auto manageAssetHelper = ManageAssetTestHelper(testManager);
         const AssetCode assetCode = "EURT";
+        const uint64_t maxIssuance = 102030;
+        const auto initialPreIssuedAmount = maxIssuance;
         auto creationRequest = manageAssetHelper.
             createAssetCreationRequest(assetCode, "New USD token",
                                        preissuedSigner.getPublicKey(),
                                        "Description can be quiete long",
-                                       "https://testusd.usd", 0, 0, "123");
+                                       "https://testusd.usd", maxIssuance, 0, "123", initialPreIssuedAmount);
         auto creationResult = manageAssetHelper.applyManageAssetTx(account, 0,
                                                                    creationRequest);
 

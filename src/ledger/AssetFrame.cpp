@@ -3,7 +3,6 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "AssetFrame.h"
-#include "crypto/SecretKey.h"
 #include "database/Database.h"
 #include "LedgerDelta.h"
 #include "ledger/LedgerManager.h"
@@ -11,7 +10,6 @@
 #include <util/basen.h>
 #include "util/format.h"
 #include "xdrpp/printer.h"
-#include "crypto/Hex.h"
 #include <locale>
 
 using namespace soci;
@@ -50,7 +48,7 @@ AssetFrame::pointer AssetFrame::create(AssetCreationRequest const & request, Acc
 	LedgerEntry le;
 	le.data.type(LedgerEntryType::ASSET);
 	AssetEntry& asset = le.data.asset();
-	asset.availableForIssueance = 0;
+	asset.availableForIssueance = request.initialPreissuedAmount;
 	asset.code = request.code;
 	asset.description = request.description;
 	asset.externalResourceLink = request.externalResourceLink;
@@ -85,7 +83,7 @@ AssetFrame::pointer AssetFrame::createSystemAsset(AssetCode code, AccountID cons
 
 bool AssetFrame::willExceedMaxIssuanceAmount(uint64_t amount) {
 	uint64_t issued;
-	if (!safeSum(mAsset.issued, amount, issued)) {
+	if (!safeSum(issued, { mAsset.issued, amount, mAsset.lockedIssuance})) {
 		return true;
 	}
 
@@ -137,6 +135,26 @@ bool AssetFrame::tryWithdraw(const uint64_t amount)
     return true;
 }
 
+bool AssetFrame::lockIssuedAmount(const uint64_t amount)
+{
+    uint64_t currentlyLockedForIssuance;
+    if (!safeSum(currentlyLockedForIssuance, {mAsset.issued, mAsset.lockedIssuance}))
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Overflow on sum of issued and lockedIssuance " << mAsset.code;
+        throw runtime_error("Overflow on sum of issued and lockedIssuance");
+    }
+
+    uint64_t updatedLockedForIssuance;
+    if (!safeSum(currentlyLockedForIssuance, amount, updatedLockedForIssuance))
+    {
+        return false;
+    }
+
+    mAsset.lockedIssuance = updatedLockedForIssuance;
+    return mAsset.maxIssuanceAmount <= updatedLockedForIssuance;
+
+}
+
 bool AssetFrame::isAssetCodeValid(AssetCode const & code)
 {
 	bool zeros = false;
@@ -168,11 +186,23 @@ bool
 AssetFrame::isValid(AssetEntry const& oe)
 {
 	uint64_t canBeIssued;
-	if (!safeSum(oe.issued, oe.availableForIssueance, canBeIssued)) {
+	if (!safeSum(canBeIssued, { oe.issued, oe.availableForIssueance})) {
 		return false;
 	}
 
-	return isAssetCodeValid(oe.code) && oe.maxIssuanceAmount >= canBeIssued;
+        if (oe.maxIssuanceAmount < canBeIssued)
+            return false;
+
+        uint64_t totalIssuedOrLocked;
+    if (!safeSum(totalIssuedOrLocked, {oe.issued, oe.lockedIssuance}))
+    {
+        return false;
+    }
+
+    if (oe.maxIssuanceAmount < totalIssuedOrLocked)
+        return false;
+
+	return isAssetCodeValid(oe.code);
 }
 
 bool

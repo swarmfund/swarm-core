@@ -23,7 +23,19 @@ namespace txtest
 	{
 	}
 
-	ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
+void ManageAssetTestHelper::createApproveRequest(Account& root, Account& source,
+                                                 const ManageAssetOp::_request_t request)
+{
+    auto requestCreationResult = applyManageAssetTx(source, 0, request);
+    if (requestCreationResult.success().fulfilled)
+        return;
+    auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(requestCreationResult.success().requestID, mTestManager->getDB());
+    auto reviewHelper = ReviewAssetRequestHelper(mTestManager);
+    reviewHelper.applyReviewRequestTx(root, requestCreationResult.success().requestID, requestFrame->getHash(), requestFrame->getRequestType(),
+        ReviewRequestOpAction::APPROVE, "");
+}
+
+ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
 	{
 		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
@@ -106,7 +118,8 @@ namespace txtest
 			std::string externalResourceLink,
 			uint64_t maxIssuanceAmount,
 			uint32_t policies,
-			std::string logoID)
+			std::string logoID,
+                        uint64_t initialPreissuanceAmount)
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CREATE_ASSET_CREATION_REQUEST);
@@ -119,6 +132,7 @@ namespace txtest
 		assetCreationRequest.policies = policies;
 		assetCreationRequest.preissuedAssetSigner = preissuedAssetSigner;
 		assetCreationRequest.logoID = logoID;
+                assetCreationRequest.initialPreissuedAmount = initialPreissuanceAmount;
 		return request;
 	}
 
@@ -150,7 +164,7 @@ namespace txtest
 	void ManageAssetTestHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root, uint32_t policies)
 	{
             auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
-                "Description can be quiete long", "https://testusd.usd", UINT64_MAX, policies, "123");
+                "Description can be quiete long", "https://testusd.usd", UINT64_MAX, policies, "123", 0);
             auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 
             auto accountHelper = AccountHelper::Instance();

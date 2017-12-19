@@ -221,17 +221,6 @@ namespace stellar
 		if (!mustValidFeeAmounts(fee, metrics))
 			return false;
 
-		if (!mustEmptyFixed(fee, metrics))
-			return false;
-
-		if (fee.subtype != static_cast<int32_t>(EmissionFeeType::PRIMARY_MARKET) &&
-				fee.subtype != static_cast<int32_t>(EmissionFeeType::SECONDARY_MARKET))
-		{
-			innerResult().code(SetFeesResultCode::MALFORMED);
-			metrics.NewMeter({ "op-set-fees", "invalid", "invalid-sub-type" }, "operation").Mark();
-			return false;
-		}
-
 		return true;
 	}
 

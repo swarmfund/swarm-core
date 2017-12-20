@@ -31,6 +31,9 @@ class CreateWithdrawalRequestOpFrame : public OperationFrame
 
     bool tryLockBalance(BalanceFrame::pointer balance);
 
+    bool tryAddStats(AccountManager& accountManager, BalanceFrame::pointer balance, uint64_t amountToAdd,
+                         uint64_t& universalAmount);
+
 public:
 
     CreateWithdrawalRequestOpFrame(Operation const& op, OperationResult& res,

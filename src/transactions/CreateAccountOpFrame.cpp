@@ -22,21 +22,6 @@ namespace stellar {
                                                OperationResult &res,
                                                TransactionFrame &parentTx)
             : OperationFrame(op, res, parentTx), mCreateAccount(mOperation.body.createAccountOp()) {
-
-        allowedSignerClassHelper[AccountType::NOT_VERIFIED] = [this]() {
-            return static_cast<uint32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
-        };
-
-        allowedSignerClassHelper[AccountType::GENERAL] = [this]() {
-            if (mCreateAccount.policies != 0) {
-                return static_cast<uint32_t>(SignerType::GENERAL_ACC_MANAGER);
-            }
-            return static_cast<uint32_t>(SignerType::GENERAL_ACC_MANAGER)
-                   | static_cast<uint32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
-        };
-
-        allowedSignerClassHelper[AccountType::SYNDICATE] = allowedSignerClassHelper[AccountType::GENERAL];
-
     }
 
     unordered_map<AccountID, CounterpartyDetails> CreateAccountOpFrame::
@@ -52,11 +37,24 @@ namespace stellar {
     const {
         const auto threshold = mSourceAccount->getMediumThreshold();
         uint32_t allowedSignerClass = 0;
-        auto allowedSignerClassIterator = allowedSignerClassHelper.find(mCreateAccount.accountType);
-        if (allowedSignerClassIterator != allowedSignerClassHelper.end()) {
-            allowedSignerClass = allowedSignerClassIterator->second();
+        switch (mCreateAccount.accountType) {
+            case AccountType::NOT_VERIFIED:
+                allowedSignerClass = static_cast<uint32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
+                break;
+            case AccountType::GENERAL:
+            case AccountType::SYNDICATE:
+                if (mCreateAccount.policies != 0) {
+                    allowedSignerClass = static_cast<uint32_t>(SignerType::GENERAL_ACC_MANAGER);
+                    break;
+                }
+                allowedSignerClass = static_cast<uint32_t>(SignerType::GENERAL_ACC_MANAGER)
+                                     | static_cast<uint32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
+                break;
+            default:
+                // it is not allowed to create or update any other account types
+                allowedSignerClass = 0;
+                break;
         }
-
         return SourceDetails({AccountType::MASTER}, threshold, allowedSignerClass);
     }
 
@@ -105,6 +103,7 @@ namespace stellar {
         auto &db = app.getDatabase();
         auto destAccountFrame = make_shared<AccountFrame>(mCreateAccount.destination);
         storeAccount(app, delta, destAccountFrame);
+        EntryHelperProvider::storeAddEntry(delta, db, destAccountFrame->mEntry);
         AccountManager accountManager(app, db, delta, ledgerManager);
         accountManager.createStats(destAccountFrame);
         // create balance for all available base assets
@@ -161,6 +160,7 @@ namespace stellar {
         }
 
         storeAccount(app, delta, destAccountFrame);
+        EntryHelperProvider::storeChangeEntry(delta, db, destAccountFrame->mEntry);
         return true;
     }
 
@@ -202,7 +202,6 @@ namespace stellar {
         destAccount.accountType = mCreateAccount.accountType;
         trySetReferrer(app, db, destAccountFrame);
         destAccount.policies = mCreateAccount.policies;
-        EntryHelperProvider::storeAddOrChangeEntry(delta, db, destAccountFrame->mEntry);
         storeExternalSystemsIDs(app, delta, db, destAccountFrame);
     }
 }

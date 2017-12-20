@@ -7,6 +7,13 @@ namespace stellar
 {
 namespace txtest
 {
+
+    class CreateAccountChecker {
+    public:
+        TestManager::pointer mTestManager;
+
+    };
+
     class CreateAccountTestHelper : TxHelper
     {
     public:

@@ -120,6 +120,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                                  static_cast<int32_t>(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
         }
     }
+
     SECTION("Can't create account with non-zero policies and NON_VERYFIED type") {
         auto account = SecretKey::random();
         AccountID validReferrer = rootKP.getPublicKey();

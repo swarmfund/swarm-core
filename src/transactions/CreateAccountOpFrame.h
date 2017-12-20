@@ -23,9 +23,6 @@ namespace stellar {
         }
 
     private:
-
-        typedef std::function<uint32_t()> AllowedSignerGetter;
-
         CreateAccountResult &innerResult() {
             return mResult.tr().createAccountResult();
         }
@@ -50,7 +47,5 @@ namespace stellar {
                 counterpartiesDetails) const override;
 
         CreateAccountOp const &mCreateAccount;
-
-        std::map<AccountType, AllowedSignerGetter> allowedSignerClassHelper;
     };
 }

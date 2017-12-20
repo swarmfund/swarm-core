@@ -3,6 +3,8 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
+#include <ledger/FeeHelper.h>
+#include <ledger/AccountHelper.h>
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
@@ -47,6 +49,44 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 		auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
 		REQUIRE(!issuanceRequest);
 	}
+    
+    SECTION("charge fee on issuance") 
+    {
+        //set ISSUANCE_FEE for newAccount
+        uint64_t percentFee = 1 * ONE;
+        uint64_t fixedFee = preIssuedAmount/2;
+        AccountID account = newAccountKP.getPublicKey();
+        auto feeEntry = createFeeEntry(FeeType::ISSUANCE_FEE, fixedFee, percentFee, assetCode, &account, nullptr);
+        applySetFees(testManager->getApp(), root.key, root.getNextSalt(), &feeEntry, false);
+
+        auto accountFrame = AccountHelper::Instance()->loadAccount(account, testManager->getDB());
+        auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::ISSUANCE_FEE, assetCode, FeeFrame::SUBTYPE_ANY,
+                                                              accountFrame, preIssuedAmount, testManager->getDB());
+        REQUIRE(feeFrame);
+
+        SECTION("successful issuance")
+        {
+            auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, preIssuedAmount,
+                                                                                          newAccountBalance->getBalanceID(), newAccountKP.getStrKeyPublic());
+            uint64_t percentFeeToPay = 0;
+            feeFrame->calculatePercentFee(preIssuedAmount, percentFeeToPay, ROUND_UP);
+
+            REQUIRE(issuanceRequestResult.success().fee.fixed == fixedFee);
+            REQUIRE(issuanceRequestResult.success().fee.percent == percentFeeToPay);
+        }
+
+        SECTION("total fee exceeds issuance amount")
+        {
+            uint64_t insufficientAmount = fixedFee;
+            auto result = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode,
+                                                                           insufficientAmount,
+                                                                           newAccountBalance->getBalanceID(),
+                                                                           newAccountKP.getStrKeyPublic(),
+                                                                           CreateIssuanceRequestResultCode::FEE_EXCEEDS_AMOUNT);
+        }
+
+    }
+    
 	SECTION("Request was created but was not auto reviwed")
 	{
 		// request was create but not fulfilleds as amount of pre issued asset is insufficient

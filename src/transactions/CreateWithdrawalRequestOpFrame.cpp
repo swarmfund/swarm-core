@@ -217,15 +217,12 @@ bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager,
     switch (result) {
         case AccountManager::SUCCESS:
             return true;
-            break;
         case AccountManager::STATS_OVERFLOW:
             innerResult().code(CreateWithdrawalRequestResultCode::STATS_OVERFLOW);
-            false;
-            break;
+            return false;
         case AccountManager::LIMITS_EXCEEDED:
             innerResult().code(CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
-            false;
-            break;
+            return false;
         default:
             CLOG(ERROR, "CreateWithdrawalRequestOp") << "Unexpeced result from accountManager when updating stats";
             throw std::runtime_error("Unexpected state from accountManager when updating stats");

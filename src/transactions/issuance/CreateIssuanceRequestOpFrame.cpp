@@ -95,6 +95,12 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 		innerResult().code(CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
 		return false;
 	}
+
+	if (mCreateIssuanceRequest.request.externalDetails.size() > app.
+		getIssuanceDetailsMaxLength())
+	{
+		innerResult().code(CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS);
+	}
 	
     return true;
 }

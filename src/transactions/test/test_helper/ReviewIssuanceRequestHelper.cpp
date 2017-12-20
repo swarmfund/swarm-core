@@ -3,6 +3,8 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <transactions/review_request/ReviewRequestOpFrame.h>
+#include <ledger/FeeHelper.h>
+#include <ledger/AccountHelper.h>
 #include "ReviewIssuanceRequestHelper.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
@@ -55,19 +57,28 @@ void ReviewIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(!!assetFrameAfterTx);
     REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() - issuanceRequest->amount);
     REQUIRE(assetFrameAfterTx->getIssued() == assetFrameBeforeTx->getIssued() + issuanceRequest->amount);
-    //check commission balance change
-    REQUIRE(!!commissionBalanceBeforeTx);
-    uint64_t totalFee = issuanceRequest->fee.fixed + issuanceRequest->fee.percent;
-    auto commissionBalanceAfterTx = BalanceHelper::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
-                                                                           issuanceRequest->asset, mTestManager->getDB(),
-                                                                           nullptr);
-    REQUIRE(!!commissionBalanceAfterTx);
-    REQUIRE(commissionBalanceAfterTx->getAmount() == commissionBalanceBeforeTx->getAmount() + totalFee);
-    // check balance
-    uint64_t destinationReceive = issuanceRequest->amount - totalFee;
     REQUIRE(!!balanceBeforeTx);
+    auto receiverFrame = AccountHelper::Instance()->loadAccount(balanceBeforeTx->getAccountID(), mTestManager->getDB());
+    auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::ISSUANCE_FEE, issuanceRequest->asset,
+                                                          FeeFrame::SUBTYPE_ANY, receiverFrame, issuanceRequest->amount,
+                                                          mTestManager->getDB());
+    uint64_t totalFee = 0;
+    if (feeFrame) {
+        REQUIRE(feeFrame->calculatePercentFee(issuanceRequest->amount, totalFee, ROUND_UP));
+        totalFee += feeFrame->getFee().fixedFee;
+        REQUIRE(!!commissionBalanceBeforeTx);
+        auto commissionBalanceAfterTx = BalanceHelper::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
+                                                                               issuanceRequest->asset, mTestManager->getDB(),
+                                                                               nullptr);
+        REQUIRE(!!commissionBalanceAfterTx);
+        //check commission balance change
+        REQUIRE(commissionBalanceAfterTx->getAmount() == commissionBalanceBeforeTx->getAmount() + totalFee);
+    }
+
+    // check balance
     auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(issuanceRequest->receiver, mTestManager->getDB());
     REQUIRE(!!balanceAfterTx);
+    uint64_t destinationReceive = issuanceRequest->amount - totalFee;
     REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + destinationReceive);
 }
 

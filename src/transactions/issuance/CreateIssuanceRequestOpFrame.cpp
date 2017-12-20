@@ -152,40 +152,46 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
-    Fee fee = calculateFee(balance->getAccountID(), db);
+    Fee feeToPay;
+    if (!calculateFee(balance->getAccountID(), db, feeToPay)) {
+        innerResult().code(CreateIssuanceRequestResultCode::FEE_EXCEEDS_AMOUNT);
+        return nullptr;
+    }
 
 	auto reference = xdr::pointer<stellar::string64>(new stellar::string64(mCreateIssuanceRequest.reference));
 	ReviewableRequestEntry::_body_t body;
 	body.type(ReviewableRequestType::ISSUANCE_CREATE);
 	body.issuanceRequest() = mCreateIssuanceRequest.request;
-    body.issuanceRequest().fee = fee;
+    body.issuanceRequest().fee = feeToPay;
 	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference,
                                                              body, ledgerManager.getCloseTime());
 	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	return request;
 }
 
-Fee CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db)
+bool CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db, Fee &fee)
 {
     // calculate fee which will be charged from receiver
-    Fee fee;
     fee.percent = 0;
     fee.fixed = 0;
-    auto receiverFrame = AccountHelper::Instance()->mustLoadAccount(receiver, db);
-    if (!isSystemAccountType(receiverFrame->getAccountType()))
-    {
-        auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::EMISSION_FEE, mCreateIssuanceRequest.request.asset,
-                                                              FeeFrame::SUBTYPE_ANY, receiverFrame,
-                                                              mCreateIssuanceRequest.request.amount, db);
-        if (feeFrame) {
-            fee.fixed = feeFrame->getFee().fixedFee;
-            feeFrame->calculatePercentFee(mCreateIssuanceRequest.request.amount, fee.percent, ROUND_UP);
-        }
-    }
-    if (fee.fixed + fee.percent > mCreateIssuanceRequest.request.amount)
-        throw std::runtime_error("Unexpected state. Total fee exceeds issuance amount");
 
-    return fee;
+    auto receiverFrame = AccountHelper::Instance()->mustLoadAccount(receiver, db);
+    if (isSystemAccountType(receiverFrame->getAccountType()))
+        return true;
+
+    auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::ISSUANCE_FEE, mCreateIssuanceRequest.request.asset,
+                                                          FeeFrame::SUBTYPE_ANY, receiverFrame,
+                                                          mCreateIssuanceRequest.request.amount, db);
+    if (feeFrame) {
+        fee.fixed = feeFrame->getFee().fixedFee;
+        feeFrame->calculatePercentFee(mCreateIssuanceRequest.request.amount, fee.percent, ROUND_UP);
+    }
+
+    uint64_t totalFee = 0;
+    if (!safeSum(fee.fixed, fee.percent, totalFee))
+        throw std::runtime_error("totalFee overflows uint64");
+
+    return totalFee < mCreateIssuanceRequest.request.amount;
 }
 
 }

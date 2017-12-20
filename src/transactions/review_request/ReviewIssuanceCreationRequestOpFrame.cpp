@@ -64,9 +64,21 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
 		throw std::runtime_error("Expected receiver to exist");
 	}
 
-    uint64_t totalFee = getTotalFee(request->getRequestID(), issuanceCreationRequest.fee);
-    assert(issuanceCreationRequest.amount > totalFee);
-    transferFee(app, ledgerManager.getDatabase(), delta, request);
+    uint64_t totalFee = 0;
+    if (!safeSum(issuanceCreationRequest.fee.fixed, issuanceCreationRequest.fee.percent, totalFee)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "totalFee overflows uint64 for request: " << request->getRequestID();
+        throw std::runtime_error("totalFee overflows uint64");
+    }
+
+    if (totalFee >= issuanceCreationRequest.amount) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. totalFee exceeds amount for request: "
+                                               << request->getRequestID();
+        throw std::runtime_error("Unexpected state. totalFee exceeds amount");
+    }
+
+    //transfer fee
+    AccountManager accountManager(app, db, delta, ledgerManager);
+    accountManager.transferFee(issuanceCreationRequest.asset, totalFee);
 
     uint64_t destinationReceive = issuanceCreationRequest.amount - totalFee;
     if (!receiver->tryFundAccount(destinationReceive)) {
@@ -96,25 +108,6 @@ SourceDetails ReviewIssuanceCreationRequestOpFrame::getSourceAccountDetails(std:
 ReviewIssuanceCreationRequestOpFrame::ReviewIssuanceCreationRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :
 	ReviewRequestOpFrame(op, res, parentTx)
 {
-}
-
-void ReviewIssuanceCreationRequestOpFrame::transferFee(Application &app, Database &db, LedgerDelta &delta,
-                                                       ReviewableRequestFrame::pointer request)
-{
-    auto issuanceRequest = request->getRequestEntry().body.issuanceRequest();
-    uint64_t totalFee = getTotalFee(request->getRequestID(), issuanceRequest.fee);
-    if (totalFee == 0)
-        return;
-
-    auto commissionBalance = BalanceHelper::Instance()->mustLoadBalance(app.getCommissionID(), db);
-
-    if (!commissionBalance->tryFundAccount(totalFee)) {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to fund commission balance with fee for issuance - overflow:"
-                                               << request->getRequestID();
-        throw runtime_error("Failed to fund commission balance with fee");
-    }
-
-    EntryHelperProvider::storeChangeEntry(delta, db, commissionBalance->mEntry);
 }
 
 }

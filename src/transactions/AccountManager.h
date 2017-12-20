@@ -66,5 +66,7 @@ public:
                     uint64_t &universalAmount);
 
     void revertStats(AccountID account, uint64_t universalAmount, time_t timePerformed);
+
+    void transferFee(AssetCode asset, uint64_t totalFee);
 };
 }

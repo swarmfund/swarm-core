@@ -16,9 +16,7 @@ protected:
 	bool handleReject(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) override;
 
 	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
-    
-    void transferFee(Application &app, Database &db, LedgerDelta &delta, ReviewableRequestFrame::pointer request);
-  public:
+public:
 
 	  ReviewIssuanceCreationRequestOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);

@@ -3,6 +3,8 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include <transactions/test/test_helper/ManageAssetPairTestHelper.h>
+#include <ledger/AccountHelper.h>
+#include <ledger/FeeHelper.h>
 #include "main/test.h"
 #include "TxTests.h"
 #include "crypto/SHA.h"
@@ -76,7 +78,7 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
                                                                            zeroFee, "{}", withdrawDestAsset,
                                                                            expectedAmountInDestAsset);
 
-        auto withdrawResult = WithdrawRequestHelper(testManager).applyCreateWithdrawRequest(withdrawer, withdrawRequest);
+        auto withdrawResult = withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest);
         SECTION("Approve")
         {
             reviewWithdrawHelper.applyReviewRequestTx(root, withdrawResult.success().requestID, ReviewRequestOpAction::APPROVE, "");
@@ -85,6 +87,30 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
         {
             reviewWithdrawHelper.applyReviewRequestTx(root, withdrawResult.success().requestID, ReviewRequestOpAction::PERMANENT_REJECT,
                 "Invalid external details");
+        }
+        SECTION("Set withdrawal fee and approve")
+        {
+            uint64_t percentFee = 1 * ONE;
+            uint64_t fixedFee = amountToWithdraw/2;
+            AccountID account = withdrawerBalance->getAccountID();
+            auto feeEntry = createFeeEntry(FeeType::WITHDRAWAL_FEE, fixedFee, percentFee, asset, &account, nullptr);
+            applySetFees(testManager->getApp(), root.key, root.getNextSalt(), &feeEntry, false);
+
+            auto accountFrame = AccountHelper::Instance()->loadAccount(account, testManager->getDB());
+            auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::WITHDRAWAL_FEE, asset, FeeFrame::SUBTYPE_ANY,
+                                                                  accountFrame, preIssuedAmount, testManager->getDB());
+            REQUIRE(feeFrame);
+
+            Fee fee;
+            fee.fixed = fixedFee;
+            REQUIRE(feeFrame->calculatePercentFee(amountToWithdraw, fee.percent, ROUND_UP));
+            auto withdrawWithFeeRequest = withdrawRequestHelper.createWithdrawRequest(withdrawerBalance->getBalanceID(),
+                                                                                      amountToWithdraw, fee, "{}",
+                                                                                      withdrawDestAsset, expectedAmountInDestAsset);
+            auto result = withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawWithFeeRequest);
+
+            //approve request
+            reviewWithdrawHelper.applyReviewRequestTx(root, result.success().requestID, ReviewRequestOpAction::APPROVE, "");
         }
     }
 

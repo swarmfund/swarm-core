@@ -263,4 +263,13 @@ void AccountManager::transferFee(AssetCode asset, uint64_t totalFee)
     EntryHelperProvider::storeChangeEntry(mDelta, mDb, commissionBalance->mEntry);
 }
 
+void AccountManager::transferFee(AssetCode asset, Fee fee)
+{
+    uint64_t totalFee = 0;
+    if (!safeSum(fee.fixed, fee.percent, totalFee))
+        throw std::runtime_error("totalFee overflows uin64");
+
+    transferFee(asset, totalFee);
+}
+
 }

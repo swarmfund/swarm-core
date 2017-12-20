@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/TestManager.h>
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
+#include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include "main/Application.h"
 #include "util/Timer.h"
 #include "main/Config.h"
@@ -28,7 +29,16 @@ TEST_CASE("create account", "[tx][create_account]") {
     Application::pointer appPtr = Application::create(clock, cfg);
     Application &app = *appPtr;
     app.start();
-    closeLedgerOn(app, 2, 1, 7, 2014);
+
+    auto testManager = TestManager::make(app);
+    auto root = Account{ getRoot(), Salt(0) };
+
+    auto accountKP = SecretKey::random();
+    auto createAccountTestHelper =
+            CreateAccountTestHelper(testManager)
+                    .setAccountType(AccountType::GENERAL)
+                    .setFromAccount(root)
+                    .setToPublicKey(accountKP.getPublicKey());
 
     upgradeToCurrentLedgerVersion(app);
 
@@ -36,13 +46,9 @@ TEST_CASE("create account", "[tx][create_account]") {
                       app.getDatabase());
 
     // set up world
-    SecretKey rootKP = getRoot();
-    Salt rootSeq = 1;
-    auto testManager = TestManager::make(app);
     ManageAssetTestHelper manageAssetHelper(testManager);
-    Account rootAccount = {rootKP, rootSeq};
     AssetCode baseAsset = "USD";
-    manageAssetHelper.createAsset(rootAccount, rootKP, baseAsset, rootAccount,
+    manageAssetHelper.createAsset(root, root.key , baseAsset, root,
                                   static_cast<uint32_t>(AssetPolicy::BASE_ASSET));
 
     auto accountHelper = AccountHelper::Instance();
@@ -50,7 +56,9 @@ TEST_CASE("create account", "[tx][create_account]") {
 
     SECTION("External system account id are generated") {
         auto randomAccount = SecretKey::random();
-        applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::NOT_VERIFIED);
+        auto randomAccHelper = createAccountTestHelper.setToPublicKey(randomAccount.getPublicKey())
+                .setAccountType(AccountType::NOT_VERIFIED);
+        randomAccHelper.applyCreateAccountTx();
         const auto btcKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
                                                                 ExternalSystemType::BITCOIN, app.getDatabase());
         REQUIRE(!!btcKey);
@@ -58,7 +66,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                                                                 ExternalSystemType::ETHEREUM, app.getDatabase());
         REQUIRE(!!ethKey);
         SECTION("Can update account, but ext keys will be the same") {
-            applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::GENERAL);
+            randomAccHelper.setAccountType(AccountType::GENERAL).applyCreateAccountTx();
             const auto btcKeyAfterUpdate = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
                                                                                ExternalSystemType::BITCOIN,
                                                                                app.getDatabase());
@@ -72,7 +80,7 @@ TEST_CASE("create account", "[tx][create_account]") {
     SECTION("Can't create system account") {
         for (auto systemAccountType : getSystemAccountTypes()) {
             auto randomAccount = SecretKey::random();
-            auto createAccount = createCreateAccountTx(app.getNetworkID(), rootKP, randomAccount, 0, systemAccountType);
+            auto createAccount = createCreateAccountTx(app.getNetworkID(), root.key, randomAccount, 0, systemAccountType);
             applyCheck(createAccount, delta, app);
             REQUIRE(getFirstResult(*createAccount).code() == OperationResultCode::opNOT_ALLOWED);
         }
@@ -80,7 +88,7 @@ TEST_CASE("create account", "[tx][create_account]") {
 
     SECTION("Can set and update account policies") {
         auto account = SecretKey::random();
-        AccountID validReferrer = rootKP.getPublicKey();
+        AccountID validReferrer = root.key.getPublicKey();
         auto checkAccountPolicies = [&app, &delta](AccountID accountID, LedgerVersion expectedAccountVersion,
                                                    int32 expectedPolicies) {
             auto accountHelper = AccountHelper::Instance();
@@ -90,6 +98,7 @@ TEST_CASE("create account", "[tx][create_account]") {
             if (expectedPolicies != -1)
                 REQUIRE(accountFrame->getAccount().policies == expectedPolicies);
         };
+
         SECTION("Can update created without policies") {
             applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::NOT_VERIFIED, nullptr, &validReferrer);
             checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, -1);

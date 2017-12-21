@@ -57,5 +57,7 @@ protected:
 	std::string getInnerResultCodeAsStr() override {
 		return xdr::xdr_traits<ReviewRequestResultCode>::enum_name(innerResult().code());
 	}
+
+    static uint64_t getTotalFee(uint64_t requestID, Fee fee); 
 };
 }

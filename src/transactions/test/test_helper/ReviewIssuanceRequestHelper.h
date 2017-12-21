@@ -26,6 +26,7 @@ namespace txtest
             std::shared_ptr<IssuanceRequest> issuanceRequest;
             AssetFrame::pointer assetFrameBeforeTx;
             BalanceFrame::pointer balanceBeforeTx;
+            BalanceFrame::pointer commissionBalanceBeforeTx;
             
         };
 	class ReviewIssuanceRequestHelper : public ReviewRequestHelper

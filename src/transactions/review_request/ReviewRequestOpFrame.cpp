@@ -157,4 +157,15 @@ bool ReviewRequestOpFrame::isRejectReasonValid()
 	return !mReviewRequest.reason.empty();
 }
 
+uint64_t ReviewRequestOpFrame::getTotalFee(uint64_t requestID, Fee fee)
+{
+    uint64_t totalFee = 0;
+    if (!safeSum(requestID, fee.fixed, fee.percent)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate total fee for issuance request: " << requestID;
+        throw runtime_error("Failed to calculate total fee for issuance request");
+    }
+
+    return totalFee;
+}    
+
 }

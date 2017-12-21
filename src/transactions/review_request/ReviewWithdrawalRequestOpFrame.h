@@ -21,9 +21,7 @@ protected:
         uint64_t getTotalFee(const uint64_t requestID, WithdrawalRequest& withdrawalRequest);
         // returns total amount to be charged, throws exception if overflow
         uint64_t getTotalAmountToCharge(const uint64_t requestID, WithdrawalRequest& withdrawalRequest);
-
-        void transferFee(Application& app, Database& db, LedgerDelta& delta, ReviewableRequestFrame::pointer request, BalanceFrame::pointer balance);
-  public:
+public:
 
 	  ReviewWithdrawalRequestOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);

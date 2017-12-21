@@ -169,6 +169,16 @@ bool ReviewWithdrawalRequestOpFrame::handlePermanentReject(Application& app,
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state. Failed to unlock locked amount. requestID: " << request->getRequestID();
         throw runtime_error("Unexected db state. Failed to unlock locked amount");
     }
+
+    uint64_t universalAmount = request->getRequestEntry().body.withdrawalRequest().universalAmount;
+    if (universalAmount > 0)
+    {
+        AccountManager accountManager(app, ledgerManager.getDatabase(), delta, ledgerManager);
+        AccountID requestor = request->getRequestor();
+        time_t timePerformed = request->getCreatedAt();
+        accountManager.revertStats(requestor, universalAmount, timePerformed);
+    }
+
     EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
     return ReviewRequestOpFrame::handlePermanentReject(app, delta, ledgerManager, request);
 }

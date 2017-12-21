@@ -54,7 +54,8 @@ ReviewableRequestFrame::pointer ManageAssetOpFrame::getOrCreateReviewableRequest
 {
 	if (mManageAsset.requestID == 0) {
 	        const auto reference = xdr::pointer<string64>(new string64(getAssetCode()));
-		return ReviewableRequestFrame::createNew(delta, getSourceID(), app.getMasterID(), reference);
+		return ReviewableRequestFrame::createNew(delta, getSourceID(), app.getMasterID(), reference,
+                                                 app.getLedgerManager().getCloseTime());
 	}
 
 	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();

@@ -23,7 +23,7 @@ std::unordered_map<AccountID, CounterpartyDetails> SetOptionsOpFrame::getCounter
 
 SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED}, mSourceAccount->getHighThreshold(),
+	return SourceDetails({AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), static_cast<int32_t>(BlockReasons::KYC_UPDATE));
 }
 

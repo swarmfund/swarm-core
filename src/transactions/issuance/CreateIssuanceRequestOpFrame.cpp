@@ -154,7 +154,8 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 	ReviewableRequestEntry::_body_t body;
 	body.type(ReviewableRequestType::ISSUANCE_CREATE);
 	body.issuanceRequest() = mCreateIssuanceRequest.request;
-	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference, body);
+	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference,
+                                                             body, ledgerManager.getCloseTime());
 	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	return request;
 }

@@ -40,10 +40,12 @@ class ReviewableRequestFrame : public EntryFrame
 
     ReviewableRequestFrame& operator=(ReviewableRequestFrame const& other);
 
-    static pointer createNew(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference);
-	static pointer createNew(uint64_t requestID, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference);
+	static pointer createNew(LedgerDelta &delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference,
+                                 time_t createdAt);
 	// creates new reviewable request and calculates hash for it
-	static pointer createNewWithHash(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body);
+	static pointer createNewWithHash(LedgerDelta &delta, AccountID requestor, AccountID reviewer,
+                                     xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body,
+                                     time_t createdAt);
 
 	void setBody(ReviewableRequestEntry::_body_t body) {
 		mRequest.body = body;
@@ -93,6 +95,10 @@ class ReviewableRequestFrame : public EntryFrame
 	ReviewableRequestType getType() {
 		return mRequest.body.type();
 	}
+
+    time_t getCreatedAt() {
+        return mRequest.createdAt;
+    }
 
 	void setRejectReason(stellar::string256 rejectReason) {
 		mRequest.rejectReason = rejectReason;

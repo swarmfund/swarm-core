@@ -21,6 +21,7 @@ class WithdrawReviewChecker : public ReviewChecker
     BalanceFrame::pointer balanceBeforeTx;
     BalanceFrame::pointer commissionBalanceBeforeTx;
     AssetFrame::pointer assetBeforeTx;
+    StatisticsFrame::pointer statsBeforeTx;
 public:
     WithdrawReviewChecker(TestManager::pointer testManager, uint64_t requestID);
     void checkApprove(ReviewableRequestFrame::pointer) override;

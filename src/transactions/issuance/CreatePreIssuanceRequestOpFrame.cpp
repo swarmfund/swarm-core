@@ -68,7 +68,8 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 	ReviewableRequestEntry::_body_t requestBody;
 	requestBody.type(ReviewableRequestType::PRE_ISSUANCE_CREATE);
 	requestBody.preIssuanceRequest() = mCreatePreIssuanceRequest.request;
-	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), reference, requestBody);
+	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), reference,
+                                                             requestBody, ledgerManager.getCloseTime());
 	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	innerResult().code(CreatePreIssuanceRequestResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();

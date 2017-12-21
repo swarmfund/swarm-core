@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/StatisticsHelper.h>
 #include "ReviewWithdrawalRequestHelper.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
@@ -32,6 +33,8 @@ WithdrawReviewChecker::WithdrawReviewChecker(TestManager::pointer testManager, c
         balanceBeforeTx->getAsset(), mTestManager->getDB(), nullptr);
     assetBeforeTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
 
+    AccountID requestor = request->getRequestor();
+    statsBeforeTx = StatisticsHelper::Instance()->loadStatistics(requestor, mTestManager->getDB());
 }
 
 void WithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
@@ -63,14 +66,23 @@ void WithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
 }
 
 void WithdrawReviewChecker::checkPermanentReject(
-    ReviewableRequestFrame::pointer)
+    ReviewableRequestFrame::pointer request)
 {
     auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
-    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + withdrawalRequest->amount + withdrawalRequest->fee.percent + withdrawalRequest->fee.percent);
-    REQUIRE(balanceBeforeTx->getLocked() == balanceAfterTx->getLocked() + withdrawalRequest->amount + withdrawalRequest->fee.percent + withdrawalRequest->fee.percent);
+    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + withdrawalRequest->amount + withdrawalRequest->fee.fixed + withdrawalRequest->fee.percent);
+    REQUIRE(balanceBeforeTx->getLocked() == balanceAfterTx->getLocked() + withdrawalRequest->amount + withdrawalRequest->fee.fixed + withdrawalRequest->fee.percent);
     
     auto assetAfterTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
     REQUIRE(assetAfterTx->getIssued() == assetBeforeTx->getIssued());
+
+    AccountID requestor = request->getRequestor();
+    auto statsAfterTx = StatisticsHelper::Instance()->mustLoadStatistics(requestor, mTestManager->getDB());
+
+    uint64_t universalAmount = withdrawalRequest->universalAmount;
+    REQUIRE(statsAfterTx->getDailyOutcome() == statsBeforeTx->getDailyOutcome() - universalAmount);
+    REQUIRE(statsAfterTx->getWeeklyOutcome() == statsBeforeTx->getWeeklyOutcome() - universalAmount);
+    REQUIRE(statsAfterTx->getMonthlyOutcome() == statsBeforeTx->getMonthlyOutcome() - universalAmount);
+    REQUIRE(statsAfterTx->getAnnualOutcome() == statsBeforeTx->getAnnualOutcome() - universalAmount);
 }
 
 TransactionFramePtr ReviewWithdrawRequestHelper::createReviewRequestTx(
@@ -105,7 +117,7 @@ ReviewRequestResult ReviewWithdrawRequestHelper::applyReviewRequestTx(
                                                      requestHash, requestType,
                                                      action, rejectReason,
                                                      expectedResult,
-        checker
+                                                     checker
                                                     );
 }
 }

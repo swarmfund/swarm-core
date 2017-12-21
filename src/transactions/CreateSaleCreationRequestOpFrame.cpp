@@ -70,7 +70,7 @@ std::string CreateSaleCreationRequestOpFrame::getReference(SaleCreationRequest c
 }
 
 ReviewableRequestFrame::pointer CreateSaleCreationRequestOpFrame::
-createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta)
+createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, time_t closedAt)
 {
     if (mCreateSaleCreationRequest.requestID != 0)
     {
@@ -84,7 +84,8 @@ createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta)
     auto const& sale = mCreateSaleCreationRequest.request;
     auto reference = getReference(sale);
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
-    auto request = ReviewableRequestFrame::createNew(mCreateSaleCreationRequest.requestID, getSourceID(), app.getMasterID(), referencePtr);
+    auto request = ReviewableRequestFrame::createNew(mCreateSaleCreationRequest.requestID, getSourceID(), app.getMasterID(),
+        referencePtr, closedAt);
     auto& requestEntry = request->getRequestEntry();
     requestEntry.body.type(ReviewableRequestType::SALE);
     requestEntry.body.saleCreationRequest() = sale;
@@ -105,7 +106,6 @@ bool
 CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
                                         LedgerManager& ledgerManager)
 {
-
     auto const& sale = mCreateSaleCreationRequest.request;
     if (sale.endTime <= ledgerManager.getCloseTime())
     {
@@ -114,7 +114,7 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     }
 
     auto& db = ledgerManager.getDatabase();
-    auto request = createNewUpdateRequest(app, db, delta);
+    auto request = createNewUpdateRequest(app, db, delta, ledgerManager.getCloseTime());
     if (!request)
     {
         innerResult().code(CreateSaleCreationRequestResultCode::REQUEST_NOT_FOUND);

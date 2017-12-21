@@ -17,13 +17,13 @@ class SaleRequestHelper : TxHelper
 public:
     SaleRequestHelper(TestManager::pointer testManager);
 
-    uint64_t createApproveSale(Account& root, Account & source, SaleCreationRequest request);
+    void createApprovedSale(Account& root, Account & source, SaleCreationRequest request);
 
     CreateSaleCreationRequestResult applyCreateSaleRequest(
         Account& source, uint64_t requestID, SaleCreationRequest request,
         CreateSaleCreationRequestResultCode expectedResult =
         CreateSaleCreationRequestResultCode::SUCCESS);
-    static SaleCreationRequest createSaleRequest(AssetCode base, AssetCode quote, std::string name, uint64_t startTime, uint64_t endTime,
+    static SaleCreationRequest createSaleRequest(AssetCode base, AssetCode quote, uint64_t startTime, uint64_t endTime,
         uint64_t price, uint64_t softCap, uint64_t hardCap, std::string details);
 
     TransactionFramePtr createSaleRequestTx(

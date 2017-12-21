@@ -16,8 +16,8 @@ SaleRequestHelper::SaleRequestHelper(const TestManager::pointer testManager) : T
 {
 }
 
-uint64_t SaleRequestHelper::createApproveSale(Account& root, Account& source,
-    SaleCreationRequest request)
+void SaleRequestHelper::createApprovedSale(Account& root, Account& source,
+                                           const SaleCreationRequest request)
 {
     auto requestCreationResult = applyCreateSaleRequest(source, 0, request);
     auto reviewer = ReviewSaleRequestHelper(mTestManager);
@@ -58,13 +58,12 @@ CreateSaleCreationRequestResult SaleRequestHelper::applyCreateSaleRequest(
 }
 
 SaleCreationRequest SaleRequestHelper::createSaleRequest(AssetCode base,
-    AssetCode quote, std::string name, const uint64_t startTime, const uint64_t endTime,
+    AssetCode quote, const uint64_t startTime, const uint64_t endTime,
     const uint64_t price, const uint64_t softCap, const uint64_t hardCap, std::string details)
 {
     SaleCreationRequest request;
     request.baseAsset = base;
     request.quoteAsset = quote;
-    request.name = name;
     request.startTime = startTime;
     request.endTime = endTime;
     request.price = price;

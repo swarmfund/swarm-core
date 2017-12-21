@@ -213,21 +213,18 @@ bool CreateWithdrawalRequestOpFrame::doCheckValid(Application& app)
 bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager, BalanceFrame::pointer balance,
                                                  uint64_t amountToAdd, uint64_t& universalAmount)
 {
-    auto result = accountManager.addStats(mSourceAccount, balance, amountToAdd, universalAmount);
+    const auto result = accountManager.addStats(mSourceAccount, balance, amountToAdd, universalAmount);
     switch (result) {
         case AccountManager::SUCCESS:
             return true;
-            break;
         case AccountManager::STATS_OVERFLOW:
             innerResult().code(CreateWithdrawalRequestResultCode::STATS_OVERFLOW);
-            false;
-            break;
+            return false;
         case AccountManager::LIMITS_EXCEEDED:
             innerResult().code(CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
-            false;
-            break;
+            return false;
         default:
-            CLOG(ERROR, "CreateWithdrawalRequestOp") << "Unexpeced result from accountManager when updating stats";
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpeced result from accountManager when updating stats:" << result;
             throw std::runtime_error("Unexpected state from accountManager when updating stats");
     }
 }

@@ -227,9 +227,10 @@ AccountManager::Result AccountManager::addStats(AccountFrame::pointer account,
         return LIMITS_EXCEEDED;
 
     EntryHelperProvider::storeChangeEntry(mDelta, mDb, statsFrame->mEntry);
+    return SUCCESS;
 }
 
-void AccountManager::revertStats(AccountID account, uint64_t universalAmount, time_t timePerformed)
+void AccountManager::revertStats(AccountID account, int64_t universalAmount, time_t timePerformed)
 {
     auto statsFrame = StatisticsHelper::Instance()->mustLoadStatistics(account, mDb);
     time_t now = mLm.getCloseTime();

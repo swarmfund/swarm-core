@@ -65,6 +65,6 @@ public:
     Result addStats(AccountFrame::pointer account, BalanceFrame::pointer balance, uint64_t amountToAdd,
                     uint64_t &universalAmount);
 
-    void revertStats(AccountID account, uint64_t universalAmount, time_t timePerformed);
+    void revertStats(AccountID account, int64_t universalAmount, time_t timePerformed);
 };
 }

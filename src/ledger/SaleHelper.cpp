@@ -15,8 +15,8 @@ namespace stellar
 using xdr::operator<;
 
 const char* selectorSale =
-    "SELECT id, owner_id, base_asset, quote_asset, name, start_time, "
-    "end_time, soft_cap, hard_cap, current_cap, details, version, lastmodified FROM sale";
+    "SELECT id, owner_id, base_asset, quote_asset, start_time, "
+    "end_time, price, soft_cap, hard_cap, current_cap, details, version, lastmodified FROM sale";
 
 void SaleHelper::dropAll(Database& db)
 {
@@ -27,9 +27,9 @@ void SaleHelper::dropAll(Database& db)
         "owner_id     VARCHAR(56)   NOT NULL,"
         "base_asset   VARCHAR(16)   NOT NULL,"
         "quote_asset  VARCHAR(16)   NOT NULL,"
-        "name         TEXT          NOT NULL,"
         "start_time   BIGINT        NOT NULL CHECK (start_time >= 0),"
         "end_time     BIGINT        NOT NULL CHECK (end_time >= 0),"
+        "price        NUMERIC(20,0) NOT NULL CHECK (price > 0),"
         "soft_cap     NUMERIC(20,0) NOT NULL CHECK (soft_cap >= 0),"
         "hard_cap     NUMERIC(20,0) NOT NULL CHECK (hard_cap >= 0),"
         "current_cap  NUMERIC(20,0) NOT NULL CHECK (current_cap >= 0),"
@@ -131,16 +131,16 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     if (insert)
     {
         sql =
-            "INSERT INTO sale (id, owner_id, base_asset, quote_asset, name, start_time,"
-            " end_time, soft_cap, hard_cap, current_cap, details, version, lastmodified)"
-            " VALUES (:id, :owner_id, :base_asset, :quote_asset, :name, :start_time,"
-            " :end_time, :soft_cap, :hard_cap, :current_cap, :details, :v, :lm";
+            "INSERT INTO sale (id, owner_id, base_asset, quote_asset, start_time,"
+            " end_time, price, soft_cap, hard_cap, current_cap, details, version, lastmodified)"
+            " VALUES (:id, :owner_id, :base_asset, :quote_asset, :start_time,"
+            " :end_time, :price, :soft_cap, :hard_cap, :current_cap, :details, :v, :lm)";
     }
     else
     {
         sql =
-            "UPDATE sale SET owner_id=:owner_id, base_asset = :base_asset, quote_asset = :quote_asset, name = :name, start_time = :start_time,"
-            " end_time= :end_time, soft_cap = :soft_cap, hard_cap = :hard_cap, current_cap = :current_cap, details = :details, version=:v, lastmodified=:lm"
+            "UPDATE sale SET owner_id=:owner_id, base_asset = :base_asset, quote_asset = :quote_asset, start_time = :start_time,"
+            " end_time= :end_time, price = :price, soft_cap = :soft_cap, hard_cap = :hard_cap, current_cap = :current_cap, details = :details, version=:v, lastmodified=:lm"
             " WHERE id = :id";
     }
 
@@ -149,11 +149,11 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
 
     st.exchange(use(saleEntry.saleID, "id"));
     st.exchange(use(saleEntry.ownerID, "owner_id"));
-    st.exchange(use(saleEntry.baseAsset, ":base_asset"));
+    st.exchange(use(saleEntry.baseAsset, "base_asset"));
     st.exchange(use(saleEntry.quoteAsset, "quote_asset"));
-    st.exchange(use(saleEntry.name, "name"));
     st.exchange(use(saleEntry.startTime, "start_time"));
     st.exchange(use(saleEntry.endTime, "end_time"));
+    st.exchange(use(saleEntry.price, "price"));
     st.exchange(use(saleEntry.softCap, "soft_cap"));
     st.exchange(use(saleEntry.hardCap, "hard_cap"));
     st.exchange(use(saleEntry.currentCap, "current_cap"));
@@ -197,9 +197,9 @@ void SaleHelper::loadRequests(StatementContext& prep,
     st.exchange(into(oe.ownerID));
     st.exchange(into(oe.baseAsset));
     st.exchange(into(oe.quoteAsset));
-    st.exchange(into(oe.name));
     st.exchange(into(oe.startTime));
     st.exchange(into(oe.endTime));
+    st.exchange(into(oe.price));
     st.exchange(into(oe.softCap));
     st.exchange(into(oe.hardCap));
     st.exchange(into(oe.currentCap));

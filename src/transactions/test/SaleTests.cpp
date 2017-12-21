@@ -14,12 +14,9 @@
 #include "test_helper/TestManager.h"
 #include "test_helper/Account.h"
 #include "test_helper/ManageAssetTestHelper.h"
-#include "test_helper/IssuanceRequestHelper.h"
 #include "ledger/BalanceHelper.h"
-#include "test_helper/WithdrawRequestHelper.h"
-#include "test_helper/ReviewWithdrawalRequestHelper.h"
 #include "test_helper/CreateAccountTestHelper.h"
-#include "test_helper/ReviewAssetRequestHelper.h"
+#include "test_helper/SaleRequestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -41,7 +38,7 @@ TEST_CASE("Sale", "[tx][sale]")
 
     const AssetCode quoteAsset = "USD";
     auto assetTestHelper = ManageAssetTestHelper(testManager);
-    auto assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAsset, "", root.key.getPublicKey(), "", "", INT64_MAX, 0, "");
+    auto assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAsset, root.key.getPublicKey(), "{}", INT64_MAX, 0);
     assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
     SECTION("Happy path")
     {
@@ -50,8 +47,13 @@ TEST_CASE("Sale", "[tx][sale]")
         CreateAccountTestHelper(testManager).applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
         const AssetCode baseAsset = "BTC";
         const auto maxIssuanceAmount = 1000 * ONE;
-        assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, "", syndicate.key.getPublicKey(), "", "", maxIssuanceAmount, 0, "");
+        assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}", maxIssuanceAmount, 0);
         assetTestHelper.createApproveRequest(root, syndicate, assetCreationRequest);
-
+        auto saleRequestHelper = SaleRequestHelper(testManager);
+        const auto currentTime = testManager->getLedgerManager().getCloseTime();
+        const auto price = 2 * ONE;
+        const auto softCap = bigDivide(maxIssuanceAmount, price, ONE, ROUND_DOWN);
+        const auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime, currentTime + 1000, price, softCap, softCap + 1, "{}");
+        saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
     }
 }

@@ -115,11 +115,6 @@ bool CreateAssetOpFrame::doCheckValid(Application & app)
 		return false;
 	}
 
-	if (mAssetCreationRequest.name.empty()) {
-		innerResult().code(ManageAssetResultCode::INVALID_NAME);
-		return false;
-	}
-
 	if (!isValidXDRFlag<AssetPolicy>(mAssetCreationRequest.policies)) {
 		innerResult().code(ManageAssetResultCode::INVALID_POLICIES);
 		return false;

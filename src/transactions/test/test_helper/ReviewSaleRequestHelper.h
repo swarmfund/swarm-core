@@ -30,6 +30,7 @@ class ReviewSaleRequestHelper : public ReviewRequestHelper
 public:
     ReviewSaleRequestHelper(TestManager::pointer testManager);
 
+    using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source,
                                              uint64_t requestID,
                                              Hash requestHash,

@@ -29,7 +29,7 @@ class CreateSaleCreationRequestOpFrame : public OperationFrame
 
     std::string getReference(SaleCreationRequest const& request) const;
 
-    ReviewableRequestFrame::pointer createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta);
+    ReviewableRequestFrame::pointer createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, time_t closedAt);
 
 public:
 

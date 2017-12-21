@@ -42,7 +42,7 @@ SaleFrame& SaleFrame::operator=(SaleFrame const& other)
 bool
 SaleFrame::isValid(SaleEntry const& oe)
 {
-    if (!AssetFrame::isAssetCodeValid(oe.baseAsset) || AssetFrame::isAssetCodeValid(oe.quoteAsset))
+    if (!AssetFrame::isAssetCodeValid(oe.baseAsset) || !AssetFrame::isAssetCodeValid(oe.quoteAsset))
         return false;
     if (oe.baseAsset == oe.quoteAsset)
         return false;
@@ -77,7 +77,6 @@ SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &own
     sale.ownerID = ownerID;
     sale.baseAsset = request.baseAsset;
     sale.quoteAsset = request.quoteAsset;
-    sale.name = request.name;
     sale.startTime = request.startTime;
     sale.endTime = request.endTime;
     sale.price = request.price;

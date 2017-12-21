@@ -92,9 +92,8 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
     uint64_t maxIssuanceAmount = UINT64_MAX/2;
     SecretKey preissuedSigner = SecretKey::random();
     uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
-    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, "UAH", preissuedSigner.getPublicKey(),
-                                                                                 "long description", "http://bank.gov.ua",
-                                                                                 maxIssuanceAmount, baseAssetPolicy, "123");
+    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, preissuedSigner.getPublicKey(),
+                                                                                 "{}", maxIssuanceAmount, baseAssetPolicy);
     manageAssetTestHelper.applyManageAssetTx(assetOwner, 0, assetCreationRequest);
 
     uint64 amount = 10000;
@@ -222,9 +221,9 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     uint64_t maxIssuanceAmount = UINT64_MAX/2;
     SecretKey preissuedSigner = SecretKey::random();
     uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
-    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, "UAH", preissuedSigner.getPublicKey(),
-                                                                                 "long description", "http://bank.gov.ua",
-                                                                                 maxIssuanceAmount, baseAssetPolicy, "123");
+    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, preissuedSigner.getPublicKey(),
+                                                                                 "{}",
+                                                                                 maxIssuanceAmount, baseAssetPolicy);
     manageAssetTestHelper.applyManageAssetTx(assetOwner, 0, assetCreationRequest);
 
     //pre-issue some amount

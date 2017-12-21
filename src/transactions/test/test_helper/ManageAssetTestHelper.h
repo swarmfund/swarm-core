@@ -26,21 +26,16 @@ namespace txtest
 
 		ManageAssetOp::_request_t createAssetCreationRequest(
 				AssetCode code,
-				std::string name,
 				AccountID preissuedAssetSigner,
-				std::string description,
-				std::string externalResourceLink,
+				std::string details,
 				uint64_t maxIssuanceAmount,
 				uint32_t policies,
-				std::string logoID,
                                 uint64_t initialPreissuanceAmount = 0);
 
 		ManageAssetOp::_request_t createAssetUpdateRequest(
 				AssetCode code,
-				std::string description,
-				std::string externalResourceLink,
-				uint32_t policies,
-				std::string logoID);
+				std::string details,
+				uint32_t policies);
 
 		ManageAssetOp::_request_t createCancelRequest();
 

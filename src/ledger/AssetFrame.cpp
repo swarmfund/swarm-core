@@ -50,34 +50,13 @@ AssetFrame::pointer AssetFrame::create(AssetCreationRequest const & request, Acc
 	AssetEntry& asset = le.data.asset();
 	asset.availableForIssueance = request.initialPreissuedAmount;
 	asset.code = request.code;
-	asset.description = request.description;
-	asset.externalResourceLink = request.externalResourceLink;
+	asset.details = request.details;
 	asset.issued = 0;
 	asset.maxIssuanceAmount = request.maxIssuanceAmount;
-	asset.name = request.name;
 	asset.owner = owner;
 	asset.policies = request.policies;
 	asset.preissuedAssetSigner = request.preissuedAssetSigner;
-	asset.logoID = request.logoID;
-	return std::make_shared<AssetFrame>(le);
-}
-
-AssetFrame::pointer AssetFrame::createSystemAsset(AssetCode code, AccountID const & owner)
-{
-	LedgerEntry le;
-	le.data.type(LedgerEntryType::ASSET);
-	AssetEntry& asset = le.data.asset();
-	asset.availableForIssueance = 0;
-	asset.code = code;
-	asset.description = "";
-	asset.externalResourceLink = "";
-	asset.issued = 0;
-	asset.maxIssuanceAmount = UINT64_MAX;
-	asset.name = code;
-	asset.owner = owner;
-	asset.policies = 0;
-	asset.preissuedAssetSigner = owner;
-	asset.logoID = "";
+        asset.lockedIssuance = 0;
 	return std::make_shared<AssetFrame>(le);
 }
 

@@ -18,6 +18,7 @@
 #include "ledger/ReferenceFrame.h"
 #include "ledger/ReferenceHelper.h"
 #include "main/Application.h"
+#include "ReviewSaleCreationRequestOpFrame.h"
 
 namespace stellar
 {
@@ -64,6 +65,8 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewPreIssuanceCreationRequestOpFrame(op, res, parentTx);
         case ReviewableRequestType::WITHDRAW:
             return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::SALE:
+            return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}
@@ -105,7 +108,7 @@ ReviewRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	if (request->getHash() != mReviewRequest.requestHash) {
+	if (!(request->getHash() == mReviewRequest.requestHash)) {
 		innerResult().code(ReviewRequestResultCode::HASH_MISMATCHED);
 		return false;
 	}

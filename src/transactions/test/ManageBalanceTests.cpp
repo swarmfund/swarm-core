@@ -10,6 +10,8 @@
 #include "TxTests.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
+#include "test_helper/TestManager.h"
+#include "test_helper/ManageAssetTestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -28,15 +30,14 @@ TEST_CASE("manage balance", "[dep_tx][manage_balance]")
 
     // set up world
     SecretKey rootKP = getRoot();
-	Salt rootSeq = 1;
+    auto root = Account{ rootKP, 0 };
+    Salt rootSeq = 1;
     closeLedgerOn(app, 2, 1, 7, 2014);
 
-    auto account = SecretKey::random();
-    auto account2 = SecretKey::random();
-    auto balanceID = SecretKey::random().getPublicKey();
-    auto balance2ID = SecretKey::random().getPublicKey();
-    applyCreateAccountTx(app, rootKP, account, rootSeq++, AccountType::GENERAL);
-	applyCreateAccountTx(app, rootKP, account2, rootSeq++, AccountType::GENERAL);
+    auto account = Account{ SecretKey::random() , 0};
+    auto account2 = Account{ SecretKey::random(), 0};
+    applyCreateAccountTx(app, rootKP, account.key, rootSeq++, AccountType::GENERAL);
+	applyCreateAccountTx(app, rootKP, account2.key, rootSeq++, AccountType::GENERAL);
     
     AssetCode asset = "EUR";
 	AssetCode asset2 = "USD";

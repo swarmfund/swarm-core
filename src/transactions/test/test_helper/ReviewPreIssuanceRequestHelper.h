@@ -19,6 +19,9 @@ namespace txtest
         ReviewPreIssuanceChecker(
             const TestManager::pointer& testManager, const uint64_t requestID);
 
+        ReviewPreIssuanceChecker(const TestManager::pointer& testManager,
+                                 std::shared_ptr<PreIssuanceRequest> preIssuanceRequest);
+
         void checkApprove(ReviewableRequestFrame::pointer) override;
     protected:
         std::shared_ptr<PreIssuanceRequest> preIssuanceRequest;

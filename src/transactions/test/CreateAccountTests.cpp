@@ -31,14 +31,7 @@ TEST_CASE("create account", "[tx][create_account]") {
     app.start();
 
     auto testManager = TestManager::make(app);
-    auto root = Account{getRoot(), Salt(0)};
-
-    auto accountKP = SecretKey::random();
-    auto createAccountTestHelper =
-            CreateAccountTestHelper(testManager)
-                    .setType(AccountType::GENERAL)
-                    .setFromAccount(root)
-                    .setToPublicKey(accountKP.getPublicKey());
+    auto root = Account{getRoot(), Salt(1)};
 
     upgradeToCurrentLedgerVersion(app);
 
@@ -54,7 +47,9 @@ TEST_CASE("create account", "[tx][create_account]") {
     auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
 
     auto randomAccount = SecretKey::random();
-    auto createAccountHelper = createAccountTestHelper.setToPublicKey(randomAccount.getPublicKey())
+    auto createAccountHelper = CreateAccountTestHelper(testManager)
+            .setFromAccount(root)
+            .setToPublicKey(randomAccount.getPublicKey())
             .setType(AccountType::NOT_VERIFIED);
 
     SECTION("External system account id are generated") {

@@ -175,7 +175,7 @@ namespace stellar
 	}
 
 	ExternalSystemAccountIDFrame::pointer 
-	ExternalSystemAccountIDHelper::load(const AccountID accountID, 
+	ExternalSystemAccountIDHelper::	load(const AccountID accountID,
 		const ExternalSystemType externalSystemType,
 		Database& db, LedgerDelta* delta)
 	{

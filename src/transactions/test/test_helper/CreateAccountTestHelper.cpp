@@ -18,7 +18,7 @@ namespace stellar {
             createAccountOp.destination = to;
 
             if (policies != -1)
-                createAccountOp.policies = static_cast<uint32_t>(policies);
+                createAccountOp.policies = policies;
             if (referrer)
                 createAccountOp.referrer.activate() = *referrer;
 

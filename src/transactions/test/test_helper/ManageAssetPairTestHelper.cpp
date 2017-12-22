@@ -54,7 +54,6 @@ namespace txtest
 
         REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
 
-        bool isCreate = action == ManageAssetPairAction::CREATE;
         auto countAfter = assetPairHelper->countObjects(db.getSession());
         auto assetPairFrameAfter = assetPairHelper->loadAssetPair(base, quote, db);
 

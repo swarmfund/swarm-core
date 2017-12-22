@@ -208,13 +208,14 @@ namespace stellar {
         }
     }
 
-    bool ReviewableRequestHelper::exists(Database &db, AccountID const &requestor, stellar::string64 reference) {
+    bool ReviewableRequestHelper::exists(Database &db, AccountID const &requestor, stellar::string64 reference, uint64_t requestID) {
         auto timer = db.getSelectTimer("reviewable_request_exists_by_reference");
         auto prep =
-                db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM reviewable_request WHERE requestor=:requestor AND reference = :reference)");
+                db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM reviewable_request WHERE requestor=:requestor AND reference = :reference AND id <> :request_id)");
         auto& st = prep.statement();
         st.exchange(use(requestor, "requestor"));
         st.exchange(use(reference, "reference"));
+        st.exchange(use(requestID, "request_id"));
         int exists = 0;
         st.exchange(into(exists));
         st.define_and_bind();
@@ -224,8 +225,8 @@ namespace stellar {
     }
 
     bool
-    ReviewableRequestHelper::isReferenceExist(Database &db, AccountID const &requestor, stellar::string64 reference) {
-        if (exists(db, requestor, reference))
+    ReviewableRequestHelper::isReferenceExist(Database &db, AccountID const &requestor, string64 reference, const uint64_t requestID) {
+        if (exists(db, requestor, reference, requestID))
             return true;
         LedgerKey key;
         key.type(LedgerEntryType::REFERENCE_ENTRY);
@@ -288,7 +289,30 @@ namespace stellar {
         return nullptr;
     }
 
-    ReviewableRequestFrame::pointer
+vector<ReviewableRequestFrame::pointer> ReviewableRequestHelper::
+loadRequests(AccountID const& requestor, ReviewableRequestType requestType,
+    Database& db)
+{
+    std::string sql = selectorReviewableRequest;
+    sql += +" WHERE requestor = :requstor";
+    auto prep = db.getPreparedStatement(sql);
+    auto& st = prep.statement();
+    st.exchange(use(requestor));
+
+    vector<ReviewableRequestFrame::pointer> result;
+    auto timer = db.getSelectTimer("reviewable_request");
+    loadRequests(prep, [&result,requestType](LedgerEntry const& entry)
+    {
+        auto request = make_shared<ReviewableRequestFrame>(entry);
+        if (request->getRequestType() != requestType)
+            return;
+        result.push_back(request);
+    });
+
+    return result;
+}
+
+ReviewableRequestFrame::pointer
     ReviewableRequestHelper::loadRequest(uint64 requestID, AccountID requestor, Database &db, LedgerDelta *delta) {
         auto request = loadRequest(requestID, db, delta);
         if (!request) {

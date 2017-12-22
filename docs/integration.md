@@ -20,12 +20,6 @@ after consensus is reached on the network.
 
 An overview of how the data flows within stellar-core is [this data flow presentation](learn/core-data-flow.pdf)
 
-### SQL tables
-This includes near real time version of the changes that occured in the network
-as well as the current state of the ledger.
-Applications can safely perform READ ONLY transactions on the data located there.
-The schema is described in [`db-schema.md`](db-schema.md)
-
 **Important**: when consuming data from SQL, be sure that your service is
 properly registered by updating its cursor so that stellar-core can safely
 garbage collect data no longer needed.

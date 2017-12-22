@@ -120,18 +120,5 @@ ReviewRequestResult ReviewWithdrawRequestHelper::applyReviewRequestTx(
                                                      checker
                                                     );
 }
-
-ReviewRequestResult ReviewWithdrawRequestHelper::applyReviewRequestTx(
-    Account& source, uint64_t requestID, ReviewRequestOpAction action,
-    std::string rejectReason, ReviewRequestResultCode expectedResult)
-{
-    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-    auto request = reviewableRequestHelper->loadRequest(requestID,
-                                                        mTestManager->getDB());
-    REQUIRE(!!request);
-    return applyReviewRequestTx(source, requestID, request->getHash(),
-                                request->getRequestType(), action, rejectReason,
-                                expectedResult);
-}
 }
 }

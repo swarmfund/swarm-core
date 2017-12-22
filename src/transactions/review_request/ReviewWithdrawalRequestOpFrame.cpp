@@ -48,7 +48,9 @@ bool ReviewWithdrawalRequestOpFrame::handleApprove(
     }
     EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
 
-    transferFee(app, db, delta, request, balance);
+    uint64_t totalFee = getTotalFee(request->getRequestID(), withdrawRequest);
+    AccountManager accountManager(app, db, delta, ledgerManager);
+    accountManager.transferFee(balance->getAsset(), totalFee);
 
     auto assetFrame = AssetHelper::Instance()->loadAsset(balance->getAsset(), db, &delta);
     if (!assetFrame)
@@ -112,33 +114,7 @@ uint64_t ReviewWithdrawalRequestOpFrame::getTotalAmountToCharge(
     return totalAmountToCharge;
 }
 
-void ReviewWithdrawalRequestOpFrame::transferFee(Application& app, Database& db, LedgerDelta& delta, ReviewableRequestFrame::pointer request,
-    BalanceFrame::pointer balance)
-{
-    auto withdrawRequest = request->getRequestEntry().body.withdrawalRequest();
-    const auto totalFee = getTotalFee(request->getRequestID(), withdrawRequest);
-    if (totalFee == 0)
-    {
-	return;
-    }
-    
-    auto commissionBalance = BalanceHelper::Instance()->loadBalance(app.getCommissionID(), balance->getAsset(), db, &delta);
-    if (!commissionBalance)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: reviewing withdrwal requet - and there is no commission balance for that asset" << request->getRequestID();
-        throw runtime_error("Unexpected state: no commission balance");
-    }
-
-    if (!commissionBalance->tryFundAccount(totalFee))
-    {
-	CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to fund commission balance with fee for withdrawal - overflow" << request->getRequestID();
-	throw runtime_error("Failed to fund commission balance with fee");
-    }
-
-    EntryHelperProvider::storeChangeEntry(delta, db, commissionBalance->mEntry);
-}
-
-ReviewWithdrawalRequestOpFrame::ReviewWithdrawalRequestOpFrame(
+    ReviewWithdrawalRequestOpFrame::ReviewWithdrawalRequestOpFrame(
     Operation const& op, OperationResult& res, TransactionFrame& parentTx) :
                                                                            ReviewRequestOpFrame(op,
                                                                                                 res,

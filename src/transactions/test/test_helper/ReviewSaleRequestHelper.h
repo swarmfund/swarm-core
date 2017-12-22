@@ -15,24 +15,20 @@ namespace stellar
 namespace txtest
 {
 
-class WithdrawReviewChecker : public ReviewChecker
+class SaleReviewChecker : public ReviewChecker
 {
-    std::shared_ptr<WithdrawalRequest> withdrawalRequest;
-    BalanceFrame::pointer balanceBeforeTx;
-    BalanceFrame::pointer commissionBalanceBeforeTx;
-    AssetFrame::pointer assetBeforeTx;
-    StatisticsFrame::pointer statsBeforeTx;
+    std::shared_ptr<SaleCreationRequest> saleCreationRequest;
+    AssetFrame::pointer baseAssetBeforeTx;
 public:
-    WithdrawReviewChecker(TestManager::pointer testManager, uint64_t requestID);
+    SaleReviewChecker(TestManager::pointer testManager, uint64_t requestID);
     void checkApprove(ReviewableRequestFrame::pointer) override;
-    void checkPermanentReject(ReviewableRequestFrame::pointer) override;
 };
 
-class ReviewWithdrawRequestHelper : public ReviewRequestHelper
+class ReviewSaleRequestHelper : public ReviewRequestHelper
 {
 
 public:
-    ReviewWithdrawRequestHelper(TestManager::pointer testManager);
+    ReviewSaleRequestHelper(TestManager::pointer testManager);
 
     using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source,
@@ -45,10 +41,6 @@ public:
                                              expectedResult =
                                                  ReviewRequestResultCode::
                                                  SUCCESS) override;
-
-    TransactionFramePtr createReviewRequestTx(Account& source,
-        uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
-        ReviewRequestOpAction action, std::string rejectReason) override;
 };
 }
 }

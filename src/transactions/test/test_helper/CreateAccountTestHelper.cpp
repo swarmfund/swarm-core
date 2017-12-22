@@ -32,7 +32,8 @@ namespace stellar {
             auto opResult = txResult.result.results()[0];
             auto actualResultCode = CreateAccountOpFrame::getInnerCode(opResult);
 
-            REQUIRE(actualResultCode == expectedResult);
+            REQUIRE(getNameCode<CreateAccountResultCode>(actualResultCode)
+                    == getNameCode<CreateAccountResultCode>(expectedResult));
             REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
 
             auto checker = CreateAccountChecker(mTestManager);

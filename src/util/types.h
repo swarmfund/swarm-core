@@ -107,6 +107,19 @@ bool bigDivide(uint64_t& result, uint64_t A, uint64_t B, uint64_t C, Rounding ro
 bool iequals(std::string const& a, std::string const& b);
 }
 
+template<typename R>
+std::string getNameCode(R code) {
+    if (!stellar::isValidEnumValue<R>(code)) {
+        throw std::runtime_error("Invalid result code");
+    }
+    const char * rawResultCode = xdr::xdr_traits<R>::enum_name(code);
+    if (!rawResultCode) {
+        throw std::runtime_error("name result code is nullptr");
+    }
+    std::string strResultCode = std::string(rawResultCode);
+    return strResultCode;
+}
+
 namespace std {
 
     template <>
@@ -120,5 +133,4 @@ namespace std {
             return hash<int32_t>()(rawKey);
         }
     };
-
 }

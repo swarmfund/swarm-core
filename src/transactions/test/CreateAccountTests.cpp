@@ -30,13 +30,14 @@ TEST_CASE("create account", "[tx][create_account]") {
     Application &app = *appPtr;
     app.start();
 
-    auto testManager = TestManager::make(app);
-    auto root = Account{getRoot(), Salt(1)};
-
     upgradeToCurrentLedgerVersion(app);
 
     LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
                       app.getDatabase());
+
+
+    auto testManager = TestManager::make(app);
+    auto root = Account{getRoot(), Salt(1)};
 
     ManageAssetTestHelper manageAssetHelper(testManager);
     AssetCode baseAsset = "USD";
@@ -86,42 +87,40 @@ TEST_CASE("create account", "[tx][create_account]") {
     SECTION("Can set and update account policies") {
         auto account = SecretKey::random();
         AccountID validReferrer = root.key.getPublicKey();
+        auto setAndUpdateTestHelper = createAccountHelper.setToPublicKey(account.getPublicKey())
+                .setReferrer(&validReferrer);
         auto checkAccountPolicies = [&app, &delta](AccountID accountID, LedgerVersion expectedAccountVersion,
                                                    int32 expectedPolicies) {
             auto accountFrame = AccountHelper::Instance()->loadAccount(accountID, app.getDatabase(), &delta);
-            REQUIRE(accountFrame);
+            REQUIRE(!!accountFrame);
             REQUIRE(accountFrame->getAccount().ext.v() == expectedAccountVersion);
             if (expectedPolicies != -1)
                 REQUIRE(accountFrame->getAccount().policies == expectedPolicies);
         };
 
         SECTION("Can update created without policies") {
-            auto account = SecretKey::random();
-            auto withoutPoliciesAccHelper = createAccountHelper.setToPublicKey(account.getPublicKey())
-                    .setReferrer(&validReferrer);
-            withoutPoliciesAccHelper.applyTx();
-
+            setAndUpdateTestHelper.applyTx();
 
             checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, -1);
             // change type of account not_verified -> general
-            withoutPoliciesAccHelper = withoutPoliciesAccHelper.setType(AccountType::GENERAL);
-            withoutPoliciesAccHelper.applyTx();
+            setAndUpdateTestHelper = setAndUpdateTestHelper.setType(AccountType::GENERAL);
+            setAndUpdateTestHelper.applyTx();
             checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
                                  static_cast<int32_t>(AccountPolicies::NO_PERMISSIONS));
 
             // can update account's policies no_permissions -> allow_to_create_user_via_api
-            withoutPoliciesAccHelper.setPolicies(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API).applyTx();
+            setAndUpdateTestHelper.setPolicies(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API).applyTx();
             checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
                                  static_cast<int32_t>(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
             // can remove
-            withoutPoliciesAccHelper.setPolicies(AccountPolicies::NO_PERMISSIONS).applyTx();
+            setAndUpdateTestHelper.setPolicies(AccountPolicies::NO_PERMISSIONS).applyTx();
 
             checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
                                  static_cast<int32_t>(AccountPolicies::NO_PERMISSIONS));
         }
 
         SECTION("Can create account with policies") {
-            createAccountHelper.setType(AccountType::GENERAL)
+            setAndUpdateTestHelper.setType(AccountType::GENERAL)
                     .setPolicies(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API).applyTx();
             checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
                                  static_cast<int32_t>(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
@@ -131,8 +130,11 @@ TEST_CASE("create account", "[tx][create_account]") {
     SECTION("Can't create account with non-zero policies and NON_VERYFIED type") {
         auto account = SecretKey::random();
         AccountID validReferrer = root.key.getPublicKey();
-        createAccountHelper.setToPublicKey(account.getPublicKey())
+        createAccountHelper
+                .setToPublicKey(account.getPublicKey())
+                .setType(AccountType::NOT_VERIFIED)
                 .setReferrer(&validReferrer)
+                .setPolicies(1)
                 .setResultCode(CreateAccountResultCode::TYPE_NOT_ALLOWED)
                 .applyTx();
     }
@@ -225,12 +227,16 @@ TEST_CASE("create account", "[tx][create_account]") {
             auto accountCreator = SecretKey::random();
             createAccountHelper.setToPublicKey(accountCreator.getPublicKey()).setType(accountType).applyTx();
             auto accountCreatorSeq = 1;
+            auto notRoot = Account{accountCreator, Salt(1)};
             auto toBeCreated = SecretKey::random();
-            auto toBeCreatedHelper = createAccountHelper.setToPublicKey(accountCreator.getPublicKey())
+            auto toBeCreatedHelper = createAccountHelper.setToPublicKey(toBeCreated.getPublicKey())
+                    .setFromAccount(notRoot)
                     .setType(AccountType::GENERAL);
             auto createAccount = toBeCreatedHelper.createCreateAccountTx();
             applyCheck(createAccount, delta, app);
-            REQUIRE(getFirstResult(*createAccount).code() == OperationResultCode::opNOT_ALLOWED);
+            auto strActualResult = getNameCode<OperationResultCode>(getFirstResult(*createAccount).code());
+            auto strExpectedResult = getNameCode<OperationResultCode>(OperationResultCode::opNOT_ALLOWED);
+            REQUIRE(strActualResult == strExpectedResult);
         }
     }
     SECTION("Can update not verified to syndicate") {

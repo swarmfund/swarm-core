@@ -127,7 +127,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
 
         applyManageAssetTx(app, root, rootSeq++, secondAsset);
 
-		applyManageBalanceTx(app, account, account, accSeq++, balanceID, secondAsset);
+		applyManageBalanceTx(app, account, account, accSeq++, secondAsset);
 
         auto accBalanceForSecondAsset = balanceHelper->loadBalance(account.getPublicKey(), secondAsset, app.getDatabase(), &delta);
 

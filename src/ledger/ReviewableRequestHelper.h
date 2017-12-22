@@ -48,8 +48,11 @@ namespace stellar
                                                     ReviewableRequestType requestType,
                                                     Database& db, LedgerDelta* delta = nullptr);
 
-        bool exists(Database & db, AccountID const & requestor, stellar::string64 reference);
-        bool isReferenceExist(Database & db, AccountID const & requestor, stellar::string64 reference);
+        std::vector<ReviewableRequestFrame::pointer> loadRequests(AccountID const& requestor, ReviewableRequestType requestType,
+            Database& db);
+
+        bool exists(Database & db, AccountID const & requestor, stellar::string64 reference, uint64_t requestID = 0);
+        bool isReferenceExist(Database & db, AccountID const & requestor, string64 reference, uint64_t requestID = 0);
 
     private:
         ReviewableRequestHelper() { ; }

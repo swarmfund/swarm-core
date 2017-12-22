@@ -14,6 +14,7 @@
 #include "ledger/BalanceHelper.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
+#include "ReviewRequestHelper.h"
 
 namespace stellar
 {
@@ -63,13 +64,30 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
 		throw std::runtime_error("Expected receiver to exist");
 	}
 
-	if (!receiver->tryFundAccount(issuanceCreationRequest.amount)) {
-		innerResult().code(ReviewRequestResultCode::FULL_LINE);
-		return false;
-	}
+    uint64_t totalFee = 0;
+    if (!safeSum(issuanceCreationRequest.fee.fixed, issuanceCreationRequest.fee.percent, totalFee)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "totalFee overflows uint64 for request: " << request->getRequestID();
+        throw std::runtime_error("totalFee overflows uint64");
+    }
+
+    if (totalFee >= issuanceCreationRequest.amount) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. totalFee exceeds amount for request: "
+                                               << request->getRequestID();
+        throw std::runtime_error("Unexpected state. totalFee exceeds amount");
+    }
+
+    //transfer fee
+    AccountManager accountManager(app, db, delta, ledgerManager);
+    accountManager.transferFee(issuanceCreationRequest.asset, totalFee);
+
+    uint64_t destinationReceive = issuanceCreationRequest.amount - totalFee;
+    if (!receiver->tryFundAccount(destinationReceive)) {
+        innerResult().code(ReviewRequestResultCode::FULL_LINE);
+        return false;
+    }
 
 	EntryHelperProvider::storeChangeEntry(delta, db, receiver->mEntry);
-	
+
 	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
 	return true;

@@ -33,6 +33,7 @@
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
+#include "transactions/CreateSaleCreationRequestOpFrame.h"
 
 #include "database/Database.h"
 
@@ -88,6 +89,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageInvoiceOpFrame(op, res, tx));
     case OperationType::REVIEW_REQUEST:
 		return shared_ptr<OperationFrame>(ReviewRequestOpFrame::makeHelper(op, res, tx));
+    case OperationType::CREATE_SALE_REQUEST:
+        return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

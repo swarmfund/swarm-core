@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/review_request/ReviewRequestHelper.h>
 #include "util/asio.h"
 #include "CreatePreIssuanceRequestOpFrame.h"
 #include "transactions/SignatureValidator.h"
@@ -68,10 +69,23 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 	ReviewableRequestEntry::_body_t requestBody;
 	requestBody.type(ReviewableRequestType::PRE_ISSUANCE_CREATE);
 	requestBody.preIssuanceRequest() = mCreatePreIssuanceRequest.request;
-	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), reference, requestBody);
+	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), reference,
+                                                             requestBody, ledgerManager.getCloseTime());
 	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
+
+    //if source is master then auto review
+    bool isFulfilled = false;
+    if (getSourceAccount().getAccountType() == AccountType::MASTER) {
+        auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
+        if (result != ReviewRequestResultCode::SUCCESS) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to approve request: " << request->getRequestID();
+            throw std::runtime_error("Failed to approve request");
+        }
+        isFulfilled = true;
+    }
 	innerResult().code(CreatePreIssuanceRequestResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();
+    innerResult().success().fulfilled = isFulfilled;
 	return true;
 }
 

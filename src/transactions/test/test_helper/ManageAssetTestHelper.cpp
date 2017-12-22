@@ -23,7 +23,19 @@ namespace txtest
 	{
 	}
 
-	ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
+void ManageAssetTestHelper::createApproveRequest(Account& root, Account& source,
+                                                 const ManageAssetOp::_request_t request)
+{
+    auto requestCreationResult = applyManageAssetTx(source, 0, request);
+    if (requestCreationResult.success().fulfilled)
+        return;
+    auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(requestCreationResult.success().requestID, mTestManager->getDB());
+    auto reviewHelper = ReviewAssetRequestHelper(mTestManager);
+    reviewHelper.applyReviewRequestTx(root, requestCreationResult.success().requestID, requestFrame->getHash(), requestFrame->getRequestType(),
+        ReviewRequestOpAction::APPROVE, "");
+}
+
+ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request, ManageAssetResultCode expectedResult)
 	{
 		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
@@ -100,44 +112,36 @@ namespace txtest
 
 	ManageAssetOp::_request_t ManageAssetTestHelper::createAssetCreationRequest(
 			AssetCode code,
-			std::string name,
 			AccountID preissuedAssetSigner,
-			std::string description,
-			std::string externalResourceLink,
+			std::string details,
 			uint64_t maxIssuanceAmount,
 			uint32_t policies,
-			std::string logoID)
+                        uint64_t initialPreissuanceAmount)
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CREATE_ASSET_CREATION_REQUEST);
 		AssetCreationRequest& assetCreationRequest = request.createAsset();
 		assetCreationRequest.code = code;
-		assetCreationRequest.description = description;
-		assetCreationRequest.externalResourceLink = externalResourceLink;
+		assetCreationRequest.details = details;
 		assetCreationRequest.maxIssuanceAmount = maxIssuanceAmount;
-		assetCreationRequest.name = name;
 		assetCreationRequest.policies = policies;
 		assetCreationRequest.preissuedAssetSigner = preissuedAssetSigner;
-		assetCreationRequest.logoID = logoID;
+                assetCreationRequest.initialPreissuedAmount = initialPreissuanceAmount;
 		return request;
 	}
 
 	ManageAssetOp::_request_t ManageAssetTestHelper::createAssetUpdateRequest(
 			AssetCode code,
-			std::string description,
-			std::string externalResourceLink,
-			uint32_t policies,
-			std::string logoID
+			std::string details,
+			uint32_t policies
 	)
 	{
 		ManageAssetOp::_request_t request;
 		request.action(ManageAssetAction::CREATE_ASSET_UPDATE_REQUEST);
 		AssetUpdateRequest& assetUpdateRequest = request.updateAsset();
 		assetUpdateRequest.code = code;
-		assetUpdateRequest.description = description;
-		assetUpdateRequest.externalResourceLink = externalResourceLink;
+		assetUpdateRequest.details = details;
 		assetUpdateRequest.policies = policies;
-		assetUpdateRequest.logoID = logoID;
 		return request;
 	}
 
@@ -149,8 +153,8 @@ namespace txtest
 	}
 	void ManageAssetTestHelper::createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root, uint32_t policies)
 	{
-            auto creationRequest = createAssetCreationRequest(assetCode, "New token", preIssuedSigner.getPublicKey(),
-                "Description can be quiete long", "https://testusd.usd", UINT64_MAX, policies, "123");
+            auto creationRequest = createAssetCreationRequest(assetCode, preIssuedSigner.getPublicKey(),
+                "{}", UINT64_MAX, policies, 0);
             auto creationResult = applyManageAssetTx(assetOwner, 0, creationRequest);
 
             auto accountHelper = AccountHelper::Instance();
@@ -171,7 +175,7 @@ void ManageAssetTestHelper::updateAsset(Account& assetOwner,
     AssetCode assetCode, Account& root, uint32_t policies)
 {
     const auto updateRequest = createAssetUpdateRequest(assetCode,
-        "Description can be quiete long", "https://testusd.usd", policies, "123");
+        "{}", policies);
     auto updateResult = applyManageAssetTx(assetOwner, 0, updateRequest);
 
     if (assetOwner.key.getPublicKey() == root.key.getPublicKey())
@@ -199,8 +203,7 @@ void ManageAssetTestHelper::validateManageAssetEffect(ManageAssetOp::_request_t 
                 auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
                 REQUIRE(assetFrame);
                 auto assetEntry = assetFrame->getAsset();
-                REQUIRE(assetEntry.description == request.updateAsset().description);
-                REQUIRE(assetEntry.externalResourceLink == request.updateAsset().externalResourceLink);
+                REQUIRE(assetEntry.details == request.updateAsset().details);
                 REQUIRE(assetEntry.policies == request.updateAsset().policies);
                 break;
             }

@@ -115,15 +115,16 @@ bool CreateAssetOpFrame::doCheckValid(Application & app)
 		return false;
 	}
 
-	if (mAssetCreationRequest.name.empty()) {
-		innerResult().code(ManageAssetResultCode::INVALID_NAME);
-		return false;
-	}
-
 	if (!isValidXDRFlag<AssetPolicy>(mAssetCreationRequest.policies)) {
 		innerResult().code(ManageAssetResultCode::INVALID_POLICIES);
 		return false;
 	}
+
+        if (mAssetCreationRequest.maxIssuanceAmount < mAssetCreationRequest.initialPreissuedAmount)
+        {
+            innerResult().code(ManageAssetResultCode::INITIAL_PREISSUED_EXCEEDS_MAX_ISSUANCE);
+            return false;
+        }
 
 	return true;
 }

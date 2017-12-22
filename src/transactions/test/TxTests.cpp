@@ -598,12 +598,11 @@ applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offer
 
 TransactionFramePtr
 createManageBalanceTx(Hash const& networkID, SecretKey& from, SecretKey& account,
-                      Salt seq, BalanceID balanceID, AssetCode asset, ManageBalanceAction action)
+                      Salt seq, AssetCode asset, ManageBalanceAction action)
 {
     Operation op;
     op.body.type(OperationType::MANAGE_BALANCE);
     op.body.manageBalanceOp().destination = account.getPublicKey();
-    op.body.manageBalanceOp().balanceID = balanceID;
     op.body.manageBalanceOp().action = action;
     op.body.manageBalanceOp().asset = asset;
 
@@ -612,7 +611,7 @@ createManageBalanceTx(Hash const& networkID, SecretKey& from, SecretKey& account
 
 ManageBalanceResult
 applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
-                     Salt seq, BalanceID balanceID, AssetCode asset, ManageBalanceAction action,
+                     Salt seq, AssetCode asset, ManageBalanceAction action,
                      ManageBalanceResultCode result)
 {
     TransactionFramePtr txFrame;
@@ -621,7 +620,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
     balanceHelper->loadBalances(account.getPublicKey(), balances, app.getDatabase());
     
     
-    txFrame = createManageBalanceTx(app.getNetworkID(), from, account, seq, balanceID, asset, action);
+    txFrame = createManageBalanceTx(app.getNetworkID(), from, account, seq, asset, action);
 
     LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
                       app.getDatabase());
@@ -649,7 +648,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
         {
             auto assetFrame = assetHelper->loadAsset(asset, app.getDatabase());
             REQUIRE(balances.size() == balancesAfter.size() - 1);
-            auto balance = balanceHelper->loadBalance(balanceID, app.getDatabase());
+            auto balance = balanceHelper->loadBalance(opResult.success().balanceID, app.getDatabase());
             REQUIRE(balance);
             REQUIRE(balance->getBalance().accountID == account.getPublicKey());
             REQUIRE(balance->getBalance().amount == 0);
@@ -658,7 +657,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
         else
         {
             REQUIRE(balances.size() == balancesAfter.size() + 1);
-            REQUIRE(!balanceHelper->loadBalance(balanceID, app.getDatabase()));
+            REQUIRE(!balanceHelper->loadBalance(opResult.success().balanceID, app.getDatabase()));
         }
     }
     return opResult;

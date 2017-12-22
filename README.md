@@ -35,7 +35,7 @@ For bugs being opened/re-opened, simply paste and fill the [Bug-Template.md](./B
 # Running tests
 
 run tests with:
-  `src/stellar-core --test` (for now onyl [tx] tests are availalbe)
+  `src/stellar-core --test` (for now only [tx] tests are availalbe)
 
 run one test with:
   `src/stellar-core --test  testName`

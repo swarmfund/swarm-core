@@ -40,7 +40,7 @@ class ReviewableRequestFrame : public EntryFrame
 
     ReviewableRequestFrame& operator=(ReviewableRequestFrame const& other);
 
-    static pointer ReviewableRequestFrame::createNew(uint64_t requestID, AccountID requestor, AccountID reviewer,
+    static pointer createNew(uint64_t requestID, AccountID requestor, AccountID reviewer,
         xdr::pointer<stellar::string64> reference, time_t createdAt);
 	static pointer createNew(LedgerDelta &delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference,
                                  time_t createdAt);

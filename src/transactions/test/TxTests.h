@@ -122,9 +122,8 @@ TransactionFramePtr createManageBalanceTx(Hash const& networkID,
 
 ManageBalanceResult
 applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account, Salt seq,
-					 AssetCode asset = "AETH",
-					 ManageBalanceAction action  = ManageBalanceAction::CREATE, 
-					 ManageBalanceResultCode result = ManageBalanceResultCode::SUCCESS);
+        AssetCode asset = "AETH",
+        ManageBalanceAction action  = ManageBalanceAction::CREATE, ManageBalanceResultCode result = ManageBalanceResultCode::SUCCESS);
 
 
 TransactionFramePtr createManageAssetTx(Hash const& networkID, SecretKey& source,

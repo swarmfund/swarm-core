@@ -39,6 +39,7 @@
 #include "xdrpp/marshal.h"
 #include "crypto/Hex.h"
 #include "database/Database.h"
+#include "SaleHelper.h"
 
 namespace stellar
 {
@@ -178,6 +179,7 @@ namespace stellar
 		{ LedgerEntryType::REFERENCE_ENTRY, ReferenceHelper::Instance() },
 		{ LedgerEntryType::REVIEWABLE_REQUEST, ReviewableRequestHelper::Instance() },
 		{ LedgerEntryType::STATISTICS, StatisticsHelper::Instance() },
-		{ LedgerEntryType::TRUST, TrustHelper::Instance() }
+		{ LedgerEntryType::TRUST, TrustHelper::Instance() },
+                {LedgerEntryType::SALE, SaleHelper::Instance()}
 	};
 }

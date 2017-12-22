@@ -33,7 +33,6 @@ public:
     AssetFrame& operator=(AssetFrame const& other);
 
 	static pointer create(AssetCreationRequest const& request, AccountID const& owner);
-	static pointer createSystemAsset(AssetCode code, AccountID const& owner);
 
     EntryFrame::pointer
     copy() const override
@@ -78,6 +77,11 @@ public:
 		return mAsset.maxIssuanceAmount;
 	}
 
+        uint64_t getLockedIssuance() const
+    {
+            return mAsset.lockedIssuance;
+    }
+
 	AccountID const& getPreIssuedAssetSigner() const {
 		return mAsset.preissuedAssetSigner;
 	}
@@ -96,6 +100,8 @@ public:
 	bool tryAddAvailableForIssuance(uint64_t amount);
         // returns true, if able to withdrawl specified amount
         bool tryWithdraw(uint64_t amount);
+        // returns true, if able to lock issued amount
+        bool lockIssuedAmount(uint64_t amount);
 
     void setPolicies(int32 policies)
     {

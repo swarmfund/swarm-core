@@ -216,21 +216,10 @@ namespace stellar
 
 	bool SetFeesOpFrame::isEmissionFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics)
 	{
-		assert(fee.feeType == FeeType::EMISSION_FEE);
+		assert(fee.feeType == FeeType::ISSUANCE_FEE);
 
 		if (!mustValidFeeAmounts(fee, metrics))
 			return false;
-
-		if (!mustEmptyFixed(fee, metrics))
-			return false;
-
-		if (fee.subtype != static_cast<int32_t>(EmissionFeeType::PRIMARY_MARKET) &&
-				fee.subtype != static_cast<int32_t>(EmissionFeeType::SECONDARY_MARKET))
-		{
-			innerResult().code(SetFeesResultCode::MALFORMED);
-			metrics.NewMeter({ "op-set-fees", "invalid", "invalid-sub-type" }, "operation").Mark();
-			return false;
-		}
 
 		return true;
 	}
@@ -301,7 +290,7 @@ namespace stellar
 		case FeeType::WITHDRAWAL_FEE:
 			isValidFee = isForfeitFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
-		case FeeType::EMISSION_FEE:
+		case FeeType::ISSUANCE_FEE:
 			isValidFee = isEmissionFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
 		default:

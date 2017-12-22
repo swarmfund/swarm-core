@@ -8,20 +8,17 @@
 #include "main/test.h"
 #include "lib/catch.hpp"
 #include "TxTests.h"
-#include "test_helper/TestManager.h"
-#include "transactions/test/test_helper/ManageAssetTestHelper.h"
-#include "test_helper/ReviewAssetRequestHelper.h"
-#include "test_helper/IssuanceRequestHelper.h"
-#include "test_helper/ReviewPreIssuanceRequestHelper.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
+#include "test_helper/TestManager.h"
+#include "test_helper/ManageAssetTestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("manage balance", "[tx][manage_balance]")
+TEST_CASE("manage balance", "[dep_tx][manage_balance]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
@@ -31,13 +28,16 @@ TEST_CASE("manage balance", "[tx][manage_balance]")
 	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
 
-	auto root = Account{ getRoot(), Salt(0) };
+    // set up world
+    SecretKey rootKP = getRoot();
+    auto root = Account{ rootKP, 0 };
+    Salt rootSeq = 1;
     closeLedgerOn(app, 2, 1, 7, 2014);
 
-	auto account = Account{ SecretKey::random(), Salt(0) };
-	applyCreateAccountTx(app, root.key, account.key, root.salt, AccountType::GENERAL);
-	auto account2 = Account{ SecretKey::random(), Salt(0) };
-	applyCreateAccountTx(app, root.key, account2.key, root.salt, AccountType::GENERAL);
+    auto account = Account{ SecretKey::random() , 0};
+    auto account2 = Account{ SecretKey::random(), 0};
+    applyCreateAccountTx(app, rootKP, account.key, rootSeq++, AccountType::GENERAL);
+	applyCreateAccountTx(app, rootKP, account2.key, rootSeq++, AccountType::GENERAL);
     
     AssetCode asset = "EUR";
 	AssetCode asset2 = "USD";

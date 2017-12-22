@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <ledger/AssetFrame.h>
+#include <ledger/BalanceHelper.h>
 #include "transactions/AccountManager.h"
 #include "main/Application.h"
 #include "ledger/AssetPairFrame.h"
@@ -200,4 +201,76 @@ bool AccountManager::isFeeMatches(const AccountFrame::pointer account, const Fee
 
     return fee.percent == expectedPercentFee;
 }
+
+AccountManager::Result AccountManager::addStats(AccountFrame::pointer account,
+                                                BalanceFrame::pointer balance,
+                                                uint64_t amountToAdd, uint64_t &universalAmount)
+{
+    universalAmount = 0;
+    auto statsAssetFrame = AssetHelper::Instance()->loadStatsAsset(mDb);
+    if (!statsAssetFrame)
+        return SUCCESS;
+
+    AssetCode baseAsset = balance->getAsset();
+    auto statsAssetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(baseAsset, statsAssetFrame->getCode(), mDb);
+    if (!statsAssetFrame)
+        return SUCCESS;
+
+    if (!statsAssetPair->convertAmount(statsAssetFrame->getCode(), amountToAdd, ROUND_UP, universalAmount))
+        return STATS_OVERFLOW;
+
+    auto statsFrame = StatisticsHelper::Instance()->mustLoadStatistics(account->getID(), mDb);
+    time_t currentTime = mLm.getCloseTime();
+    if (!statsFrame->add(universalAmount, currentTime, currentTime))
+        return STATS_OVERFLOW;
+
+    if (!validateStats(account, balance, statsFrame))
+        return LIMITS_EXCEEDED;
+
+    EntryHelperProvider::storeChangeEntry(mDelta, mDb, statsFrame->mEntry);
+    return SUCCESS;
+}
+
+void AccountManager::revertStats(AccountID account, int64_t universalAmount, time_t timePerformed)
+{
+    auto statsFrame = StatisticsHelper::Instance()->mustLoadStatistics(account, mDb);
+    time_t now = mLm.getCloseTime();
+    auto accIdStr = PubKeyUtils::toStrKey(account);
+    if (!statsFrame->add(-universalAmount, now, timePerformed)) {
+        CLOG(ERROR, "AccountManager") << "Failed to revert statistics on account " << accIdStr;
+        throw std::runtime_error("Failed to rever statistics");
+    }
+    EntryHelperProvider::storeChangeEntry(mDelta, mDb, statsFrame->mEntry);
+}
+
+void AccountManager::transferFee(AssetCode asset, uint64_t totalFee)
+{
+    if (totalFee == 0)
+        return;
+    // load commission balance and transfer fee
+    auto commissionBalance = BalanceHelper::Instance()->loadBalance(mApp.getCommissionID(), asset, mDb, nullptr);
+    if (!commissionBalance) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. There is no commission balance for asset " << asset;
+        throw std::runtime_error("Unexpected state. Commission balance not found.");
+    }
+
+    std::string strBalanceID = PubKeyUtils::toStrKey(commissionBalance->getBalanceID());
+    if (!commissionBalance->tryFundAccount(totalFee)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to fund commission balance with fee - overflow. balanceID:"
+                                               << strBalanceID;
+        throw runtime_error("Failed to fund commission balance with fee");
+    }
+
+    EntryHelperProvider::storeChangeEntry(mDelta, mDb, commissionBalance->mEntry);
+}
+
+void AccountManager::transferFee(AssetCode asset, Fee fee)
+{
+    uint64_t totalFee = 0;
+    if (!safeSum(fee.fixed, fee.percent, totalFee))
+        throw std::runtime_error("totalFee overflows uin64");
+
+    transferFee(asset, totalFee);
+}
+
 }

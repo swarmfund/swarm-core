@@ -648,7 +648,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
         {
             auto assetFrame = assetHelper->loadAsset(asset, app.getDatabase());
             REQUIRE(balances.size() == balancesAfter.size() - 1);
-            auto balance = balanceHelper->loadBalance(account.getPublicKey(), asset, app.getDatabase());
+            auto balance = balanceHelper->loadBalance(opResult.success().balanceID, app.getDatabase());
             REQUIRE(balance);
             REQUIRE(balance->getBalance().accountID == account.getPublicKey());
             REQUIRE(balance->getBalance().amount == 0);
@@ -657,7 +657,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
         else
         {
             REQUIRE(balances.size() == balancesAfter.size() + 1);
-            REQUIRE(!balanceHelper->loadBalance(account.getPublicKey(), asset, app.getDatabase()));
+            REQUIRE(!balanceHelper->loadBalance(opResult.success().balanceID, app.getDatabase()));
         }
     }
     return opResult;

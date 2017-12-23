@@ -18,7 +18,7 @@ namespace stellar {
                          CreateAccountResultCode actualResultCode);
         };
 
-        class CreateAccountTestHelper : TxHelper {
+        class CreateAccountTestHelper : public TxHelper {
         public:
             friend CreateAccountChecker;
 
@@ -32,8 +32,7 @@ namespace stellar {
                                                          int32 policies = -1,
                                                          CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS);
 
-
-            TransactionFramePtr createCreateAccountTx();
+            TransactionFramePtr buildTx() override;
 
             CreateAccountTestHelper setFromAccount(Account from);
 

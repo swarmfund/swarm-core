@@ -531,7 +531,6 @@ namespace stellar
 	}
 
 	bool AccountHelper::exists(AccountID const &accountID, Database &db) {
-		std::string actIDStrKey = PubKeyUtils::toStrKey(accountID);
 		int exists = 0;
 		{
 			auto timer = db.getSelectTimer("account-exists");
@@ -539,7 +538,7 @@ namespace stellar
 					db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM accounts "
 													"WHERE accountid=:v1)");
 			auto& st = prep.statement();
-			st.exchange(use(actIDStrKey));
+			st.exchange(use(accountID));
 			st.exchange(into(exists));
 			st.define_and_bind();
 			st.execute(true);

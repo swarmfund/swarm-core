@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/manage_asset/ManageAssetHelper.h>
 #include "transactions/CreateAccountOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
@@ -11,8 +12,6 @@
 
 #include "exsysidgen/ExternalSystemIDGenerators.h"
 #include "main/Application.h"
-#include "medida/meter.h"
-#include "medida/metrics_registry.h"
 
 namespace stellar {
     using namespace std;
@@ -102,7 +101,7 @@ namespace stellar {
                                              LedgerManager &ledgerManager) {
         auto &db = app.getDatabase();
         auto destAccountFrame = make_shared<AccountFrame>(mCreateAccount.destination);
-        storeAccount(app, delta, destAccountFrame);
+        buildAccount(app, delta, destAccountFrame);
         EntryHelperProvider::storeAddEntry(delta, db, destAccountFrame->mEntry);
         AccountManager accountManager(app, db, delta, ledgerManager);
         accountManager.createStats(destAccountFrame);
@@ -115,13 +114,7 @@ namespace stellar {
         std::vector<AssetFrame::pointer> baseAssets;
         AssetHelper::Instance()->loadBaseAssets(baseAssets, db);
         for (const auto &baseAsset : baseAssets) {
-            BalanceID balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination,
-                                                              delta.getHeaderFrame().
-                                                                      generateID(LedgerEntryType::BALANCE));
-            auto balanceFrame = BalanceFrame::createNew(balanceID,
-                                                        mCreateAccount.destination,
-                                                        baseAsset->getCode());
-            EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
+            ManageAssetHelper::createBalanceForAccount(mCreateAccount.destination, baseAsset->getCode(), db, delta);
         }
     }
 
@@ -130,13 +123,8 @@ namespace stellar {
                                   LedgerDelta &delta, LedgerManager &ledgerManager) {
         Database &db = ledgerManager.getDatabase();
         innerResult().code(CreateAccountResultCode::SUCCESS);
-        app.getMetrics().NewMeter({"op-create-account", "success", "apply"},
-                                  "operation").Mark();
 
         if (!ledgerManager.shouldUse(mCreateAccount.ext.v())) {
-            app.getMetrics().NewMeter({
-                                              "op-create-account", "invalid", "invalid_account_version"
-                                      }, "operation").Mark();
             innerResult().code(CreateAccountResultCode::INVALID_ACCOUNT_VERSION);
             return false;
         }
@@ -152,42 +140,28 @@ namespace stellar {
     bool CreateAccountOpFrame::tryUpdateAccountType(Application &app, LedgerDelta &delta, Database &db,
                                                     AccountFrame::pointer &destAccountFrame) {
         if (!isAllowedToUpdateAccountType(destAccountFrame)) {
-            app.getMetrics().NewMeter({
-                                              "op-create-account", "invalid", "account-type-not-allowed"
-                                      }, "operation").Mark();
             innerResult().code(CreateAccountResultCode::TYPE_NOT_ALLOWED);
             return false;
         }
 
-        storeAccount(app, delta, destAccountFrame);
+        buildAccount(app, delta, destAccountFrame);
         EntryHelperProvider::storeChangeEntry(delta, db, destAccountFrame->mEntry);
         return true;
     }
 
     bool CreateAccountOpFrame::doCheckValid(Application &app) {
         if (mCreateAccount.destination == getSourceID()) {
-            app.getMetrics().NewMeter({
-                                              "op-create-account", "invalid",
-                                              "malformed-destination-equals-source"
-                                      },
-                                      "operation").Mark();
             innerResult().code(CreateAccountResultCode::MALFORMED);
             return false;
         }
 
         if (mCreateAccount.accountType == AccountType::NOT_VERIFIED &&
             mCreateAccount.policies != 0) {
-            app.getMetrics().NewMeter({
-                                              "op-create-account", "invalid", "account-type-not-allowed"
-                                      }, "operation").Mark();
-            innerResult().code(CreateAccountResultCode::TYPE_NOT_ALLOWED);
+            innerResult().code(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAS_POLICIES);
             return false;
         }
 
         if (isSystemAccountType(mCreateAccount.accountType)) {
-            app.getMetrics().NewMeter({
-                                              "op-create-account", "invalid", "account-type-not-allowed"
-                                      }, "operation").Mark();
             innerResult().code(CreateAccountResultCode::TYPE_NOT_ALLOWED);
             return false;
         }
@@ -196,7 +170,7 @@ namespace stellar {
     }
 
     void
-    CreateAccountOpFrame::storeAccount(Application &app, LedgerDelta &delta, AccountFrame::pointer destAccountFrame) {
+    CreateAccountOpFrame::buildAccount(Application &app, LedgerDelta &delta, AccountFrame::pointer destAccountFrame) {
         auto &db = app.getDatabase();
         auto &destAccount = destAccountFrame->getAccount();
         destAccount.accountType = mCreateAccount.accountType;

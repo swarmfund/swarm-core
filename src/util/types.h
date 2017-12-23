@@ -108,10 +108,7 @@ bool iequals(std::string const& a, std::string const& b);
 }
 
 template<typename R>
-std::string getNameCode(R code) {
-    if (!stellar::isValidEnumValue<R>(code)) {
-        throw std::runtime_error("Invalid result code");
-    }
+std::string getCodeName(R code) {
     const char * rawResultCode = xdr::xdr_traits<R>::enum_name(code);
     if (!rawResultCode) {
         throw std::runtime_error("name result code is nullptr");

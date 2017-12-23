@@ -8,6 +8,8 @@
 #include "TestManager.h"
 #include "Account.h"
 #include "transactions/TransactionFrame.h"
+#include "transactions/test/TxTests.h"
+#include "TestUtils.h"
 
 namespace stellar
 {
@@ -22,7 +24,14 @@ namespace txtest
 	public:
 		TxHelper(TestManager::pointer testManager);
 
+		void applyAndCheckFirstOperation(OperationResultCode expectedResult){
+			auto operation = buildTx();
+            mTestManager->applyCheck(operation);
+            auto actualResult = getFirstResult(*operation).code();
+            mustEqualsResultCode<OperationResultCode>(expectedResult, actualResult);
+		}
 
+        virtual TransactionFramePtr buildTx() { ; }
 	};
 }
 }

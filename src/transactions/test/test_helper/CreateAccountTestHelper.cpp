@@ -3,6 +3,7 @@
 #include <ledger/StatisticsHelper.h>
 #include <ledger/BalanceHelper.h>
 #include "CreateAccountTestHelper.h"
+#include "TestUtils.h"
 
 namespace stellar {
     namespace txtest {
@@ -10,7 +11,7 @@ namespace stellar {
         CreateAccountTestHelper::CreateAccountTestHelper(TestManager::pointer testManager) : TxHelper(testManager) {
         }
 
-        TransactionFramePtr CreateAccountTestHelper::createCreateAccountTx() {
+        TransactionFramePtr CreateAccountTestHelper::buildTx() {
             Operation op;
             op.body.type(OperationType::CREATE_ACCOUNT);
             CreateAccountOp &createAccountOp = op.body.createAccountOp();
@@ -26,14 +27,13 @@ namespace stellar {
         }
 
         CreateAccountResultCode CreateAccountTestHelper::applyTx() {
-            TransactionFramePtr txFrame = createCreateAccountTx();
+            TransactionFramePtr txFrame = buildTx();
             mTestManager->applyCheck(txFrame);
             auto txResult = txFrame->getResult();
             auto opResult = txResult.result.results()[0];
             auto actualResultCode = CreateAccountOpFrame::getInnerCode(opResult);
 
-            REQUIRE(getNameCode<CreateAccountResultCode>(actualResultCode)
-                    == getNameCode<CreateAccountResultCode>(expectedResult));
+            mustEqualsResultCode<CreateAccountResultCode>(actualResultCode, expectedResult);
             REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
 
             auto checker = CreateAccountChecker(mTestManager);

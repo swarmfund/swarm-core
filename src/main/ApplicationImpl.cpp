@@ -232,6 +232,10 @@ namespace stellar {
         return mConfig.WITHDRAWAL_DETAILS_MAX_LENGTH;
     }
 
+	uint64 ApplicationImpl::getIssuanceDetailsMaxLength() const {
+		return mConfig.ISSUANCE_DETAILS_MAX_LENGTH;
+	}
+
     AssetCode ApplicationImpl::getStatsQuoteAsset() const {
         assert(mConfig.STATS_QUOTE_ASSET.size() > 0);
         return mConfig.STATS_QUOTE_ASSET;

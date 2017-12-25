@@ -263,6 +263,7 @@ class Application
     virtual std::string getBaseExchangeName() const = 0;
     virtual uint64 getTxExpirationPeriod() const = 0;
     virtual uint64 getWithdrawalDetailsMaxLength() const = 0;
+	virtual uint64 getIssuanceDetailsMaxLength() const = 0;
     [[deprecated]]
 	virtual AssetCode getStatsQuoteAsset() const = 0;
     virtual int64 getMaxInvoicesForReceiverAccount() const = 0;

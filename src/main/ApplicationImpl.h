@@ -146,6 +146,8 @@ namespace stellar {
 
         virtual uint64 getWithdrawalDetailsMaxLength() const override;
 
+		virtual uint64 getIssuanceDetailsMaxLength() const override;
+
         virtual int64 getMaxInvoicesForReceiverAccount() const override;
 
         virtual AssetCode getStatsQuoteAsset() const override;

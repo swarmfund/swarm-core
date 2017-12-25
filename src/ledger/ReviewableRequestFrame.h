@@ -25,12 +25,12 @@ class ReviewableRequestFrame : public EntryFrame
 
     ReviewableRequestFrame(ReviewableRequestFrame const& from);
 
-	static bool isAssetCreateValid(AssetCreationRequest const & request);
-	static bool isAssetUpdateValid(AssetUpdateRequest const& request);
-	static bool isPreIssuanceValid(PreIssuanceRequest const& request);
-	static bool isIssuanceValid(IssuanceRequest const& request);
-        static bool isWithdrawalValid(WithdrawalRequest const& request);
-        static bool isSaleCreationValid(SaleCreationRequest const& request);
+	static void ensureAssetCreateValid(AssetCreationRequest const & request);
+	static void ensureAssetUpdateValid(AssetUpdateRequest const& request);
+	static void ensurePreIssuanceValid(PreIssuanceRequest const& request);
+	static void ensureIssuanceValid(IssuanceRequest const& request);
+        static void ensureWithdrawalValid(WithdrawalRequest const& request);
+        static void ensureSaleCreationValid(SaleCreationRequest const& request);
 
   public:
     typedef std::shared_ptr<ReviewableRequestFrame> pointer;
@@ -123,8 +123,8 @@ class ReviewableRequestFrame : public EntryFrame
         return EntryFrame::pointer(new ReviewableRequestFrame(*this));
     }
         
-    static bool isValid(ReviewableRequestEntry const& oe);
-    bool isValid() const;
+    static void ensureValid(ReviewableRequestEntry const& oe);
+    void ensureValid() const;
 
 };
 }

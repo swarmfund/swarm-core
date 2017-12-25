@@ -38,15 +38,16 @@ class SaleFrame : public EntryFrame
     {
         return EntryFrame::pointer(new SaleFrame(*this));
     }
-        
-    static bool isValid(SaleEntry const& oe);
-    bool isValid() const;
+    
+    // ensureValid - throws exeption if entry is not valid
+    static void ensureValid(SaleEntry const& oe);
+    void ensureValid() const;
 
     SaleEntry& getSaleEntry();
 
-    static bool calculateRequiredBaseAssetForSoftCap(SaleCreationRequest const& request, uint64_t& requiredAmount);
+    static bool convertToBaseAmount(uint64_t const& price, uint64_t const& quoteAssetAmount, uint64_t& result);
 
-    static pointer createNew(uint64_t const& id, AccountID const &ownerID, SaleCreationRequest& request);
+    static pointer createNew(uint64_t const& id, AccountID const &ownerID, SaleCreationRequest const& request);
 
 };
 }

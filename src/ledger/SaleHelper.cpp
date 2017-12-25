@@ -113,14 +113,7 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     auto saleFrame = make_shared<SaleFrame>(entry);
     saleFrame->touch(delta);
     const auto saleEntry = saleFrame->getSaleEntry();
-
-    if (!saleFrame->isValid())
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER)
-            << "Unexpected state - sale is invalid: "
-            << xdr::xdr_to_string(saleEntry);
-        throw runtime_error("Unexpected state - sale is invalid");
-    }
+    saleFrame->ensureValid();
 
     const auto key = saleFrame->getKey();
     flushCachedEntry(key, db);
@@ -212,13 +205,7 @@ void SaleHelper::loadRequests(StatementContext& prep,
     while (st.got_data())
     {
         oe.ext.v(static_cast<LedgerVersion>(version));
-        if (!SaleFrame::isValid(oe))
-        {
-            CLOG(ERROR, Logging::ENTRY_LOGGER) <<
-                "Unexpected state: invalid sale entry: " << xdr::
-                xdr_to_string(oe);
-            throw runtime_error("Invalid sale");
-        }
+        SaleFrame::ensureValid(oe);
 
         saleProcessor(le);
         st.fetch();

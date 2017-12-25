@@ -9,6 +9,7 @@
 #include "ledger/AssetFrame.h"
 #include "xdrpp/printer.h"
 #include "crypto/SHA.h"
+#include "SaleFrame.h"
 
 using namespace soci;
 using namespace std;
@@ -74,51 +75,81 @@ ReviewableRequestFrame::createNewWithHash(LedgerDelta &delta, AccountID requesto
 	return result;
 }
 
-bool ReviewableRequestFrame::isAssetCreateValid(AssetCreationRequest const& request)
+void ReviewableRequestFrame::ensureAssetCreateValid(AssetCreationRequest const& request)
 {
     const auto owner = AccountID{};
-    return AssetFrame::create(request, owner)->isValid();
+    if (!AssetFrame::create(request, owner)->isValid())
+    {
+        throw runtime_error("Asset creation request is invalid");
+    }
 }
 
-bool ReviewableRequestFrame::isAssetUpdateValid(AssetUpdateRequest const& request)
+void ReviewableRequestFrame::ensureAssetUpdateValid(AssetUpdateRequest const& request)
 {
-	return AssetFrame::isAssetCodeValid(request.code);
+	if (!AssetFrame::isAssetCodeValid(request.code))
+	{
+            throw runtime_error("Asset code is invalid");
+	}
 }
 
-bool ReviewableRequestFrame::isPreIssuanceValid(PreIssuanceRequest const & request)
+void ReviewableRequestFrame::ensurePreIssuanceValid(PreIssuanceRequest const & request)
 {
-	return AssetFrame::isAssetCodeValid(request.asset) && request.amount != 0;
+    if (!AssetFrame::isAssetCodeValid(request.asset))
+    {
+        throw runtime_error("invalid asset code");
+    }
+
+    if (request.amount == 0)
+    {
+        throw runtime_error("invalid amount");
+    }
 }
 
-bool ReviewableRequestFrame::isIssuanceValid(IssuanceRequest const & request)
+void ReviewableRequestFrame::ensureIssuanceValid(IssuanceRequest const & request)
 {
-	return AssetFrame::isAssetCodeValid(request.asset) && request.amount != 0;
+    if (!AssetFrame::isAssetCodeValid(request.asset))
+    {
+        throw runtime_error("invalid asset code");
+    }
+
+    if (request.amount == 0)
+    {
+        throw runtime_error("invalid amount");
+    }
 }
 
-bool ReviewableRequestFrame::isWithdrawalValid(WithdrawalRequest const& request)
+void ReviewableRequestFrame::ensureWithdrawalValid(WithdrawalRequest const& request)
 {
-    auto isValid = true;
+    if (request.amount == 0)
+    {
+        throw runtime_error("amount is invalid");
+    }
+
+
     switch (request.details.withdrawalType())
     {
     case WithdrawalType::AUTO_CONVERSION:
         {
-        isValid = isValid && AssetFrame::isAssetCodeValid(request.details.autoConversion().destAsset) && request.details.autoConversion().expectedAmount > 0;
+            if (!AssetFrame::isAssetCodeValid(request.details.autoConversion().destAsset))
+            {
+                throw runtime_error("dest asset is invalid");
+            }
+            
+            if (request.details.autoConversion().expectedAmount == 0)
+            {
+                throw runtime_error("destination amount is invalid");
+            }
         }
     default: break;
     }
-    return isValid && request.amount > 0;
 }
 
-bool ReviewableRequestFrame::isSaleCreationValid(
+void ReviewableRequestFrame::ensureSaleCreationValid(
     SaleCreationRequest const& request)
 {
-    if (request.baseAsset == request.quoteAsset)
-        return false;
-    if (request.endTime <= request.startTime)
-        return false;
-    if (request.price == 0)
-        return false;
-    return request.softCap < request.hardCap;
+    const AccountID dummyAccountID;
+    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request);
+    saleFrame->ensureValid();
 }
 
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
@@ -126,34 +157,46 @@ uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t co
 	return sha256(xdr::xdr_to_opaque(body));
 }
 
-bool
-ReviewableRequestFrame::isValid(ReviewableRequestEntry const& oe)
+void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
 {
-	auto hash = calculateHash(oe.body);
-	if (oe.hash != hash)
-		return false;
-	switch (oe.body.type()) {
-	case ReviewableRequestType::ASSET_CREATE:
-		return isAssetCreateValid(oe.body.assetCreationRequest());
-	case ReviewableRequestType::ASSET_UPDATE:
-		return isAssetUpdateValid(oe.body.assetUpdateRequest());
-	case ReviewableRequestType::ISSUANCE_CREATE:
-		return isIssuanceValid(oe.body.issuanceRequest());
-	case ReviewableRequestType::PRE_ISSUANCE_CREATE:
-		return isPreIssuanceValid(oe.body.preIssuanceRequest());
+    try
+    {
+        const auto hash = calculateHash(oe.body);
+        if (oe.hash != hash)
+            throw runtime_error("Calculated hash does not match one in request");
+        switch (oe.body.type()) {
+        case ReviewableRequestType::ASSET_CREATE:
+            ensureAssetCreateValid(oe.body.assetCreationRequest());
+            return;
+        case ReviewableRequestType::ASSET_UPDATE:
+            ensureAssetUpdateValid(oe.body.assetUpdateRequest());
+            return;
+        case ReviewableRequestType::ISSUANCE_CREATE:
+            ensureIssuanceValid(oe.body.issuanceRequest());
+            return;
+        case ReviewableRequestType::PRE_ISSUANCE_CREATE:
+            ensurePreIssuanceValid(oe.body.preIssuanceRequest());
+            return;
         case ReviewableRequestType::WITHDRAW:
-            return isWithdrawalValid(oe.body.withdrawalRequest());   
+            ensureWithdrawalValid(oe.body.withdrawalRequest());
+            return;
         case ReviewableRequestType::SALE:
-            return isSaleCreationValid(oe.body.saleCreationRequest());
-	default:
-		return false;
-	}
+            ensureSaleCreationValid(oe.body.saleCreationRequest());
+            return;
+        default:
+            throw runtime_error("Unexpected reviewable request typw");
+        }
+    } catch(exception ex)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Reviewable request is invalid: " << xdr::xdr_to_string(oe) << " reason:" << ex.what();
+        throw_with_nested(runtime_error("Reviewable request is invalid")); 
+    }
 }
 
-bool
-ReviewableRequestFrame::isValid() const
+void
+ReviewableRequestFrame::ensureValid() const
 {
-    return isValid(mRequest);
+    ensureValid(mRequest);
 }
 }
 

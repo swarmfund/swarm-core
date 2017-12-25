@@ -39,22 +39,32 @@ SaleFrame& SaleFrame::operator=(SaleFrame const& other)
     return *this;
 }
 
-bool
-SaleFrame::isValid(SaleEntry const& oe)
+void
+SaleFrame::ensureValid(SaleEntry const& oe)
 {
-    if (!AssetFrame::isAssetCodeValid(oe.baseAsset) || !AssetFrame::isAssetCodeValid(oe.quoteAsset))
-        return false;
-    if (oe.baseAsset == oe.quoteAsset)
-        return false;
-    if (oe.endTime <= oe.startTime)
-        return false;
-    return oe.softCap < oe.hardCap;
+    try
+    {
+        if (!AssetFrame::isAssetCodeValid(oe.baseAsset) || !AssetFrame::isAssetCodeValid(oe.quoteAsset))
+            throw runtime_error("invalid asset code");
+        if (oe.baseAsset == oe.quoteAsset)
+            throw runtime_error("base asset can not be equeal quote");
+        if (oe.endTime <= oe.startTime)
+            throw runtime_error("start time is after end time");
+        if (oe.softCap > oe.hardCap)
+        {
+            throw runtime_error("soft cap exceeds hard cap");
+        }
+    } catch (...)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state sale entry is invalid: " << xdr::xdr_to_string(oe);
+        throw_with_nested(runtime_error("Sale entry is invalid"));
+    }
 }
 
-bool
-SaleFrame::isValid() const
+void
+SaleFrame::ensureValid() const
 {
-    return isValid(mSale);
+    ensureValid(mSale);
 }
 
 SaleEntry& SaleFrame::getSaleEntry()
@@ -62,13 +72,13 @@ SaleEntry& SaleFrame::getSaleEntry()
     return mSale;
 }
 
-bool SaleFrame::calculateRequiredBaseAssetForSoftCap(
-    SaleCreationRequest const& request, uint64_t& requiredAmount)
+bool SaleFrame::convertToBaseAmount(uint64_t const& price,
+    uint64_t const& quoteAssetAmount, uint64_t& result)
 {
-    return bigDivide(requiredAmount, request.softCap, ONE, request.price, ROUND_UP);
+    return bigDivide(result, quoteAssetAmount, ONE, price, ROUND_UP);
 }
 
-SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &ownerID, SaleCreationRequest& request)
+SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &ownerID, SaleCreationRequest const& request)
 {
     LedgerEntry entry;
     entry.data.type(LedgerEntryType::SALE);

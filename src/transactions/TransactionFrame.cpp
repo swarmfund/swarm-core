@@ -358,16 +358,8 @@ TransactionFrame::markResultFailed()
     }
 }
 
-bool
-TransactionFrame::apply(LedgerDelta& delta, Application& app)
-{
-    TransactionMeta tm;
-    return apply(delta, tm, app);
-}
-
-bool
-TransactionFrame::apply(LedgerDelta& delta, TransactionMeta& meta,
-                        Application& app)
+bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
+    Application& app)
 {
     resetSignatureTracker();
     if (!commonValid(app, &delta))
@@ -385,7 +377,7 @@ TransactionFrame::apply(LedgerDelta& delta, TransactionMeta& meta,
         LedgerDelta thisTxDelta(delta);
 
         auto& opTimer =
-            app.getMetrics().NewTimer({"transaction", "op", "apply"});
+            app.getMetrics().NewTimer({ "transaction", "op", "apply" });
 
         for (auto& op : mOperations)
         {
@@ -422,6 +414,42 @@ TransactionFrame::apply(LedgerDelta& delta, TransactionMeta& meta,
     }
 
     return !errorEncountered;
+}
+
+void TransactionFrame::unwrapNestedException(const exception& e,
+    stringstream& str)
+{
+    str << e.what();
+    try {
+        rethrow_if_nested(e);
+    }
+    catch (const exception& nested) {
+        str << "->";
+        unwrapNestedException(nested, str);
+    }
+}
+
+bool
+TransactionFrame::apply(LedgerDelta& delta, Application& app)
+{
+    TransactionMeta tm;
+    return apply(delta, tm, app);
+}
+
+bool
+TransactionFrame::apply(LedgerDelta& delta, TransactionMeta& meta,
+                        Application& app)
+{
+    try
+    {
+        return applyTx(delta, meta, app);
+    } catch (exception& e)
+    {
+        stringstream details;
+        unwrapNestedException(e, details);
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to apply tx: " << details.str();
+        throw;
+    }
 }
 
 StellarMessage

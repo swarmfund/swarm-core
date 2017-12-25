@@ -47,13 +47,14 @@ TEST_CASE("Sale", "[tx][sale]")
         CreateAccountTestHelper(testManager).applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
         const AssetCode baseAsset = "BTC";
         const auto maxIssuanceAmount = 1000 * ONE;
-        assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}", maxIssuanceAmount, 0);
+        assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}", maxIssuanceAmount, 0, maxIssuanceAmount);
         assetTestHelper.createApproveRequest(root, syndicate, assetCreationRequest);
         auto saleRequestHelper = SaleRequestHelper(testManager);
         const auto currentTime = testManager->getLedgerManager().getCloseTime();
         const auto price = 2 * ONE;
-        const auto softCap = bigDivide(maxIssuanceAmount, price, ONE, ROUND_DOWN);
-        const auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime, currentTime + 1000, price, softCap, softCap + 1, "{}");
+        const auto hardCap = bigDivide(maxIssuanceAmount, price, ONE, ROUND_DOWN);
+        const auto softCap = hardCap / 2;
+        const auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime, currentTime + 1000, price, softCap, hardCap, "{}");
         saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
     }
 }

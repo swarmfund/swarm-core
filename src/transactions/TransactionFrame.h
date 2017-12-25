@@ -57,6 +57,9 @@ class TransactionFrame
     void resetResults();
     void markResultFailed();
 
+    bool applyTx(LedgerDelta& delta, TransactionMeta& meta, Application& app);
+    static void unwrapNestedException(const std::exception& e, std::stringstream& str);
+
   public:
     TransactionFrame(Hash const& networkID,
                      TransactionEnvelope const& envelope);

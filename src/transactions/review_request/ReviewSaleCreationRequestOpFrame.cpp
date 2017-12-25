@@ -53,17 +53,17 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
         return false;
     }
 
-    uint64_t requiredBaseAssetForSoftCap;
-    if (!SaleFrame::calculateRequiredBaseAssetForSoftCap(saleCreationRequest, requiredBaseAssetForSoftCap))
+    uint64_t requiredBaseAssetForHardCap;
+    if (!SaleFrame::convertToBaseAmount(saleCreationRequest.price, saleCreationRequest.hardCap, requiredBaseAssetForHardCap))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate required base asset for soft cap: " << request->getRequestID();
         throw runtime_error("Failed to calculate required base asset for soft cap");
     }
 
     
-    if (!baseAsset->lockIssuedAmount(requiredBaseAssetForSoftCap))
+    if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
     {
-        innerResult().code(ReviewRequestResultCode::SOFT_CAP_WILL_EXCEED_MAX_ISSUANCE);
+        innerResult().code(ReviewRequestResultCode::HARD_CAP_WILL_EXCEED_MAX_ISSUANCE);
         return false;
     }
 

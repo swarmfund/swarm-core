@@ -14,24 +14,24 @@
 namespace stellar
 {
 namespace txtest 
-{	
+{
+    class OperationBuilder {
+    public:
+        virtual Operation buildOp(TestManager::pointer testManager) = 0;
+    };
+
 	class TxHelper
 	{
 	protected:
 		TestManager::pointer mTestManager;
 
-		TransactionFramePtr txFromOperation(Account& account, Operation const& op, Account* signer = nullptr);
-	public:
-		TxHelper(TestManager::pointer testManager);
+    public:
 
-		void applyAndCheckFirstOperation(OperationResultCode expectedResult){
-			auto operation = buildTx();
-            mTestManager->applyCheck(operation);
-            auto actualResult = getFirstResult(*operation).code();
-            mustEqualsResultCode<OperationResultCode>(expectedResult, actualResult);
-		}
+        TransactionFramePtr txFromOperation(Account& account, Operation const& op, Account* signer = nullptr);
+        TransactionFramePtr buildTx(Operation const& op);
+        TxHelper(TestManager::pointer testManager);
 
-        virtual TransactionFramePtr buildTx() { ; }
+		void applyAndCheckFirstOperation(OperationBuilder &operationBuilder, OperationResultCode expectedResult);
 	};
 }
 }

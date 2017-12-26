@@ -2,14 +2,10 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/test/TxTests.h>
 #include "TestManager.h"
-#include "transactions/TransactionFrame.h"
-#include "herder/TxSetFrame.h"
-#include "herder/LedgerCloseData.h"
-#include "ledger/LedgerManager.h"
-#include "ledger/LedgerDelta.h"
-#include "util/Timer.h"
 #include "invariant/Invariants.h"
+#include "TestUtils.h"
 
 
 namespace stellar
@@ -118,6 +114,12 @@ bool TestManager::applyCheck(TransactionFramePtr tx)
 		mApp.getInvariants().check(txSet, mDelta);
 		return isApplied;
 	}
+
+    void TestManager::applyAndCheckFirstOperation(TransactionFramePtr tx, OperationResultCode expectedResult) {
+        applyCheck(tx);
+        auto actualResult = getFirstResult(*tx).code();
+        mustEqualsResultCode<OperationResultCode>(expectedResult, actualResult);
+    }
 }
 
 }

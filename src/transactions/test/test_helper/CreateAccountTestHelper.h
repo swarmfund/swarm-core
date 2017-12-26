@@ -18,39 +18,53 @@ namespace stellar {
                          CreateAccountResultCode actualResultCode);
         };
 
+        class CreateAccountTestBuilder : public OperationBuilder {
+        public:
+            Operation buildOp(TestManager::pointer testManager) override;
+
+            CreateAccountTestBuilder setFromAccount(Account from);
+
+            CreateAccountTestBuilder setToPublicKey(PublicKey to);
+
+            CreateAccountTestBuilder setType(AccountType accountType);
+
+            CreateAccountTestBuilder setType(int32_t accountType);
+
+            CreateAccountTestBuilder setSigner(Account *signer);
+
+            CreateAccountTestBuilder setReferrer(AccountID *referrer);
+
+            CreateAccountTestBuilder setPolicies(int32 policies);
+
+            CreateAccountTestBuilder setPolicies(AccountPolicies policies);
+
+            CreateAccountTestBuilder setResultCode(CreateAccountResultCode expectedResult);
+
+            Account from;
+            PublicKey to;
+            AccountType accountType;
+            Account *signer = nullptr;
+            AccountID *referrer = nullptr;
+            int32 policies = -1;
+            CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS;
+        };
+
         class CreateAccountTestHelper : public TxHelper {
         public:
             friend CreateAccountChecker;
 
             explicit CreateAccountTestHelper(TestManager::pointer testManager);
 
-            CreateAccountResultCode applyTx();
+            CreateAccountResultCode applyTx(TransactionFramePtr txFramePtr);
+            CreateAccountResultCode applyTx(CreateAccountTestBuilder builder);
+
+            TransactionFramePtr buildTx(CreateAccountTestBuilder builder);
 
             [[deprecated]]
             CreateAccountResultCode applyCreateAccountTx(Account &from, PublicKey to, AccountType accountType,
                                                          Account* signer = nullptr, AccountID *referrer = nullptr,
                                                          int32 policies = -1,
                                                          CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS);
-
-            TransactionFramePtr buildTx() override;
-
-            CreateAccountTestHelper setFromAccount(Account from);
-
-            CreateAccountTestHelper setToPublicKey(PublicKey to);
-
-            CreateAccountTestHelper setType(AccountType accountType);
-
-            CreateAccountTestHelper setType(int32_t accountType);
-
-            CreateAccountTestHelper setSigner(Account *signer);
-
-            CreateAccountTestHelper setReferrer(AccountID *referrer);
-
-            CreateAccountTestHelper setPolicies(int32 policies);
-
-            CreateAccountTestHelper setPolicies(AccountPolicies policies);
-
-            CreateAccountTestHelper setResultCode(CreateAccountResultCode expectedResult);
 
         private:
             Account from;

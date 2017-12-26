@@ -43,6 +43,8 @@ namespace txtest
 
 		void upgradeToCurrentLedgerVersion();
 
+		void applyAndCheckFirstOperation(TransactionFramePtr tx, OperationResultCode expectedResult);
+
 		Hash const & getNetworkID() const {
 			return mApp.getNetworkID();
 		}

@@ -3,7 +3,6 @@
 #include <ledger/StatisticsHelper.h>
 #include <ledger/BalanceHelper.h>
 #include "CreateAccountTestHelper.h"
-#include "TestUtils.h"
 
 namespace stellar {
     namespace txtest {
@@ -11,7 +10,7 @@ namespace stellar {
         CreateAccountTestHelper::CreateAccountTestHelper(TestManager::pointer testManager) : TxHelper(testManager) {
         }
 
-        TransactionFramePtr CreateAccountTestHelper::buildTx() {
+        Operation CreateAccountTestBuilder::buildOp(TestManager::pointer testManager) {
             Operation op;
             op.body.type(OperationType::CREATE_ACCOUNT);
             CreateAccountOp &createAccountOp = op.body.createAccountOp();
@@ -22,12 +21,10 @@ namespace stellar {
                 createAccountOp.policies = policies;
             if (referrer)
                 createAccountOp.referrer.activate() = *referrer;
-
-            return TxHelper::txFromOperation(from, op, signer);
+            return op;
         }
 
-        CreateAccountResultCode CreateAccountTestHelper::applyTx() {
-            TransactionFramePtr txFrame = buildTx();
+        CreateAccountResultCode CreateAccountTestHelper::applyTx(TransactionFramePtr txFrame) {
             mTestManager->applyCheck(txFrame);
             auto txResult = txFrame->getResult();
             auto opResult = txResult.result.results()[0];
@@ -41,51 +38,51 @@ namespace stellar {
             return actualResultCode;
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setFromAccount(Account from) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setFromAccount(Account from) {
             auto newTestHelper = *this;
             newTestHelper.from = from;
             return newTestHelper;
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setToPublicKey(PublicKey to) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setToPublicKey(PublicKey to) {
             auto newTestHelper = *this;
             newTestHelper.to = to;
             return newTestHelper;
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setType(AccountType accountType) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setType(AccountType accountType) {
             auto newTestHelper = *this;
             newTestHelper.accountType = accountType;
             return newTestHelper;
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setType(int32_t accountType) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setType(int32_t accountType) {
             return setType(static_cast<AccountType>(accountType));
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setSigner(Account *signer) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setSigner(Account *signer) {
             auto newTestHelper = *this;
             newTestHelper.signer = signer;
             return newTestHelper;
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setReferrer(AccountID *referrer) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setReferrer(AccountID *referrer) {
             auto newTestHelper = *this;
             newTestHelper.referrer = referrer;
             return newTestHelper;
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setPolicies(int32 policies) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setPolicies(int32 policies) {
             auto newTestHelper = *this;
             newTestHelper.policies = policies;
             return newTestHelper;
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setPolicies(AccountPolicies policies) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setPolicies(AccountPolicies policies) {
             return setPolicies(static_cast<int32_t>(policies));
         }
 
-        CreateAccountTestHelper CreateAccountTestHelper::setResultCode(CreateAccountResultCode expectedResult) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setResultCode(CreateAccountResultCode expectedResult) {
             auto newTestHelper = *this;
             newTestHelper.expectedResult = expectedResult;
             return newTestHelper;
@@ -95,14 +92,35 @@ namespace stellar {
         CreateAccountTestHelper::applyCreateAccountTx(Account &from, PublicKey to, AccountType accountType,
                                                       Account *signer, AccountID *referrer, int32 policies,
                                                       CreateAccountResultCode expectedResult) {
-            return setFromAccount(from)
+            auto builder = CreateAccountTestBuilder()
+                    .setFromAccount(from)
                     .setToPublicKey(to)
                     .setType(accountType)
                     .setSigner(signer)
                     .setReferrer(referrer)
                     .setPolicies(policies)
-                    .setResultCode(expectedResult)
-                    .applyTx();
+                    .setResultCode(expectedResult);
+            return applyTx(builder);
+        }
+
+        CreateAccountResultCode CreateAccountTestHelper::applyTx(CreateAccountTestBuilder builder) {
+            auto txFrame = buildTx(builder);
+            mTestManager->applyCheck(txFrame);
+            auto txResult = txFrame->getResult();
+            auto opResult = txResult.result.results()[0];
+            auto actualResultCode = CreateAccountOpFrame::getInnerCode(opResult);
+
+            mustEqualsResultCode<CreateAccountResultCode>(actualResultCode, expectedResult);
+            REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
+
+            auto checker = CreateAccountChecker(mTestManager);
+            checker.doCheck(this, actualResultCode);
+            return actualResultCode;
+        }
+
+        TransactionFramePtr CreateAccountTestHelper::buildTx(CreateAccountTestBuilder builder) {
+            auto op = builder.buildOp(mTestManager);
+            return TxHelper::txFromOperation(builder.from, op, builder.signer);
         }
 
         void

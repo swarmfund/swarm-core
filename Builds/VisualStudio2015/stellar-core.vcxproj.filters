@@ -816,6 +816,9 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1211,9 +1214,6 @@
     <ClInclude Include="src\generated\xdr\Stellar-operation-inflation.h">
       <Filter>xdr\generated</Filter>
     </ClInclude>
-    <ClInclude Include="src\generated\xdr\Stellar-operation-manage-offer.h">
-      <Filter>xdr\generated</Filter>
-    </ClInclude>
     <ClInclude Include="src\generated\xdr\Stellar-operation-path-payment.h">
       <Filter>xdr\generated</Filter>
     </ClInclude>
@@ -1572,6 +1572,9 @@
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
   </ItemGroup>

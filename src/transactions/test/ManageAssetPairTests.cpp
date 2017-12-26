@@ -194,7 +194,7 @@ TEST_CASE("manage asset pair", "[tx][manage_asset_pair]")
                 // update policies
                 physicalPriceCorrection = physicalPriceCorrection + 100 * ONE;
                 maxPriceStep = maxPriceStep + 1 * ONE;
-                policies = static_cast<int32_t>(AssetPairPolicy::TRADEABLE) |
+                policies = static_cast<int32_t>(AssetPairPolicy::TRADEABLE_SECONDARY_MARKET) |
                            static_cast<int32_t>(AssetPairPolicy::
                                CURRENT_PRICE_RESTRICTION);
                 assetPairTestHelper.applyManageAssetPairTx(root, quote, base,

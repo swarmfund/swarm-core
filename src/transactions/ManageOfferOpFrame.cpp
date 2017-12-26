@@ -24,6 +24,7 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
+    // TODO requires refactoring
 ManageOfferOpFrame::ManageOfferOpFrame(Operation const& op,
                                        OperationResult& res,
                                        TransactionFrame& parentTx)
@@ -58,62 +59,19 @@ AssetPairFrame::pointer ManageOfferOpFrame::loadTradableAssetPair(
     AssetPairFrame::pointer assetPair = assetPairHelper->
         loadAssetPair(mBaseBalance->getAsset(), mQuoteBalance->getAsset(), db,
                       &delta);
-    if (assetPair && assetPair->checkPolicy(AssetPairPolicy::TRADEABLE))
+    if (!assetPair)
+        return nullptr;
+
+    if (mManageOffer.orderBookID != SECONDARY_MARKET_ORDER_BOOK_ID)
         return assetPair;
 
-    metrics
-        .NewMeter({"op-manage-offer", "invalid", "asset-pair-not-tradable"},
-                  "operation")
-        .Mark();
-    innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
+    if (assetPair->checkPolicy(AssetPairPolicy::TRADEABLE_SECONDARY_MARKET))
+    {
+        return assetPair;
+    }
+
+   
     return nullptr;
-}
-
-bool ManageOfferOpFrame::checkPhysicalPriceRestrictionMet(
-    AssetPairFrame::pointer assetPair, medida::MetricsRegistry& metrics)
-{
-    if (!assetPair->checkPolicy(AssetPairPolicy::PHYSICAL_PRICE_RESTRICTION))
-        return true;
-
-    int64_t minPriceInTermsOfPhysical = assetPair->
-        getMinPriceInTermsOfPhysical();
-    if (minPriceInTermsOfPhysical <= mManageOffer.price)
-        return true;
-
-    metrics
-        .NewMeter({
-                      "op-manage-offer", "invalid",
-                      "violates-physical-price-restrictions"
-                  },
-                  "operation")
-        .Mark();
-    innerResult().code(ManageOfferResultCode::PHYSICAL_PRICE_RESTRICTION);
-    innerResult().physicalPriceRestriction().physicalPrice =
-        minPriceInTermsOfPhysical;
-    return false;
-}
-
-bool ManageOfferOpFrame::checkCurrentPriceRestrictionMet(
-    AssetPairFrame::pointer assetPair, medida::MetricsRegistry& metrics)
-{
-    if (!assetPair->checkPolicy(AssetPairPolicy::CURRENT_PRICE_RESTRICTION))
-        return true;
-
-    int64_t minPriceInTermsOfCurrent = assetPair->getMinPriceInTermsOfCurrent();
-    if (minPriceInTermsOfCurrent <= mManageOffer.price)
-        return true;
-
-    metrics
-        .NewMeter({
-                      "op-manage-offer", "invalid",
-                      "violates-current-price-restrictions"
-                  },
-                  "operation")
-        .Mark();
-    innerResult().code(ManageOfferResultCode::CURRENT_PRICE_RESTRICTION);
-    innerResult().currentPriceRestriction().currentPrice =
-        minPriceInTermsOfCurrent;
-    return false;
 }
 
 bool ManageOfferOpFrame::checkOfferValid(Application& app, LedgerManager& lm,
@@ -145,33 +103,34 @@ bool ManageOfferOpFrame::checkOfferValid(Application& app, LedgerManager& lm,
 
     mAssetPair = loadTradableAssetPair(app.getMetrics(), db, delta);
     if (!mAssetPair)
+    {
+        app.getMetrics()
+            .NewMeter({ "op-manage-offer", "invalid", "asset-pair-not-tradable" },
+                "operation")
+            .Mark();
+        innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
         return false;
-
-    if (!checkPhysicalPriceRestrictionMet(mAssetPair, app.getMetrics()))
-        return false;
-
-    if (!checkCurrentPriceRestrictionMet(mAssetPair, app.getMetrics()))
-        return false;
+    }
 
     return true;
 }
 
 void ManageOfferOpFrame::removeOffersBelowPrice(
-    Database& db, LedgerDelta& delta, AssetPairFrame::pointer assetPair,
-    int64_t price)
+    Database& db, LedgerDelta& delta, AssetPairFrame::pointer assetPair, uint64_t* orderBookID,
+    const int64_t price)
 {
     if (price <= 0)
         return;
-    std::vector<OfferFrame::pointer> offersToRemove;
+    vector<OfferFrame::pointer> offersToRemove;
 
     auto offerHelper = OfferHelper::Instance();
     offerHelper->loadOffersWithPriceLower(assetPair->getBaseAsset(),
-                                          assetPair->getQuoteAsset(), price,
+                                          assetPair->getQuoteAsset(), orderBookID, price,
                                           offersToRemove, db);
-    for (OfferFrame::pointer offerToRemove : offersToRemove)
+    for (const auto offerToRemove : offersToRemove)
     {
         delta.recordEntry(*offerToRemove);
-        ManageOfferOpFrame::deleteOffer(offerToRemove, db, delta);
+        deleteOffer(offerToRemove, db, delta);
     }
 }
 
@@ -387,7 +346,7 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     AccountManager accountManager(app, db, delta, ledgerManager);
 
     OfferExchange oe(accountManager, delta, ledgerManager, mAssetPair,
-                     commissionBalance);
+                     commissionBalance, mManageOffer.orderBookID);
 
     int64_t price = offer.price;
     const OfferExchange::ConvertResult r = oe.convertWithOffers(offer, mBaseBalance,

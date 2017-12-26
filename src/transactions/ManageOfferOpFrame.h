@@ -15,43 +15,47 @@ class ManageOfferOpFrame : public OperationFrame
 {
     BalanceFrame::pointer mBaseBalance;
     BalanceFrame::pointer mQuoteBalance;
-	AssetPairFrame::pointer mAssetPair;
+    AssetPairFrame::pointer mAssetPair;
 
     bool checkOfferValid(Application& app, LedgerManager& lm, Database& db,
                          LedgerDelta& delta);
 
-	BalanceFrame::pointer loadBalanceValidForTrading(BalanceID const& balanceID, medida::MetricsRegistry& metrics, Database& db, LedgerDelta & delta);
+    BalanceFrame::pointer loadBalanceValidForTrading(
+        BalanceID const& balanceID, medida::MetricsRegistry& metrics,
+        Database& db, LedgerDelta& delta);
 
-	AssetPairFrame::pointer loadTradableAssetPair(medida::MetricsRegistry& metrics, Database& db, LedgerDelta & delta);
+    AssetPairFrame::pointer loadTradableAssetPair(
+        medida::MetricsRegistry& metrics, Database& db, LedgerDelta& delta);
 
-	// returns true if offer price does not violates physical price restriction
-	bool checkPhysicalPriceRestrictionMet(AssetPairFrame::pointer assetPair, medida::MetricsRegistry& metrics);
+    bool deleteOffer(medida::MetricsRegistry& metrics, Database& db,
+                     LedgerDelta& delta);
 
-	// returns true if offer price does not violates current price restriction
-	bool checkCurrentPriceRestrictionMet(AssetPairFrame::pointer assetPair, medida::MetricsRegistry& metrics);
+    bool lockSellingAmount(OfferEntry const& offer);
 
-	bool deleteOffer(medida::MetricsRegistry& metrics, Database& db, LedgerDelta & delta);
+    bool setFeeToBeCharged(OfferEntry& offer, AssetCode const& quoteAsset,
+                           Database& db);
 
-	bool lockSellingAmount(OfferEntry const& offer);
-
-	bool setFeeToBeCharged(OfferEntry& offer, AssetCode const& quoteAsset, Database& db);
-
-    ManageOfferResult&
-    innerResult()
+    ManageOfferResult& innerResult()
     {
         return mResult.tr().manageOfferResult();
     }
 
     ManageOfferOp const& mManageOffer;
 
-    OfferFrame::pointer buildOffer(ManageOfferOp const& op, AssetCode const& selling, AssetCode const& buying);
+    OfferFrame::pointer buildOffer(ManageOfferOp const& op,
+                                   AssetCode const& selling,
+                                   AssetCode const& buying);
 
-	int64_t getQuoteAmount();
+    int64_t getQuoteAmount();
 
-	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+    std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(
+        Database& db, LedgerDelta* delta) const override;
+    SourceDetails getSourceAccountDetails(
+        std::unordered_map<AccountID, CounterpartyDetails>
+        counterpartiesDetails) const override;
 
-  public:
+public:
+    static const uint64_t SECONDARY_MARKET_ORDER_BOOK_ID = 0;
     ManageOfferOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);
 
@@ -59,12 +63,12 @@ class ManageOfferOpFrame : public OperationFrame
                  LedgerManager& ledgerManager) override;
     bool doCheckValid(Application& app) override;
 
-	static void deleteOffer(OfferFrame::pointer offer, Database&db, LedgerDelta& delta);
+    static void deleteOffer(OfferFrame::pointer offer, Database& db,
+                            LedgerDelta& delta);
 
-	static void removeOffersBelowPrice(Database& db, LedgerDelta& delta, AssetPairFrame::pointer assetPair, int64_t price);
+	static void removeOffersBelowPrice(Database& db, LedgerDelta& delta, AssetPairFrame::pointer assetPair, uint64_t* orderBookID, int64_t price);
 
-    static ManageOfferResultCode
-    getInnerCode(OperationResult const& res)
+    static ManageOfferResultCode getInnerCode(OperationResult const& res)
     {
         return res.tr().manageOfferResult().code();
     }

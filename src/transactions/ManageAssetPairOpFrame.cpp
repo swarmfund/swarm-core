@@ -109,9 +109,10 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		assetPairEntry.physicalPriceCorrection = mManageAssetPair.physicalPriceCorrection;
 		assetPairEntry.policies = mManageAssetPair.policies;
 		// if pair not tradable remove all offers
-		if (!assetPair->checkPolicy(AssetPairPolicy::TRADEABLE))
+		if (!assetPair->checkPolicy(AssetPairPolicy::TRADEABLE_SECONDARY_MARKET))
 		{
-			ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, INT64_MAX);
+                    uint64_t orderBookID = ManageOfferOpFrame::SECONDARY_MARKET_ORDER_BOOK_ID;
+                    ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, &orderBookID, INT64_MAX);
 		}
 	}
 	else
@@ -123,7 +124,7 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		}
 		assetPairEntry.physicalPrice = mManageAssetPair.physicalPrice;
 		assetPairEntry.currentPrice = mManageAssetPair.physicalPrice + premium;
-		ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, assetPair->getMinAllowedPrice());
+		ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, nullptr, assetPair->getMinAllowedPrice());
 	}
 
 	EntryHelperProvider::storeChangeEntry(delta, db, assetPair->mEntry);

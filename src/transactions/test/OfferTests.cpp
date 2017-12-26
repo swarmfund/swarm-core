@@ -55,7 +55,7 @@ TEST_CASE("manage offer", "[tx][offer]")
     assetTestHelper.createAsset(rootAccount, rootAccount.key, quote, rootAccount,int32(AssetPolicy::BASE_ASSET));
 
     auto assetPairHelper = ManageAssetPairTestHelper(testManager);
-    assetPairHelper.applyManageAssetPairTx(rootAccount, base, quote, 1, 0, 0, int32(AssetPairPolicy::TRADEABLE));
+    assetPairHelper.applyManageAssetPairTx(rootAccount, base, quote, 1, 0, 0, int32(AssetPairPolicy::TRADEABLE_SECONDARY_MARKET));
 
     auto issuanceHelper = IssuanceRequestHelper(testManager);
     auto fundAccount = [&issuanceHelper, &rootAccount](AssetCode code, uint64_t amount, BalanceID receiver)
@@ -323,7 +323,7 @@ TEST_CASE("manage offer", "[tx][offer]")
             assetPairTestHelper.applyManageAssetPairTx(rootAccount, base, quote, 100 * ONE,
                                    0, 0,
                                    static_cast<int32_t>(AssetPairPolicy::
-                                       TRADEABLE),
+                                       TRADEABLE_SECONDARY_MARKET),
                                    ManageAssetPairAction::UPDATE_POLICIES);
             auto offerResult = offerTestHelper.applyManageOffer(seller, 0,
                                                   baseSellerBalance->
@@ -559,7 +559,7 @@ TEST_CASE("manage offer", "[tx][offer]")
         {
             std::vector<OfferFrame::pointer> offers;
             const int maxOrders = 10;
-            OfferHelper::Instance()->loadBestOffers(maxOrders, 0, base, quote, !isBuy, offers, testManager->getDB());
+            OfferHelper::Instance()->loadBestOffers(maxOrders, 0, base, quote, 0, !isBuy, offers, testManager->getDB());
             if (offers.size() == maxOrders)
             {
                 return offers[offers.size() - 1]->getPrice();

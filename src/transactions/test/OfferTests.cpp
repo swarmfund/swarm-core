@@ -10,7 +10,7 @@
 #include "lib/catch.hpp"
 #include "util/Logging.h"
 #include "TxTests.h"
-#include "transactions/OfferExchange.h"
+#include "transactions/dex/OfferExchange.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/OfferHelper.h"

@@ -3,7 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "util/asio.h"
-#include "transactions/ManageOfferOpFrame.h"
+#include "ManageOfferOpFrame.h"
 #include "OfferExchange.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
@@ -15,16 +15,16 @@
 #include "ledger/OfferFrame.h"
 #include "main/Application.h"
 #include "medida/meter.h"
-#include "medida/metrics_registry.h"
 #include "util/Logging.h"
 #include "util/types.h"
+#include "ManageSaleParticipationOpFrame.h"
 
 namespace stellar
 {
 using namespace std;
 using xdr::operator==;
 
-    // TODO requires refactoring
+// TODO requires refactoring
 ManageOfferOpFrame::ManageOfferOpFrame(Operation const& op,
                                        OperationResult& res,
                                        TransactionFrame& parentTx)
@@ -34,17 +34,13 @@ ManageOfferOpFrame::ManageOfferOpFrame(Operation const& op,
 }
 
 BalanceFrame::pointer ManageOfferOpFrame::loadBalanceValidForTrading(
-    BalanceID const& balanceID, medida::MetricsRegistry& metrics, Database& db,
+    BalanceID const& balanceID, Database& db,
     LedgerDelta& delta)
 {
     auto balanceHelper = BalanceHelper::Instance();
     auto balance = balanceHelper->loadBalance(balanceID, db, &delta);
     if (!balance || !(balance->getAccountID() == getSourceID()))
     {
-        metrics
-            .NewMeter({"op-manage-offer", "invalid", "balance-not-found"},
-                      "operation")
-            .Mark();
         innerResult().code(ManageOfferResultCode::BALANCE_NOT_FOUND);
         return nullptr;
     }
@@ -53,7 +49,7 @@ BalanceFrame::pointer ManageOfferOpFrame::loadBalanceValidForTrading(
 }
 
 AssetPairFrame::pointer ManageOfferOpFrame::loadTradableAssetPair(
-    medida::MetricsRegistry& metrics, Database& db, LedgerDelta& delta)
+    Database& db, LedgerDelta& delta)
 {
     auto assetPairHelper = AssetPairHelper::Instance();
     AssetPairFrame::pointer assetPair = assetPairHelper->
@@ -70,44 +66,32 @@ AssetPairFrame::pointer ManageOfferOpFrame::loadTradableAssetPair(
         return assetPair;
     }
 
-   
     return nullptr;
 }
 
-bool ManageOfferOpFrame::checkOfferValid(Application& app, LedgerManager& lm,
-                                         Database& db, LedgerDelta& delta)
+bool ManageOfferOpFrame::checkOfferValid(Database& db, LedgerDelta& delta)
 {
     assert(mManageOffer.amount != 0);
 
-    mBaseBalance = ManageOfferOpFrame::
-        loadBalanceValidForTrading(mManageOffer.baseBalance, app.getMetrics(),
-                                   db, delta);
+    mBaseBalance =
+        loadBalanceValidForTrading(mManageOffer.baseBalance, db, delta);
     if (!mBaseBalance)
         return false;
 
-    mQuoteBalance = ManageOfferOpFrame::
-        loadBalanceValidForTrading(mManageOffer.quoteBalance, app.getMetrics(),
-                                   db, delta);
+    mQuoteBalance =
+        loadBalanceValidForTrading(mManageOffer.quoteBalance, db, delta);
     if (!mQuoteBalance)
         return false;
 
     if (mBaseBalance->getAsset() == mQuoteBalance->getAsset())
     {
-        app.getMetrics()
-           .NewMeter({"op-manage-offer", "invalid", "can't-trade-same-asset"},
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
         return false;
     }
 
-    mAssetPair = loadTradableAssetPair(app.getMetrics(), db, delta);
+    mAssetPair = loadTradableAssetPair(db, delta);
     if (!mAssetPair)
     {
-        app.getMetrics()
-            .NewMeter({ "op-manage-offer", "invalid", "asset-pair-not-tradable" },
-                "operation")
-            .Mark();
         innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
         return false;
     }
@@ -115,8 +99,30 @@ bool ManageOfferOpFrame::checkOfferValid(Application& app, LedgerManager& lm,
     return true;
 }
 
+OfferExchange::OfferFilterResult ManageOfferOpFrame::filterOffer(const uint64_t price,
+                                             OfferFrame const& o)
+{
+    const auto isPriceBetter = o.getOffer().isBuy
+                                   ? o.getPrice() >= price
+                                   : o.getPrice() <= price;
+    if (!isPriceBetter)
+    {
+        return OfferExchange::eStop;
+    }
+
+    if (o.getOffer().ownerID == getSourceID())
+    {
+        // we are crossing our own offer
+        innerResult().code(ManageOfferResultCode::CROSS_SELF);
+        return OfferExchange::eStop;
+    }
+
+    return OfferExchange::eKeep;
+}
+
 void ManageOfferOpFrame::removeOffersBelowPrice(
-    Database& db, LedgerDelta& delta, AssetPairFrame::pointer assetPair, uint64_t* orderBookID,
+    Database& db, LedgerDelta& delta, AssetPairFrame::pointer assetPair,
+    uint64_t* orderBookID,
     const int64_t price)
 {
     if (price <= 0)
@@ -125,13 +131,31 @@ void ManageOfferOpFrame::removeOffersBelowPrice(
 
     auto offerHelper = OfferHelper::Instance();
     offerHelper->loadOffersWithPriceLower(assetPair->getBaseAsset(),
-                                          assetPair->getQuoteAsset(), orderBookID, price,
+                                          assetPair->getQuoteAsset(),
+                                          orderBookID, price,
                                           offersToRemove, db);
     for (const auto offerToRemove : offersToRemove)
     {
         delta.recordEntry(*offerToRemove);
         deleteOffer(offerToRemove, db, delta);
     }
+}
+
+ManageOfferOpFrame* ManageOfferOpFrame::make(Operation const& op,
+                                             OperationResult& res,
+                                             TransactionFrame& parentTx)
+{
+    const auto manageOffer = op.body.manageOfferOp();
+    if (manageOffer.orderBookID == SECONDARY_MARKET_ORDER_BOOK_ID)
+        return new ManageOfferOpFrame(op, res, parentTx);
+    return new ManageSaleParticipationOpFrame(op, res, parentTx);
+}
+
+std::string ManageOfferOpFrame::getInnerResultCodeAsStr()
+{
+    const auto result = getResult();
+    const auto code = getInnerCode(result);
+    return xdr::xdr_traits<ManageOfferResultCode>::enum_name(code);
 }
 
 
@@ -168,18 +192,13 @@ void ManageOfferOpFrame::deleteOffer(OfferFrame::pointer offerFrame,
     EntryHelperProvider::storeChangeEntry(delta, db, balanceFrame->mEntry);
 }
 
-bool ManageOfferOpFrame::deleteOffer(medida::MetricsRegistry& metrics,
-                                     Database& db, LedgerDelta& delta)
+bool ManageOfferOpFrame::deleteOffer(Database& db, LedgerDelta& delta)
 {
     auto offerHelper = OfferHelper::Instance();
     auto offer = offerHelper->loadOffer(getSourceID(), mManageOffer.offerID, db,
                                         &delta);
     if (!offer)
     {
-        metrics
-            .NewMeter({"op-manage-offer", "invalid", "not-found"},
-                      "operation")
-            .Mark();
         innerResult().code(ManageOfferResultCode::NOT_FOUND);
         return false;
     }
@@ -188,9 +207,6 @@ bool ManageOfferOpFrame::deleteOffer(medida::MetricsRegistry& metrics,
 
     innerResult().code(ManageOfferResultCode::SUCCESS);
     innerResult().success().offer.effect(ManageOfferEffect::DELETED);
-
-    metrics.NewMeter({"op-create-offer", "success", "apply"}, "operation")
-           .Mark();
 
     return true;
 }
@@ -267,10 +283,10 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     // deleting offer
     if (mManageOffer.offerID)
     {
-        return deleteOffer(app.getMetrics(), db, delta);
+        return deleteOffer(db, delta);
     }
 
-    if (!checkOfferValid(app, ledgerManager, db, delta))
+    if (!checkOfferValid(db, delta))
     {
         return false;
     }
@@ -279,10 +295,6 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
                                  mQuoteBalance->getAsset());
     if (!offerFrame)
     {
-        app.getMetrics()
-           .NewMeter({"op-manage-offer", "invalid", "overflow"},
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);
         return false;
     }
@@ -291,10 +303,6 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     offer.createdAt = ledgerManager.getCloseTime();
     if (!setFeeToBeCharged(offer, mQuoteBalance->getAsset(), db))
     {
-        app.getMetrics()
-           .NewMeter({"op-manage-offer", "invalid", "overflow"},
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);
         return false;
     }
@@ -302,13 +310,6 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     bool isFeeCorrect = offer.fee <= mManageOffer.fee;
     if (!isFeeCorrect)
     {
-        app.getMetrics()
-           .NewMeter({
-                         "op-manage-offer", "invalid",
-                         "calculated-fee-does-not-match-fee"
-                     },
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::MALFORMED);
         return false;
     }
@@ -317,20 +318,12 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     if (offer.quoteAmount <= offer.fee)
     {
-        app.getMetrics()
-           .NewMeter({"op-manage-offer", "invalid", "fee-exceeds-quote-amount"},
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::MALFORMED);
         return false;
     }
 
     if (!lockSellingAmount(offer))
     {
-        app.getMetrics()
-           .NewMeter({"op-manage-offer", "invalid", "underfunded"},
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::UNDERFUNDED);
         return false;
     }
@@ -349,44 +342,17 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
                      commissionBalance, mManageOffer.orderBookID);
 
     int64_t price = offer.price;
-    const OfferExchange::ConvertResult r = oe.convertWithOffers(offer, mBaseBalance,
-                                                          mQuoteBalance,
-                                                          [this, &price](
-                                                          OfferFrame const& o)
-                                                          {
-                                                              bool isPriceBetter
-                                                                  = o.getOffer()
-                                                                     .isBuy
-                                                                        ? o.getPrice()
-                                                                          >=
-                                                                          price
-                                                                        : o.getPrice()
-                                                                          <=
-                                                                          price;
-                                                              if (!isPriceBetter
-                                                              )
-                                                              {
-                                                                  return
-                                                                      OfferExchange
-                                                                      ::eStop;
-                                                              }
-                                                              if (o.getOffer().
-                                                                    ownerID ==
-                                                                  getSourceID())
-                                                              {
-                                                                  // we are crossing our own offer
-                                                                  innerResult().
-                                                                      code(ManageOfferResultCode
-                                                                           ::
-                                                                           CROSS_SELF);
-                                                                  return
-                                                                      OfferExchange
-                                                                      ::eStop;
-                                                              }
-                                                              return
-                                                                  OfferExchange
-                                                                  ::eKeep;
-                                                          });
+    const OfferExchange::ConvertResult r = oe.convertWithOffers(offer,
+                                                                mBaseBalance,
+                                                                mQuoteBalance,
+                                                                [this, &price](
+                                                                OfferFrame const
+                                                                & o)
+                                                                {
+                                                                    return
+                                                                        filterOffer(price,
+                                                                                    o);
+                                                                });
 
     switch (r)
     {
@@ -443,9 +409,6 @@ ManageOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     EntryHelperProvider::storeChangeEntry(delta, db, mBaseBalance->mEntry);
     EntryHelperProvider::storeChangeEntry(delta, db, mQuoteBalance->mEntry);
 
-    app.getMetrics()
-       .NewMeter({"op-create-offer", "success", "apply"}, "operation")
-       .Mark();
     return true;
 }
 
@@ -459,30 +422,18 @@ bool ManageOfferOpFrame::doCheckValid(Application& app)
     if (isPriceInvalid || isTryingToUpdate || !isQuoteAmountFits || mManageOffer
         .fee < 0)
     {
-        app.getMetrics()
-           .NewMeter({"op-manage-offer", "invalid", "negative-or-zero-values"},
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::MALFORMED);
         return false;
     }
 
     if (mManageOffer.baseBalance == mManageOffer.quoteBalance)
     {
-        app.getMetrics()
-           .NewMeter({"op-manage-offer", "invalid", "invalid-balances"},
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
         return false;
     }
 
     if (mManageOffer.offerID == 0 && mManageOffer.amount == 0)
     {
-        app.getMetrics()
-           .NewMeter({"op-manage-offer", "invalid", "create-with-zero"},
-                     "operation")
-           .Mark();
         innerResult().code(ManageOfferResultCode::NOT_FOUND);
         return false;
     }
@@ -513,6 +464,7 @@ ManageOfferOpFrame::buildOffer(ManageOfferOp const& op, AssetCode const& base,
                                AssetCode const& quote)
 {
     OfferEntry o;
+    o.orderBookID = op.orderBookID;
     o.base = base;
     o.baseAmount = op.amount;
     o.baseBalance = op.baseBalance;

@@ -8,6 +8,7 @@
 #include "ledger/BalanceFrame.h"
 #include "ledger/AssetPairFrame.h"
 #include "transactions/OperationFrame.h"
+#include "OfferExchange.h"
 
 namespace stellar
 {
@@ -17,18 +18,17 @@ class ManageOfferOpFrame : public OperationFrame
     BalanceFrame::pointer mQuoteBalance;
     AssetPairFrame::pointer mAssetPair;
 
-    bool checkOfferValid(Application& app, LedgerManager& lm, Database& db,
-                         LedgerDelta& delta);
+    bool checkOfferValid(Database& db, LedgerDelta& delta);
+
+    OfferExchange::OfferFilterResult filterOffer(uint64_t price, OfferFrame const& o);
 
     BalanceFrame::pointer loadBalanceValidForTrading(
-        BalanceID const& balanceID, medida::MetricsRegistry& metrics,
+        BalanceID const& balanceID,
         Database& db, LedgerDelta& delta);
 
-    AssetPairFrame::pointer loadTradableAssetPair(
-        medida::MetricsRegistry& metrics, Database& db, LedgerDelta& delta);
+    AssetPairFrame::pointer loadTradableAssetPair(Database& db, LedgerDelta& delta);
 
-    bool deleteOffer(medida::MetricsRegistry& metrics, Database& db,
-                     LedgerDelta& delta);
+    bool deleteOffer(Database& db, LedgerDelta& delta);
 
     bool lockSellingAmount(OfferEntry const& offer);
 
@@ -72,5 +72,9 @@ public:
     {
         return res.tr().manageOfferResult().code();
     }
+
+    static ManageOfferOpFrame* make(Operation const& op, OperationResult& res,
+        TransactionFrame& parentTx);
+    std::string getInnerResultCodeAsStr() override;
 };
 }

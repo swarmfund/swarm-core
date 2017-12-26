@@ -6,9 +6,9 @@
 
 #include "ledger/OfferFrame.h"
 #include "ledger/AssetPairFrame.h"
-#include "transactions/OperationFrame.h"
 #include <functional>
 #include <vector>
+#include "transactions/AccountManager.h"
 
 namespace stellar
 {

@@ -9,6 +9,7 @@
 #include "util/Logging.h"
 #include "util/types.h"
 #include "crypto/Hex.h"
+#include "crypto/HdKeychain.h"
 #include "scp/LocalNode.h"
 #include <sstream>
 #include "ledger/AssetFrame.h"
@@ -621,6 +622,9 @@ Config::load(std::string const& filename)
             {
                 if (!item.second->as<std::string>())
                 {
+                    throw std::invalid_argument("missing BTC_ADDRESS_ROOT");
+                }
+                if (!HdKeychain::isValidExtendedPublicKey(item.second->as<std::string>()->value())) {
                     throw std::invalid_argument("invalid BTC_ADDRESS_ROOT");
                 }
 
@@ -630,7 +634,10 @@ Config::load(std::string const& filename)
             {
                 if (!item.second->as<std::string>())
                 {
-                    throw std::invalid_argument("invalid BTC_ADDRESS_ROOT");
+                    throw std::invalid_argument("missing ETH_ADDRESS_ROOT");
+                }
+                if (!HdKeychain::isValidExtendedPublicKey(item.second->as<std::string>()->value())) {
+                    throw std::invalid_argument("invalid ETH_ADDRESS_ROOT");
                 }
 
                 ETH_ADDRESS_ROOT = item.second->as<std::string>()->value();

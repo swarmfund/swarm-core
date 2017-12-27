@@ -18,8 +18,8 @@ namespace stellar
 
     public:
         HdKeychain() = default;
+        static bool isValidExtendedPublicKey(const std::string &extendedPublicKey);
         static HdKeychain fromExtendedPublicKey(const std::string &extendedPublicKey);
-        static bool fromHexExtendedPublicKey(const std::string &extendedPublicKey);
         uchar_vector getChildPublicKey (unsigned childNumber);
     };
 }

@@ -15,6 +15,17 @@ namespace stellar
         return HdKeychain(rawExtendedPublicKey);
     }
 
+    bool HdKeychain::isValidExtendedPublicKey(const std::string &extendedPublicKey){
+        try {
+            auto keychain = fromExtendedPublicKey(extendedPublicKey);
+            keychain.getChildPublicKey(0);
+
+            return true;
+        } catch (...) {
+            return false;
+        }
+    }
+
     uchar_vector HdKeychain::getChildPublicKey(unsigned childNumber) {
         Coin::HDKeychain hdKeychain(mExtendedPublicKey);
         hdKeychain = hdKeychain.getChild(childNumber);

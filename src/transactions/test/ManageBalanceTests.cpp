@@ -8,74 +8,76 @@
 #include "main/test.h"
 #include "lib/catch.hpp"
 #include "TxTests.h"
+#include "ledger/BalanceHelper.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
 #include "test_helper/TestManager.h"
+#include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"
+#include "test_helper/ManageBalanceTestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("manage balance", "[dep_tx][manage_balance]")
+
+TEST_CASE("manage balance", "[tx][manage_balance]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
-    Application::pointer appPtr = Application::create(clock, cfg);
-    Application& app = *appPtr;
+    auto const appPtr = Application::create(clock, cfg);
+    auto& app = *appPtr;
     app.start();
+	auto testManager = TestManager::make(app);
+
 	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
 
-    // set up world
-    SecretKey rootKP = getRoot();
-    auto root = Account{ rootKP, 0 };
-    Salt rootSeq = 1;
-    closeLedgerOn(app, 2, 1, 7, 2014);
+	auto root = Account{ getRoot(), Salt(0) };
 
-    auto account = Account{ SecretKey::random() , 0};
-    auto account2 = Account{ SecretKey::random(), 0};
-    applyCreateAccountTx(app, rootKP, account.key, rootSeq++, AccountType::GENERAL);
-	applyCreateAccountTx(app, rootKP, account2.key, rootSeq++, AccountType::GENERAL);
+	auto balanceHelper = BalanceHelper::Instance();
+	ManageBalanceTestHelper manageBalanceTestHelper(testManager);
+
+    auto account = Account{ SecretKey::random() , 0 };
+    auto account2 = Account{ SecretKey::random(), 0 };
+	CreateAccountTestHelper createAccountTestHelper(testManager);
+	createAccountTestHelper.applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::GENERAL);
+	createAccountTestHelper.applyCreateAccountTx(root, account2.key.getPublicKey(), AccountType::GENERAL);
     
     AssetCode asset = "EUR";
 	AssetCode asset2 = "USD";
-	auto testManager = TestManager::make(app);
+
 	auto manageAssetHelper = ManageAssetTestHelper(testManager);
 	auto preissuedSigner = SecretKey::random();
     manageAssetHelper.createAsset(root, preissuedSigner, asset, root, 1);
     
     SECTION("Can create for account by himself")
     {
-        applyManageBalanceTx(app, account.key, account.key, account.salt, asset, ManageBalanceAction::CREATE);
+		manageBalanceTestHelper.createBalance(account, account.key.getPublicKey(), asset);
         SECTION("Can not delete base balance by himself")
         {
-            applyManageBalanceTx(app, account.key, account.key, account.salt, asset, ManageBalanceAction::DELETE_BALANCE, ManageBalanceResultCode::MALFORMED);
+			manageBalanceTestHelper.applyManageBalanceTx(account, account.key.getPublicKey(), asset, 
+														 ManageBalanceAction::DELETE_BALANCE, 
+														 ManageBalanceResultCode::MALFORMED);
         }
     }
-    SECTION("Can not create  for non-existent asset ")
+    SECTION("Can not create for non-existent asset ")
     {
-        applyManageBalanceTx(app, account.key, account.key, account.salt++, 
-            "ABTC", ManageBalanceAction::CREATE, ManageBalanceResultCode::ASSET_NOT_FOUND);
+		manageBalanceTestHelper.applyManageBalanceTx(account, account.key.getPublicKey(), "ABTC", 
+													 ManageBalanceAction::CREATE, 
+													 ManageBalanceResultCode::ASSET_NOT_FOUND);
     }
-    SECTION("Can not create  for invalid asset ")
+    SECTION("Can not create for invalid asset ")
     {
-        applyManageBalanceTx(app, account2.key, account2.key, account.salt++,
-            "", ManageBalanceAction::CREATE, ManageBalanceResultCode::INVALID_ASSET);
-    }
-	SECTION("Can create balance")
-	{
-        applyManageBalanceTx(app, account2.key, account2.key, account2.salt++, asset);
-        SECTION("Can't delete")
-        {
-            applyManageBalanceTx(app, account2.key, account2.key, account.salt++, asset, ManageBalanceAction::DELETE_BALANCE, ManageBalanceResultCode::MALFORMED);
-        }
+		manageBalanceTestHelper.applyManageBalanceTx(account2, account2.key.getPublicKey(), "",
+													 ManageBalanceAction::CREATE,
+													 ManageBalanceResultCode::INVALID_ASSET);
     }
     SECTION("Can not create for non-existent account")
     {
-        auto account3 = SecretKey::random();
-        TransactionFramePtr txFrame = createManageBalanceTx(app.getNetworkID(), account2.key, account3, account2.salt++, asset2, ManageBalanceAction::CREATE);
+		auto account3 = Account{ SecretKey::random(), Salt(0) };
+		TransactionFramePtr txFrame = manageBalanceTestHelper.createManageBalanceTx(account2, account3.key.getPublicKey(), asset2, ManageBalanceAction::CREATE);
         checkTransactionForOpResult(txFrame, app, OperationResultCode::opNO_COUNTERPARTY);
     }
 }

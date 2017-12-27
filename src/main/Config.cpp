@@ -617,13 +617,23 @@ Config::load(std::string const& filename)
                 INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE =
                         item.second->as<bool>()->value();
             }
-            else if (item.first == "BTC_ADDRESSES")
+            else if (item.first == "BTC_ADDRESS_ROOT")
             {
-                BTC_ADDRESSES = readStrVector(item.first, item.second);
+                if (!item.second->as<std::string>())
+                {
+                    throw std::invalid_argument("invalid BTC_ADDRESS_ROOT");
+                }
+
+                BTC_ADDRESS_ROOT = item.second->as<std::string>()->value();
             }
-            else if (item.first == "ETH_ADDRESSES")
+            else if (item.first == "ETH_ADDRESS_ROOT")
             {
-                ETH_ADDRESSES = readStrVector(item.first, item.second);
+                if (!item.second->as<std::string>())
+                {
+                    throw std::invalid_argument("invalid BTC_ADDRESS_ROOT");
+                }
+
+                ETH_ADDRESS_ROOT = item.second->as<std::string>()->value();
             }
             else
             {

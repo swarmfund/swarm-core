@@ -14,13 +14,12 @@ std::shared_ptr<Generator> ExternalSystemIDGenerators::getGeneratorForType(
     Application& app, Database& db,
     const ExternalSystemIDGeneratorType type) const
 {
-    auto root = "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB";
     switch (type)
     {
     case ExternalSystemIDGeneratorType::BITCOIN_BASIC:
-        return std::make_shared<BTCIDGenerator>(app, db, root);
+        return std::make_shared<BTCIDGenerator>(app, db, app.getBTCAddressRoot());
     case ExternalSystemIDGeneratorType::ETHEREUM_BASIC:
-        return std::make_shared<ETHIDGenerator>(app, db, root);
+        return std::make_shared<ETHIDGenerator>(app, db, app.getETHAddressRoot());
     default:
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) <<

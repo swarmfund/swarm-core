@@ -14,6 +14,8 @@
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "ledger/OfferHelper.h"
+#include "dex/OfferManager.h"
 
 namespace stellar
 {
@@ -110,8 +112,9 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		// if pair not tradable remove all offers
 		if (!assetPair->checkPolicy(AssetPairPolicy::TRADEABLE_SECONDARY_MARKET))
 		{
-                    uint64_t orderBookID = ManageOfferOpFrame::SECONDARY_MARKET_ORDER_BOOK_ID;
-                    ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, &orderBookID, INT64_MAX);
+		    auto orderBookID = ManageOfferOpFrame::SECONDARY_MARKET_ORDER_BOOK_ID;
+		    const auto offersToRemove = OfferHelper::Instance()->loadOffersWithFilters(assetPair->getBaseAsset(), assetPair->getQuoteAsset(), &orderBookID, nullptr, db);
+                    OfferManager::deleteOffers(offersToRemove, db, delta);
 		}
 	}
 	else
@@ -123,7 +126,10 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		}
 		assetPairEntry.physicalPrice = mManageAssetPair.physicalPrice;
 		assetPairEntry.currentPrice = mManageAssetPair.physicalPrice + premium;
-		ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, nullptr, assetPair->getMinAllowedPrice());
+                auto orderBookID = ManageOfferOpFrame::SECONDARY_MARKET_ORDER_BOOK_ID;
+                uint64_t minAllowedPrice = assetPair->getMinAllowedPrice();
+                const auto offersToRemove = OfferHelper::Instance()->loadOffersWithFilters(assetPair->getBaseAsset(), assetPair->getQuoteAsset(), &orderBookID, &minAllowedPrice, db);
+                OfferManager::deleteOffers(offersToRemove, db, delta);
 	}
 
 	EntryHelperProvider::storeChangeEntry(delta, db, assetPair->mEntry);

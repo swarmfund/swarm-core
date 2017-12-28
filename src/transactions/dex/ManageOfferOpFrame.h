@@ -22,18 +22,19 @@ class ManageOfferOpFrame : public OperationFrame
 
     OfferExchange::OfferFilterResult filterOffer(uint64_t price, OfferFrame const& o);
 
-    BalanceFrame::pointer loadBalanceValidForTrading(
-        BalanceID const& balanceID,
-        Database& db, LedgerDelta& delta);
-
     AssetPairFrame::pointer loadTradableAssetPair(Database& db, LedgerDelta& delta);
-
-    bool deleteOffer(Database& db, LedgerDelta& delta);
 
     bool lockSellingAmount(OfferEntry const& offer);
 
-    bool setFeeToBeCharged(OfferEntry& offer, AssetCode const& quoteAsset,
-                           Database& db);
+protected:
+
+    virtual bool deleteOffer(Database& db, LedgerDelta& delta);
+    virtual bool createOffer(Application& app, LedgerDelta& delta,
+        LedgerManager& ledgerManager);
+
+    BalanceFrame::pointer loadBalanceValidForTrading(
+        BalanceID const& balanceID,
+        Database& db, LedgerDelta& delta);
 
     ManageOfferResult& innerResult()
     {
@@ -41,12 +42,6 @@ class ManageOfferOpFrame : public OperationFrame
     }
 
     ManageOfferOp const& mManageOffer;
-
-    OfferFrame::pointer buildOffer(ManageOfferOp const& op,
-                                   AssetCode const& selling,
-                                   AssetCode const& buying);
-
-    int64_t getQuoteAmount();
 
     std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(
         Database& db, LedgerDelta* delta) const override;
@@ -62,11 +57,6 @@ public:
     bool doApply(Application& app, LedgerDelta& delta,
                  LedgerManager& ledgerManager) override;
     bool doCheckValid(Application& app) override;
-
-    static void deleteOffer(OfferFrame::pointer offer, Database& db,
-                            LedgerDelta& delta);
-
-	static void removeOffersBelowPrice(Database& db, LedgerDelta& delta, AssetPairFrame::pointer assetPair, uint64_t* orderBookID, int64_t price);
 
     static ManageOfferResultCode getInnerCode(OperationResult const& res)
     {

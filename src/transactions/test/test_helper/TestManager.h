@@ -29,7 +29,7 @@ namespace txtest
 		LedgerDelta mDelta;
 		LedgerManager& mLm;
 
-		bool apply(TransactionFramePtr tx);
+                bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp);
 		void checkResult(TransactionResult result, bool mustSuccess);
 
                 Value ledgerVersion() const;
@@ -64,6 +64,7 @@ namespace txtest
 		}
 
 		bool applyCheck(TransactionFramePtr tx);
+                bool applyCheck(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp);
 	};
 }
 }

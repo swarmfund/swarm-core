@@ -147,6 +147,23 @@ bool AssetFrame::lockIssuedAmount(const uint64_t amount)
     return true;
 }
 
+void AssetFrame::mustUnlockIssuedAmount(uint64_t const amount)
+{
+    if (mAsset.pendingIssuance < amount)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Expected amount to be less then pending issuance; asset: " << xdr::xdr_to_string(mAsset) << "; amount: " << amount;
+        throw runtime_error("Expected amount to be less then pending issuance");
+    }
+
+    mAsset.pendingIssuance -= amount;
+    if (!safeSum(amount, mAsset.availableForIssueance, mAsset.availableForIssueance))
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Overflow on unlock issued amount. Failed to add availableForIssueance; asset: "
+            << xdr::xdr_to_string(mAsset) << "; amount: " << amount;
+        throw runtime_error("Overflow on unlock issued amount. Failed to add availableForIssueance");
+    }
+}
+
 bool AssetFrame::isAssetCodeValid(AssetCode const& code)
 {
     bool zeros = false;
@@ -174,22 +191,35 @@ bool AssetFrame::isAssetCodeValid(AssetCode const& code)
     return onechar;
 }
 
-bool AssetFrame::isValid(AssetEntry const& oe)
+void AssetFrame::ensureValid(AssetEntry const& oe)
 {
-    uint64_t totalIssuedOrLocked;
-    if (!safeSum(totalIssuedOrLocked, {oe.issued, oe.pendingIssuance}))
+    try
     {
-        return false;
+        uint64_t totalIssuedOrLocked;
+        if (!safeSum(totalIssuedOrLocked, { oe.issued, oe.pendingIssuance }))
+        {
+            throw runtime_error("Overflow during calculation of totalIssuedOrLocked");
+        }
+
+        if (oe.maxIssuanceAmount < totalIssuedOrLocked)
+        {
+            throw runtime_error("totalIssuedOrLocked exceeds max issuance amount");
+        }
+
+       if (!isAssetCodeValid(oe.code))
+       {
+           throw runtime_error("asset code is invalid");
+       }
     }
-
-    if (oe.maxIssuanceAmount < totalIssuedOrLocked)
-        return false;
-
-    return isAssetCodeValid(oe.code);
+    catch (...)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected asset entry is invalid: " << xdr::xdr_to_string(oe);
+        throw_with_nested(runtime_error("Asset entry is invalid"));
+    }
 }
 
-bool AssetFrame::isValid() const
+void AssetFrame::ensureValid() const
 {
-    return isValid(mAsset);
+    ensureValid(mAsset);
 }
 }

@@ -70,5 +70,7 @@ public:
     void transferFee(AssetCode asset, uint64_t totalFee);
 
     void transferFee(AssetCode asset, Fee fee);
+
+    BalanceID loadOrCreateBalanceForAsset(AccountID const& account, AssetCode const& asset) const;
 };
 }

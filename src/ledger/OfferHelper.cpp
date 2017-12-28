@@ -250,16 +250,25 @@ namespace stellar {
         return retOffer;
     }
 
-    void OfferHelper::loadOffersWithPriceLower(AssetCode const &base, AssetCode const &quote, uint64_t* orderBookIDPtr, int64_t price,
-                                               std::vector<OfferFrame::pointer> &retOffers, Database &db) {
-        std::string sql = offerColumnSelector;
-        sql += " WHERE base_asset_code=:s AND quote_asset_code = :b AND price < :p";
+vector<OfferFrame::pointer> OfferHelper::loadOffersWithFilters(
+        AssetCode const& base, AssetCode const& quote, uint64_t* orderBookIDPtr,
+        uint64_t* priceUpperBoundPtr, Database& db)
+    {
+        string sql = offerColumnSelector;
+        sql += " WHERE base_asset_code=:base_asset_code AND quote_asset_code = :quote_asset_code ";
         // do not join declaration and use, will lead to issues as `use` receives reference
         uint64_t orderBookID;
         if (!!orderBookIDPtr)
         {
             sql += " AND order_book_id = :order_book_id";
             orderBookID = *orderBookIDPtr;
+        }
+
+        uint64_t priceUpperBound;
+        if (!!priceUpperBoundPtr)
+        {
+            sql += " AND price < :p";
+            priceUpperBound = *priceUpperBoundPtr;
         }
 
         auto prep = db.getPreparedStatement(sql);
@@ -270,16 +279,23 @@ namespace stellar {
 
         st.exchange(use(baseAssetCode));
         st.exchange(use(quoteAssetCode));
-        st.exchange(use(price));
         if (!!orderBookIDPtr)
         {
             st.exchange(use(orderBookID));
         }
 
+        if (!!priceUpperBoundPtr)
+        {
+            st.exchange(use(priceUpperBound));
+        }
+
         auto timer = db.getSelectTimer("offer");
-        loadOffers(prep, [&retOffers](LedgerEntry const& of) {
-            retOffers.emplace_back(make_shared<OfferFrame>(of));
+        vector<OfferFrame::pointer> results;
+        loadOffers(prep, [&results](LedgerEntry const& of) {
+            results.emplace_back(make_shared<OfferFrame>(of));
         });
+
+        return results;
     }
 
     std::unordered_map<AccountID, std::vector<OfferFrame::pointer>> OfferHelper::loadAllOffers(Database &db) {

@@ -78,10 +78,7 @@ ReviewableRequestFrame::createNewWithHash(LedgerDelta &delta, AccountID requesto
 void ReviewableRequestFrame::ensureAssetCreateValid(AssetCreationRequest const& request)
 {
     const auto owner = AccountID{};
-    if (!AssetFrame::create(request, owner)->isValid())
-    {
-        throw runtime_error("Asset creation request is invalid");
-    }
+    AssetFrame::create(request, owner)->ensureValid();
 }
 
 void ReviewableRequestFrame::ensureAssetUpdateValid(AssetUpdateRequest const& request)
@@ -148,7 +145,8 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     SaleCreationRequest const& request)
 {
     const AccountID dummyAccountID;
-    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request);
+    const BalanceID dummyBalanceID;
+    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalanceID, dummyBalanceID);
     saleFrame->ensureValid();
 }
 

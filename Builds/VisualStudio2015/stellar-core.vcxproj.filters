@@ -825,6 +825,21 @@
     <ClCompile Include="..\..\src\transactions\dex\OfferExchange.cpp">
       <Filter>transactions\dex</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\CheckSaleStateOpFrame.cpp">
+      <Filter>transactions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\dex\OfferManager.cpp">
+      <Filter>transactions\dex</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\FeesManager.cpp">
+      <Filter>transactions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1586,6 +1601,21 @@
     <ClInclude Include="..\..\src\transactions\dex\OfferExchange.h">
       <Filter>transactions\dex</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\CheckSaleStateOpFrame.h">
+      <Filter>transactions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\dex\OfferManager.h">
+      <Filter>transactions\dex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\FeesManager.h">
+      <Filter>transactions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -1804,6 +1834,9 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-sale.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-check-sale-state.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

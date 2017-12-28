@@ -105,10 +105,17 @@ public:
     bool tryWithdraw(uint64_t amount);
     // returns true, if able to lock issued amount
     bool lockIssuedAmount(uint64_t amount);
+    // throws exception if fails to unlock specified amount
+    void mustUnlockIssuedAmount(uint64_t const amount);
 
     void setPolicies(int32 policies)
     {
         mAsset.policies = policies;
+    }
+
+    void setMaxIssuance(const uint64_t amount)
+    {
+        mAsset.maxIssuanceAmount = amount;
     }
 
     bool checkPolicy(const AssetPolicy policy) const
@@ -117,9 +124,8 @@ public:
     }
 
     static bool isAssetCodeValid(AssetCode const& code);
-    [[deprecated]]
-    static bool isValid(AssetEntry const& oe);
-    [[deprecated]]
-    bool isValid() const;
+    
+    static void ensureValid(AssetEntry const& oe);
+    void ensureValid() const;
 };
 }

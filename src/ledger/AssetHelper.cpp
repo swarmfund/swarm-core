@@ -45,13 +45,7 @@ void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
 
     assetFrame->touch(delta);
 
-    if (!assetFrame->isValid())
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) <<
-            "Unexpected state - asset is invalid: " << xdr::
-            xdr_to_string(assetEntry);
-        throw std::runtime_error("Unexpected state - asset is invalid");
-    }
+    assetFrame->ensureValid();
 
     const auto key = assetFrame->getKey();
     flushCachedEntry(key, db);
@@ -336,13 +330,7 @@ void AssetHelper::loadAssets(StatementContext& prep,
     {
         oe.ext.v(static_cast<LedgerVersion>(assetVersion));
 
-        if (!AssetFrame::isValid(oe))
-        {
-            CLOG(ERROR, Logging::ENTRY_LOGGER) <<
-                "Unexpected state - asset is invalid: " << xdr::
-                xdr_to_string(oe);
-            throw runtime_error("Unexpected state - asset is invalid");
-        }
+        AssetFrame::ensureValid(oe);
 
         assetProcessor(le);
         st.fetch();

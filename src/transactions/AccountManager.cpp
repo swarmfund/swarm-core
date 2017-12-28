@@ -273,4 +273,24 @@ void AccountManager::transferFee(AssetCode asset, Fee fee)
     transferFee(asset, totalFee);
 }
 
+BalanceID AccountManager::loadOrCreateBalanceForAsset(AccountID const& account,
+    AssetCode const& asset) const
+{
+    auto balance = BalanceHelper::Instance()->loadBalance(account, asset, mDb, &mDelta);
+    if (!!balance)
+    {
+        return balance->getBalanceID();
+    }
+
+    if (!AssetHelper::Instance()->exists(mDb, asset))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state: expected asset to exist: " << asset;
+        throw runtime_error("Unexpected db state: expected asset to exist");
+    }
+
+    auto newBalanceID = BalanceKeyUtils::forAccount(account, mDelta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
+    balance = BalanceFrame::createNew(newBalanceID, account, asset);
+    EntryHelperProvider::storeAddEntry(mDelta, mDb, balance->mEntry);
+    return newBalanceID;
+}
 }

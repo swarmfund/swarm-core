@@ -69,7 +69,12 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
 
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
 
-    const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest);
+    AccountManager accountManager(app, db, delta, ledgerManager);
+    const auto baseBalanceID = accountManager.loadOrCreateBalanceForAsset(request->getRequestor(), saleCreationRequest.baseAsset);
+    const auto quoteBalanceID = accountManager.loadOrCreateBalanceForAsset(request->getRequestor(), saleCreationRequest.quoteAsset);
+
+    const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest,
+        baseBalanceID, quoteBalanceID);
     SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
 
     innerResult().code(ReviewRequestResultCode::SUCCESS);

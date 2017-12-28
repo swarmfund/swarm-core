@@ -309,13 +309,16 @@
     <ClCompile Include="..\..\src\simulation\Simulation.cpp" />
     <ClCompile Include="..\..\src\simulation\Topologies.cpp" />
     <ClCompile Include="..\..\src\transactions\AccountManager.cpp" />
+    <ClCompile Include="..\..\src\transactions\CheckSaleStateOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateAccountOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateSaleCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\ManageOfferOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\ManageSaleParticipationOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\OfferExchange.cpp" />
+    <ClCompile Include="..\..\src\transactions\dex\OfferManager.cpp" />
     <ClCompile Include="..\..\src\transactions\DirectDebitOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\FeesManager.cpp" />
     <ClCompile Include="..\..\src\transactions\issuance\CreateIssuanceRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\issuance\CreatePreIssuanceRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAccountOpFrame.cpp" />
@@ -344,9 +347,11 @@
     <ClCompile Include="..\..\src\transactions\test\ManageBalanceTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\IssuanceTest.cpp" />
     <ClCompile Include="..\..\src\transactions\test\SaleTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.cpp" />
@@ -545,6 +550,7 @@
     <ClInclude Include="..\..\src\simulation\Simulation.h" />
     <ClInclude Include="..\..\src\simulation\Topologies.h" />
     <ClInclude Include="..\..\src\transactions\AccountManager.h" />
+    <ClInclude Include="..\..\src\transactions\CheckSaleStateOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CounterpartyDetails.h" />
     <ClInclude Include="..\..\src\transactions\CreateAccountOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CreateSaleCreationRequestOpFrame.h" />
@@ -552,7 +558,9 @@
     <ClInclude Include="..\..\src\transactions\dex\ManageOfferOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\ManageSaleParticipationOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\OfferExchange.h" />
+    <ClInclude Include="..\..\src\transactions\dex\OfferManager.h" />
     <ClInclude Include="..\..\src\transactions\DirectDebitOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\FeesManager.h" />
     <ClInclude Include="..\..\src\transactions\issuance\CreateIssuanceRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\issuance\CreatePreIssuanceRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAccountOpFrame.h" />
@@ -572,11 +580,13 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\Account.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\IssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPreIssuanceRequestHelper.h" />
@@ -997,6 +1007,12 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-sale.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-check-sale-state.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

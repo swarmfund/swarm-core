@@ -156,7 +156,7 @@ namespace stellar
         return true;
     }
 
-    bool BalanceFrame::unlock(uint64_t amountToUnlock)
+    bool BalanceFrame::unlock(const uint64_t amountToUnlock)
     {
         if (mBalance.locked < amountToUnlock)
         {

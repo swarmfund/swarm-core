@@ -2,15 +2,22 @@
 #define STELLAR_MANAGE_OFFER_TEST_HELPER_H
 
 #include "TxHelper.h"
+#include "ReviewRequestTestHelper.h"
+#include "transactions/dex/ManageOfferOpFrame.h"
 
 namespace stellar
 {
 namespace txtest
 {
 
-
-    class ManageOfferTestHelper : TxHelper
+    class ManageOfferTestHelper : public TxHelper
     {
+    protected:
+        void ensureAssetPairPriceUpdated(ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx) const;
+        void ensureFeesPaidCorrectly(ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx) const;
+
+        virtual void ensureDeleteSuccess(Account& source, ManageOfferOp op, ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx);
+        virtual void ensureCreateSuccess(Account& source, ManageOfferOp op, ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx);
     public:
         explicit ManageOfferTestHelper(TestManager::pointer testManager);
 
@@ -20,6 +27,11 @@ namespace txtest
 
         TransactionFramePtr creatManageOfferTx(Account& source, uint64_t offerID, BalanceID const& baseBalance,
             BalanceID const& quoteBalance, int64_t amount, int64_t price, bool isBuy, int64_t fee);
+
+        ManageOfferResult applyManageOffer(Account& source, ManageOfferOp& manageOfferOp,
+            ManageOfferResultCode expectedResult = ManageOfferResultCode::SUCCESS);
+
+        TransactionFramePtr createManageOfferTx(Account& source, ManageOfferOp& manageOfferOp);
 
     };
 }

@@ -50,5 +50,7 @@ public:
 	}
 
     bool calculateFee(AccountID receiver, Database &db, Fee &fee);
+
+    static CreateIssuanceRequestOp build(AssetCode const& asset, uint64_t amount, BalanceID const& receiver, LedgerManager& lm);
 };
 }

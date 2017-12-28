@@ -9,6 +9,7 @@
 #include "ledger/AccountFrame.h"
 #include "overlay/StellarXDR.h"
 #include "transactions/SignatureValidator.h"
+#include "ledger/LedgerDelta.h"
 #include "util/types.h"
 
 namespace soci
@@ -57,7 +58,7 @@ class TransactionFrame
     void resetResults();
     void markResultFailed();
 
-    bool applyTx(LedgerDelta& delta, TransactionMeta& meta, Application& app);
+    bool applyTx(LedgerDelta& delta, TransactionMeta& meta, Application& app, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp);
     static void unwrapNestedException(const std::exception& e, std::stringstream& str);
 
   public:
@@ -161,7 +162,7 @@ class TransactionFrame
 
     // apply this transaction to the current ledger
     // returns true if successfully applied
-    bool apply(LedgerDelta& delta, TransactionMeta& meta, Application& app);
+    bool apply(LedgerDelta& delta, TransactionMeta& meta, Application& app, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp);
 
     // version without meta
     bool apply(LedgerDelta& delta, Application& app);

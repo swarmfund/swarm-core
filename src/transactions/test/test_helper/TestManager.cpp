@@ -46,42 +46,43 @@ namespace txtest
 		mLm.closeLedger(ledgerData);
 	}
 
-	bool TestManager::apply(TransactionFramePtr tx)
-	{
-		tx->clearCached();
-		bool isTxValid = tx->checkValid(mApp);
-		auto validationResult = tx->getResult();
-		checkResult(validationResult, isTxValid);
+bool TestManager::apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
+{
+    tx->clearCached();
+    bool isTxValid = tx->checkValid(mApp);
+    auto validationResult = tx->getResult();
+    checkResult(validationResult, isTxValid);
 
-		const auto code = validationResult.result.code();
-		if (code == TransactionResultCode::txDUPLICATION) {
-			return false;
-		}
+    const auto code = validationResult.result.code();
+    if (code == TransactionResultCode::txDUPLICATION) {
+        return false;
+    }
 
-		if (code != TransactionResultCode::txNO_ACCOUNT)
-		{
-			tx->processSeqNum();
-		}
+    if (code != TransactionResultCode::txNO_ACCOUNT)
+    {
+        tx->processSeqNum();
+    }
 
-		LedgerDelta txDelta(mDelta);
-		bool isApplied = tx->apply(txDelta, mApp);
-		auto applyResult = tx->getResult();
-		checkResult(applyResult, isApplied);
+    LedgerDelta txDelta(mDelta);
+    TransactionMeta txMeta;
+    bool isApplied = tx->apply(txDelta, txMeta, mApp, stateBeforeOp);
+    auto applyResult = tx->getResult();
+    checkResult(applyResult, isApplied);
 
-		if (!isTxValid)
-		{
-			REQUIRE(validationResult == applyResult);
-		}
+    if (!isTxValid)
+    {
+        REQUIRE(validationResult == applyResult);
+    }
 
-		if (isApplied)
-		{
-			txDelta.commit();
-		}
+    if (isApplied)
+    {
+        txDelta.commit();
+    }
 
-		return isApplied;
-	}
+    return isApplied;
+}
 
-	void TestManager::checkResult(TransactionResult result, bool mustSuccess)
+void TestManager::checkResult(TransactionResult result, bool mustSuccess)
 	{
 		if (mustSuccess) {
 			REQUIRE(result.result.code() == TransactionResultCode::txSUCCESS);
@@ -110,14 +111,20 @@ Value TestManager::externalSystemGenerators()
 
 bool TestManager::applyCheck(TransactionFramePtr tx)
 	{
-		const bool isApplied = apply(tx);
-		// validates db state
-		 mLm.checkDbState();
-		auto txSet = std::make_shared<TxSetFrame>(mLm.getLastClosedLedgerHeader().hash);
-		txSet->add(tx);
-		mApp.getInvariants().check(txSet, mDelta);
-		return isApplied;
+    std::vector<LedgerDelta::KeyEntryMap> stateBeforeOp;
+    return applyCheck(tx, stateBeforeOp);
 	}
+
+bool TestManager::applyCheck(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
+{
+    const bool isApplied = apply(tx, stateBeforeOp);
+    // validates db state
+    mLm.checkDbState();
+    auto txSet = std::make_shared<TxSetFrame>(mLm.getLastClosedLedgerHeader().hash);
+    txSet->add(tx);
+    mApp.getInvariants().check(txSet, mDelta);
+    return isApplied;
+}
 }
 
 }

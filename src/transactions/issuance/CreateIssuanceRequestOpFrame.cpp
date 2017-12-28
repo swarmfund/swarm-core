@@ -200,4 +200,20 @@ bool CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db
     return totalFee < mCreateIssuanceRequest.request.amount;
 }
 
+CreateIssuanceRequestOp CreateIssuanceRequestOpFrame::build(
+    AssetCode const& asset, const uint64_t amount, BalanceID const& receiver,
+    LedgerManager& lm)
+{
+    IssuanceRequest request;
+    request.amount = amount;
+    request.asset = asset;
+    request.externalDetails = "{}";
+    request.fee.percent = 0;
+    request.fee.fixed = 0;
+    request.receiver = receiver;
+    CreateIssuanceRequestOp issuanceRequestOp;
+    issuanceRequestOp.request = request;
+    issuanceRequestOp.reference = binToHex(sha256(xdr_to_opaque(receiver, asset, amount, lm.getCloseTime())));
+    return issuanceRequestOp;
+}
 }

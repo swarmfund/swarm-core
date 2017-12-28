@@ -359,7 +359,7 @@ TransactionFrame::markResultFailed()
 }
 
 bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
-    Application& app)
+    Application& app, vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
 {
     resetSignatureTracker();
     if (!commonValid(app, &delta))
@@ -389,6 +389,7 @@ bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
             {
                 errorEncountered = true;
             }
+            stateBeforeOp.push_back(opDelta.getState());
             meta.operations().emplace_back(opDelta.getChanges());
             opDelta.commit();
         }
@@ -433,16 +434,17 @@ bool
 TransactionFrame::apply(LedgerDelta& delta, Application& app)
 {
     TransactionMeta tm;
-    return apply(delta, tm, app);
+    vector<LedgerDelta::KeyEntryMap> stateBeforeOp;
+    return apply(delta, tm, app, stateBeforeOp);
 }
 
 bool
 TransactionFrame::apply(LedgerDelta& delta, TransactionMeta& meta,
-                        Application& app)
+                        Application& app, vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
 {
     try
     {
-        return applyTx(delta, meta, app);
+        return applyTx(delta, meta, app, stateBeforeOp);
     } catch (exception& e)
     {
         stringstream details;

@@ -109,10 +109,7 @@ class ReviewableRequestFrame : public EntryFrame
 	static uint256 calculateHash(ReviewableRequestEntry::_body_t const& body);
 
 	void recalculateHashRejectReason() {
-		auto newHash = calculateHash(mRequest.body);
-		// nothing to update
-		if (newHash == mRequest.hash)
-			return;
+	        const auto newHash = calculateHash(mRequest.body);
 		mRequest.hash = newHash;
 		mRequest.rejectReason = "";
 	}

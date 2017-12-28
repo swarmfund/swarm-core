@@ -227,7 +227,12 @@ SaleFrame::pointer SaleHelper::loadSale(uint64_t saleID, Database& db,
     if (cachedEntryExists(key, db))
     {
         const auto p = getCachedEntry(key, db);
-        return p ? std::make_shared<SaleFrame>(*p) : nullptr;
+        auto result = p ? std::make_shared<SaleFrame>(*p) : nullptr;
+        if (!!delta && !!result)
+        {
+            delta->recordEntry(*result);
+        }
+        return result;
     }
 
     string sql = selectorSale;

@@ -39,6 +39,7 @@
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "dex/ManageOfferOpFrame.h"
+#include "CheckSaleStateOpFrame.h"
 
 namespace stellar
 {
@@ -90,6 +91,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
 		return shared_ptr<OperationFrame>(ReviewRequestOpFrame::makeHelper(op, res, tx));
     case OperationType::CREATE_SALE_REQUEST:
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
+    case OperationType::CHECK_SALE_STATE:
+        return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

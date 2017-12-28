@@ -153,7 +153,7 @@ bool SaleFrame::tryAddCap(const uint64_t amount)
         return false;
     }
 
-    mSale.hardCap = updatedCap;
+    mSale.currentCap = updatedCap;
     return true;
 }
 

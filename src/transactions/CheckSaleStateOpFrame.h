@@ -25,10 +25,19 @@ class CheckSaleStateOpFrame : public OperationFrame
         std::unordered_map<AccountID, CounterpartyDetails>
         counterpartiesDetails) const override;
 
-    void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app, LedgerDelta& delta, Database& db, LedgerManager& lm);
+    void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app, LedgerDelta& delta, Database& db, LedgerManager& lm) const;
 
     bool handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta, Database& db);
     bool handleClose(SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db);
+
+    void unlockPendingIssunace(SaleFrame::pointer sale, LedgerDelta& delta, Database& db) const;
+
+    CreateIssuanceRequestResult applyCreateIssuanceRequest(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
+        LedgerDelta& delta, LedgerManager& lm) const;
+
+    void updateMaxIssuance(SaleFrame::pointer sale, LedgerDelta& delta, Database& db) const;
+
+    ManageOfferSuccessResult applySaleOffer(AccountFrame::pointer saleOwner, SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta);
 
 
 public:

@@ -350,6 +350,7 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.cpp" />
@@ -585,6 +586,7 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\IssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.h" />

@@ -10,69 +10,25 @@ namespace stellar
 {
 namespace txtest
 {
-void ManageOfferTestHelper::ensureAssetPairPriceUpdated(
-    ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx) const
-{
-    auto assetPairAfterTx = AssetPairHelper::Instance()->loadAssetPair(success.baseAsset, success.quoteAsset, mTestManager->getDB());
-    REQUIRE(!!assetPairAfterTx);
-    if (success.offersClaimed.empty())
-    {
-        auto assetPairBeforeTx = stateBeforeTx.find(assetPairAfterTx->getKey());
-        // ensure asset pair was not updated, as there is no matches
-        if (assetPairBeforeTx == stateBeforeTx.end())
-            return;
-        REQUIRE(assetPairBeforeTx->second->mEntry.data.assetPair() == assetPairAfterTx->getAssetPair());
-    }
-    
-    auto currentPrice = success.offersClaimed[success.offersClaimed.size() - 1].currentPrice;
-    REQUIRE(assetPairAfterTx->getCurrentPrice() == currentPrice);
-}
-
-void ManageOfferTestHelper::ensureFeesPaidCorrectly(
-    ManageOfferSuccessResult success,
-    LedgerDelta::KeyEntryMap& stateBeforeTx) const
-{
-    auto feesBalanceAfterTx = BalanceHelper::Instance()->loadBalance(mTestManager->getApp().getCommissionID(), success.quoteAsset, mTestManager->getDB(), nullptr);
-    auto feesBalanceBeforeTx = stateBeforeTx.find(feesBalanceAfterTx->getKey());
-    if (success.offersClaimed.empty())
-    {
-        if (feesBalanceBeforeTx == stateBeforeTx.end())
-            return;
-        REQUIRE(feesBalanceAfterTx->getBalance() == feesBalanceBeforeTx->second->mEntry.data.balance());
-    }
-
-    uint64_t totalFeesPaid = 0;
-    for (const auto claimedOffer : success.offersClaimed)
-    {
-        totalFeesPaid += claimedOffer.aFeePaid;
-        totalFeesPaid += claimedOffer.bFeePaid;
-    }
-
-    REQUIRE(feesBalanceAfterTx->getAmount() == feesBalanceBeforeTx->second->mEntry.data.balance().amount + totalFeesPaid);
-}
 
 void ManageOfferTestHelper::ensureDeleteSuccess(Account& source, ManageOfferOp op,
                                                 const ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx)
 {
-    ensureFeesPaidCorrectly(success, stateBeforeTx);
-    ensureAssetPairPriceUpdated(success, stateBeforeTx);
 }
 
 void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp op,
     ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx)
 {
-    ensureFeesPaidCorrectly(success, stateBeforeTx);
-    ensureAssetPairPriceUpdated(success, stateBeforeTx);
     auto& offerResult = success.offer;
     auto claimedOffers = success.offersClaimed;
-    const auto expectedOfferID = op.offerID == 0 ? mTestManager->getLedgerDelta().getHeaderFrame().getLastGeneratedID(LedgerEntryType::OFFER_ENTRY) + 1 : op.offerID;
 
-    auto offer = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), expectedOfferID, mTestManager->getDB());
     switch (offerResult.effect())
     {
     case ManageOfferEffect::CREATED:
     case ManageOfferEffect::UPDATED:
     {
+        REQUIRE(op.offerID == 0);
+        auto offer = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), offerResult.offer().offerID, mTestManager->getDB());
         REQUIRE(!!offer);
         auto& offerEntry = offer->getOffer();
         REQUIRE(offerEntry == offerResult.offer());
@@ -82,8 +38,13 @@ void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp o
     }
     break;
     case ManageOfferEffect::DELETED:
+        {
+        if (op.offerID == 0)
+            break;
+        auto offer = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), op.offerID, mTestManager->getDB());
         REQUIRE(!offer);
         break;
+        }
     default:
         throw std::runtime_error("Unexpected offer effect");
     }

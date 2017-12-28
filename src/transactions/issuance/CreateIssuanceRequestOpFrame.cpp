@@ -32,6 +32,7 @@ CreateIssuanceRequestOpFrame::CreateIssuanceRequestOpFrame(Operation const& op,
     : OperationFrame(op, res, parentTx)
     , mCreateIssuanceRequest(mOperation.body.createIssuanceRequestOp())
 {
+    mIsFeeRequired = true;
 }
 
 bool
@@ -180,6 +181,9 @@ bool CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db
     // calculate fee which will be charged from receiver
     fee.percent = 0;
     fee.fixed = 0;
+
+    if (!mIsFeeRequired)
+        return true;
 
     auto receiverFrame = AccountHelper::Instance()->mustLoadAccount(receiver, db);
     if (isSystemAccountType(receiverFrame->getAccountType()))

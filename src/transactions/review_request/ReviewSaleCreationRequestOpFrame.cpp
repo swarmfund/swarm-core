@@ -16,6 +16,7 @@
 #include "xdrpp/printer.h"
 #include "ledger/SaleFrame.h"
 #include "ledger/SaleHelper.h"
+#include "ledger/AssetPairHelper.h"
 
 namespace stellar
 {
@@ -76,7 +77,7 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest,
         baseBalanceID, quoteBalanceID);
     SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
-
+    createAssetPair(saleFrame, db, delta);
     innerResult().code(ReviewRequestResultCode::SUCCESS);
     return true;
 }
@@ -88,6 +89,19 @@ const
     return SourceDetails({AccountType::MASTER},
                          mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::ASSET_MANAGER));
+}
+
+void ReviewSaleCreationRequestOpFrame::createAssetPair(
+    SaleFrame::pointer sale, Database& db, LedgerDelta& delta) const
+{
+    // no need to create new asset pair
+    if (AssetPairHelper::Instance()->exists(db, sale->getBaseAsset(), sale->getQuoteAsset()))
+    {
+        return;
+    }
+
+    const auto assetPair = AssetPairFrame::create(sale->getBaseAsset(), sale->getQuoteAsset(), 1, 1, 0, 0, 0);
+    AssetPairHelper::Instance()->storeAdd(delta, db, assetPair->mEntry);
 }
 
 ReviewSaleCreationRequestOpFrame::ReviewSaleCreationRequestOpFrame(

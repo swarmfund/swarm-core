@@ -9,7 +9,6 @@
 #include "util/Logging.h"
 #include "TxTests.h"
 #include "util/Timer.h"
-#include "ledger/LedgerDelta.h"
 #include "crypto/SHA.h"
 #include "test_helper/TestManager.h"
 #include "test_helper/Account.h"
@@ -18,6 +17,11 @@
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/SaleRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
+#include "test_helper/ManageBalanceTestHelper.h"
+#include "test_helper/ParticipateInSaleTestHelper.h"
+#include "transactions/dex/OfferManager.h"
+#include "ledger/SaleHelper.h"
+#include "test_helper/CheckSaleStateTestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -39,7 +43,7 @@ TEST_CASE("Sale", "[tx][sale]")
 
     const AssetCode quoteAsset = "USD";
     auto assetTestHelper = ManageAssetTestHelper(testManager);
-    auto assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAsset, root.key.getPublicKey(), "{}", INT64_MAX, 0);
+    auto assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAsset, root.key.getPublicKey(), "{}", INT64_MAX, uint32_t(AssetPolicy::BASE_ASSET));
     assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
     SECTION("Happy path")
     {
@@ -48,7 +52,7 @@ TEST_CASE("Sale", "[tx][sale]")
         CreateAccountTestHelper(testManager).applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
         const AssetCode baseAsset = "BTC";
         const auto maxIssuanceAmount = 1000 * ONE;
-        assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}", maxIssuanceAmount, 0, maxIssuanceAmount);
+        assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}", maxIssuanceAmount,0, maxIssuanceAmount);
         assetTestHelper.createApproveRequest(root, syndicate, assetCreationRequest);
         auto saleRequestHelper = SaleRequestHelper(testManager);
         const auto currentTime = testManager->getLedgerManager().getCloseTime();
@@ -62,16 +66,34 @@ TEST_CASE("Sale", "[tx][sale]")
             auto accountTestHelper = CreateAccountTestHelper(testManager);
             auto issuanceHelper = IssuanceRequestHelper(testManager);
             issuanceHelper.authorizePreIssuedAmount(root, root.key, quoteAsset, hardCap, root);
+            auto balanceHelper = ManageBalanceTestHelper(testManager);
             const int numberOfParticipants = 10;
+            auto participateInSaleHelper = ParticipateInSaleTestHelper(testManager);
+            auto sales = SaleHelper::Instance()->loadSales(baseAsset, quoteAsset, testManager->getDB());
+            REQUIRE(sales.size() == 1);
+            auto saleID = sales[0]->getID();
             for (auto i = 0; i < numberOfParticipants; i++)
             {
                 auto account = Account{ SecretKey::random(), 0 };
                 accountTestHelper.applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
                 auto quoteBalance = BalanceHelper::Instance()->loadBalance(account.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
                 REQUIRE(!!quoteBalance);
-                issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, hardCap/numberOfParticipants, quoteBalance->getBalanceID(),
+                const auto quoteAssetAmount = hardCap / numberOfParticipants;
+                issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount, quoteBalance->getBalanceID(),
                     SecretKey::random().getStrKeyPublic());
+                auto accountID = account.key.getPublicKey();
+                auto balanceCreationResult = balanceHelper.applyManageBalanceTx(account, accountID, baseAsset);
+                const auto baseAssetAmount = bigDivide(quoteAssetAmount, ONE, price, ROUND_UP);
+                auto manageOfferOp = OfferManager::buildManageOfferOp(balanceCreationResult.success().balanceID, quoteBalance->getBalanceID(),
+                    true, baseAssetAmount, price, 0, 0, saleID);
+                participateInSaleHelper.applyManageOffer(account, manageOfferOp);
+                if (i < numberOfParticipants - 1)
+                {
+                    CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, CheckSaleStateResultCode::NO_SALES_FOUND);
+                }
             }
+
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root);
         }
     }
 }

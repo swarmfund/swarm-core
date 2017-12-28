@@ -122,14 +122,14 @@ bool ManageSaleParticipationOpFrame::createOffer(Application& app,
         return false;
     }
 
-    auto quoteAmount = OfferManager::calcualteQuoteAmount(mManageOffer.amount, mManageOffer.price);
+    const auto quoteAmount = OfferManager::calcualteQuoteAmount(mManageOffer.amount, mManageOffer.price);
     if (quoteAmount == 0)
     {
         innerResult().code(ManageOfferResultCode::MALFORMED);
         return false;
     }
 
-    if (sale->tryAddCap(quoteAmount))
+    if (!sale->tryAddCap(quoteAmount))
     {
         innerResult().code(ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);
         return false;

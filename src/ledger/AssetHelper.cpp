@@ -191,7 +191,11 @@ AssetHelper::loadAsset(AssetCode code, Database& db,
     if (cachedEntryExists(key, db))
     {
         auto p = getCachedEntry(key, db);
-        return p ? std::make_shared<AssetFrame>(*p) : nullptr;
+        auto assetFrame = p ? std::make_shared<AssetFrame>(*p) : nullptr;
+        if (!!delta && !!assetFrame)
+        {
+            delta->recordEntry(*assetFrame);
+        }
     }
 
     AssetFrame::pointer retAsset;

@@ -13,8 +13,6 @@ namespace txtest
     class ManageOfferTestHelper : public TxHelper
     {
     protected:
-        void ensureAssetPairPriceUpdated(ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx) const;
-        void ensureFeesPaidCorrectly(ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx) const;
 
         virtual void ensureDeleteSuccess(Account& source, ManageOfferOp op, ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx);
         virtual void ensureCreateSuccess(Account& source, ManageOfferOp op, ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx);

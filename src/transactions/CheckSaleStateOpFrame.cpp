@@ -37,29 +37,11 @@ const
 }
 
 void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
-    LedgerDelta& delta, Database& db, LedgerManager& lm)
+    LedgerDelta& delta, Database& db, LedgerManager& lm) const
 {
-    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
-    const auto baseAmount = sale->getBaseAmountForCurrentCap();
-    baseAsset->mustUnlockIssuedAmount(baseAmount);
-    const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), baseAmount, sale->getBaseBalanceID(), lm);
-    Operation op;
-    op.sourceAccount.activate() = sale->getOwnerID();
-    op.body.type(OperationType::CREATE_ISSUANCE_REQUEST);
-    op.body.createIssuanceRequestOp() = issuanceRequestOp;
+    unlockPendingIssunace(sale, delta, db);
 
-    OperationResult opRes;
-    opRes.code(OperationResultCode::opINNER);
-    opRes.tr().type(OperationType::CREATE_ISSUANCE_REQUEST);
-    CreateIssuanceRequestOpFrame createIssuanceRequestOpFrame(op, opRes, mParentTx);
-    createIssuanceRequestOpFrame.setSourceAccountPtr(saleOwnerAccount);
-    if (!createIssuanceRequestOpFrame.doCheckValid(app) || !createIssuanceRequestOpFrame.doApply(app, delta, lm))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to apply create issuance request on check sale: " << sale->getID();
-        throw runtime_error("Unexpected state: failed to create issuance request on check sale");
-    }
-
-    auto result = createIssuanceRequestOpFrame.getResult().tr().createIssuanceRequestResult();
+    auto result = applyCreateIssuanceRequest(sale, saleOwnerAccount, app, delta, lm);
     if (result.code() != CreateIssuanceRequestResultCode::SUCCESS)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Create issuance request returned unepected result!"
@@ -73,6 +55,87 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
         throw runtime_error("Unexpected state; issuance request was not fulfilled on check sale state");
     }
 
+    updateMaxIssuance(sale, delta, db);
+}
+
+bool CheckSaleStateOpFrame::handleCancel(const SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
+    Database& db)
+{
+    auto orderBookID = sale->getID();
+    const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), sale->getQuoteAsset(), &orderBookID, nullptr, db);
+    OfferManager::deleteOffers(offersToCancel, db, delta);
+
+    unlockPendingIssunace(sale, delta, db);
+
+    const auto key = sale->getKey();
+    SaleHelper::Instance()->storeDelete(delta, db, key);
+    innerResult().code(CheckSaleStateResultCode::SUCCESS);
+    auto& success = innerResult().success();
+    success.saleID = sale->getID();
+    success.effect.effect(CheckSaleStateEffect::CANCELED);
+    return true;
+}
+
+bool CheckSaleStateOpFrame::handleClose(const SaleFrame::pointer sale, Application& app,
+    LedgerManager& lm, LedgerDelta& delta, Database& db)
+{
+    const auto saleOwnerAccount = AccountHelper::Instance()->loadAccount(sale->getOwnerID(), db, &delta);
+    if (!saleOwnerAccount)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state: expected sale owner to exist: " << PubKeyUtils::toStrKey(sale->getOwnerID());
+        throw runtime_error("Unexpected db state: expected sale owner to exist");
+    }
+
+    issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
+
+    const auto saleOfferResult = applySaleOffer(saleOwnerAccount, sale, app, lm, delta);
+    SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
+    innerResult().code(CheckSaleStateResultCode::SUCCESS);
+    auto& success = innerResult().success();
+    success.saleID = sale->getID();
+    success.effect.effect(CheckSaleStateEffect::CLOSED);
+    success.effect.saleClosed() = saleOfferResult;
+    return true;
+}
+
+void CheckSaleStateOpFrame::unlockPendingIssunace(const SaleFrame::pointer sale,
+    LedgerDelta& delta, Database& db) const
+{
+    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
+    const auto baseAmount = sale->getBaseAmountForCurrentCap();
+    baseAsset->mustUnlockIssuedAmount(baseAmount);
+    AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
+}
+
+CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
+    const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount,
+    Application& app, LedgerDelta& delta, LedgerManager& lm) const
+{
+    const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), sale->getBaseAmountForCurrentCap(), sale->getBaseBalanceID(), lm);
+    Operation op;
+    op.sourceAccount.activate() = sale->getOwnerID();
+    op.body.type(OperationType::CREATE_ISSUANCE_REQUEST);
+    op.body.createIssuanceRequestOp() = issuanceRequestOp;
+
+    OperationResult opRes;
+    opRes.code(OperationResultCode::opINNER);
+    opRes.tr().type(OperationType::CREATE_ISSUANCE_REQUEST);
+    CreateIssuanceRequestOpFrame createIssuanceRequestOpFrame(op, opRes, mParentTx);
+    createIssuanceRequestOpFrame.doNotRequireFee();
+    createIssuanceRequestOpFrame.setSourceAccountPtr(saleOwnerAccount);
+    if (!createIssuanceRequestOpFrame.doCheckValid(app) || !createIssuanceRequestOpFrame.doApply(app, delta, lm))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to apply create issuance request on check sale: " << sale->getID();
+        throw runtime_error("Unexpected state: failed to create issuance request on check sale");
+    }
+
+    return createIssuanceRequestOpFrame.getResult().tr().createIssuanceRequestResult();
+}
+
+void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
+    LedgerDelta& delta, Database& db) const
+{
+    auto baseAsset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db, &delta);
     uint64_t updatedMaxIssuance;
     if (!safeSum(baseAsset->getIssued(), baseAsset->getPendingIssuance(), updatedMaxIssuance))
     {
@@ -84,45 +147,19 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
 }
 
-bool CheckSaleStateOpFrame::handleCancel(const SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
-    Database& db)
+ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
+    const AccountFrame::pointer saleOwnerAccount, SaleFrame::pointer sale, Application& app,
+    LedgerManager& lm, LedgerDelta& delta)
 {
-    auto orderBookID = sale->getID();
-    const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), sale->getQuoteAsset(), &orderBookID, nullptr, db);
-    OfferManager::deleteOffers(offersToCancel, db, delta);
-
-    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
-    const auto baseAmount = sale->getBaseAmountForCurrentCap();
-    baseAsset->mustUnlockIssuedAmount(baseAmount);
-
-    const auto key = sale->getKey();
-    SaleHelper::Instance()->storeDelete(delta, db, key);
-    innerResult().code(CheckSaleStateResultCode::SUCCESS);
-    auto& success = innerResult().success();
-    success.saleID = sale->getID();
-    success.effect.effect(CheckSaleStateEffect::CANCELED);
-    return true;
-}
-
-bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& app,
-    LedgerManager& lm, LedgerDelta& delta, Database& db)
-{
-    const auto baseAmount = sale->getBaseAmountForCurrentCap();
-    const auto saleOwnerAccount = AccountHelper::Instance()->loadAccount(sale->getOwnerID(), db, &delta);
-    if (!saleOwnerAccount)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state: expected sale owner to exist: " << PubKeyUtils::toStrKey(sale->getOwnerID());
-        throw runtime_error("Unexpected db state: expected sale owner to exist");
-    }
-
-    issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
-
+    auto& db = app.getDatabase();
     const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, sale->getQuoteAsset(), sale->getCurrentCap(), db);
     if (feeResult.isOverflow)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: overflow on sale fees calculation: " << xdr::xdr_to_string(sale->getSaleEntry());
         throw runtime_error("Unexpected state: overflow on sale fees calculation");
     }
+
+    const auto baseAmount = sale->getBaseAmountForCurrentCap();
     const auto manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), sale->getQuoteBalanceID(),
         false, baseAmount, sale->getPrice(), feeResult.calculatedPercentFee, 0, sale->getID());
     Operation op;
@@ -141,20 +178,15 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
         throw runtime_error("Unexpected state: failed to apply manage offer on check sale");
     }
 
-    SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
-    innerResult().code(CheckSaleStateResultCode::SUCCESS);
-    auto& success = innerResult().success();
-    success.saleID = sale->getID();
-    success.effect.effect(CheckSaleStateEffect::CLOSED);
     const auto manageOfferResultCode = ManageOfferOpFrame::getInnerCode(opRes);
     if (manageOfferResultCode != ManageOfferResultCode::SUCCESS)
     {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from manage offer on check sale state" 
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from manage offer on check sale state"
             << xdr::xdr_traits<ManageOfferResultCode>::enum_name(manageOfferResultCode);
         throw runtime_error("Unexpected result code from manage offer on check sale state");
     }
-    success.effect.saleClosed() = opRes.tr().manageOfferResult().success();
-    return true;
+
+    return opRes.tr().manageOfferResult().success();
 }
 
 CheckSaleStateOpFrame::CheckSaleStateOpFrame(Operation const& op,

@@ -36,7 +36,7 @@ getCounterpartyDetails(Database& db, LedgerDelta* delta) const
             mCreateAccount.destination,
             CounterpartyDetails({
                 AccountType::NOT_VERIFIED, AccountType::GENERAL,
-                AccountType::SYNDICATE
+                AccountType::SYNDICATE, AccountType::EXCHANGE
             }, true, false)
         }
     };
@@ -55,7 +55,6 @@ const
             NOT_VERIFIED_ACC_MANAGER);
         break;
     case AccountType::GENERAL:
-    case AccountType::SYNDICATE:
         if (mCreateAccount.policies != 0)
         {
             allowedSignerClass = static_cast<int32_t>(SignerType::
@@ -66,6 +65,17 @@ const
                                  GENERAL_ACC_MANAGER) |
                              static_cast<int32_t>(SignerType::
                                  NOT_VERIFIED_ACC_MANAGER);
+        break;
+    case AccountType::SYNDICATE:
+        if (mCreateAccount.policies != 0)
+        {
+            allowedSignerClass = static_cast<int32_t>(SignerType::SYNDICATE_ACC_MANAGER);
+            break;
+        }
+        allowedSignerClass = static_cast<int32_t>(SignerType::SYNDICATE_ACC_MANAGER) |
+                             static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
+    case AccountType::EXCHANGE:
+        allowedSignerClass = static_cast<int32_t>(SignerType::EXCHANGE_ACC_MANAGER);
         break;
     default:
         // it is not allowed to create or update any other account types
@@ -106,7 +116,8 @@ bool CreateAccountOpFrame::isAllowedToUpdateAccountType(
         return false;
     // it is only allowed to change account type from not verified to general or syndicate
     return mCreateAccount.accountType == AccountType::SYNDICATE ||
-           mCreateAccount.accountType == AccountType::GENERAL;
+           mCreateAccount.accountType == AccountType::GENERAL ||
+           mCreateAccount.accountType == AccountType::EXCHANGE;
 }
 
 void CreateAccountOpFrame::storeExternalSystemsIDs(Application& app,

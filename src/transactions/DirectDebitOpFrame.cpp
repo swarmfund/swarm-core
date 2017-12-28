@@ -25,13 +25,15 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> DirectDebitOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{
-		{mDirectDebit.from, CounterpartyDetails({AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, false, true)}
+		{mDirectDebit.from, CounterpartyDetails({AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION,
+                                                AccountType::EXCHANGE}, false, true)}
 	};
 }
 
 SourceDetails DirectDebitOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION },
+	return SourceDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION,
+                           AccountType::EXCHANGE},
                          mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t >(SignerType::DIRECT_DEBIT_OPERATOR));
 }

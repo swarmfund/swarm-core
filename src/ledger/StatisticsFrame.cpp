@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <util/types.h>
 #include "ledger/StatisticsFrame.h"
 #include "database/Database.h"
 
@@ -53,7 +54,7 @@ StatisticsFrame::isValid() const
 void StatisticsFrame::clearObsolete(time_t rawCurrentTime)
 {   
 	struct tm currentTime = VirtualClock::tm_from_time_t(rawCurrentTime);
- 
+
 	struct tm timeUpdated = VirtualClock::tm_from_time_t(mStatistics.updatedAt);
 	
     bool isYear = timeUpdated.tm_year < currentTime.tm_year;
@@ -81,51 +82,66 @@ void StatisticsFrame::clearObsolete(time_t rawCurrentTime)
 	}
 }
 
-bool StatisticsFrame::add(int64 outcome, time_t rawCurrentTime, time_t rawTimePerformed)
+bool StatisticsFrame::add(uint64_t outcome, time_t rawCurrentTime)
 {
-	clearObsolete(rawCurrentTime);
-	struct tm currentTime = VirtualClock::tm_from_time_t(rawCurrentTime);
-	struct tm timePerformed = VirtualClock::tm_from_time_t(rawTimePerformed);
-	if (currentTime.tm_year != timePerformed.tm_year)
-	{
-		return true;
-	}
-	mStatistics.annualOutcome += outcome;
-	if (mStatistics.annualOutcome < 0)
-	{
-		return false;
-	}
-
-	if (currentTime.tm_mon != timePerformed.tm_mon)
-	{
-		return true;
-	}
-	mStatistics.monthlyOutcome += outcome;
-	if (mStatistics.monthlyOutcome < 0)
-	{
-		return false;
-	}
-
-	bool isWeek = VirtualClock::weekPassed(timePerformed, currentTime);
-	if (isWeek)
-	{
-		return true;
-	}
-
-	mStatistics.weeklyOutcome += outcome;
-	if (mStatistics.weeklyOutcome < 0)
-	{
-		return false;
-	}
-
-	if (currentTime.tm_yday != timePerformed.tm_yday)
-	{
-		return true;
-	}
-	mStatistics.dailyOutcome += outcome;
-    
-    
+    clearObsolete(rawCurrentTime);
     mStatistics.updatedAt = rawCurrentTime;
-	return mStatistics.dailyOutcome >= 0;
+
+    struct tm currentTime = VirtualClock::tm_from_time_t(rawCurrentTime);
+
+    if (!safeSum(mStatistics.annualOutcome, outcome, mStatistics.annualOutcome))
+        return false;
+
+    if (!safeSum(mStatistics.monthlyOutcome, outcome, mStatistics.monthlyOutcome))
+        return false;
+
+    if (!safeSum(mStatistics.weeklyOutcome, outcome, mStatistics.weeklyOutcome))
+        return false;
+
+    return safeSum(mStatistics.dailyOutcome, outcome, mStatistics.dailyOutcome);
 }
+
+bool StatisticsFrame::revert(uint64_t outcome, time_t rawCurrentTime, time_t rawTimePerformed)
+{
+    clearObsolete(rawCurrentTime);
+    mStatistics.updatedAt = rawCurrentTime;
+
+    struct tm currentTime = VirtualClock::tm_from_time_t(rawCurrentTime);
+    struct tm timePerformed = VirtualClock::tm_from_time_t(rawTimePerformed);
+
+    if (currentTime.tm_year != timePerformed.tm_year)
+        return true;
+
+    if (mStatistics.annualOutcome - outcome > mStatistics.annualOutcome)
+        return false;
+    mStatistics.annualOutcome -= outcome;
+
+
+    if (currentTime.tm_mon != timePerformed.tm_mon)
+        return true;
+
+    if (mStatistics.monthlyOutcome - outcome > mStatistics.monthlyOutcome)
+        return false;
+    mStatistics.monthlyOutcome -= outcome;
+
+
+    bool weekPassed = VirtualClock::weekPassed(timePerformed, currentTime);
+    if (weekPassed)
+        return true;
+
+    if (mStatistics.weeklyOutcome - outcome > mStatistics.weeklyOutcome)
+        return false;
+    mStatistics.weeklyOutcome -= outcome;
+
+
+    if (currentTime.tm_yday != timePerformed.tm_yday)
+        return true;
+
+    if (mStatistics.dailyOutcome - outcome > mStatistics.dailyOutcome)
+        return false;
+    mStatistics.dailyOutcome -= outcome;
+
+    return true;
+}
+
 }

@@ -240,7 +240,9 @@ TEST_CASE("create account", "[tx][create_account]")
 					continue;
                                 if (updateAccountType == accountType)
                                     continue;
-                                const auto isAllowedToUpdateTo = updateAccountType == AccountType::GENERAL || updateAccountType == AccountType::SYNDICATE;
+                                const auto isAllowedToUpdateTo = updateAccountType == AccountType::GENERAL ||
+                                                                 updateAccountType == AccountType::SYNDICATE ||
+                                                                 updateAccountType == AccountType::EXCHANGE;
 				if (isAllowedToUpdateTo && accountType == AccountType::NOT_VERIFIED)
 					continue;
                                 auto toBeCreated = SecretKey::random();

@@ -78,7 +78,9 @@ std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpar
 	if (!targetBalance)
 		return{};
 	return{
-		{ targetBalance->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION, AccountType::SYNDICATE }, true, false) }
+		{ targetBalance->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
+                                                               AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE },
+                                                             true, false) }
 	};
 }
 
@@ -96,7 +98,8 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
 	default:
 		break;
 	}
-	std::vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION, AccountType::SYNDICATE };
+	std::vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
+                                                     AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE};
 
 	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType);
 }

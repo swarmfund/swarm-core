@@ -18,7 +18,7 @@ namespace txtest
 	public:
 		ManageAssetTestHelper(TestManager::pointer testManager);
 
-                void createApproveRequest(Account& root, Account & source, ManageAssetOp::_request_t request);
+		void createApproveRequest(Account& root, Account & source, ManageAssetOp::_request_t request);
 
 		ManageAssetResult applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request,
 			ManageAssetResultCode expectedResult = ManageAssetResultCode::SUCCESS);
@@ -30,7 +30,7 @@ namespace txtest
 				std::string details,
 				uint64_t maxIssuanceAmount,
 				uint32_t policies,
-                                uint64_t initialPreissuanceAmount = 0);
+                uint64_t initialPreissuanceAmount = 0);
 
 		ManageAssetOp::_request_t createAssetUpdateRequest(
 				AssetCode code,

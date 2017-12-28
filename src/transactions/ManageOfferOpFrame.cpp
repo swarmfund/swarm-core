@@ -255,7 +255,7 @@ SourceDetails ManageOfferOpFrame::getSourceAccountDetails(std::unordered_map<Acc
 	uint32_t allowedBlockedReasons = 0;
 	if (mManageOffer.offerID != 0 && mManageOffer.amount == 0)
 		allowedBlockedReasons = getAnyBlockReason();
-	return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED}, mSourceAccount->getMediumThreshold(),
+	return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE}, mSourceAccount->getMediumThreshold(),
 						 static_cast<int32_t >(SignerType::BALANCE_MANAGER), allowedBlockedReasons);
 }
 

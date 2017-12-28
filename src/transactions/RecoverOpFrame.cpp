@@ -19,7 +19,7 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> RecoverOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{ 
-		{ mRecover.account, CounterpartyDetails({AccountType::NOT_VERIFIED, AccountType::GENERAL}, true, true) }
+		{ mRecover.account, CounterpartyDetails({AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::EXCHANGE}, true, true) }
 	};
 }
 
@@ -41,6 +41,9 @@ SourceDetails RecoverOpFrame::getSourceAccountDetails(std::unordered_map<Account
 	case AccountType::GENERAL:
 		allowedSignerClass = static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
 		break;
+    case AccountType::EXCHANGE:
+        allowedSignerClass = static_cast<int32_t>(SignerType::EXCHANGE_ACC_MANAGER);
+        break;
 	default:
 		throw std::invalid_argument("Unexpected counterparty type in recovery");
 	}
@@ -70,7 +73,7 @@ RecoverOpFrame::doApply(Application& app, LedgerDelta& delta,
 	}
     
 	auto accountType = targetAccountFrame->getAccountType();
-	if (accountType != AccountType::GENERAL && accountType != AccountType::NOT_VERIFIED)
+	if (accountType != AccountType::GENERAL && accountType != AccountType::NOT_VERIFIED && accountType != AccountType::EXCHANGE)
 	{
 		app.getMetrics().NewMeter({ "op-recover", "failure", "invalid-account-type" }, "operation").Mark();
 		innerResult().code(RecoverResultCode::MALFORMED);

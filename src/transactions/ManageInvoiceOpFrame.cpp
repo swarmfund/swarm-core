@@ -20,13 +20,14 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> ManageInvoiceOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{
-		{mManageInvoice.sender, CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED}, true, true)}
+		{mManageInvoice.sender, CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::GENERAL},
+                                                    true, true)}
 	};
 }
 
 SourceDetails ManageInvoiceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED}, mSourceAccount->getMediumThreshold(),
+	return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE}, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t >(SignerType::INVOICE_MANAGER), static_cast<int32_t >(BlockReasons::KYC_UPDATE));
 }
 

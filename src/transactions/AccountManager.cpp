@@ -114,12 +114,7 @@ bool AccountManager::revertRequest(AccountFrame::pointer account,
     uint64_t now = mLm.getCloseTime();
 
     auto accIdStrKey = PubKeyUtils::toStrKey(balance->getAccountID());
-    if (!stats->revert(universalAmount, now, timePerformed))
-    {
-        CLOG(ERROR, "AccountManager") <<
-            "Failed to revert statistics on revert request";
-        throw std::runtime_error("Failed to rever statistics");
-    }
+    stats->revert(universalAmount, now, timePerformed);
 
     EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
     return true;
@@ -231,15 +226,14 @@ AccountManager::Result AccountManager::addStats(AccountFrame::pointer account,
     return SUCCESS;
 }
 
-void AccountManager::revertStats(AccountID account, int64_t universalAmount, time_t timePerformed)
+void AccountManager::revertStats(AccountID account, uint64_t universalAmount, time_t timePerformed)
 {
     auto statsFrame = StatisticsHelper::Instance()->mustLoadStatistics(account, mDb);
     time_t now = mLm.getCloseTime();
     auto accIdStr = PubKeyUtils::toStrKey(account);
-    if (!statsFrame->revert(universalAmount, now, timePerformed)) {
-        CLOG(ERROR, "AccountManager") << "Failed to revert statistics on account " << accIdStr;
-        throw std::runtime_error("Failed to rever statistics");
-    }
+
+    statsFrame->revert(universalAmount, now, timePerformed);
+
     EntryHelperProvider::storeChangeEntry(mDelta, mDb, statsFrame->mEntry);
 }
 

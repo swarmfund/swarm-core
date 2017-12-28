@@ -101,7 +101,7 @@ bool StatisticsFrame::add(uint64_t outcome, time_t rawCurrentTime)
     return safeSum(mStatistics.dailyOutcome, outcome, mStatistics.dailyOutcome);
 }
 
-bool StatisticsFrame::revert(uint64_t outcome, time_t rawCurrentTime, time_t rawTimePerformed)
+void StatisticsFrame::revert(uint64_t outcome, time_t rawCurrentTime, time_t rawTimePerformed)
 {
     clearObsolete(rawCurrentTime);
     mStatistics.updatedAt = rawCurrentTime;
@@ -110,38 +110,40 @@ bool StatisticsFrame::revert(uint64_t outcome, time_t rawCurrentTime, time_t raw
     struct tm timePerformed = VirtualClock::tm_from_time_t(rawTimePerformed);
 
     if (currentTime.tm_year != timePerformed.tm_year)
-        return true;
+        return;
 
-    if (mStatistics.annualOutcome - outcome > mStatistics.annualOutcome)
-        return false;
+    if (outcome > mStatistics.annualOutcome)
+        throw std::runtime_error("Unable to revert statistics. Annual outcome can't be negative");
+
     mStatistics.annualOutcome -= outcome;
 
 
     if (currentTime.tm_mon != timePerformed.tm_mon)
-        return true;
+        return;
 
-    if (mStatistics.monthlyOutcome - outcome > mStatistics.monthlyOutcome)
-        return false;
+    if (outcome > mStatistics.monthlyOutcome)
+        throw std::runtime_error("Unable to revert statistics. Monthly outcome can't be negative");
+
     mStatistics.monthlyOutcome -= outcome;
 
 
     bool weekPassed = VirtualClock::weekPassed(timePerformed, currentTime);
     if (weekPassed)
-        return true;
+        return;
 
-    if (mStatistics.weeklyOutcome - outcome > mStatistics.weeklyOutcome)
-        return false;
+    if (outcome > mStatistics.weeklyOutcome)
+        throw std::runtime_error("Unable to revert statistics. Weekly outcome can't be negative");
+
     mStatistics.weeklyOutcome -= outcome;
 
 
     if (currentTime.tm_yday != timePerformed.tm_yday)
-        return true;
+        return;
 
-    if (mStatistics.dailyOutcome - outcome > mStatistics.dailyOutcome)
-        return false;
+    if (outcome > mStatistics.dailyOutcome)
+        throw std::runtime_error("Unable to revert statistics. Daily outcome can't be negative");
+
     mStatistics.dailyOutcome -= outcome;
-
-    return true;
 }
 
 }

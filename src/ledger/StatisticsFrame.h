@@ -78,7 +78,8 @@ class StatisticsFrame : public EntryFrame
 
 	void clearObsolete(time_t rawCurrentTime);
 	bool add(uint64_t outcome, time_t currentTime);
-    bool revert(uint64_t outcome, time_t rawCurrentTime, time_t rawTimePerformed);
+    void
+    revert(uint64_t outcome, time_t rawCurrentTime, time_t rawTimePerformed);
 
     static bool isValid(StatisticsEntry const& oe);
     bool isValid() const;

@@ -48,19 +48,19 @@ class StatisticsFrame : public EntryFrame
         return mStatistics;
     }
 
-    int64 getDailyOutcome(){
+    uint64_t getDailyOutcome(){
         return mStatistics.dailyOutcome;
     }
 
-    int64 getWeeklyOutcome() {
+    uint64_t getWeeklyOutcome() {
         return mStatistics.weeklyOutcome;
     }
 
-    int64 getMonthlyOutcome() {
+    uint64_t getMonthlyOutcome() {
         return mStatistics.monthlyOutcome;
     }
 
-    int64 getAnnualOutcome() {
+    uint64_t getAnnualOutcome() {
         return mStatistics.annualOutcome;
     }
 
@@ -77,7 +77,9 @@ class StatisticsFrame : public EntryFrame
     }
 
 	void clearObsolete(time_t rawCurrentTime);
-	bool add(int64 outcome, time_t currentTime, time_t timePerformed);
+	bool add(uint64_t outcome, time_t currentTime);
+    void
+    revert(uint64_t outcome, time_t rawCurrentTime, time_t rawTimePerformed);
 
     static bool isValid(StatisticsEntry const& oe);
     bool isValid() const;

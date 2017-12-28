@@ -83,6 +83,7 @@ ManageBalanceOpFrame::doApply(Application& app,
             delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
 	balanceFrame = BalanceFrame::createNew(newBalanceID, mManageBalance.destination, mManageBalance.asset);
 	EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
+	innerResult().success().balanceID = newBalanceID;
     
 	app.getMetrics().NewMeter({"op-manage-balance", "success", "apply"},
 	                          "operation").Mark();

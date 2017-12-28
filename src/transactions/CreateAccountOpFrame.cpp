@@ -55,7 +55,6 @@ const
             NOT_VERIFIED_ACC_MANAGER);
         break;
     case AccountType::GENERAL:
-    case AccountType::SYNDICATE:
         if (mCreateAccount.policies != 0)
         {
             allowedSignerClass = static_cast<int32_t>(SignerType::
@@ -67,6 +66,14 @@ const
                              static_cast<int32_t>(SignerType::
                                  NOT_VERIFIED_ACC_MANAGER);
         break;
+    case AccountType::SYNDICATE:
+        if (mCreateAccount.policies != 0)
+        {
+            allowedSignerClass = static_cast<int32_t>(SignerType::SYNDICATE_ACC_MANAGER);
+            break;
+        }
+        allowedSignerClass = static_cast<int32_t>(SignerType::SYNDICATE_ACC_MANAGER) |
+                             static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
     case AccountType::EXCHANGE:
         allowedSignerClass = static_cast<int32_t>(SignerType::EXCHANGE_ACC_MANAGER);
         break;

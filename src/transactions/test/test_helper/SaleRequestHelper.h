@@ -17,7 +17,7 @@ class SaleRequestHelper : TxHelper
 public:
     SaleRequestHelper(TestManager::pointer testManager);
 
-    void createApprovedSale(Account& root, Account & source, SaleCreationRequest request);
+    ReviewRequestResult createApprovedSale(Account& root, Account & source, SaleCreationRequest request);
 
     CreateSaleCreationRequestResult applyCreateSaleRequest(
         Account& source, uint64_t requestID, SaleCreationRequest request,

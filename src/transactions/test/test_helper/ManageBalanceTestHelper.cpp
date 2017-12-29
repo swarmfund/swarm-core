@@ -28,8 +28,8 @@ namespace txtest
 	}
 
 	ManageBalanceResult
-	ManageBalanceTestHelper::applyManageBalanceTx(Account& from, PublicKey& account, AssetCode asset,
-												  ManageBalanceAction action,  
+	ManageBalanceTestHelper::applyManageBalanceTx(Account& from, AccountID& account, AssetCode asset,
+												  ManageBalanceAction action,
 												  ManageBalanceResultCode expectedResultCode, 
 												  Account* signer)
 	{

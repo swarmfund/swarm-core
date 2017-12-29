@@ -24,12 +24,16 @@ class CreateSaleCreationRequestOpFrame : public OperationFrame
         std::unordered_map<AccountID, CounterpartyDetails>
         counterpartiesDetails) const override;
 
-    
-    bool isBaseAssetOrCreationRequestExists(SaleCreationRequest const& request, Database& db) const;
+    // tryLoadAssetOrRequest - tries to load base asset or request. If fails returns nullptr. If request exists - creates asset frame wrapper for it
+    AssetFrame::pointer tryLoadBaseAssetOrRequest(SaleCreationRequest const& request, Database& db) const;
 
     std::string getReference(SaleCreationRequest const& request) const;
 
-    ReviewableRequestFrame::pointer createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, time_t closedAt);
+    ReviewableRequestFrame::pointer createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, time_t closedAt) const;
+
+    // isBaseAssetHasSufficientIssuance - returns false, if base asset amount required for hard cap and soft cap does not exceed available amount to be issued.
+    // sets corresponding result code
+    bool isBaseAssetHasSufficientIssuance(AssetFrame::pointer assetFrame);
 
 public:
 

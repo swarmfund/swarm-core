@@ -21,7 +21,7 @@ namespace txtest
 												  ManageBalanceAction action = ManageBalanceAction::CREATE, 
 												  Account* signer = nullptr);
 
-		ManageBalanceResult applyManageBalanceTx(Account& from, PublicKey& account, AssetCode asset,
+		ManageBalanceResult applyManageBalanceTx(Account& from, AccountID& account, AssetCode asset,
 												 ManageBalanceAction action = ManageBalanceAction::CREATE, 
 												 ManageBalanceResultCode expectedResultCode = 
 												 ManageBalanceResultCode::SUCCESS, Account* signer = nullptr);

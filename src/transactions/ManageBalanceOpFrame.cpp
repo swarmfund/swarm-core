@@ -64,9 +64,6 @@ ManageBalanceOpFrame::doApply(Application& app,
         return false;
     }
 
-	BalanceID newBalanceID = BalanceKeyUtils::forAccount(mManageBalance.destination, 
-		delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
-
 	auto balanceHelper = BalanceHelper::Instance();
 	auto balanceFrame = balanceHelper->loadBalance(mManageBalance.destination, mManageBalance.asset, db, &delta);
 
@@ -80,6 +77,8 @@ ManageBalanceOpFrame::doApply(Application& app,
 		return false;
 	}
 
+        BalanceID newBalanceID = BalanceKeyUtils::forAccount(mManageBalance.destination,
+            delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
 	balanceFrame = BalanceFrame::createNew(newBalanceID, mManageBalance.destination, mManageBalance.asset);
 	EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
 	innerResult().success().balanceID = newBalanceID;

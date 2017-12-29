@@ -73,6 +73,11 @@ namespace stellar
 		{
 			return mFee.percentFee;
 		}
+
+        int64_t getFixedFee()
+        {
+            return mFee.fixedFee;
+        }
         
         static bool isValid(FeeEntry const& oe);
         bool isValid() const;

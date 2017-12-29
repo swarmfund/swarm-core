@@ -99,13 +99,7 @@ namespace stellar {
 
         reviewableRequestFrame->touch(delta);
 
-        if (!reviewableRequestFrame->isValid())
-        {
-            CLOG(ERROR, Logging::ENTRY_LOGGER)
-                    << "Unexpected state - request is invalid: "
-                    << xdr::xdr_to_string(reviewableRequestEntry);
-            throw std::runtime_error("Unexpected state - reviewable request is invalid");
-        }
+        reviewableRequestFrame->ensureValid();
 
         auto key = reviewableRequestFrame->getKey();
         flushCachedEntry(key, db);
@@ -196,12 +190,8 @@ namespace stellar {
             unmarshaler.done();
 
             oe.rejectReason = rejectReason;
-            oe.ext.v((LedgerVersion)version);
-            if (!ReviewableRequestFrame::isValid(oe))
-            {
-                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: invalid reviewable request: " << xdr::xdr_to_string(oe);
-                throw std::runtime_error("Invalid reviewable request");
-            }
+            oe.ext.v(static_cast<LedgerVersion>(version));
+            ReviewableRequestFrame::ensureValid(oe);
 
             requestsProcessor(le);
             st.fetch();

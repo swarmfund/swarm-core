@@ -267,4 +267,38 @@ void AccountManager::transferFee(AssetCode asset, Fee fee)
     transferFee(asset, totalFee);
 }
 
+BalanceID AccountManager::loadOrCreateBalanceForAsset(AccountID const& account,
+    AssetCode const& asset) const
+{
+    return loadOrCreateBalanceForAsset(account, asset, mDb, mDelta);
+}
+
+BalanceID AccountManager::loadOrCreateBalanceForAsset(AccountID const& account,
+    AssetCode const& asset, Database& db, LedgerDelta& delta)
+{
+    auto balance = loadOrCreateBalanceFrameForAsset(account, asset, db, delta);
+    return balance->getBalanceID();
+}
+
+BalanceFrame::pointer AccountManager::loadOrCreateBalanceFrameForAsset(
+    AccountID const& account, AssetCode const& asset, Database& db,
+    LedgerDelta& delta)
+{
+    auto balance = BalanceHelper::Instance()->loadBalance(account, asset, db, &delta);
+    if (!!balance)
+    {
+        return balance;
+    }
+
+    if (!AssetHelper::Instance()->exists(db, asset))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state: expected asset to exist: " << asset;
+        throw runtime_error("Unexpected db state: expected asset to exist");
+    }
+
+    auto newBalanceID = BalanceKeyUtils::forAccount(account, delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
+    balance = BalanceFrame::createNew(newBalanceID, account, asset);
+    EntryHelperProvider::storeAddEntry(delta, db, balance->mEntry);
+    return balance;
+}
 }

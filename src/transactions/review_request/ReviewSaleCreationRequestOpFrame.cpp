@@ -16,6 +16,7 @@
 #include "xdrpp/printer.h"
 #include "ledger/SaleFrame.h"
 #include "ledger/SaleHelper.h"
+#include "ledger/AssetPairHelper.h"
 
 namespace stellar
 {
@@ -53,25 +54,30 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
         return false;
     }
 
-    uint64_t requiredBaseAssetForSoftCap;
-    if (!SaleFrame::calculateRequiredBaseAssetForSoftCap(saleCreationRequest, requiredBaseAssetForSoftCap))
+    uint64_t requiredBaseAssetForHardCap;
+    if (!SaleFrame::convertToBaseAmount(saleCreationRequest.price, saleCreationRequest.hardCap, requiredBaseAssetForHardCap))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate required base asset for soft cap: " << request->getRequestID();
         throw runtime_error("Failed to calculate required base asset for soft cap");
     }
 
     
-    if (!baseAsset->lockIssuedAmount(requiredBaseAssetForSoftCap))
+    if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
     {
-        innerResult().code(ReviewRequestResultCode::SOFT_CAP_WILL_EXCEED_MAX_ISSUANCE);
+        innerResult().code(ReviewRequestResultCode::HARD_CAP_WILL_EXCEED_MAX_ISSUANCE);
         return false;
     }
 
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
 
-    const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest);
-    SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
+    AccountManager accountManager(app, db, delta, ledgerManager);
+    const auto baseBalanceID = accountManager.loadOrCreateBalanceForAsset(request->getRequestor(), saleCreationRequest.baseAsset);
+    const auto quoteBalanceID = accountManager.loadOrCreateBalanceForAsset(request->getRequestor(), saleCreationRequest.quoteAsset);
 
+    const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest,
+        baseBalanceID, quoteBalanceID);
+    SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
+    createAssetPair(saleFrame, db, delta);
     innerResult().code(ReviewRequestResultCode::SUCCESS);
     return true;
 }
@@ -83,6 +89,20 @@ const
     return SourceDetails({AccountType::MASTER},
                          mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::ASSET_MANAGER));
+}
+
+void ReviewSaleCreationRequestOpFrame::createAssetPair(
+    SaleFrame::pointer sale, Database& db, LedgerDelta& delta) const
+{
+    // no need to create new asset pair
+    // TODO switch to create via operation
+    if (AssetPairHelper::Instance()->exists(db, sale->getBaseAsset(), sale->getQuoteAsset()))
+    {
+        return;
+    }
+
+    const auto assetPair = AssetPairFrame::create(sale->getBaseAsset(), sale->getQuoteAsset(), 1, 1, 0, 0, 0);
+    AssetPairHelper::Instance()->storeAdd(delta, db, assetPair->mEntry);
 }
 
 ReviewSaleCreationRequestOpFrame::ReviewSaleCreationRequestOpFrame(

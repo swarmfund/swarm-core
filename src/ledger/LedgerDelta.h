@@ -18,9 +18,10 @@ class Database;
 
 class LedgerDelta
 {
+public:
     typedef std::map<LedgerKey, EntryFrame::pointer, LedgerEntryIdCmp>
         KeyEntryMap;
-
+private:
     LedgerDelta*
         mOuterDelta;       // set when this delta is nested inside another delta
     LedgerHeader* mHeader; // LedgerHeader to commit changes to
@@ -94,5 +95,10 @@ class LedgerDelta
 
     // performs sanity checks against the local state
     void checkAgainstDatabase(Application& app) const;
+
+    KeyEntryMap getState() const
+    {
+        return mPrevious;
+    }
 };
 }

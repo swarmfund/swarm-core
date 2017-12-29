@@ -20,6 +20,7 @@ namespace stellar
     class StatementContext;
 
     class OfferHelper : public EntryHelper {
+
     public:
         OfferHelper(OfferHelper const&) = delete;
         OfferHelper& operator= (OfferHelper const&) = delete;
@@ -42,13 +43,13 @@ namespace stellar
         OfferFrame::pointer loadOffer(AccountID const& accountID, uint64_t offerID,
                           Database& db, LedgerDelta* delta = nullptr);
 
-        void loadOffersWithPriceLower(AssetCode const& base, AssetCode const& quote,
-                                      int64_t price, std::vector<OfferFrame::pointer>& retOffers, Database& db);
+        std::vector<OfferFrame::pointer> loadOffersWithFilters(AssetCode const& base, AssetCode const& quote, uint64_t* orderBookID,
+            uint64_t* priceUpperBound, Database& db);
 
         std::unordered_map<AccountID, std::vector<OfferFrame::pointer>> loadAllOffers(Database& db);
 
         void loadBestOffers(size_t numOffers, size_t offset,
-                            AssetCode const& base, AssetCode const& quote,
+                            AssetCode const& base, AssetCode const& quote, uint64_t orderBookID,
                             bool isBuy,
                             std::vector<OfferFrame::pointer>& retOffers,
                             Database& db);

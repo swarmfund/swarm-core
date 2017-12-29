@@ -220,7 +220,7 @@ namespace stellar
 
 		actIDStrKey = PubKeyUtils::toStrKey(account);
 		std::string sql = balanceColumnSelector;
-		sql += " WHERE account_id = :aid AND asset = :as";
+		sql += " WHERE account_id = :aid AND asset = :as ORDER BY balance_id DESC LIMIT 1";
 		auto prep = db.getPreparedStatement(sql);
 		auto& st = prep.statement();
 		st.exchange(use(actIDStrKey));

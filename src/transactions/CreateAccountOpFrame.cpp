@@ -155,13 +155,7 @@ bool CreateAccountOpFrame::createAccount(Application& app, LedgerDelta& delta,
 	assetHelper->loadBaseAssets(baseAssets, db);
     for (auto baseAsset : baseAssets)
     {
-        BalanceID balanceID = BalanceKeyUtils::forAccount(mCreateAccount.destination,
-                                                    delta.getHeaderFrame().
-                                                          generateID(LedgerEntryType::BALANCE));
-        auto balanceFrame = BalanceFrame::createNew(balanceID,
-                                                    mCreateAccount.destination,
-                                                    baseAsset->getCode());
-        EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
+        AccountManager::loadOrCreateBalanceForAsset(mCreateAccount.destination, baseAsset->getCode(), db, delta);
     }
 
     app.getMetrics().NewMeter({"op-create-account", "success", "apply"},

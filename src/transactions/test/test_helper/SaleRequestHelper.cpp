@@ -16,12 +16,12 @@ SaleRequestHelper::SaleRequestHelper(const TestManager::pointer testManager) : T
 {
 }
 
-void SaleRequestHelper::createApprovedSale(Account& root, Account& source,
+ReviewRequestResult SaleRequestHelper::createApprovedSale(Account& root, Account& source,
                                            const SaleCreationRequest request)
 {
     auto requestCreationResult = applyCreateSaleRequest(source, 0, request);
     auto reviewer = ReviewSaleRequestHelper(mTestManager);
-    reviewer.applyReviewRequestTx(root, requestCreationResult.success().requestID, ReviewRequestOpAction::APPROVE, "");
+    return reviewer.applyReviewRequestTx(root, requestCreationResult.success().requestID, ReviewRequestOpAction::APPROVE, "");
 }
 
 CreateSaleCreationRequestResult SaleRequestHelper::applyCreateSaleRequest(

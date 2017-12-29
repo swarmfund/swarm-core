@@ -890,8 +890,8 @@ LedgerManagerImpl::applyTransactions(std::vector<TransactionFramePtr>& txs,
                 << " tx#" << index << " = " << hexAbbrev(tx->getFullHash())
                 << " txsalt=" << tx->getSalt() << " (@ "
                 << mApp.getConfig().toShortString(tx->getSourceID()) << ")";
-
-            if (tx->apply(delta, tm, mApp))
+            vector<LedgerDelta::KeyEntryMap> stateBeforeOp;
+            if (tx->apply(delta, tm, mApp, stateBeforeOp))
             {
                 delta.commit();
             }

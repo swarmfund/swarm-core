@@ -39,6 +39,9 @@ namespace stellar
 
 		OfferEntry& getOffer();
 
+                uint64_t getLockedAmount() const;
+                BalanceID const& getLockedBalance() const;
+
 		OfferEntry const& getOffer() const;
 
 		bool isValid() const;

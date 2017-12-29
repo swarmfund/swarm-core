@@ -72,5 +72,7 @@ public:
     void transferFee(AssetCode asset, Fee fee);
 
     BalanceID loadOrCreateBalanceForAsset(AccountID const& account, AssetCode const& asset) const;
+    static BalanceID loadOrCreateBalanceForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
+    static BalanceFrame::pointer loadOrCreateBalanceFrameForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
 };
 }

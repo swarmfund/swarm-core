@@ -205,11 +205,7 @@ bool ManageOfferOpFrame::createOffer(Application& app, LedgerDelta& delta, Ledge
 
     innerResult().code(ManageOfferResultCode::SUCCESS);
 
-    auto balanceHelper = BalanceHelper::Instance();
-    BalanceFrame::pointer commissionBalance = balanceHelper->
-        loadBalance(app.getCommissionID(), mAssetPair->getQuoteAsset(), db,
-            &delta);
-    assert(commissionBalance);
+    BalanceFrame::pointer commissionBalance = AccountManager::loadOrCreateBalanceFrameForAsset(app.getCommissionID(), mAssetPair->getQuoteAsset(), db, delta);
 
     AccountManager accountManager(app, db, delta, ledgerManager);
 

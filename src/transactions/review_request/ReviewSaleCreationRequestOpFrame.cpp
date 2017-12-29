@@ -95,6 +95,7 @@ void ReviewSaleCreationRequestOpFrame::createAssetPair(
     SaleFrame::pointer sale, Database& db, LedgerDelta& delta) const
 {
     // no need to create new asset pair
+    // TODO switch to create via operation
     if (AssetPairHelper::Instance()->exists(db, sale->getBaseAsset(), sale->getQuoteAsset()))
     {
         return;

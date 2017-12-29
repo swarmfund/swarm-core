@@ -75,28 +75,13 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 		mManageAssetPair.physicalPrice, mManageAssetPair.physicalPriceCorrection,
 		mManageAssetPair.maxPriceStep, mManageAssetPair.policies);
 	EntryHelperProvider::storeAddEntry(delta, db, assetPair->mEntry);
-        createComissionQuoteBalance(assetPair, app, delta, db);
+        AccountManager::loadOrCreateBalanceForAsset(app.getCommissionID(), assetPair->getQuoteAsset(), db, delta);
 
 	app.getMetrics().NewMeter({ "op-manage-asset-pair", "success", "apply" },
 		"operation").Mark();
 	innerResult().code(ManageAssetPairResultCode::SUCCESS);
 	innerResult().success().currentPrice = assetPair->getCurrentPrice();
 	return true;
-}
-
-void ManageAssetPairOpFrame::createComissionQuoteBalance(
-    AssetPairFrame::pointer assetPair, Application& app, LedgerDelta& delta, Database& db) const
-{
-    auto quoteAssetBalance = BalanceHelper::Instance()->loadBalance(app.getCommissionID(), assetPair->getQuoteAsset(), db, nullptr);
-    if (!!quoteAssetBalance)
-    {
-        return;
-    }
-
-    const auto newBalanceID = BalanceKeyUtils::forAccount(app.getCommissionID(),
-        delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
-    quoteAssetBalance = BalanceFrame::createNew(newBalanceID, app.getCommissionID(), assetPair->getQuoteAsset());
-    EntryHelperProvider::storeAddEntry(delta, db, quoteAssetBalance->mEntry);
 }
 
 bool

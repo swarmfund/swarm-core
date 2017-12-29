@@ -94,7 +94,10 @@ bool CheckSaleStateOpFrame::handleClose(const SaleFrame::pointer sale, Applicati
     auto& success = innerResult().success();
     success.saleID = sale->getID();
     success.effect.effect(CheckSaleStateEffect::CLOSED);
-    success.effect.saleClosed() = saleOfferResult;
+    success.effect.saleClosed().saleDetails = saleOfferResult;
+    success.effect.saleClosed().saleOwner = saleOwnerAccount->getID();
+    success.effect.saleClosed().saleBaseBalance = sale->getBaseBalanceID();
+    success.effect.saleClosed().saleQuoteBalance = sale->getQuoteBalanceID();
     return true;
 }
 

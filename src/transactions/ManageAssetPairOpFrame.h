@@ -23,7 +23,6 @@ class ManageAssetPairOpFrame : public OperationFrame
 	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
 	bool createNewAssetPair(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, AssetPairFrame::pointer assetPair);
-        void createComissionQuoteBalance(AssetPairFrame::pointer assetPair, Application& app, LedgerDelta& delta, Database& db) const;
 
   public:
     

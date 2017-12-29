@@ -14,7 +14,6 @@ class ManageAssetHelper
 public:
     static void createSystemBalances(AssetCode assetCode, Application &app, LedgerDelta &delta);
 
-    static void createBalanceForAccount(AccountID account, AssetCode assetCode, Application &app, LedgerDelta &delta);
 };
 
 }

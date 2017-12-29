@@ -6,6 +6,7 @@
 #ifndef EXTERNAL_SYSTEM_ID_GENERATORS_H
 #define EXTERNAL_SYSTEM_ID_GENERATORS_H
 #include "ledger/ExternalSystemAccountID.h"
+#include "main/Application.h"
 #include <vector>
 #include <memory>
 
@@ -15,7 +16,6 @@ namespace stellar
 
     class Generator;
     class LedgerDelta;
-    class Application;
     class Database;
 
     class ExternalSystemIDGenerators

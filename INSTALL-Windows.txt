@@ -24,6 +24,7 @@ Build Dependencies
 
   If the installation fails, look into `%TEMP%\install-postgresql.log` for hints.
 
+- Download and install OpenSSL 1.1.0g from https://slproweb.com/products/Win32OpenSSL.html
 
 - In order to compile xdrc and run the binary you will need to either
        * Download and install MinGW from http://sourceforge.net/projects/mingw/files/

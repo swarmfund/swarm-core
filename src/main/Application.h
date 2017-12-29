@@ -273,8 +273,8 @@ class Application
     virtual const std::unordered_set<ExternalSystemIDGeneratorType>& getAvailableExternalSystemGenerator() = 0;
 
 
-    virtual const std::vector<std::string>& getBTCAddresses() const = 0;
-    virtual const std::vector<std::string>& getETHAddresses() const = 0;
+    virtual const std::string getBTCAddressRoot() const = 0;
+    virtual const std::string getETHAddressRoot() const = 0;
 
     // Factory: create a new Application object bound to `clock`, with a local
     // copy made of `cfg`.

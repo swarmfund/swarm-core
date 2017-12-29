@@ -219,7 +219,7 @@ namespace stellar {
             ExternalSystemIDGeneratorType ex) override;
         const std::unordered_set<ExternalSystemIDGeneratorType>&
         getAvailableExternalSystemGenerator() override;
-        const std::vector<std::string>& getBTCAddresses() const override;
-        const std::vector<std::string>& getETHAddresses() const override;
+        const std::string getBTCAddressRoot() const override;
+        const std::string getETHAddressRoot() const override;
     };
 }

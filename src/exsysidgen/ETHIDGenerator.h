@@ -7,19 +7,18 @@
 #ifndef EXTERNAL_SYSTEM_ID_ETH_GENERATOR_H
 #define EXTERNAL_SYSTEM_ID_ETH_GENERATOR_H
 
-#include "exsysidgen/Generator.h"
+#include "exsysidgen/Secp256k1IDGenerator.h"
 
 namespace stellar {
 
-    class ETHIDGenerator : public Generator {
+    class ETHIDGenerator : public Secp256k1IDGenerator {
+    private:
+        std::string encodePublicKey(const uchar_vector rawPublicKey) override;
     public:
-        ETHIDGenerator(Application& app, Database& db)
-            : Generator(app, db)
+        ETHIDGenerator(Application& app, Database& db, std::string extendedPublicKey)
+        : Secp256k1IDGenerator(app, db, extendedPublicKey)
         {
         }
-
-        ExternalSystemAccountIDFrame::pointer generateNewID(
-            AccountID const& accountID, uint64_t id) override;
 
         ExternalSystemType getExternalSystemType() const override
         {

@@ -3,10 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include "main/Application.h"
 #include "ledger/LedgerManager.h"
-#include "main/Config.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "TxTests.h"
 #include "util/Timer.h"
 #include "ledger/LedgerDelta.h"
@@ -17,6 +14,7 @@
 #include "ledger/BalanceHelper.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/SaleRequestHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

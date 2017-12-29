@@ -6,15 +6,14 @@
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
 #include "ledger/BalanceHelper.h"
-#include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
 #include "test_helper/TestManager.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"
 #include "test_helper/ManageBalanceTestHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -54,30 +53,34 @@ TEST_CASE("manage balance", "[tx][manage_balance]")
     
     SECTION("Can create for account by himself")
     {
-		manageBalanceTestHelper.createBalance(account, account.key.getPublicKey(), asset);
+        auto accountID = account.key.getPublicKey();
+		manageBalanceTestHelper.createBalance(account, accountID, asset);
         SECTION("Can not delete base balance by himself")
         {
-			manageBalanceTestHelper.applyManageBalanceTx(account, account.key.getPublicKey(), asset, 
+			manageBalanceTestHelper.applyManageBalanceTx(account, accountID, asset,
 														 ManageBalanceAction::DELETE_BALANCE, 
 														 ManageBalanceResultCode::MALFORMED);
         }
     }
     SECTION("Can not create for non-existent asset ")
     {
-		manageBalanceTestHelper.applyManageBalanceTx(account, account.key.getPublicKey(), "ABTC", 
+        auto accountID = account.key.getPublicKey();
+		manageBalanceTestHelper.applyManageBalanceTx(account, accountID, "ABTC",
 													 ManageBalanceAction::CREATE, 
 													 ManageBalanceResultCode::ASSET_NOT_FOUND);
     }
     SECTION("Can not create for invalid asset ")
     {
-		manageBalanceTestHelper.applyManageBalanceTx(account2, account2.key.getPublicKey(), "",
+        auto accountID = account2.key.getPublicKey();
+		manageBalanceTestHelper.applyManageBalanceTx(account2, accountID, "",
 													 ManageBalanceAction::CREATE,
 													 ManageBalanceResultCode::INVALID_ASSET);
     }
     SECTION("Can not create for non-existent account")
     {
 		auto account3 = Account{ SecretKey::random(), Salt(0) };
-		TransactionFramePtr txFrame = manageBalanceTestHelper.createManageBalanceTx(account2, account3.key.getPublicKey(), asset2, ManageBalanceAction::CREATE);
+        auto accountID = account3.key.getPublicKey();
+		TransactionFramePtr txFrame = manageBalanceTestHelper.createManageBalanceTx(account2, accountID, asset2, ManageBalanceAction::CREATE);
         checkTransactionForOpResult(txFrame, app, OperationResultCode::opNO_COUNTERPARTY);
     }
 }

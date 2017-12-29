@@ -23,7 +23,7 @@
 #endif
 
 #define CATCH_CONFIG_RUNNER
-#include "lib/catch.hpp"
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

@@ -7,7 +7,7 @@
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
+#include "test/test_marshaler.h"
 #include "util/Logging.h"
 #include "crypto/ByteSlice.h"
 #include "TxTests.h"

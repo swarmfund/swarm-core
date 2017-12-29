@@ -3,23 +3,16 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "herder/HerderImpl.h"
-#include "scp/SCP.h"
 #include "main/Application.h"
-#include "main/Config.h"
 #include "simulation/Simulation.h"
 
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "crypto/SHA.h"
-#include "transactions/test/TxTests.h"
-#include "database/Database.h"
-#include "ledger/LedgerManager.h"
 #include "main/CommandHandler.h"
 #include "ledger/LedgerHeaderFrame.h"
-#include "simulation/Simulation.h"
 #include "overlay/OverlayManager.h"
-
 #include "xdrpp/marshal.h"
+
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

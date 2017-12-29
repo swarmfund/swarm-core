@@ -5,15 +5,10 @@
 #include "main/Application.h"
 #include "work/WorkManager.h"
 #include "main/test.h"
-#include "main/Config.h"
-#include "lib/catch.hpp"
-#include "util/Fs.h"
 #include "process/ProcessManager.h"
 
-#include <cstdio>
 #include <xdrpp/autocheck.h>
-#include <fstream>
-#include <random>
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

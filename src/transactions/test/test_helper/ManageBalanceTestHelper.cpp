@@ -2,6 +2,7 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "transactions/ManageBalanceOpFrame.h"
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

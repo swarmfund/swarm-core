@@ -10,7 +10,7 @@
 #include "ledger/LedgerDelta.h"
 #include "util/Timer.h"
 #include "invariant/Invariants.h"
-
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

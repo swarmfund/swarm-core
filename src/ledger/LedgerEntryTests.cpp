@@ -6,19 +6,12 @@
 #include "ledger/LedgerManager.h"
 #include "util/Timer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "AccountFrame.h"
 #include "AccountHelper.h"
 #include "LedgerDelta.h"
-#include "xdrpp/marshal.h"
 #include "xdrpp/autocheck.h"
-#include "crypto/SecretKey.h"
 #include "ledger/LedgerTestUtils.h"
-#include "database/Database.h"
-#include <utility>
-#include <memory>
-#include <unordered_map>
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

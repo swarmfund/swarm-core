@@ -4,11 +4,8 @@
 
 #include "autocheck/autocheck.hpp"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "lib/util/uint128_t.h"
-#include <limits>
-#include <ostream>
+#include "test/test_marshaler.h"
 
 // This file just cross-checks a selection of operators in the uint128_t class
 // against the values produced by native (compiler-provided) __int128 types,

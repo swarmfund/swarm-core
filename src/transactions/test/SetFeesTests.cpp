@@ -6,14 +6,14 @@
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-
 #include "TxTests.h"
+
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeHelper.h"
 #include "transactions/SetFeesOpFrame.h"
-
 #include "crypto/SHA.h"
+
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

@@ -11,6 +11,7 @@
 #include "ledger/BalanceFrame.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
+#include "test/test_marshaler.h"
 
 
 

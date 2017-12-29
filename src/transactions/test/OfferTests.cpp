@@ -8,14 +8,12 @@
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "TxTests.h"
-#include "transactions/TransactionFrame.h"
 #include "transactions/OfferExchange.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/OfferHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

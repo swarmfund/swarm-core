@@ -8,7 +8,7 @@
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
+#include "test/test_marshaler.h"
 #include "TxTests.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"

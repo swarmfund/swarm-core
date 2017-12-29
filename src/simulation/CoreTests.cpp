@@ -3,30 +3,16 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "simulation/Topologies.h"
-#include "lib/catch.hpp"
-#include "overlay/StellarXDR.h"
-#include "main/Application.h"
-#include "overlay/LoopbackPeer.h"
-#include "util/make_unique.h"
-#include "crypto/SHA.h"
 #include "main/test.h"
-#include "util/Logging.h"
-#include "util/types.h"
-#include "util/Math.h"
 #include "herder/Herder.h"
-#include "transactions/TransactionFrame.h"
 #include "lib/util/format.h"
-#include "medida/stats/snapshot.h"
 #include "bucket/Bucket.h"
 #include "bucket/BucketList.h"
 #include "bucket/BucketManager.h"
-#include "bucket/LedgerCmp.h"
 #include "bucket/BucketManagerImpl.h"
-#include "ledger/LedgerManager.h"
-#include "herder/LedgerCloseData.h"
 #include "ledger/LedgerTestUtils.h"
 #include "xdrpp/autocheck.h"
-#include <sstream>
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 
@@ -53,8 +39,6 @@ printStats(int& nLedgers, std::chrono::system_clock::time_point tBegin,
 
     LOG(INFO) << sim->metricsSummary("scp");
 }
-
-#include "lib/util/lrucache.hpp"
 
 TEST_CASE("3 nodes. 2 running. threshold 2", "[simulation][core3]")
 {

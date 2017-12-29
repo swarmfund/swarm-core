@@ -20,7 +20,8 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> ManageAccountOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{ 
-		{ mManageAccount.account, CounterpartyDetails({ AccountType::GENERAL, AccountType::NOT_VERIFIED }, true, true) }
+		{ mManageAccount.account, CounterpartyDetails({ AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE},
+                                                      true, true) }
 	};
 }
 
@@ -40,6 +41,9 @@ SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
 		allowedSignerClass = static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER) |
 											static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
 		break;
+    case AccountType::EXCHANGE:
+        allowedSignerClass = static_cast<int32_t>(SignerType::EXCHANGE_ACC_MANAGER);
+        break;
 	default:
 		// it is not allowed to block/unblock any other account types
 		allowedSignerClass = 0;

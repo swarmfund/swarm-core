@@ -21,6 +21,6 @@ protected:
 
     virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
-    void createAssetPair(SaleFrame::pointer sale, Database& db, LedgerDelta& delta) const;
+    void createAssetPair(SaleFrame::pointer sale, Application &app, LedgerManager &ledgerManager, LedgerDelta &delta) const;
 };
 }

@@ -2,6 +2,7 @@
 // Created by User on 12/25/17.
 //
 
+#include <cmath>
 #include "Secp256k1IDGenerator.h"
 #include "main/Application.h"
 

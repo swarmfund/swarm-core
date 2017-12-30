@@ -102,6 +102,49 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 	return true;
 }
 
+bool SetOptionsOpFrame::processTrustData(Application &app, LedgerDelta &delta)
+{
+    Database& db = app.getDatabase();
+    auto trust = mSetOptions.trustData->trust;
+    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceFrame = balanceHelper->loadBalance(trust.balanceToUse, db);
+    if (!balanceFrame || !(balanceFrame->getAccountID() == getSourceID()))
+    {
+        app.getMetrics().NewMeter({"op-set-options", "failure",
+                                   "balance-not-found"},
+                                  "operation").Mark();
+        innerResult().code(SetOptionsResultCode::BALANCE_NOT_FOUND);
+        return false;
+    }
+
+    auto trustHelper = TrustHelper::Instance();
+
+    if (mSetOptions.trustData->action == ManageTrustAction::TRUST_ADD)
+    {
+        auto trustLines = trustHelper->countForBalance(db, trust.balanceToUse);
+        // TODO move to config
+        if (trustLines > 20)
+        {
+            app.getMetrics().NewMeter({ "op-set-options", "failure",
+                                        "too-many-trust-lines" },
+                                      "operation").Mark();
+            innerResult().code(SetOptionsResultCode::TRUST_TOO_MANY);
+            return false;
+        }
+
+        auto trustFrame = TrustFrame::createNew(
+                trust.allowedAccount, trust.balanceToUse);
+        EntryHelperProvider::storeAddEntry(delta, db, trustFrame->mEntry);
+    }
+    else if (mSetOptions.trustData->action == ManageTrustAction::TRUST_REMOVE)
+    {
+        auto trustFrame = trustHelper->loadTrust(trust.allowedAccount,
+                                                 trust.balanceToUse, db);
+        EntryHelperProvider::storeDeleteEntry(delta, db, trustFrame->getKey());
+    }
+    return true;
+}
+
 bool
 SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
@@ -139,43 +182,8 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     if (mSetOptions.trustData)
     {
-        auto trust = mSetOptions.trustData->trust;
-		auto balanceHelper = BalanceHelper::Instance();
-        auto balanceFrame = balanceHelper->loadBalance(trust.balanceToUse, db);
-        if (!balanceFrame || !(balanceFrame->getAccountID() == getSourceID()))
-        {
-            app.getMetrics().NewMeter({"op-set-options", "failure",
-                                "balance-not-found"},
-                                "operation").Mark();
-            innerResult().code(SetOptionsResultCode::BALANCE_NOT_FOUND);
+        if (!processTrustData(app, delta))
             return false;
-        }        
-
-		auto trustHelper = TrustHelper::Instance();
-
-        if (mSetOptions.trustData->action == ManageTrustAction::TRUST_ADD)
-        {
-			auto trustLines = trustHelper->countForBalance(db, trust.balanceToUse);
-			// TODO move to config
-			if (trustLines > 20)
-			{
-				app.getMetrics().NewMeter({ "op-set-options", "failure",
-					"too-many-trust-lines" },
-					"operation").Mark();
-				innerResult().code(SetOptionsResultCode::TRUST_TOO_MANY);
-				return false;
-			}
-
-            auto trustFrame = TrustFrame::createNew(
-                trust.allowedAccount, trust.balanceToUse);
-            EntryHelperProvider::storeAddEntry(delta, db, trustFrame->mEntry);
-        }
-        else if (mSetOptions.trustData->action == ManageTrustAction::TRUST_REMOVE)
-        {
-            auto trustFrame = trustHelper->loadTrust(trust.allowedAccount,
-                trust.balanceToUse, db);
-            EntryHelperProvider::storeDeleteEntry(delta, db, trustFrame->getKey());
-        }
     }
 
     app.getMetrics().NewMeter({"op-set-options", "success", "apply"}, "operation")
@@ -260,4 +268,5 @@ SetOptionsOpFrame::doCheckValid(Application& app)
 
     return true;
 }
+
 }

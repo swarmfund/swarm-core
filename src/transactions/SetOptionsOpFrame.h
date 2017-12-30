@@ -23,6 +23,8 @@ class SetOptionsOpFrame : public OperationFrame
 	// returns false if error occurs
 	bool tryUpdateSigners(Application& app, LedgerManager& ledgerManager);
 
+    bool processTrustData(Application &app, LedgerDelta &delta);
+
   public:
     SetOptionsOpFrame(Operation const& op, OperationResult& res,
                       TransactionFrame& parentTx);

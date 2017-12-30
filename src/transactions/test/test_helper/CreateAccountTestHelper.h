@@ -7,6 +7,7 @@ namespace stellar {
     namespace txtest {
 
         class CreateAccountTestHelper;
+        class CreateAccountTestBuilder;
 
         class CreateAccountChecker {
         public:
@@ -15,12 +16,13 @@ namespace stellar {
             explicit CreateAccountChecker(TestManager::pointer testManager);
 
             void doCheck(CreateAccountTestHelper *testHelper,
+                         CreateAccountTestBuilder builder,
                          CreateAccountResultCode actualResultCode);
         };
 
         class CreateAccountTestBuilder : public OperationBuilder {
         public:
-            Operation buildOp(TestManager::pointer testManager) override;
+            Operation buildOp() override;
 
             CreateAccountTestBuilder setFromAccount(Account from);
 
@@ -40,10 +42,8 @@ namespace stellar {
 
             CreateAccountTestBuilder setResultCode(CreateAccountResultCode expectedResult);
 
-            Account from;
             PublicKey to;
             AccountType accountType;
-            Account *signer = nullptr;
             AccountID *referrer = nullptr;
             int32 policies = -1;
             CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS;
@@ -55,10 +55,7 @@ namespace stellar {
 
             explicit CreateAccountTestHelper(TestManager::pointer testManager);
 
-            CreateAccountResultCode applyTx(TransactionFramePtr txFramePtr);
             CreateAccountResultCode applyTx(CreateAccountTestBuilder builder);
-
-            TransactionFramePtr buildTx(CreateAccountTestBuilder builder);
 
             [[deprecated]]
             CreateAccountResultCode applyCreateAccountTx(Account &from, PublicKey to, AccountType accountType,

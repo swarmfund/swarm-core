@@ -108,11 +108,13 @@ TEST_CASE("create account", "[tx][create_account]") {
                                  static_cast<int32_t>(AccountPolicies::NO_PERMISSIONS));
 
             // can update account's policies no_permissions -> allow_to_create_user_via_api
-            createAccountHelper.applyTx(accountTestBuilder.setPolicies(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
+            createAccountHelper.applyTx(accountTestBuilder.setType(AccountType::GENERAL)
+                                                .setPolicies(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
             checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
                                  static_cast<int32_t>(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
             // can remove
-            createAccountHelper.applyTx(accountTestBuilder.setPolicies(AccountPolicies::NO_PERMISSIONS));
+            createAccountHelper.applyTx(accountTestBuilder.setType(AccountType::GENERAL)
+                                                .setPolicies(AccountPolicies::NO_PERMISSIONS));
             checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
                                  static_cast<int32_t>(AccountPolicies::NO_PERMISSIONS));
         }
@@ -171,7 +173,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                              static_cast<int32_t >(SignerType::GENERAL_ACC_MANAGER),
                              1, "", Signer::_ext_t{});
             applySetOptions(app, root.key, root.getNextSalt(), &th, &s1);
-            auto createAccount = createAccountHelper.buildTx(accountTestBuilder);
+            auto createAccount = accountTestBuilder.buildTx(testManager);//createAccountHelper.buildTx(accountTestBuilder);
             createAccount->getEnvelope().signatures.clear();
             createAccount->addSignature(s1KP);
             REQUIRE(!applyCheck(createAccount, delta, app));
@@ -188,8 +190,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                                  1, "", Signer::_ext_t{});
                 applySetOptions(app, root.key, root.getNextSalt(), nullptr, &s1);
                 account = SecretKey::random();
-                auto createAccount = createAccountHelper.buildTx(
-                        accountTestBuilder.setType(AccountType::GENERAL));
+                auto createAccount = accountTestBuilder.setType(AccountType::GENERAL).buildTx(testManager);
                 createAccount->getEnvelope().signatures.clear();
                 createAccount->addSignature(s1KP);
                 auto mustApply = *signerType == static_cast<int32_t >(SignerType::GENERAL_ACC_MANAGER) ||
@@ -239,10 +240,10 @@ TEST_CASE("create account", "[tx][create_account]") {
                     .setFromAccount(notRoot)
                     .setType(AccountType::GENERAL);
 
-            testManager->applyAndCheckFirstOperation(
+            /*testManager->applyAndCheckFirstOperation(
                     createAccountHelper.buildTx(toBeCreatedHelper),
                     OperationResultCode::opNOT_ALLOWED
-            );
+            );*/
         }
     }
     SECTION("Can update not verified to syndicate") {

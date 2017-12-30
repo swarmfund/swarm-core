@@ -36,6 +36,26 @@ namespace txtest
 	{
 		mTestManager = testManager;
 	}
+
+    TransactionFramePtr OperationBuilder::buildTx(TestManager::pointer testManager) {
+        Transaction tx;
+        tx.sourceAccount = source.key.getPublicKey();
+        tx.salt = source.getNextSalt();
+        tx.operations.push_back(buildOp());
+        tx.timeBounds.minTime = 0;
+        tx.timeBounds.maxTime = INT64_MAX / 2;
+
+        TransactionEnvelope envelope;
+        envelope.tx = tx;
+        auto res = TransactionFrame::makeTransactionFromWire(testManager->getNetworkID(), envelope);
+
+        if (signer == nullptr) {
+            signer = &source;
+        }
+        res->addSignature(signer->key);
+
+        return res;
+    }
 }
 
 }

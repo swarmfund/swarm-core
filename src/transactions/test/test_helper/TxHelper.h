@@ -15,9 +15,13 @@ namespace stellar
 {
 namespace txtest 
 {
+
     class OperationBuilder {
     public:
-        virtual Operation buildOp(TestManager::pointer testManager) = 0;
+        virtual Operation buildOp() = 0;
+        TransactionFramePtr buildTx(TestManager::pointer testManager);
+        Account *signer = nullptr;
+        Account source;
     };
 
 	class TxHelper

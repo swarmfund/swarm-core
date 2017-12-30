@@ -10,7 +10,7 @@ namespace stellar {
         CreateAccountTestHelper::CreateAccountTestHelper(TestManager::pointer testManager) : TxHelper(testManager) {
         }
 
-        Operation CreateAccountTestBuilder::buildOp(TestManager::pointer testManager) {
+        Operation CreateAccountTestBuilder::buildOp() {
             Operation op;
             op.body.type(OperationType::CREATE_ACCOUNT);
             CreateAccountOp &createAccountOp = op.body.createAccountOp();
@@ -24,23 +24,9 @@ namespace stellar {
             return op;
         }
 
-        CreateAccountResultCode CreateAccountTestHelper::applyTx(TransactionFramePtr txFrame) {
-            mTestManager->applyCheck(txFrame);
-            auto txResult = txFrame->getResult();
-            auto opResult = txResult.result.results()[0];
-            auto actualResultCode = CreateAccountOpFrame::getInnerCode(opResult);
-
-            mustEqualsResultCode<CreateAccountResultCode>(actualResultCode, expectedResult);
-            REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
-
-            auto checker = CreateAccountChecker(mTestManager);
-            checker.doCheck(this, actualResultCode);
-            return actualResultCode;
-        }
-
         CreateAccountTestBuilder CreateAccountTestBuilder::setFromAccount(Account from) {
             auto newTestHelper = *this;
-            newTestHelper.from = from;
+            newTestHelper.source = from;
             return newTestHelper;
         }
 
@@ -104,7 +90,7 @@ namespace stellar {
         }
 
         CreateAccountResultCode CreateAccountTestHelper::applyTx(CreateAccountTestBuilder builder) {
-            auto txFrame = buildTx(builder);
+            auto txFrame = builder.buildTx(mTestManager);
             mTestManager->applyCheck(txFrame);
             auto txResult = txFrame->getResult();
             auto opResult = txResult.result.results()[0];
@@ -114,36 +100,41 @@ namespace stellar {
             REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
 
             auto checker = CreateAccountChecker(mTestManager);
-            checker.doCheck(this, actualResultCode);
+            checker.doCheck(this, builder, actualResultCode);
             return actualResultCode;
         }
 
-        TransactionFramePtr CreateAccountTestHelper::buildTx(CreateAccountTestBuilder builder) {
-            auto op = builder.buildOp(mTestManager);
-            return TxHelper::txFromOperation(builder.from, op, builder.signer);
-        }
-
         void
-        CreateAccountChecker::doCheck(CreateAccountTestHelper *testHelper, CreateAccountResultCode actualResultCode) {
-            Database &db = mTestManager->getDB();
-            auto accountHelper = AccountHelper::Instance();
-            AccountFrame::pointer toAccount = accountHelper->loadAccount(testHelper->to, db);
-            AccountFrame::pointer toAccountAfter = accountHelper->loadAccount(testHelper->to, db);
+        CreateAccountChecker::doCheck(CreateAccountTestHelper *testHelper,
+                                      CreateAccountTestBuilder builder,
+        CreateAccountResultCode actualResultCode) {
+            Database& db = mTestManager->getDB();
 
-            if (actualResultCode != CreateAccountResultCode::SUCCESS) {
+            auto accountHelper = AccountHelper::Instance();
+            AccountFrame::pointer fromAccount = accountHelper->loadAccount(builder.source.key.getPublicKey(), db);
+            AccountFrame::pointer toAccount = accountHelper->loadAccount(builder.to, db);
+            //TODO add this check
+            //REQUIRE(txResult.feeCharged == testHelper->getApp().getLedgerManager().getTxFee());
+
+            AccountFrame::pointer toAccountAfter = accountHelper->loadAccount(builder.to, db);
+
+            if (actualResultCode != CreateAccountResultCode::SUCCESS)
+            {
                 // check that the target account didn't change
                 REQUIRE(!!toAccount == !!toAccountAfter);
-                if (toAccount && toAccountAfter) {
+                if (toAccount && toAccountAfter)
+                {
                     REQUIRE(toAccount->getAccount() == toAccountAfter->getAccount());
                 }
+
                 return;
             }
-
             REQUIRE(toAccountAfter);
             REQUIRE(!toAccountAfter->isBlocked());
-            REQUIRE(toAccountAfter->getAccountType() == testHelper->accountType);
+            REQUIRE(toAccountAfter->getAccountType() == builder.accountType);
 
-            auto statisticsFrame = StatisticsHelper::Instance()->loadStatistics(testHelper->to, db);
+            auto statisticsHelper = StatisticsHelper::Instance();
+            auto statisticsFrame = statisticsHelper->loadStatistics(builder.to, db);
             REQUIRE(statisticsFrame);
             auto statistics = statisticsFrame->getStatistics();
             REQUIRE(statistics.dailyOutcome == 0);
@@ -151,14 +142,18 @@ namespace stellar {
             REQUIRE(statistics.monthlyOutcome == 0);
             REQUIRE(statistics.annualOutcome == 0);
 
-            if (!toAccount) {
+            if (!toAccount)
+            {
+                auto balanceHelper = BalanceHelper::Instance();
                 std::vector<BalanceFrame::pointer> balances;
-                BalanceHelper::Instance()->loadBalances(toAccountAfter->getAccount().accountID, balances, db);
-                for (const auto &balance : balances) {
+                balanceHelper->loadBalances(toAccountAfter->getAccount().accountID, balances, db);
+                for (const auto& balance : balances)
+                {
                     REQUIRE(balance->getBalance().amount == 0);
                     REQUIRE(balance->getAccountID() == toAccountAfter->getAccount().accountID);
                 }
             }
+
         }
 
         CreateAccountChecker::CreateAccountChecker(TestManager::pointer testManager) : mTestManager(testManager) {

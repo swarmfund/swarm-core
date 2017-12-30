@@ -2,19 +2,14 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/ManageAssetPairOpFrame.h>
 #include "util/asio.h"
 #include "ReviewSaleCreationRequestOpFrame.h"
-#include "util/Logging.h"
-#include "util/types.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/ReviewableRequestFrame.h"
-#include "ledger/ReferenceFrame.h"
 #include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
-#include "ledger/SaleFrame.h"
 #include "ledger/SaleHelper.h"
 #include "ledger/AssetPairHelper.h"
 
@@ -77,7 +72,7 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest,
         baseBalanceID, quoteBalanceID);
     SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
-    createAssetPair(saleFrame, db, delta);
+    createAssetPair(saleFrame, app, ledgerManager, delta);
     innerResult().code(ReviewRequestResultCode::SUCCESS);
     return true;
 }
@@ -91,18 +86,38 @@ const
                          static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
-void ReviewSaleCreationRequestOpFrame::createAssetPair(
-    SaleFrame::pointer sale, Database& db, LedgerDelta& delta) const
+void ReviewSaleCreationRequestOpFrame::createAssetPair(SaleFrame::pointer sale, Application &app,
+                                                       LedgerManager &ledgerManager, LedgerDelta &delta) const
 {
     // no need to create new asset pair
-    // TODO switch to create via operation
-    if (AssetPairHelper::Instance()->exists(db, sale->getBaseAsset(), sale->getQuoteAsset()))
+    auto assetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(sale->getBaseAsset(), sale->getQuoteAsset(),
+                                                                            ledgerManager.getDatabase());
+    if (!!assetPair)
     {
         return;
     }
 
-    const auto assetPair = AssetPairFrame::create(sale->getBaseAsset(), sale->getQuoteAsset(), 1, 1, 0, 0, 0);
-    AssetPairHelper::Instance()->storeAdd(delta, db, assetPair->mEntry);
+    //create new asset pair
+    Operation op;
+    op.body.type(OperationType::MANAGE_ASSET_PAIR);
+    auto& manageAssetPair = op.body.manageAssetPairOp();
+    manageAssetPair.action = ManageAssetPairAction::CREATE;
+    manageAssetPair.base = sale->getBaseAsset();
+    manageAssetPair.quote = sale->getQuoteAsset();
+    manageAssetPair.physicalPrice = sale->getPrice();
+
+    OperationResult opRes;
+    opRes.code(OperationResultCode::opINNER);
+    opRes.tr().type(OperationType::MANAGE_ASSET_PAIR);
+    ManageAssetPairOpFrame assetPairOpFrame(op, opRes, mParentTx);
+    assetPairOpFrame.setSourceAccountPtr(mSourceAccount);
+    bool applied = assetPairOpFrame.doCheckValid(app) && assetPairOpFrame.doApply(app, delta, ledgerManager);
+    if (!applied)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unable to create asset pair for sale creation request: " << sale->getID();
+        throw std::runtime_error("Unexpected state. Unable to create asset pair");
+    }
+
 }
 
 ReviewSaleCreationRequestOpFrame::ReviewSaleCreationRequestOpFrame(

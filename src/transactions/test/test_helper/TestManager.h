@@ -8,7 +8,6 @@
 #include "main/Application.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
-#include "lib/catch.hpp"
 #include "transactions/TransactionFrame.h"
 
 

@@ -6,7 +6,7 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/SaleHelper.h"
 #include "ReviewSaleRequestHelper.h"
-
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

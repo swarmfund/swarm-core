@@ -1,8 +1,8 @@
 #include "ParticipateInSaleTestHelper.h"
 #include "transactions/test/TxTests.h"
 #include "ledger/OfferHelper.h"
-#include "xdrpp/printer.h"
 #include "ledger/SaleHelper.h"
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

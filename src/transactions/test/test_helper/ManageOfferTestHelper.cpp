@@ -3,8 +3,8 @@
 #include "ledger/AssetPairHelper.h"
 #include "ledger/OfferHelper.h"
 #include "ledger/BalanceHelper.h"
-#include "xdrpp/printer.h"
 #include "transactions/dex/OfferManager.h"
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

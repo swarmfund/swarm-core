@@ -1,17 +1,16 @@
 // Copyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
+#include <transactions/test/test_helper/TestManager.h>
+#include <transactions/test/test_helper/ManageAssetPairTestHelper.h>
+#include <transactions/test/test_helper/ManageAssetTestHelper.h>
 #include "main/Application.h"
 #include "util/Timer.h"
 #include "main/Config.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
 #include "ledger/LedgerDelta.h"
-#include "test_helper/TestManager.h"
-#include "test_helper/Account.h"
-#include "test_helper/ManageAssetPairTestHelper.h"
-#include "test_helper/ManageAssetTestHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

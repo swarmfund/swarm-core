@@ -3,6 +3,7 @@
 #include <ledger/StatisticsHelper.h>
 #include <ledger/BalanceHelper.h>
 #include "CreateAccountTestHelper.h"
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

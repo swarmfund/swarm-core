@@ -7,8 +7,6 @@
 #include "util/Timer.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "TxTests.h"
 #include "transactions/dex/OfferExchange.h"
 #include "ledger/LedgerDelta.h"
@@ -18,6 +16,7 @@
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ManageAssetPairTestHelper.h"
 #include "test_helper/ManageOfferTestHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

@@ -4,31 +4,16 @@
 #include "util/asio.h"
 #include "main/Application.h"
 #include "history/HistoryManager.h"
-#include "history/HistoryArchive.h"
 #include "history/HistoryWork.h"
 #include "main/test.h"
 #include "main/ExternalQueue.h"
-#include "main/Config.h"
 #include "main/PersistentState.h"
 #include "bucket/BucketManager.h"
-#include "bucket/BucketList.h"
-#include "crypto/Hex.h"
-#include "lib/catch.hpp"
 #include "util/Fs.h"
-#include "util/Logging.h"
-#include "util/Timer.h"
-#include "util/TmpDir.h"
 #include "transactions/test/TxTests.h"
-#include "ledger/LedgerManager.h"
 #include "process/ProcessManager.h"
-#include "util/NonCopyable.h"
-#include "herder/LedgerCloseData.h"
-#include "work/WorkManager.h"
-#include "work/WorkParent.h"
-#include <cstdio>
 #include <xdrpp/autocheck.h>
-#include <fstream>
-#include <random>
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

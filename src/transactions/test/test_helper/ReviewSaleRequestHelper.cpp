@@ -8,6 +8,7 @@
 #include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/SaleFrame.h"
+#include "test/test_marshaler.h"
 
 
 namespace stellar

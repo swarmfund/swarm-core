@@ -57,7 +57,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>src;../../src;../../lib;../../lib/libmedida/src;../../lib/soci/src/core;../../lib/autocheck/include;../../lib/cereal/include;../../lib/asio/include;../../lib/xdrpp;../../lib/libsodium/src/libsodium/include;../..;src/generated;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../lib/coincore/src;$(OPENSSL_ROOT)\inc32;src;../../src;../../lib;../../lib/libmedida/src;../../lib/soci/src/core;../../lib/autocheck/include;../../lib/cereal/include;../../lib/asio/include;../../lib/xdrpp;../../lib/libsodium/src/libsodium/include;../..;src/generated;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NOMINMAX;ASIO_STANDALONE;USE_POSTGRES;_WINSOCK_DEPRECATED_NO_WARNINGS;SODIUM_STATIC;ASIO_SEPARATE_COMPILATION;ASIO_ERROR_CATEGORY_NOEXCEPT=noexcept;_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0501;WIN32;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -73,7 +73,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;psapi.lib;%(AdditionalDependencies);$(PSQLROOT)\lib\libpq.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;psapi.lib;%(AdditionalDependencies);$(PSQLROOT)\lib\libpq.lib;$(OPENSSL_ROOT)\lib\libeay32.lib</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>@echo Checking XDR</Command>
@@ -152,6 +152,15 @@
     </CustomBuild>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\lib\coincore\src\CoinKey.cpp" />
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\blake.c" />
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\bmw.c" />
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\groestl.c" />
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\jh.c" />
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\keccak.c" />
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\skein.c" />
+    <ClCompile Include="..\..\lib\coincore\src\hdkeys.cpp" />
+    <ClCompile Include="..\..\lib\coincore\src\secp256k1_openssl.cpp" />
     <ClCompile Include="..\..\src\bucket\Bucket.cpp" />
     <ClCompile Include="..\..\src\bucket\BucketApplicator.cpp" />
     <ClCompile Include="..\..\src\bucket\BucketList.cpp" />
@@ -160,6 +169,8 @@
     <ClCompile Include="..\..\src\bucket\FutureBucket.cpp" />
     <ClCompile Include="..\..\src\crypto\CryptoTests.cpp" />
     <ClCompile Include="..\..\src\crypto\ECDH.cpp" />
+    <ClCompile Include="..\..\src\crypto\HdKeychain.cpp" />
+    <ClCompile Include="..\..\src\crypto\HdKeychainTests.cpp" />
     <ClCompile Include="..\..\src\crypto\Hex.cpp" />
     <ClCompile Include="..\..\src\crypto\Random.cpp" />
     <ClCompile Include="..\..\src\crypto\SHA.cpp" />
@@ -172,6 +183,7 @@
     <ClCompile Include="..\..\src\exsysidgen\ETHIDGenerator.cpp" />
     <ClCompile Include="..\..\src\exsysidgen\ExternalSystemIDGenerators.cpp" />
     <ClCompile Include="..\..\src\exsysidgen\Generator.cpp" />
+    <ClCompile Include="..\..\src\exsysidgen\Secp256k1IDGenerator.cpp" />
     <ClCompile Include="..\..\src\herder\Herder.cpp" />
     <ClCompile Include="..\..\src\herder\HerderImpl.cpp" />
     <ClCompile Include="..\..\src\herder\HerderTests.cpp" />
@@ -424,6 +436,25 @@
   <ItemGroup>
     <ClInclude Include="..\..\lib\catcher.cpp" />
     <ClInclude Include="..\..\lib\catch.hpp" />
+    <ClInclude Include="..\..\lib\coincore\src\Base58Check.h" />
+    <ClInclude Include="..\..\lib\coincore\src\BigInt.h" />
+    <ClInclude Include="..\..\lib\coincore\src\CoinKey.h" />
+    <ClInclude Include="..\..\lib\coincore\src\encodings.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hash.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_blake.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_bmw.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_groestl.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_jh.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_keccak.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_skein.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_types.h" />
+    <ClInclude Include="..\..\lib\coincore\src\hdkeys.h" />
+    <ClInclude Include="..\..\lib\coincore\src\HexCheck.h" />
+    <ClInclude Include="..\..\lib\coincore\src\numericdata.h" />
+    <ClInclude Include="..\..\lib\coincore\src\secp256k1_openssl.h" />
+    <ClInclude Include="..\..\lib\coincore\src\typedefs.h" />
+    <ClInclude Include="..\..\lib\coincore\src\uchar_vector.h" />
+    <ClInclude Include="..\..\lib\coincore\src\uint256.h" />
     <ClInclude Include="..\..\src\bucket\Bucket.h" />
     <ClInclude Include="..\..\src\bucket\BucketApplicator.h" />
     <ClInclude Include="..\..\src\bucket\BucketList.h" />
@@ -433,6 +464,7 @@
     <ClInclude Include="..\..\src\bucket\LedgerCmp.h" />
     <ClInclude Include="..\..\src\crypto\ByteSlice.h" />
     <ClInclude Include="..\..\src\crypto\ECDH.h" />
+    <ClInclude Include="..\..\src\crypto\HdKeychain.h" />
     <ClInclude Include="..\..\src\crypto\Hex.h" />
     <ClInclude Include="..\..\src\crypto\Random.h" />
     <ClInclude Include="..\..\src\crypto\SHA.h" />
@@ -444,6 +476,7 @@
     <ClInclude Include="..\..\src\exsysidgen\ETHIDGenerator.h" />
     <ClInclude Include="..\..\src\exsysidgen\ExternalSystemIDGenerators.h" />
     <ClInclude Include="..\..\src\exsysidgen\Generator.h" />
+    <ClInclude Include="..\..\src\exsysidgen\Secp256k1IDGenerator.h" />
     <ClInclude Include="..\..\src\history\HistoryWork.h" />
     <ClInclude Include="..\..\src\history\InferredQuorum.h" />
     <ClInclude Include="..\..\src\history\StateSnapshot.h" />

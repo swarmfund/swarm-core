@@ -115,6 +115,12 @@
     <Filter Include="transactions\dex">
       <UniqueIdentifier>{4671c235-b187-4df4-afb6-7cd5fdcdea26}</UniqueIdentifier>
     </Filter>
+    <Filter Include="lib\coincore">
+      <UniqueIdentifier>{740bc483-f03e-4677-ae98-73d0fca18a8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib\coincore\hashfunc">
+      <UniqueIdentifier>{91d7d631-0e93-40ce-bbd2-1bedd110bdfe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -842,6 +848,42 @@
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\CoinKey.cpp">
+      <Filter>lib\coincore</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\hdkeys.cpp">
+      <Filter>lib\coincore</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\secp256k1_openssl.cpp">
+      <Filter>lib\coincore</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\blake.c">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\bmw.c">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\groestl.c">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\jh.c">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\keccak.c">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\coincore\src\hashfunc\skein.c">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\exsysidgen\Secp256k1IDGenerator.cpp">
+      <Filter>exsysidgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\crypto\HdKeychain.cpp">
+      <Filter>crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\crypto\HdKeychainTests.cpp">
+      <Filter>crypto</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1621,6 +1663,69 @@
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.h">
       <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\Base58Check.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\BigInt.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\CoinKey.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\encodings.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hash.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hdkeys.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\HexCheck.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\numericdata.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\secp256k1_openssl.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\typedefs.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\uchar_vector.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\uint256.h">
+      <Filter>lib\coincore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_blake.h">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_bmw.h">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_groestl.h">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_jh.h">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_keccak.h">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_skein.h">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\coincore\src\hashfunc\sph_types.h">
+      <Filter>lib\coincore\hashfunc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\exsysidgen\Secp256k1IDGenerator.h">
+      <Filter>exsysidgen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\crypto\HdKeychain.h">
+      <Filter>crypto</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

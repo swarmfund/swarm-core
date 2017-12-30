@@ -35,17 +35,6 @@ static std::vector<TmpDir> gTestRoots;
 bool force_sqlite = (std::getenv("STELLAR_FORCE_SQLITE") != nullptr);
 const char* db_conn_str = std::getenv("STELLAR_TX_TEST_DB");
 
-std::vector<std::string> generateExternalSystemBasicIDS(const std::string name)
-{
-    std::vector<std::string> result;
-    for (auto i = 0; i < 1000; i++)
-    {
-        result.push_back(name + std::to_string(i));
-    }
-
-    return result;
-}
-
 Config
 getTestConfig(int instanceNumber, Config::TestDbMode mode)
 {
@@ -114,6 +103,9 @@ getTestConfig(int instanceNumber, Config::TestDbMode mode)
         thisConfig.BASE_EXCHANGE_NAME = "Base exchange";
         thisConfig.TX_EXPIRATION_PERIOD = INT64_MAX / 2;
         thisConfig.MAX_INVOICES_FOR_RECEIVER_ACCOUNT = 100;
+        auto extendedPublicKey = "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB";
+        thisConfig.BTC_ADDRESS_ROOT = extendedPublicKey;
+        thisConfig.ETH_ADDRESS_ROOT = extendedPublicKey;
 
         // disable NTP - travis-ci does not allow network access:
         // The container-based, OSX, and GCE (both Precise and Trusty) builds do not currently have IPv6 connectivity.
@@ -144,8 +136,6 @@ getTestConfig(int instanceNumber, Config::TestDbMode mode)
         }
         thisConfig.DATABASE = dbname.str();
         thisConfig.REPORT_METRICS = gTestMetrics;
-        thisConfig.BTC_ADDRESSES = generateExternalSystemBasicIDS("BTC");
-        thisConfig.ETH_ADDRESSES = generateExternalSystemBasicIDS("ETH");
 
 		thisConfig.validateConfig();
     }

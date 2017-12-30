@@ -53,9 +53,14 @@ TEST_CASE("create account", "[tx][create_account]")
             auto randomAccount = SecretKey::random();
             applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::NOT_VERIFIED);
             const auto btcKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::BITCOIN, app.getDatabase());
+			const auto ethKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
             REQUIRE(!!btcKey);
-            const auto ethKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(), ExternalSystemType::ETHEREUM, app.getDatabase());
-            REQUIRE(!!ethKey);
+			REQUIRE(!!ethKey);
+			std::string btcAddress = btcKey.get()->getExternalSystemAccountID().data;
+			std::string ethAddress = ethKey.get()->getExternalSystemAccountID().data;
+			REQUIRE(btcAddress == "15L1umfawvCSH1HhhPZscoggZMtjhac2LV");
+			REQUIRE(ethAddress == "0x6C8DFbd4D3383c8f1EE20574E5b3CF8fda580106");
+
             SECTION("Can update account, but ext keys will be the same")
             {
                 applyCreateAccountTx(app, rootKP, randomAccount, 0, AccountType::GENERAL);

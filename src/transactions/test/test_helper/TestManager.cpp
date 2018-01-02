@@ -5,8 +5,6 @@
 #include <transactions/test/TxTests.h>
 #include "TestManager.h"
 #include "invariant/Invariants.h"
-#include "TestUtils.h"
-
 
 namespace stellar
 {
@@ -115,11 +113,6 @@ bool TestManager::applyCheck(TransactionFramePtr tx)
 		return isApplied;
 	}
 
-    void TestManager::applyAndCheckFirstOperation(TransactionFramePtr tx, OperationResultCode expectedResult) {
-        applyCheck(tx);
-        auto actualResult = getFirstResult(*tx).code();
-        mustEqualsResultCode<OperationResultCode>(expectedResult, actualResult);
-    }
 }
 
 }

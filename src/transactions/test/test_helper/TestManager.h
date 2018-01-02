@@ -11,7 +11,6 @@
 #include "lib/catch.hpp"
 #include "transactions/TransactionFrame.h"
 
-
 namespace medida
 {
 	class MetricsRegistry;
@@ -21,6 +20,7 @@ namespace stellar
 {
 namespace txtest 
 {
+
 	class TestManager
 	{
 	protected:
@@ -42,8 +42,6 @@ namespace txtest
 		static pointer make(Application& app);
 
 		void upgradeToCurrentLedgerVersion();
-
-		void applyAndCheckFirstOperation(TransactionFramePtr tx, OperationResultCode expectedResult);
 
 		Hash const & getNetworkID() const {
 			return mApp.getNetworkID();

@@ -6,20 +6,7 @@
 namespace stellar {
     namespace txtest {
 
-        class CreateAccountTestHelper;
-        class CreateAccountTestBuilder;
-
-        class CreateAccountChecker {
-        public:
-            TestManager::pointer mTestManager;
-
-            explicit CreateAccountChecker(TestManager::pointer testManager);
-
-            void doCheck(CreateAccountTestBuilder builder,
-                         CreateAccountResultCode actualResultCode);
-        };
-
-        class CreateAccountTestBuilder : public OperationBuilder {
+        class CreateAccountTestBuilder : public OperationBuilder<CreateAccountTestBuilder> {
         public:
             Operation buildOp() override;
 
@@ -46,6 +33,30 @@ namespace stellar {
             AccountID *referrer = nullptr;
             int32 policies = -1;
             CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS;
+        };
+
+        template <typename Builder>
+        class OperationChecker {
+        public:
+            static void applyAndCheckFirstOperation(Builder* operationBuilder,
+                                                    TestManager::pointer testManager){
+                auto tx = operationBuilder->buildTx(testManager);
+                applyCheck(tx, testManager->getLedgerDelta(), testManager->getApp());
+                auto actualResult = getFirstResult(*tx).code();
+                mustEqualsResultCode<OperationResultCode>(operationBuilder->operationResultCode, actualResult);
+            }
+        };
+
+        class CreateAccountChecker : public OperationChecker<CreateAccountTestBuilder>{
+        public:
+            TestManager::pointer mTestManager;
+
+            explicit CreateAccountChecker(TestManager::pointer testManager);
+
+            void doCheck(CreateAccountTestBuilder builder,
+                         CreateAccountResultCode actualResultCode);
+
+
         };
 
         class CreateAccountTestHelper : public TxHelper {

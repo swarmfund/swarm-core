@@ -16,12 +16,19 @@ namespace stellar
 namespace txtest 
 {
 
+    class CreateAccountTestBuilder;
+
+    template<typename SpecificBuilder>
     class OperationBuilder {
     public:
         virtual Operation buildOp() = 0;
+
         TransactionFramePtr buildTx(TestManager::pointer testManager);
+
+        SpecificBuilder setOperationResultCode(OperationResultCode operationResultCode);
         Account *signer = nullptr;
         Account source;
+        OperationResultCode operationResultCode;
     };
 
 	class TxHelper
@@ -32,10 +39,8 @@ namespace txtest
     public:
 
         TransactionFramePtr txFromOperation(Account& account, Operation const& op, Account* signer = nullptr);
-        TransactionFramePtr buildTx(Operation const& op);
         TxHelper(TestManager::pointer testManager);
 
-		void applyAndCheckFirstOperation(OperationBuilder &operationBuilder, OperationResultCode expectedResult);
 	};
 }
 }

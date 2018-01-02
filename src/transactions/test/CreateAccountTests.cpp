@@ -71,13 +71,16 @@ TEST_CASE("create account", "[tx][create_account]") {
         }
     }
     SECTION("Can't create system account") {
-        // TODO: change this section to support helpers and builder
+        auto systemCreateAccountBuilder =
+                createAccountTestBuilder.setOperationResultCode(OperationResultCode::opNOT_ALLOWED);
         for (auto systemAccountType : getSystemAccountTypes()) {
             auto randomAccount = SecretKey::random();
+            systemCreateAccountBuilder =
+                    createAccountTestBuilder.setType(systemAccountType).setToPublicKey(randomAccount.getPublicKey());
             auto createAccount = createCreateAccountTx(app.getNetworkID(), root.key, randomAccount, 0,
                                                        systemAccountType);
-            applyCheck(createAccount, delta, app);
-            REQUIRE(getFirstResult(*createAccount).code() == OperationResultCode::opNOT_ALLOWED);
+
+            CreateAccountChecker::applyAndCheckFirstOperation(&systemCreateAccountBuilder, testManager);
         }
     }
 
@@ -173,7 +176,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                              static_cast<int32_t >(SignerType::GENERAL_ACC_MANAGER),
                              1, "", Signer::_ext_t{});
             applySetOptions(app, root.key, root.getNextSalt(), &th, &s1);
-            auto createAccount = accountTestBuilder.buildTx(testManager);//createAccountHelper.buildTx(accountTestBuilder);
+            auto createAccount = accountTestBuilder.buildTx(testManager);
             createAccount->getEnvelope().signatures.clear();
             createAccount->addSignature(s1KP);
             REQUIRE(!applyCheck(createAccount, delta, app));
@@ -238,12 +241,9 @@ TEST_CASE("create account", "[tx][create_account]") {
             auto toBeCreated = SecretKey::random();
             auto toBeCreatedHelper = notAllowedBuilder.setToPublicKey(toBeCreated.getPublicKey())
                     .setFromAccount(notRoot)
-                    .setType(AccountType::GENERAL);
-
-            /*testManager->applyAndCheckFirstOperation(
-                    createAccountHelper.buildTx(toBeCreatedHelper),
-                    OperationResultCode::opNOT_ALLOWED
-            );*/
+                    .setType(AccountType::GENERAL)
+                    .setOperationResultCode(OperationResultCode::opNOT_ALLOWED);
+            CreateAccountChecker::applyAndCheckFirstOperation(&toBeCreatedHelper, testManager);
         }
     }
     SECTION("Can update not verified to syndicate") {

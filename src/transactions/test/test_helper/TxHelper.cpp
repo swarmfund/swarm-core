@@ -37,7 +37,8 @@ namespace txtest
 		mTestManager = testManager;
 	}
 
-    TransactionFramePtr OperationBuilder::buildTx(TestManager::pointer testManager) {
+    template<typename SpecificBuilder>
+    TransactionFramePtr OperationBuilder<SpecificBuilder>::buildTx(TestManager::pointer testManager) {
         Transaction tx;
         tx.sourceAccount = source.key.getPublicKey();
         tx.salt = source.getNextSalt();
@@ -55,6 +56,13 @@ namespace txtest
         res->addSignature(signer->key);
 
         return res;
+    }
+
+    template<typename SpecificBuilder>
+    SpecificBuilder OperationBuilder<SpecificBuilder>::setOperationResultCode(OperationResultCode operationResultCode) {
+        SpecificBuilder specificBuilder = *this;
+        specificBuilder.operationResultCode = operationResultCode;
+        return specificBuilder;
     }
 }
 

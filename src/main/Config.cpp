@@ -620,11 +620,7 @@ Config::load(std::string const& filename)
             }
             else if (item.first == "BTC_ADDRESS_ROOT")
             {
-                if (!item.second->as<std::string>())
-                {
-                    throw std::invalid_argument("missing BTC_ADDRESS_ROOT");
-                }
-                if (!HdKeychain::isValidExtendedPublicKey(item.second->as<std::string>()->value())) {
+                if (!item.second->as<std::string>() || !HdKeychain::isValidExtendedPublicKey(item.second->as<std::string>()->value())) {
                     throw std::invalid_argument("invalid BTC_ADDRESS_ROOT");
                 }
 
@@ -632,11 +628,7 @@ Config::load(std::string const& filename)
             }
             else if (item.first == "ETH_ADDRESS_ROOT")
             {
-                if (!item.second->as<std::string>())
-                {
-                    throw std::invalid_argument("missing ETH_ADDRESS_ROOT");
-                }
-                if (!HdKeychain::isValidExtendedPublicKey(item.second->as<std::string>()->value())) {
+                if (!item.second->as<std::string>() || !HdKeychain::isValidExtendedPublicKey(item.second->as<std::string>()->value())) {
                     throw std::invalid_argument("invalid ETH_ADDRESS_ROOT");
                 }
 
@@ -728,6 +720,16 @@ Config::validateConfig()
 	{
 		throw std::invalid_argument("BASE_EXCHANGE_NAME must not be empty");
 	}
+
+        if (ETH_ADDRESS_ROOT.empty())
+        {
+            throw std::invalid_argument("ETH_ADDRESS_ROOT must not be empty");
+        }
+
+        if (BTC_ADDRESS_ROOT.empty())
+        {
+            throw std::invalid_argument("BTC_ADDRESS_ROOT must not be empty");
+        }
 
 
 	if (TX_EXPIRATION_PERIOD_WINDOW == 0)

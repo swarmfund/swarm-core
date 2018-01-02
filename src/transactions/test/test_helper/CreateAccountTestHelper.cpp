@@ -100,21 +100,18 @@ namespace stellar {
             REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
 
             auto checker = CreateAccountChecker(mTestManager);
-            checker.doCheck(this, builder, actualResultCode);
+            checker.doCheck(builder, actualResultCode);
             return actualResultCode;
         }
 
         void
-        CreateAccountChecker::doCheck(CreateAccountTestHelper *testHelper,
-                                      CreateAccountTestBuilder builder,
-        CreateAccountResultCode actualResultCode) {
+        CreateAccountChecker::doCheck(CreateAccountTestBuilder builder,
+            CreateAccountResultCode actualResultCode) {
             Database& db = mTestManager->getDB();
 
             auto accountHelper = AccountHelper::Instance();
             AccountFrame::pointer fromAccount = accountHelper->loadAccount(builder.source.key.getPublicKey(), db);
             AccountFrame::pointer toAccount = accountHelper->loadAccount(builder.to, db);
-            //TODO add this check
-            //REQUIRE(txResult.feeCharged == testHelper->getApp().getLedgerManager().getTxFee());
 
             AccountFrame::pointer toAccountAfter = accountHelper->loadAccount(builder.to, db);
 

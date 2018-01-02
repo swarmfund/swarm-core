@@ -15,8 +15,7 @@ namespace stellar {
 
             explicit CreateAccountChecker(TestManager::pointer testManager);
 
-            void doCheck(CreateAccountTestHelper *testHelper,
-                         CreateAccountTestBuilder builder,
+            void doCheck(CreateAccountTestBuilder builder,
                          CreateAccountResultCode actualResultCode);
         };
 

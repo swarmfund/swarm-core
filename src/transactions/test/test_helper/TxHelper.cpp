@@ -37,33 +37,6 @@ namespace txtest
 		mTestManager = testManager;
 	}
 
-    template<typename SpecificBuilder>
-    TransactionFramePtr OperationBuilder<SpecificBuilder>::buildTx(TestManager::pointer testManager) {
-        Transaction tx;
-        tx.sourceAccount = source.key.getPublicKey();
-        tx.salt = source.getNextSalt();
-        tx.operations.push_back(buildOp());
-        tx.timeBounds.minTime = 0;
-        tx.timeBounds.maxTime = INT64_MAX / 2;
-
-        TransactionEnvelope envelope;
-        envelope.tx = tx;
-        auto res = TransactionFrame::makeTransactionFromWire(testManager->getNetworkID(), envelope);
-
-        if (signer == nullptr) {
-            signer = &source;
-        }
-        res->addSignature(signer->key);
-
-        return res;
-    }
-
-    template<typename SpecificBuilder>
-    SpecificBuilder OperationBuilder<SpecificBuilder>::setOperationResultCode(OperationResultCode operationResultCode) {
-        SpecificBuilder specificBuilder = *this;
-        specificBuilder.operationResultCode = operationResultCode;
-        return specificBuilder;
-    }
 }
 
 }

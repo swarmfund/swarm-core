@@ -15,20 +15,43 @@ namespace stellar
 {
 namespace txtest 
 {
-
     class CreateAccountTestBuilder;
 
     template<typename SpecificBuilder>
     class OperationBuilder {
     public:
         virtual Operation buildOp() = 0;
+        virtual SpecificBuilder copy() = 0;
 
-        TransactionFramePtr buildTx(TestManager::pointer testManager);
+        TransactionFramePtr buildTx(TestManager::pointer testManager) {
+            Transaction tx;
+            tx.sourceAccount = source.key.getPublicKey();
+            tx.salt = source.getNextSalt();
+            tx.operations.push_back(buildOp());
+            tx.timeBounds.minTime = 0;
+            tx.timeBounds.maxTime = INT64_MAX / 2;
 
-        SpecificBuilder setOperationResultCode(OperationResultCode operationResultCode);
+            TransactionEnvelope envelope;
+            envelope.tx = tx;
+            auto res = TransactionFrame::makeTransactionFromWire(testManager->getNetworkID(), envelope);
+
+            if (signer == nullptr) {
+                signer = &source;
+            }
+            res->addSignature(signer->key);
+
+            return res;
+        }
+
+        SpecificBuilder setOperationResultCode(OperationResultCode operationResultCode){
+            SpecificBuilder specificBuilder = copy();
+            specificBuilder.operationResultCode = operationResultCode;
+            return specificBuilder;
+        }
+
         Account *signer = nullptr;
         Account source;
-        OperationResultCode operationResultCode;
+        OperationResultCode operationResultCode = OperationResultCode::opINNER;
     };
 
 	class TxHelper

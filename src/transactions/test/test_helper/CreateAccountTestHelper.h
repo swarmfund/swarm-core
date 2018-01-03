@@ -6,8 +6,12 @@
 namespace stellar {
     namespace txtest {
 
+
         class CreateAccountTestBuilder : public OperationBuilder<CreateAccountTestBuilder> {
         public:
+            CreateAccountTestBuilder copy() override {
+                return *this;
+            }
             Operation buildOp() override;
 
             CreateAccountTestBuilder setFromAccount(Account from);
@@ -38,7 +42,7 @@ namespace stellar {
         template <typename Builder>
         class OperationChecker {
         public:
-            static void applyAndCheckFirstOperation(Builder* operationBuilder,
+            static void applyAndCheckFirstOperation(OperationBuilder<Builder>* operationBuilder,
                                                     TestManager::pointer testManager){
                 auto tx = operationBuilder->buildTx(testManager);
                 applyCheck(tx, testManager->getLedgerDelta(), testManager->getApp());
@@ -47,7 +51,7 @@ namespace stellar {
             }
         };
 
-        class CreateAccountChecker : public OperationChecker<CreateAccountTestBuilder>{
+        class CreateAccountChecker : public OperationChecker<CreateAccountTestBuilder> {
         public:
             TestManager::pointer mTestManager;
 
@@ -55,8 +59,6 @@ namespace stellar {
 
             void doCheck(CreateAccountTestBuilder builder,
                          CreateAccountResultCode actualResultCode);
-
-
         };
 
         class CreateAccountTestHelper : public TxHelper {

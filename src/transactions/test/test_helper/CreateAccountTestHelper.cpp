@@ -25,19 +25,19 @@ namespace stellar {
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setFromAccount(Account from) {
-            auto newTestHelper = *this;
+            auto newTestHelper = copy();
             newTestHelper.source = from;
             return newTestHelper;
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setToPublicKey(PublicKey to) {
-            auto newTestHelper = *this;
+            auto newTestHelper = copy();
             newTestHelper.to = to;
             return newTestHelper;
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setType(AccountType accountType) {
-            auto newTestHelper = *this;
+            auto newTestHelper = copy();
             newTestHelper.accountType = accountType;
             return newTestHelper;
         }
@@ -47,19 +47,19 @@ namespace stellar {
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setSigner(Account *signer) {
-            auto newTestHelper = *this;
+            auto newTestHelper = copy();
             newTestHelper.signer = signer;
             return newTestHelper;
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setReferrer(AccountID *referrer) {
-            auto newTestHelper = *this;
+            auto newTestHelper = copy();
             newTestHelper.referrer = referrer;
             return newTestHelper;
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setPolicies(int32 policies) {
-            auto newTestHelper = *this;
+            auto newTestHelper = copy();
             newTestHelper.policies = policies;
             return newTestHelper;
         }
@@ -69,7 +69,7 @@ namespace stellar {
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setResultCode(CreateAccountResultCode expectedResult) {
-            auto newTestHelper = *this;
+            auto newTestHelper = copy();
             newTestHelper.expectedResult = expectedResult;
             return newTestHelper;
         }

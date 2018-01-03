@@ -59,7 +59,7 @@ TEST_CASE("create account", "[tx][create_account]")
 			std::string btcAddress = btcKey.get()->getExternalSystemAccountID().data;
 			std::string ethAddress = ethKey.get()->getExternalSystemAccountID().data;
 			REQUIRE(btcAddress == "15L1umfawvCSH1HhhPZscoggZMtjhac2LV");
-			REQUIRE(ethAddress == "0x6C8DFbd4D3383c8f1EE20574E5b3CF8fda580106");
+			REQUIRE(ethAddress == "0xcBA17b04AE211B4f3f3DFf1266e0A8910AC9e3e3");
 
             SECTION("Can update account, but ext keys will be the same")
             {

@@ -146,6 +146,8 @@ namespace stellar {
 
         virtual uint64 getWithdrawalDetailsMaxLength() const override;
 
+		virtual uint64 getIssuanceDetailsMaxLength() const override;
+
         virtual int64 getMaxInvoicesForReceiverAccount() const override;
 
         virtual AssetCode getStatsQuoteAsset() const override;
@@ -217,7 +219,7 @@ namespace stellar {
             ExternalSystemIDGeneratorType ex) override;
         const std::unordered_set<ExternalSystemIDGeneratorType>&
         getAvailableExternalSystemGenerator() override;
-        const std::vector<std::string>& getBTCAddresses() const override;
-        const std::vector<std::string>& getETHAddresses() const override;
+        const std::string getBTCAddressRoot() const override;
+        const std::string getETHAddressRoot() const override;
     };
 }

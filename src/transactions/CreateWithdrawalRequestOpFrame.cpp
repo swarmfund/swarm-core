@@ -35,7 +35,7 @@ const
 {
     return SourceDetails({
                              AccountType::GENERAL, AccountType::SYNDICATE,
-                             AccountType::OPERATIONAL
+                             AccountType::OPERATIONAL, AccountType::EXCHANGE
                          }, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER));
 }

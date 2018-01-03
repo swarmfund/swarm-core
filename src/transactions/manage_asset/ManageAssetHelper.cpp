@@ -1,5 +1,6 @@
 #include <ledger/BalanceHelper.h>
 #include "ManageAssetHelper.h"
+#include "transactions/AccountManager.h"
 
 namespace stellar
 {
@@ -9,10 +10,11 @@ void ManageAssetHelper::createSystemBalances(AssetCode assetCode, Application &a
 {
     auto systemAccounts = app.getSystemAccounts();
 
-    auto balanceHelper = BalanceHelper::Instance();
+    auto& db = app.getDatabase();
     for (auto& systemAccount : systemAccounts)
     {
-        createBalanceForAccount(systemAccount, assetCode, app, delta);
+
+        AccountManager::loadOrCreateBalanceForAsset(systemAccount, assetCode, db, delta);
     }
 }
 

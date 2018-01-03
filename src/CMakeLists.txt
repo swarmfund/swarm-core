@@ -25,6 +25,7 @@ set(NOT_COMMON_SOURCE_FILES
         util/NonCopyable.h
         util/optional.h
         util/XDRStream.h
+        test/test_marshaler.h
         work/WorkManager.h
         crypto/ByteSlice.h
         bucket/LedgerCmp.h

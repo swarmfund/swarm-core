@@ -4,14 +4,12 @@
 
 #include "util/Timer.h"
 #include "TCPPeer.h"
-#include "lib/catch.hpp"
 #include "main/Application.h"
 #include "main/test.h"
 #include "overlay/PeerDoor.h"
-#include "main/Config.h"
-#include "util/Logging.h"
 #include "simulation/Simulation.h"
 #include "overlay/OverlayManager.h"
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

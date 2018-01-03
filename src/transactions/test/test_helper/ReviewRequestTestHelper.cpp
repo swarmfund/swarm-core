@@ -7,6 +7,7 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include <functional>
+#include "test/test_marshaler.h"
 
 
 namespace stellar

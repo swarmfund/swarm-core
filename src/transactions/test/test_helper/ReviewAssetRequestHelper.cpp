@@ -5,6 +5,7 @@
 #include "ReviewAssetRequestHelper.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
+#include "test/test_marshaler.h"
 
 
 namespace stellar

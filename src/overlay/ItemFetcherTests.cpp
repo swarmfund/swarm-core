@@ -5,12 +5,12 @@
 #include "util/asio.h"
 #include <main/Application.h>
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "overlay/ItemFetcher.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/LoopbackPeer.h"
 #include <crypto/SHA.h>
 #include <crypto/Hex.h>
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

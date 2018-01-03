@@ -4,22 +4,15 @@
 
 #include "main/Application.h"
 #include "util/Timer.h"
-#include "util/make_unique.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerHeaderFrame.h"
 #include "transactions/test/TxTests.h"
 #include "database/Database.h"
-#include "main/Config.h"
-#include "main/PersistentState.h"
 #include "simulation/Simulation.h"
-#include "herder/LedgerCloseData.h"
-#include <soci.h>
 #include "bucket/BucketManager.h"
-#include "util/optional.h"
 #include "util/Math.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace std;

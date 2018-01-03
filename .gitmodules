@@ -10,3 +10,6 @@
 [submodule "src/xdr"]
 	path = src/xdr
 	url = git@gitlab.com:swarmfund/xdr.git
+[submodule "lib/coincore"]
+	path = lib/coincore
+	url = git@gitlab.com:tokend/coincore.git

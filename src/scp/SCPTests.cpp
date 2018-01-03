@@ -3,7 +3,6 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include "util/asio.h"
 
-#include "lib/catch.hpp"
 #include "scp/SCP.h"
 #include "scp/Slot.h"
 #include "util/types.h"
@@ -14,6 +13,7 @@
 #include "util/Logging.h"
 #include "simulation/Simulation.h"
 #include "scp/LocalNode.h"
+#include "test/test_marshaler.h"
 
 namespace stellar
 {

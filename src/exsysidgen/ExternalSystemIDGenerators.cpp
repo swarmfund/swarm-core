@@ -17,9 +17,9 @@ std::shared_ptr<Generator> ExternalSystemIDGenerators::getGeneratorForType(
     switch (type)
     {
     case ExternalSystemIDGeneratorType::BITCOIN_BASIC:
-        return std::make_shared<BTCIDGenerator>(app, db);
+        return std::make_shared<BTCIDGenerator>(app, db, app.getBTCAddressRoot());
     case ExternalSystemIDGeneratorType::ETHEREUM_BASIC:
-        return std::make_shared<ETHIDGenerator>(app, db);
+        return std::make_shared<ETHIDGenerator>(app, db, app.getETHAddressRoot());
     default:
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) <<

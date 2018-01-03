@@ -4,17 +4,12 @@
 
 #include "util/asio.h"
 #include "main/ApplicationImpl.h"
-#include "main/Config.h"
 
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "overlay/OverlayManager.h"
 #include "overlay/OverlayManagerImpl.h"
-#include "util/Timer.h"
-#include "database/Database.h"
-#include <soci.h>
 #include "transactions/test/TxTests.h"
-#include "transactions/TransactionFrame.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace std;

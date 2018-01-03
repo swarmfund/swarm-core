@@ -4,13 +4,10 @@
 
 #include "history/InferredQuorum.h"
 #include "main/test.h"
-#include "main/Config.h"
 #include "xdrpp/marshal.h"
 #include "crypto/SHA.h"
-#include "crypto/Hex.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include <xdrpp/autocheck.h>
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

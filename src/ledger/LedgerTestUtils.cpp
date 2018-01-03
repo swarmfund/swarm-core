@@ -194,15 +194,10 @@ makeValid(AccountTypeLimitsEntry& o)
 void
 makeValid(StatisticsEntry& o)
 {
-	if (o.dailyOutcome < 0)
-	{
-		o.dailyOutcome = -o.dailyOutcome;
-	}
-
-	clampLow<int64_t>(1, o.dailyOutcome);
-	clampLow<int64_t>(o.dailyOutcome, o.weeklyOutcome);
-	clampLow<int64_t>(o.weeklyOutcome, o.monthlyOutcome);
-	clampLow<int64_t>(o.monthlyOutcome, o.annualOutcome);
+	clampLow<uint64_t>(1, o.dailyOutcome);
+	clampLow<uint64_t>(o.dailyOutcome, o.weeklyOutcome);
+	clampLow<uint64_t>(o.weeklyOutcome, o.monthlyOutcome);
+	clampLow<uint64_t>(o.monthlyOutcome, o.annualOutcome);
 }
 
 void

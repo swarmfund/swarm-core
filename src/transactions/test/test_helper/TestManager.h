@@ -8,62 +8,62 @@
 #include "main/Application.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
-#include "lib/catch.hpp"
 #include "transactions/TransactionFrame.h"
 
-namespace medida
-{
-	class MetricsRegistry;
+
+namespace medida {
+    class MetricsRegistry;
 }
 
-namespace stellar
-{
-namespace txtest 
-{
+namespace stellar {
+    namespace txtest {
+        class TestManager {
+        protected:
+            Application &mApp;
+            Database &mDB;
+            LedgerDelta mDelta;
+            LedgerManager &mLm;
 
-	class TestManager
-	{
-	protected:
-		Application& mApp;
-		Database& mDB;
-		LedgerDelta mDelta;
-		LedgerManager& mLm;
+            bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp);
 
-		bool apply(TransactionFramePtr tx);
-		void checkResult(TransactionResult result, bool mustSuccess);
+            void checkResult(TransactionResult result, bool mustSuccess);
 
-                Value ledgerVersion() const;
-                Value externalSystemGenerators();
+            Value ledgerVersion() const;
 
-	public:
-		typedef std::shared_ptr<TestManager> pointer;
+            Value externalSystemGenerators();
 
-		TestManager(Application& app, Database& db, LedgerManager& lm);
-		static pointer make(Application& app);
+        public:
+            typedef std::shared_ptr<TestManager> pointer;
 
-		void upgradeToCurrentLedgerVersion();
+            TestManager(Application &app, Database &db, LedgerManager &lm);
 
-		Hash const & getNetworkID() const {
-			return mApp.getNetworkID();
-		}
+            static pointer make(Application &app);
 
-		Database& getDB() {
-			return mDB;
-		}
+            void upgradeToCurrentLedgerVersion();
 
-		Application& getApp() {
-			return mApp;
-		}
+            Hash const &getNetworkID() const {
+                return mApp.getNetworkID();
+            }
 
-		LedgerDelta& getLedgerDelta() {
-			return mDelta;
-		}
+            Database &getDB() {
+                return mDB;
+            }
 
-		LedgerManager& getLedgerManager() {
-			return mLm;
-		}
+            Application &getApp() {
+                return mApp;
+            }
 
-		bool applyCheck(TransactionFramePtr tx);
-	};
-}
+            LedgerDelta &getLedgerDelta() {
+                return mDelta;
+            }
+
+            LedgerManager &getLedgerManager() {
+                return mLm;
+            }
+
+            bool applyCheck(TransactionFramePtr tx);
+
+            bool applyCheck(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp);
+        };
+    }
 }

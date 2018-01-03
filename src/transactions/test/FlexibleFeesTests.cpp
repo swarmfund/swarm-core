@@ -6,15 +6,14 @@
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
 #include "main/test.h"
-#include "util/types.h"
-#include "lib/catch.hpp"
 #include "ledger/FeeHelper.h"
 #include "ledger/BalanceHelper.h"
-
 #include "TxTests.h"
-#include "ledger/LedgerDelta.h"
 
+#include "ledger/LedgerDelta.h"
 #include "crypto/SHA.h"
+
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -107,84 +106,5 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 		applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, paymentFee,
 			true, "", "");
     }
-
-	SECTION("Custom offer fee for seller")
-    {
-        Database& db = app.getDatabase();
-
-
-        AssetCode base = app.getBaseAsset();
-        AssetCode quote = app.getStatsQuoteAsset();
-
-		auto buyer = SecretKey::random();
-        auto buyerPubKey = buyer.getPublicKey();
-		applyCreateAccountTx(app, root, buyer, rootSeq, AccountType::GENERAL);
-		auto baseBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), base, db, nullptr);
-		REQUIRE(baseBuyerBalance);
-		auto quoteBuyerBalance = balanceHelper->loadBalance(buyer.getPublicKey(), quote, db, nullptr);
-		REQUIRE(quoteBuyerBalance);
-		auto quoteAssetAmount = 1000 * ONE;
-		fundAccount(app, root, issuance, rootSeq, quoteBuyerBalance->getBalanceID(), quoteAssetAmount, quote);
-		auto seller = SecretKey::random();
-        auto sellerPubKey = seller.getPublicKey();
-		applyCreateAccountTx(app, root, seller, rootSeq, AccountType::GENERAL);
-		auto baseSellerBalance = balanceHelper->loadBalance(sellerPubKey, base, db, nullptr);
-		REQUIRE(baseBuyerBalance);
-		auto quoteSellerBalance = balanceHelper->loadBalance(sellerPubKey, quote, db, nullptr);
-		REQUIRE(quoteSellerBalance);
-		auto baseAssetAmount = 200 * ONE;
-		fundAccount(app, root, issuance, rootSeq, baseSellerBalance->getBalanceID(), baseAssetAmount, base);
-
-        auto offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, ONE, quote);
-        auto offerFee = offerFeeFrame->getFee();
-        applySetFees(app, root, rootSeq, &offerFee, false, nullptr);
-
-        auto sellerOfferFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, 30 * ONE, quote, &sellerPubKey);
-        auto sellerOfferFee = sellerOfferFeeFrame->getFee();
-            
-        applySetFees(app, root, rootSeq, &sellerOfferFee, false, nullptr);
-        SECTION("Success")
-        {
-			int64_t sellerFee = bigDivide(baseAssetAmount, sellerOfferFee.percentFee, 100 * ONE, ROUND_UP);
-            applyManageOfferTx(app, seller, rootSeq, 0, baseSellerBalance->getBalanceID(), quoteSellerBalance->getBalanceID(), baseAssetAmount, 1 * ONE, false, sellerFee);
-            int64_t matchAmount = baseAssetAmount;
-            int64_t buyerQuoteAmount = bigDivide(baseAssetAmount, 4*ONE, ONE, ROUND_UP);
-            int64_t buyerOfferFee = bigDivide(buyerQuoteAmount, ONE, 100*ONE, ROUND_UP);
-
-            auto offerMatch = applyManageOfferTx(app, buyer, rootSeq, 0, baseBuyerBalance->getBalanceID(), quoteBuyerBalance->getBalanceID(), baseAssetAmount, 4 * ONE, true,
-                buyerOfferFee);
-			int64_t quoteMatchAmount = 4 * matchAmount;
-            int64_t buyerExpectedFee = bigDivide(quoteMatchAmount, offerFee.percentFee, int64_t(ONE * 100), ROUND_UP);
-            REQUIRE(offerMatch.success().offersClaimed[0].quoteAmount == quoteMatchAmount);
-			int64_t bFeePaid = offerMatch.success().offersClaimed[0].bFeePaid;
-			int64_t aFeePaid = offerMatch.success().offersClaimed[0].aFeePaid;
-            REQUIRE(aFeePaid == buyerExpectedFee);
-            REQUIRE(offerMatch.success().offersClaimed.size() == 1);
-			int64_t sellerExpectedFee = bigDivide(quoteMatchAmount, sellerOfferFee.percentFee, int64_t(ONE * 100), ROUND_UP);
-            REQUIRE(bFeePaid == sellerExpectedFee);
-
-            quoteBuyerBalance = loadBalance(quoteBuyerBalance->getBalanceID(), app);
-            REQUIRE(quoteBuyerBalance->getLocked() == 0);
-            REQUIRE(quoteBuyerBalance->getAmount() == (quoteAssetAmount - quoteMatchAmount - buyerExpectedFee));
-            baseBuyerBalance = loadBalance(baseBuyerBalance->getBalanceID(), app);
-            REQUIRE(baseBuyerBalance->getLocked() == 0);
-            REQUIRE(baseBuyerBalance->getAmount() == baseAssetAmount);
-
-            baseSellerBalance = loadBalance(baseSellerBalance->getBalanceID(), app);
-            REQUIRE(baseSellerBalance->getLocked() == 0);
-            REQUIRE(baseSellerBalance->getAmount() == 0);
-
-            quoteSellerBalance = loadBalance(quoteSellerBalance->getBalanceID(), app);
-            REQUIRE(quoteSellerBalance->getLocked() == 0);
-            REQUIRE(quoteSellerBalance->getAmount() == quoteMatchAmount - sellerExpectedFee);
-
-            auto commissionQuoteBalance = balanceHelper->loadBalance(app.getCommissionID(), quote, db, nullptr);
-            REQUIRE(commissionQuoteBalance);
-            REQUIRE(commissionQuoteBalance->getAmount() == sellerExpectedFee + buyerExpectedFee);
-        }
-
-
-    }
-
 
 }

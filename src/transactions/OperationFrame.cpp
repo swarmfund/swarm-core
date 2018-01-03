@@ -29,7 +29,6 @@
 #include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
 #include "transactions/SetLimitsOpFrame.h"
 #include "transactions/ManageAssetPairOpFrame.h"
-#include "transactions/ManageOfferOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
@@ -39,7 +38,8 @@
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
-#include "CreateWithdrawalRequestOpFrame.h"
+#include "dex/ManageOfferOpFrame.h"
+#include "CheckSaleStateOpFrame.h"
 
 namespace stellar
 {
@@ -84,13 +84,15 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
     case OperationType::DIRECT_DEBIT:
         return shared_ptr<OperationFrame>(new DirectDebitOpFrame(op, res, tx));
 	case OperationType::MANAGE_OFFER:
-		return shared_ptr<OperationFrame>(new ManageOfferOpFrame(op, res, tx));
+		return shared_ptr<OperationFrame>(ManageOfferOpFrame::make(op, res, tx));
     case OperationType::MANAGE_INVOICE:
         return shared_ptr<OperationFrame>(new ManageInvoiceOpFrame(op, res, tx));
     case OperationType::REVIEW_REQUEST:
 		return shared_ptr<OperationFrame>(ReviewRequestOpFrame::makeHelper(op, res, tx));
     case OperationType::CREATE_SALE_REQUEST:
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
+    case OperationType::CHECK_SALE_STATE:
+        return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

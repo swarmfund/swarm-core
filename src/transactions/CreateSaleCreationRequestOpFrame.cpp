@@ -10,7 +10,6 @@
 #include "ledger/AccountHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/AssetHelper.h"
-#include "ledger/AssetPairHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "xdrpp/printer.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -40,14 +39,14 @@ const
                          static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
-bool CreateSaleCreationRequestOpFrame::isBaseAssetOrCreationRequestExists(
+AssetFrame::pointer CreateSaleCreationRequestOpFrame::tryLoadBaseAssetOrRequest(
     SaleCreationRequest const& request,
     Database& db) const
 {
     const auto assetFrame = AssetHelper::Instance()->loadAsset(request.baseAsset, getSourceID(), db);
     if (!!assetFrame)
     {
-        return true;
+        return assetFrame;
     }
 
     auto assetCreationRequests = ReviewableRequestHelper::Instance()->loadRequests(getSourceID(), ReviewableRequestType::ASSET_CREATE, db);
@@ -56,11 +55,11 @@ bool CreateSaleCreationRequestOpFrame::isBaseAssetOrCreationRequestExists(
         auto& assetCreationRequest = assetCreationRequestFrame->getRequestEntry().body.assetCreationRequest();
         if (assetCreationRequest.code == request.baseAsset)
         {
-            return true;
+            return AssetFrame::create(assetCreationRequest, getSourceID());
         }
     }
 
-    return false;
+    return nullptr;
 }
 
 std::string CreateSaleCreationRequestOpFrame::getReference(SaleCreationRequest const& request) const
@@ -70,7 +69,7 @@ std::string CreateSaleCreationRequestOpFrame::getReference(SaleCreationRequest c
 }
 
 ReviewableRequestFrame::pointer CreateSaleCreationRequestOpFrame::
-createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, time_t closedAt)
+createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, const time_t closedAt) const
 {
     if (mCreateSaleCreationRequest.requestID != 0)
     {
@@ -91,6 +90,31 @@ createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, time_
     requestEntry.body.saleCreationRequest() = sale;
     request->recalculateHashRejectReason();
     return request;
+}
+
+bool CreateSaleCreationRequestOpFrame::isBaseAssetHasSufficientIssuance(
+    const AssetFrame::pointer assetFrame)
+{
+    uint64_t hardCapInBase;
+    if (!SaleFrame::convertToBaseAmount(mCreateSaleCreationRequest.request.price, mCreateSaleCreationRequest.request.hardCap, hardCapInBase))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Did not expected overflow on soft cap conversion to base asset";
+        throw std::runtime_error("Did not expected overflow on soft cap conversion to base asset");
+    }
+
+    if (assetFrame->willExceedMaxIssuanceAmount(hardCapInBase))
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::INSUFFICIENT_MAX_ISSUANCE);
+        return false;
+    }
+
+    if (!assetFrame->isAvailableForIssuanceAmountSufficient(hardCapInBase))
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::INSUFFICIENT_PREISSUED);
+        return false;
+    }
+
+    return true;    
 }
 
 CreateSaleCreationRequestOpFrame::CreateSaleCreationRequestOpFrame(
@@ -127,16 +151,21 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
+    if (!AssetHelper::Instance()->exists(db, sale.quoteAsset))
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::QUOTE_ASSET_NOT_FOUND);
+        return false;
+    }
 
-    if (!isBaseAssetOrCreationRequestExists(sale, db))
+    const auto baseAsset = tryLoadBaseAssetOrRequest(sale, db);
+    if (!baseAsset)
     {
         innerResult().code(CreateSaleCreationRequestResultCode::BASE_ASSET_OR_ASSET_REQUEST_NOT_FOUND);
         return false;
     }
 
-    if (!AssetHelper::Instance()->exists(db, sale.quoteAsset))
+    if (!isBaseAssetHasSufficientIssuance(baseAsset))
     {
-        innerResult().code(CreateSaleCreationRequestResultCode::QUOTE_ASSET_NOT_FOUND);
         return false;
     }
 
@@ -176,7 +205,7 @@ bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)
     }
 
     uint64_t requiredBaseAsset;
-    if (!SaleFrame::calculateRequiredBaseAssetForSoftCap(request, requiredBaseAsset))
+    if (!SaleFrame::convertToBaseAmount(request.price, request.hardCap, requiredBaseAsset))
     {
         innerResult().code(CreateSaleCreationRequestResultCode::INVALID_PRICE);
         return false;

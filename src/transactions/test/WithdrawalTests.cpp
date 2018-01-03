@@ -13,6 +13,7 @@
 #include "ledger/BalanceHelper.h"
 #include "test_helper/WithdrawRequestHelper.h"
 #include "test_helper/ReviewWithdrawalRequestHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

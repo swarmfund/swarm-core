@@ -21,10 +21,8 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> ManageBalanceOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	std::vector<AccountType> allowedCounterparties;
-	if (getSourceID() == mManageBalance.destination)
-		allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE };
-	else
-		allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE };
+    allowedCounterparties = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE, AccountType::EXCHANGE};
+
 	return{
 		{ mManageBalance.destination, CounterpartyDetails(allowedCounterparties, true, true)}
 	};
@@ -34,7 +32,7 @@ SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(std::unordered_map<A
 {
 	std::vector<AccountType> allowedSourceAccounts;
 	if (getSourceID() == mManageBalance.destination)
-		allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE};
+		allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE, AccountType::EXCHANGE};
 	else
 		allowedSourceAccounts = {};
 	return SourceDetails(allowedSourceAccounts, mSourceAccount->getLowThreshold(), static_cast<int32_t >(SignerType::BALANCE_MANAGER));
@@ -66,9 +64,6 @@ ManageBalanceOpFrame::doApply(Application& app,
         return false;
     }
 
-	BalanceID newBalanceID = BalanceKeyUtils::forAccount(mManageBalance.destination, 
-		delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
-
 	auto balanceHelper = BalanceHelper::Instance();
 	auto balanceFrame = balanceHelper->loadBalance(mManageBalance.destination, mManageBalance.asset, db, &delta);
 
@@ -82,8 +77,11 @@ ManageBalanceOpFrame::doApply(Application& app,
 		return false;
 	}
 
+        BalanceID newBalanceID = BalanceKeyUtils::forAccount(mManageBalance.destination,
+            delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
 	balanceFrame = BalanceFrame::createNew(newBalanceID, mManageBalance.destination, mManageBalance.asset);
 	EntryHelperProvider::storeAddEntry(delta, db, balanceFrame->mEntry);
+	innerResult().success().balanceID = newBalanceID;
     
 	app.getMetrics().NewMeter({"op-manage-balance", "success", "apply"},
 	                          "operation").Mark();

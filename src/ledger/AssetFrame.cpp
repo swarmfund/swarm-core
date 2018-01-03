@@ -19,12 +19,14 @@ namespace stellar
 {
 using xdr::operator<;
 
-AssetFrame::AssetFrame() : EntryFrame(LedgerEntryType::ASSET), mAsset(mEntry.data.asset())
+AssetFrame::AssetFrame() : EntryFrame(LedgerEntryType::ASSET)
+                         , mAsset(mEntry.data.asset())
 {
 }
 
 AssetFrame::AssetFrame(LedgerEntry const& from)
-	: EntryFrame(from), mAsset(mEntry.data.asset())
+    : EntryFrame(from)
+    , mAsset(mEntry.data.asset())
 {
 }
 
@@ -34,73 +36,87 @@ AssetFrame::AssetFrame(AssetFrame const& from) : AssetFrame(from.mEntry)
 
 AssetFrame& AssetFrame::operator=(AssetFrame const& other)
 {
-	if (&other != this)
-	{
-		mAsset = other.mAsset;
-		mKey = other.mKey;
-		mKeyCalculated = other.mKeyCalculated;
-	}
-	return *this;
+    if (&other != this)
+    {
+        mAsset = other.mAsset;
+        mKey = other.mKey;
+        mKeyCalculated = other.mKeyCalculated;
+    }
+    return *this;
 }
 
-AssetFrame::pointer AssetFrame::create(AssetCreationRequest const & request, AccountID const& owner)
+AssetFrame::pointer AssetFrame::create(AssetCreationRequest const& request,
+                                       AccountID const& owner)
 {
-	LedgerEntry le;
-	le.data.type(LedgerEntryType::ASSET);
-	AssetEntry& asset = le.data.asset();
-	asset.availableForIssueance = request.initialPreissuedAmount;
-	asset.code = request.code;
-	asset.details = request.details;
-	asset.issued = 0;
-	asset.maxIssuanceAmount = request.maxIssuanceAmount;
-	asset.owner = owner;
-	asset.policies = request.policies;
-	asset.preissuedAssetSigner = request.preissuedAssetSigner;
-        asset.lockedIssuance = 0;
-	return std::make_shared<AssetFrame>(le);
+    LedgerEntry le;
+    le.data.type(LedgerEntryType::ASSET);
+    AssetEntry& asset = le.data.asset();
+    asset.availableForIssueance = request.initialPreissuedAmount;
+    asset.code = request.code;
+    asset.details = request.details;
+    asset.issued = 0;
+    asset.maxIssuanceAmount = request.maxIssuanceAmount;
+    asset.owner = owner;
+    asset.policies = request.policies;
+    asset.preissuedAssetSigner = request.preissuedAssetSigner;
+    asset.pendingIssuance = 0;
+    return std::make_shared<AssetFrame>(le);
 }
 
-bool AssetFrame::willExceedMaxIssuanceAmount(uint64_t amount) {
-	uint64_t issued;
-	if (!safeSum(issued, { mAsset.issued, amount, mAsset.lockedIssuance})) {
-		return true;
-	}
-
-	return issued > mAsset.maxIssuanceAmount;
+uint64_t AssetFrame::getPendingIssuance() const
+{
+    return mAsset.pendingIssuance;
 }
 
-bool AssetFrame::tryIssue(uint64_t amount) {
-	if (willExceedMaxIssuanceAmount(amount)) {
-		return false;
-	}
+bool AssetFrame::willExceedMaxIssuanceAmount(const uint64_t amount) const
+{
+    uint64_t issued;
+    if (!safeSum(issued, {mAsset.issued, amount, mAsset.pendingIssuance}))
+    {
+        return true;
+    }
 
-	if (!isAvailableForIssuanceAmountSufficient(amount)) {
-		return false;
-	}
-
-	mAsset.availableForIssueance -= amount;
-	mAsset.issued += amount;
-	return true;
+    return issued > mAsset.maxIssuanceAmount;
 }
 
-bool AssetFrame::canAddAvailableForIssuance(uint64_t amount) {
-	uint64_t availableForIssuance;
-	if (!safeSum(mAsset.availableForIssueance, amount, availableForIssuance))
-		return false;
+bool AssetFrame::tryIssue(uint64_t amount)
+{
+    if (willExceedMaxIssuanceAmount(amount))
+    {
+        return false;
+    }
 
-	uint64_t maxAmountCanBeIssuedAfterUpdate;
-	if (!safeSum(mAsset.issued, availableForIssuance, maxAmountCanBeIssuedAfterUpdate))
-		return false;
+    if (!isAvailableForIssuanceAmountSufficient(amount))
+    {
+        return false;
+    }
 
-	return maxAmountCanBeIssuedAfterUpdate < mAsset.maxIssuanceAmount;
+    mAsset.availableForIssueance -= amount;
+    mAsset.issued += amount;
+    return true;
 }
 
-bool AssetFrame::tryAddAvailableForIssuance(uint64_t amount) {
-	if (!canAddAvailableForIssuance(amount))
-		return false;
+bool AssetFrame::canAddAvailableForIssuance(uint64_t amount)
+{
+    uint64_t availableForIssuance;
+    if (!safeSum(mAsset.availableForIssueance, amount, availableForIssuance))
+        return false;
 
-	mAsset.availableForIssueance += amount;
-	return true;
+    uint64_t maxAmountCanBeIssuedAfterUpdate;
+    if (!safeSum(mAsset.issued, availableForIssuance,
+                 maxAmountCanBeIssuedAfterUpdate))
+        return false;
+
+    return maxAmountCanBeIssuedAfterUpdate < mAsset.maxIssuanceAmount;
+}
+
+bool AssetFrame::tryAddAvailableForIssuance(uint64_t amount)
+{
+    if (!canAddAvailableForIssuance(amount))
+        return false;
+
+    mAsset.availableForIssueance += amount;
+    return true;
 }
 
 bool AssetFrame::tryWithdraw(const uint64_t amount)
@@ -116,78 +132,94 @@ bool AssetFrame::tryWithdraw(const uint64_t amount)
 
 bool AssetFrame::lockIssuedAmount(const uint64_t amount)
 {
-    uint64_t currentlyLockedForIssuance;
-    if (!safeSum(currentlyLockedForIssuance, {mAsset.issued, mAsset.lockedIssuance}))
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Overflow on sum of issued and lockedIssuance " << mAsset.code;
-        throw runtime_error("Overflow on sum of issued and lockedIssuance");
-    }
-
-    uint64_t updatedLockedForIssuance;
-    if (!safeSum(currentlyLockedForIssuance, amount, updatedLockedForIssuance))
+    if (willExceedMaxIssuanceAmount(amount))
     {
         return false;
     }
 
-    mAsset.lockedIssuance = updatedLockedForIssuance;
-    return mAsset.maxIssuanceAmount <= updatedLockedForIssuance;
+    if (!isAvailableForIssuanceAmountSufficient(amount))
+    {
+        return false;
+    }
 
+    mAsset.availableForIssueance -= amount;
+    mAsset.pendingIssuance += amount;
+    return true;
 }
 
-bool AssetFrame::isAssetCodeValid(AssetCode const & code)
+void AssetFrame::mustUnlockIssuedAmount(uint64_t const amount)
 {
-	bool zeros = false;
-	bool onechar = false; // at least one non zero character
-	for (uint8_t b : code)
-	{
-		if (b == 0)
-		{
-			zeros = true;
-		}
-		else if (zeros)
-		{
-			// zeros can only be trailing
-			return false;
-		}
-		else
-		{
-			if (b > 0x7F || !std::isalnum((char)b, cLocale))
-			{
-				return false;
-			}
-			onechar = true;
-		}
-	}
-	return onechar;
+    if (mAsset.pendingIssuance < amount)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Expected amount to be less then pending issuance; asset: " << xdr::xdr_to_string(mAsset) << "; amount: " << amount;
+        throw runtime_error("Expected amount to be less then pending issuance");
+    }
+
+    mAsset.pendingIssuance -= amount;
+    if (!safeSum(amount, mAsset.availableForIssueance, mAsset.availableForIssueance))
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Overflow on unlock issued amount. Failed to add availableForIssueance; asset: "
+            << xdr::xdr_to_string(mAsset) << "; amount: " << amount;
+        throw runtime_error("Overflow on unlock issued amount. Failed to add availableForIssueance");
+    }
 }
 
-bool
-AssetFrame::isValid(AssetEntry const& oe)
+bool AssetFrame::isAssetCodeValid(AssetCode const& code)
 {
-	uint64_t canBeIssued;
-	if (!safeSum(canBeIssued, { oe.issued, oe.availableForIssueance})) {
-		return false;
-	}
-
-        if (oe.maxIssuanceAmount < canBeIssued)
+    bool zeros = false;
+    bool onechar = false; // at least one non zero character
+    for (uint8_t b : code)
+    {
+        if (b == 0)
+        {
+            zeros = true;
+        }
+        else if (zeros)
+        {
+            // zeros can only be trailing
             return false;
-
-        uint64_t totalIssuedOrLocked;
-    if (!safeSum(totalIssuedOrLocked, {oe.issued, oe.lockedIssuance}))
-    {
-        return false;
+        }
+        else
+        {
+            if (b > 0x7F || !std::isalnum((char)b, cLocale))
+            {
+                return false;
+            }
+            onechar = true;
+        }
     }
-
-    if (oe.maxIssuanceAmount < totalIssuedOrLocked)
-        return false;
-
-	return isAssetCodeValid(oe.code);
+    return onechar;
 }
 
-bool
-AssetFrame::isValid() const
+void AssetFrame::ensureValid(AssetEntry const& oe)
 {
-	return isValid(mAsset);
+    try
+    {
+        uint64_t totalIssuedOrLocked;
+        if (!safeSum(totalIssuedOrLocked, { oe.issued, oe.pendingIssuance }))
+        {
+            throw runtime_error("Overflow during calculation of totalIssuedOrLocked");
+        }
+
+        if (oe.maxIssuanceAmount < totalIssuedOrLocked)
+        {
+            throw runtime_error("totalIssuedOrLocked exceeds max issuance amount");
+        }
+
+       if (!isAssetCodeValid(oe.code))
+       {
+           throw runtime_error("asset code is invalid");
+       }
+    }
+    catch (...)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected asset entry is invalid: " << xdr::xdr_to_string(oe);
+        throw_with_nested(runtime_error("Asset entry is invalid"));
+    }
 }
 
+void AssetFrame::ensureValid() const
+{
+    ensureValid(mAsset);
+}
 }

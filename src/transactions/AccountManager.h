@@ -65,10 +65,14 @@ public:
     Result addStats(AccountFrame::pointer account, BalanceFrame::pointer balance, uint64_t amountToAdd,
                     uint64_t &universalAmount);
 
-    void revertStats(AccountID account, int64_t universalAmount, time_t timePerformed);
+    void revertStats(AccountID account, uint64_t universalAmount, time_t timePerformed);
 
     void transferFee(AssetCode asset, uint64_t totalFee);
 
     void transferFee(AssetCode asset, Fee fee);
+
+    BalanceID loadOrCreateBalanceForAsset(AccountID const& account, AssetCode const& asset) const;
+    static BalanceID loadOrCreateBalanceForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
+    static BalanceFrame::pointer loadOrCreateBalanceFrameForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
 };
 }

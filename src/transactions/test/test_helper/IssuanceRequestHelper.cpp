@@ -15,6 +15,7 @@
 #include "ReviewPreIssuanceRequestHelper.h"
 #include "ReviewIssuanceRequestHelper.h"
 #include "ManageAssetTestHelper.h"
+#include "test/test_marshaler.h"
 
 
 namespace stellar

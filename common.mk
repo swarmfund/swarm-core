@@ -9,7 +9,8 @@ AM_CPPFLAGS += -I"$(top_srcdir)/lib"			\
 	-I"$(top_srcdir)/lib/cereal/include"		\
 	-I"$(top_srcdir)/lib/asio/include"		\
 	-I"$(top_srcdir)/lib/util"			\
-	-I"$(top_srcdir)/lib/soci/src/core"
+	-I"$(top_srcdir)/lib/soci/src/core"             \
+        -I"$(top_srcdir)/lib/coincore/src"
 
 if USE_POSTGRES
 AM_CPPFLAGS += -DUSE_POSTGRES=1 $(libpq_CFLAGS)

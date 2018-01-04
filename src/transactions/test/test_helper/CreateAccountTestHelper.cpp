@@ -93,28 +93,22 @@ namespace stellar {
         CreateAccountResultCode CreateAccountTestHelper::applyTx(CreateAccountTestBuilder builder) {
             auto txFrame = builder.buildTx(mTestManager);
             mTestManager->applyCheck(txFrame);
-            auto checker = CreateAccountChecker(mTestManager);
-            checker.doCheck(builder, txFrame);
+
             auto txResult = txFrame->getResult();
             auto opResult = txResult.result.results()[0];
             auto firstResultOpCode = getFirstResult(*txFrame).code();
-            if (builder.expectedResult == CreateAccountResultCode::SUCCESS &&
-                    firstResultOpCode != OperationResultCode::opINNER) {
+
+            if (firstResultOpCode != OperationResultCode::opINNER){
+                mustEqualsResultCode<OperationResultCode>(builder.operationResultCode, firstResultOpCode);
                 return builder.expectedResult;
             }
-
+            auto checker = CreateAccountChecker(mTestManager);
+            checker.doCheck(builder, txFrame);
             return CreateAccountOpFrame::getInnerCode(opResult);
         }
 
         void
         CreateAccountChecker::doCheck(CreateAccountTestBuilder builder, TransactionFramePtr txFrame) {
-
-            auto firstResultOpCode = getFirstResult(*txFrame).code();
-
-            if (firstResultOpCode != OperationResultCode::opINNER){
-                mustEqualsResultCode<OperationResultCode>(builder.operationResultCode, firstResultOpCode);
-                return;
-            }
 
             auto txResult = txFrame->getResult();
             auto opResult = txResult.result.results()[0];

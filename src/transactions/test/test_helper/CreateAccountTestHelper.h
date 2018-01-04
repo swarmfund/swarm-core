@@ -39,26 +39,13 @@ namespace stellar {
             CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS;
         };
 
-        template <typename Builder>
-        class OperationChecker {
-        public:
-            static void applyAndCheckFirstOperation(OperationBuilder<Builder>* operationBuilder,
-                                                    TestManager::pointer testManager){
-                auto tx = operationBuilder->buildTx(testManager);
-                applyCheck(tx, testManager->getLedgerDelta(), testManager->getApp());
-                auto actualResult = getFirstResult(*tx).code();
-                mustEqualsResultCode<OperationResultCode>(operationBuilder->operationResultCode, actualResult);
-            }
-        };
-
-        class CreateAccountChecker : public OperationChecker<CreateAccountTestBuilder> {
+        class CreateAccountChecker {
         public:
             TestManager::pointer mTestManager;
 
             explicit CreateAccountChecker(TestManager::pointer testManager);
 
-            void doCheck(CreateAccountTestBuilder builder,
-                         CreateAccountResultCode actualResultCode);
+            void doCheck(CreateAccountTestBuilder builder, TransactionFramePtr txFrame);
         };
 
         class CreateAccountTestHelper : public TxHelper {

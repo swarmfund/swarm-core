@@ -93,21 +93,35 @@ namespace stellar {
         CreateAccountResultCode CreateAccountTestHelper::applyTx(CreateAccountTestBuilder builder) {
             auto txFrame = builder.buildTx(mTestManager);
             mTestManager->applyCheck(txFrame);
+            auto checker = CreateAccountChecker(mTestManager);
+            checker.doCheck(builder, txFrame);
+            auto txResult = txFrame->getResult();
+            auto opResult = txResult.result.results()[0];
+            auto firstResultOpCode = getFirstResult(*txFrame).code();
+            if (builder.expectedResult == CreateAccountResultCode::SUCCESS &&
+                    firstResultOpCode != OperationResultCode::opINNER) {
+                return builder.expectedResult;
+            }
+
+            return CreateAccountOpFrame::getInnerCode(opResult);
+        }
+
+        void
+        CreateAccountChecker::doCheck(CreateAccountTestBuilder builder, TransactionFramePtr txFrame) {
+
+            auto firstResultOpCode = getFirstResult(*txFrame).code();
+
+            if (firstResultOpCode != OperationResultCode::opINNER){
+                mustEqualsResultCode<OperationResultCode>(builder.operationResultCode, firstResultOpCode);
+                return;
+            }
+
             auto txResult = txFrame->getResult();
             auto opResult = txResult.result.results()[0];
             auto actualResultCode = CreateAccountOpFrame::getInnerCode(opResult);
 
-            mustEqualsResultCode<CreateAccountResultCode>(actualResultCode, expectedResult);
+            mustEqualsResultCode<CreateAccountResultCode>(actualResultCode, builder.expectedResult);
             REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
-
-            auto checker = CreateAccountChecker(mTestManager);
-            checker.doCheck(builder, actualResultCode);
-            return actualResultCode;
-        }
-
-        void
-        CreateAccountChecker::doCheck(CreateAccountTestBuilder builder,
-            CreateAccountResultCode actualResultCode) {
             Database& db = mTestManager->getDB();
 
             auto accountHelper = AccountHelper::Instance();
@@ -116,7 +130,7 @@ namespace stellar {
 
             AccountFrame::pointer toAccountAfter = accountHelper->loadAccount(builder.to, db);
 
-            if (actualResultCode != CreateAccountResultCode::SUCCESS)
+            if (builder.expectedResult != CreateAccountResultCode::SUCCESS)
             {
                 // check that the target account didn't change
                 REQUIRE(!!toAccount == !!toAccountAfter);
@@ -126,6 +140,7 @@ namespace stellar {
                 }
 
                 return;
+
             }
             REQUIRE(toAccountAfter);
             REQUIRE(!toAccountAfter->isBlocked());
@@ -151,7 +166,6 @@ namespace stellar {
                     REQUIRE(balance->getAccountID() == toAccountAfter->getAccount().accountID);
                 }
             }
-
         }
 
         CreateAccountChecker::CreateAccountChecker(TestManager::pointer testManager) : mTestManager(testManager) {

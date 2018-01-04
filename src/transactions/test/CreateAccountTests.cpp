@@ -76,11 +76,8 @@ TEST_CASE("create account", "[tx][create_account]") {
         for (auto systemAccountType : getSystemAccountTypes()) {
             auto randomAccount = SecretKey::random();
             systemCreateAccountBuilder =
-                    createAccountTestBuilder.setType(systemAccountType).setToPublicKey(randomAccount.getPublicKey());
-            auto createAccount = createCreateAccountTx(app.getNetworkID(), root.key, randomAccount, 0,
-                                                       systemAccountType);
-
-            CreateAccountChecker::applyAndCheckFirstOperation(&systemCreateAccountBuilder, testManager);
+                    systemCreateAccountBuilder.setType(systemAccountType).setToPublicKey(randomAccount.getPublicKey());
+            createAccountHelper.applyTx(systemCreateAccountBuilder);
         }
     }
 
@@ -243,7 +240,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                     .setFromAccount(notRoot)
                     .setType(AccountType::GENERAL)
                     .setOperationResultCode(OperationResultCode::opNOT_ALLOWED);
-            CreateAccountChecker::applyAndCheckFirstOperation(&toBeCreatedHelper, testManager);
+            createAccountHelper.applyTx(toBeCreatedHelper);
         }
     }
     SECTION("Can update not verified to syndicate") {

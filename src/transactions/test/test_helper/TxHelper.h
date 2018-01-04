@@ -15,7 +15,6 @@ namespace stellar
 {
 namespace txtest 
 {
-    class CreateAccountTestBuilder;
 
     template<typename SpecificBuilder>
     class OperationBuilder {

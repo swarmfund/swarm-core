@@ -55,9 +55,11 @@ TEST_CASE("create account", "[tx][create_account]") {
         const auto btcKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
                                                                 ExternalSystemType::BITCOIN, app.getDatabase());
         REQUIRE(!!btcKey);
+
         const auto ethKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
                                                                 ExternalSystemType::ETHEREUM, app.getDatabase());
-        REQUIRE(!!ethKey);
+	    REQUIRE(!!ethKey);
+
         SECTION("Can update account, but ext keys will be the same") {
             createAccountHelper.applyTx(createAccountTestBuilder.setType(AccountType::GENERAL));
             const auto btcKeyAfterUpdate = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),

@@ -47,6 +47,18 @@ namespace txtest
             return specificBuilder;
         }
 
+        SpecificBuilder setSource(Account from) {
+            SpecificBuilder newTestHelper = copy();
+            newTestHelper.source = from;
+            return newTestHelper;
+        }
+
+        SpecificBuilder setSigner(Account *signer) {
+            SpecificBuilder newTestHelper = copy();
+            newTestHelper.signer = signer;
+            return newTestHelper;
+        }
+
         Account *signer = nullptr;
         Account source;
         OperationResultCode operationResultCode = OperationResultCode::opINNER;

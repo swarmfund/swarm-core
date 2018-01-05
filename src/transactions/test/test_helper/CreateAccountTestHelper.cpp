@@ -25,12 +25,6 @@ namespace stellar {
             return op;
         }
 
-        CreateAccountTestBuilder CreateAccountTestBuilder::setSource(Account from) {
-            auto newTestHelper = copy();
-            newTestHelper.source = from;
-            return newTestHelper;
-        }
-
         CreateAccountTestBuilder CreateAccountTestBuilder::setToPublicKey(PublicKey to) {
             auto newTestHelper = copy();
             newTestHelper.to = to;
@@ -45,12 +39,6 @@ namespace stellar {
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setType(int32_t accountType) {
             return setType(static_cast<AccountType>(accountType));
-        }
-
-        CreateAccountTestBuilder CreateAccountTestBuilder::setSigner(Account *signer) {
-            auto newTestHelper = copy();
-            newTestHelper.signer = signer;
-            return newTestHelper;
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setReferrer(AccountID *referrer) {

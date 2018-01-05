@@ -14,15 +14,11 @@ namespace stellar {
             }
             Operation buildOp() override;
 
-            CreateAccountTestBuilder setSource(Account from);
-
             CreateAccountTestBuilder setToPublicKey(PublicKey to);
 
             CreateAccountTestBuilder setType(AccountType accountType);
 
             CreateAccountTestBuilder setType(int32_t accountType);
-
-            CreateAccountTestBuilder setSigner(Account *signer);
 
             CreateAccountTestBuilder setReferrer(AccountID *referrer);
 

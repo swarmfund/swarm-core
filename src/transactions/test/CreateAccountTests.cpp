@@ -9,6 +9,7 @@
 #include "ledger/AccountHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -44,7 +45,7 @@ TEST_CASE("create account", "[tx][create_account]") {
 
     auto randomAccount = SecretKey::random();
     createAccountTestBuilder = createAccountTestBuilder
-            .setFromAccount(root)
+            .setSource(root)
             .setToPublicKey(randomAccount.getPublicKey())
             .setType(AccountType::NOT_VERIFIED);
     auto createAccountHelper = CreateAccountTestHelper(testManager);
@@ -58,7 +59,7 @@ TEST_CASE("create account", "[tx][create_account]") {
 
         const auto ethKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
                                                                 ExternalSystemType::ETHEREUM, app.getDatabase());
-	    REQUIRE(!!ethKey);
+        REQUIRE(!!ethKey);
 
         SECTION("Can update account, but ext keys will be the same") {
             createAccountHelper.applyTx(createAccountTestBuilder.setType(AccountType::GENERAL));
@@ -138,7 +139,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                         .setType(AccountType::NOT_VERIFIED)
                         .setReferrer(&validReferrer)
                         .setPolicies(1)
-                        .setResultCode(CreateAccountResultCode::TYPE_NOT_ALLOWED)
+                        .setResultCode(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAS_POLICIES)
         );
     }
 
@@ -239,7 +240,7 @@ TEST_CASE("create account", "[tx][create_account]") {
             auto notRoot = Account{accountCreator, Salt(1)};
             auto toBeCreated = SecretKey::random();
             auto toBeCreatedHelper = notAllowedBuilder.setToPublicKey(toBeCreated.getPublicKey())
-                    .setFromAccount(notRoot)
+                    .setSource(notRoot)
                     .setType(AccountType::GENERAL)
                     .setOperationResultCode(OperationResultCode::opNOT_ALLOWED);
             createAccountHelper.applyTx(toBeCreatedHelper);
@@ -252,30 +253,36 @@ TEST_CASE("create account", "[tx][create_account]") {
         createAccountHelper.applyTx(toBeSyndicateBuilder);
         createAccountHelper.applyTx(toBeSyndicateBuilder.setType(AccountType::SYNDICATE));
     }
-    for (auto accountType : getAllAccountTypes()) {
-        // can be created only once
-        if (isSystemAccountType(AccountType(accountType)))
-            continue;
+    SECTION("Can only change account type from Not verified to general") {
 
-        for (auto updateAccountType : getAllAccountTypes()) {
-            if (isSystemAccountType(AccountType(updateAccountType)))
+        for (auto accountType : getAllAccountTypes()) {
+            // can be created only once
+            if (isSystemAccountType(AccountType(accountType)))
                 continue;
-            if (updateAccountType == accountType)
-                continue;
-            const auto isAllowedToUpdateTo =
-                    updateAccountType == AccountType::GENERAL || updateAccountType == AccountType::SYNDICATE;
-            if (isAllowedToUpdateTo && accountType == AccountType::NOT_VERIFIED)
-                continue;
-            auto toBeCreated = SecretKey::random();
-            auto toBeCreatedBuilder = createAccountTestBuilder
-                    .setToPublicKey(toBeCreated.getPublicKey())
-                    .setType(accountType);
 
-            createAccountHelper.applyTx(toBeCreatedBuilder);
-            createAccountHelper.applyTx(toBeCreatedBuilder
-                                                .setType(updateAccountType)
-                                                .setResultCode(CreateAccountResultCode::TYPE_NOT_ALLOWED)
-            );
+            for (auto updateAccountType : getAllAccountTypes())
+            {
+                if (isSystemAccountType(AccountType(updateAccountType)))
+                    continue;
+                if (updateAccountType == accountType)
+                    continue;
+                const auto isAllowedToUpdateTo = updateAccountType == AccountType::GENERAL ||
+                                                 updateAccountType == AccountType::SYNDICATE ||
+                                                 updateAccountType == AccountType::EXCHANGE;
+                if (isAllowedToUpdateTo && accountType == AccountType::NOT_VERIFIED)
+                    continue;
+                auto toBeCreated = SecretKey::random();
+
+                auto toBeCreatedBuilder = createAccountTestBuilder
+                        .setToPublicKey(toBeCreated.getPublicKey())
+                        .setType(accountType);
+
+                createAccountHelper.applyTx(toBeCreatedBuilder);
+                createAccountHelper.applyTx(toBeCreatedBuilder
+                                                    .setType(updateAccountType)
+                                                    .setResultCode(CreateAccountResultCode::TYPE_NOT_ALLOWED)
+                );
+            }
         }
     }
 }

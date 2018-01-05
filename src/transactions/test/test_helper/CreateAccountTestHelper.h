@@ -14,7 +14,7 @@ namespace stellar {
             }
             Operation buildOp() override;
 
-            CreateAccountTestBuilder setFromAccount(Account from);
+            CreateAccountTestBuilder setSource(Account from);
 
             CreateAccountTestBuilder setToPublicKey(PublicKey to);
 

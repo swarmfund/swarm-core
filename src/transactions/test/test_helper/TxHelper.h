@@ -9,7 +9,6 @@
 #include "Account.h"
 #include "transactions/TransactionFrame.h"
 #include "transactions/test/TxTests.h"
-#include "TestUtils.h"
 
 namespace stellar
 {

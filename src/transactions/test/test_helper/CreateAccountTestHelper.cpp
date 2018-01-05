@@ -25,7 +25,7 @@ namespace stellar {
             return op;
         }
 
-        CreateAccountTestBuilder CreateAccountTestBuilder::setFromAccount(Account from) {
+        CreateAccountTestBuilder CreateAccountTestBuilder::setSource(Account from) {
             auto newTestHelper = copy();
             newTestHelper.source = from;
             return newTestHelper;
@@ -80,7 +80,7 @@ namespace stellar {
                                                       Account *signer, AccountID *referrer, int32 policies,
                                                       CreateAccountResultCode expectedResult) {
             auto builder = CreateAccountTestBuilder()
-                    .setFromAccount(from)
+                    .setSource(from)
                     .setToPublicKey(to)
                     .setType(accountType)
                     .setSigner(signer)
@@ -99,7 +99,7 @@ namespace stellar {
             auto firstResultOpCode = getFirstResult(*txFrame).code();
 
             if (firstResultOpCode != OperationResultCode::opINNER){
-                mustEqualsResultCode<OperationResultCode>(builder.operationResultCode, firstResultOpCode);
+                REQUIRE(firstResultOpCode == builder.operationResultCode);
                 return builder.expectedResult;
             }
             auto checker = CreateAccountChecker(mTestManager);
@@ -113,8 +113,7 @@ namespace stellar {
             auto txResult = txFrame->getResult();
             auto opResult = txResult.result.results()[0];
             auto actualResultCode = CreateAccountOpFrame::getInnerCode(opResult);
-
-            mustEqualsResultCode<CreateAccountResultCode>(actualResultCode, builder.expectedResult);
+            REQUIRE(actualResultCode == builder.expectedResult);
             REQUIRE(txResult.feeCharged == mTestManager->getApp().getLedgerManager().getTxFee());
             Database& db = mTestManager->getDB();
 

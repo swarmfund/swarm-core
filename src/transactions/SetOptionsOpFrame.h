@@ -22,6 +22,7 @@ class SetOptionsOpFrame : public OperationFrame
 
 	// returns false if error occurs
 	bool tryUpdateSigners(Application& app, LedgerManager& ledgerManager);
+    bool tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager);
 
   public:
     SetOptionsOpFrame(Operation const& op, OperationResult& res,

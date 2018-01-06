@@ -2,10 +2,12 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include "transactions/review_request/ReviewRequestHelper.h"
 #include "transactions/SetOptionsOpFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/ReviewableRequestHelper.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -103,6 +105,23 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 }
 
 bool
+SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager) {
+    Database& db = ledgerManager.getDatabase();
+
+    ReviewableRequestEntry::_body_t body;
+    body.type(ReviewableRequestType::LIMITS_UPDATE);
+    body.limitsUpdateRequest().documentHash = mSetOptions.limitsUpdateRequestData->documentHash;
+    body.limitsUpdateRequest().externalDetails = mSetOptions.limitsUpdateRequestData->externalDetails;
+
+    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), nullptr, body,
+                                                             ledgerManager.getCloseTime());
+
+    EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
+
+    return true;
+}
+
+bool
 SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
 {
@@ -176,6 +195,12 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
                 trust.balanceToUse, db);
             EntryHelperProvider::storeDeleteEntry(delta, db, trustFrame->getKey());
         }
+    }
+
+    if (mSetOptions.limitsUpdateRequestData)
+    {
+        if (!tryCreateUpdateLimitsRequest(app, delta, ledgerManager))
+            return false;
     }
 
     app.getMetrics().NewMeter({"op-set-options", "success", "apply"}, "operation")

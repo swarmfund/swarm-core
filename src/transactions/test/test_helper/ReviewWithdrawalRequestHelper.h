@@ -32,7 +32,7 @@ class ReviewWithdrawRequestHelper : public ReviewRequestHelper
 {
 
 public:
-    ReviewWithdrawRequestHelper(TestManager::pointer testManager);
+    explicit ReviewWithdrawRequestHelper(TestManager::pointer testManager);
 
     using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source,

@@ -179,6 +179,7 @@ namespace stellar {
 
 		std::string actIDStrKey = PubKeyUtils::toStrKey(trustFrame->getAllowedAccount());
 		std::string balIDStrKey = BalanceKeyUtils::toStrKey(trustFrame->getBalanceToUse());
+        int32_t trustVersion = static_cast<int32_t>(trustFrame->getTrust().ext.v());
 		std::string sql;
 
 		if (insert)
@@ -192,7 +193,7 @@ namespace stellar {
 		{
 			sql = std::string(
 				"UPDATE trusts "
-				"SET    lastmodified=:v3 "
+				"SET    lastmodified=:v3, version=:v4 "
 				"WHERE  allowed_account=:id AND balance_to_use=:v2");
 		}
 
@@ -203,6 +204,7 @@ namespace stellar {
 			st.exchange(use(actIDStrKey, "id"));
 			st.exchange(use(balIDStrKey, "v2"));
 			st.exchange(use(trustFrame->mEntry.lastModifiedLedgerSeq, "v3"));
+            st.exchange(use(trustVersion, "v4"));
 			st.define_and_bind();
 			{
 				auto timer = insert ? db.getInsertTimer("trusts")

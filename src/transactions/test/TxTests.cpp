@@ -262,7 +262,7 @@ closeLedgerOn(Application& app, uint32 ledgerSeq, int day, int month, int year,
 [[deprecated("Use TestMnager")]]
 void upgradeToCurrentLedgerVersion(Application& app)
 {
-	TestManager::make(app)->upgradeToCurrentLedgerVersion();
+	TestManager::upgradeToCurrentLedgerVersion(app);
 }
 
 SecretKey

@@ -951,8 +951,4 @@ LedgerManagerImpl::closeLedgerHelper(LedgerDelta const& delta)
 
     advanceLedgerPointers();
 }
-
-    bool LedgerManagerImpl::shouldUse(const LedgerVersion version) {
-        return getCurrentLedgerHeader().ledgerVersion >= static_cast<int32_t>(version);
-    }
 }

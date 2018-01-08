@@ -25,7 +25,6 @@ set(NOT_COMMON_SOURCE_FILES
         util/NonCopyable.h
         util/optional.h
         util/XDRStream.h
-        test/test_marshaler.h
         work/WorkManager.h
         crypto/ByteSlice.h
         bucket/LedgerCmp.h
@@ -38,8 +37,8 @@ set(NOT_COMMON_SOURCE_FILES
         process/ProcessManager.h
         transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
-        transactions/test/test_helper/Account.h
-)
+        test/test_marshaler.h
+        )
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

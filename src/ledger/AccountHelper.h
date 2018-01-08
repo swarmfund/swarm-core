@@ -27,9 +27,6 @@ namespace stellar
 
 	class AccountHelper : public EntryHelper {
 	public:
-		AccountHelper(AccountHelper const&) = delete;
-		AccountHelper &operator=(AccountHelper const&) = delete;
-
 		static AccountHelper* Instance() {
 			static AccountHelper singleton;
 			return &singleton;
@@ -41,7 +38,6 @@ namespace stellar
 		void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
 		void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key) override;
 		bool exists(Database& db, LedgerKey const& key) override;
-		bool exists(AccountID const& accountID, Database& db);
 		LedgerKey getLedgerKey(LedgerEntry const& from) override;
 		EntryFrame::pointer storeLoad(LedgerKey const& key, Database& db) override;
 		EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
@@ -59,6 +55,9 @@ namespace stellar
 	private:
 		AccountHelper() { ; }
 		~AccountHelper() { ; }
+
+		AccountHelper(AccountHelper const&) = delete;
+		AccountHelper &operator=(AccountHelper const&) = delete;
 
 		void storeUpdate(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
 

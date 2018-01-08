@@ -199,7 +199,8 @@ bool AccountManager::isFeeMatches(const AccountFrame::pointer account, const Fee
 
 AccountManager::Result AccountManager::addStats(AccountFrame::pointer account,
                                                 BalanceFrame::pointer balance,
-                                                uint64_t amountToAdd, uint64_t &universalAmount) {
+                                                uint64_t amountToAdd, uint64_t &universalAmount)
+{
     universalAmount = 0;
     auto statsAssetFrame = AssetHelper::Instance()->loadStatsAsset(mDb);
     if (!statsAssetFrame)

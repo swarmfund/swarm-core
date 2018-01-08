@@ -103,7 +103,5 @@ class LedgerManagerImpl : public LedgerManager
     void closeLedger(LedgerCloseData const& ledgerData) override;
     void deleteOldEntries(Database& db, uint32_t ledgerSeq, uint64_t ledgerCloseTime) override;
     void checkDbState() override;
-
-    bool shouldUse(const LedgerVersion version);
 };
 }

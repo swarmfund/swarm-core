@@ -3,6 +3,11 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "TestManager.h"
+#include "herder/TxSetFrame.h"
+#include "herder/LedgerCloseData.h"
+#include "ledger/LedgerManager.h"
+#include "ledger/LedgerDelta.h"
+#include "util/Timer.h"
 #include "TxHelper.h"
 
 
@@ -36,7 +41,6 @@ namespace txtest
 	{
 		mTestManager = testManager;
 	}
-
 }
 
 }

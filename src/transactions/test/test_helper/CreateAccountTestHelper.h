@@ -12,6 +12,7 @@ namespace stellar {
             CreateAccountTestBuilder copy() override {
                 return *this;
             }
+
             Operation buildOp() override;
 
             CreateAccountTestBuilder setToPublicKey(PublicKey to);
@@ -35,6 +36,30 @@ namespace stellar {
             CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS;
         };
 
+        // A - is multiplicity. Generate pair between each element.
+        // B - is optional multiplicity. A * B. If B is not empty
+        template <typename T>
+        std::vector<std::pair<T, T>> generateAccountTypePairs(std::vector<T> A, std::vector<T> B = std::vector<T>()) {
+            std::vector<std::pair<T, T>> G;
+            for (int i = 0; i < A.size(); i++) {
+                for (int j = 0; j < A.size(); j++) {
+                    if (A[i] == A[j]) {
+                        continue;
+                    }
+                    G.emplace_back(A[i], A[j]);
+                }
+            }
+            if (B.empty()) {
+                return G;
+            }
+            for (auto a : A) {
+                for (auto b : B) {
+                    G.emplace_back(a, b);
+                }
+            }
+            return G;
+        }
+
         class CreateAccountChecker {
         public:
             TestManager::pointer mTestManager;
@@ -54,7 +79,7 @@ namespace stellar {
 
             [[deprecated]]
             CreateAccountResultCode applyCreateAccountTx(Account &from, PublicKey to, AccountType accountType,
-                                                         Account* signer = nullptr, AccountID *referrer = nullptr,
+                                                         Account *signer = nullptr, AccountID *referrer = nullptr,
                                                          int32 policies = -1,
                                                          CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS);
 

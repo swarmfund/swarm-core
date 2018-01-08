@@ -182,34 +182,22 @@ TEST_CASE("create account", "[tx][create_account]") {
         createAccountHelper.applyTx(toBeSyndicateBuilder.setType(AccountType::SYNDICATE));
     }
     SECTION("Can only change account type from Not verified to general") {
-        for (auto accountType : getAllAccountTypes()) {
-            // can be created only once
-            if (isSystemAccountType(AccountType(accountType)))
-                continue;
+        auto pairs = generateAccountTypePairs<AccountType>(
+                {AccountType::GENERAL,
+                 AccountType::SYNDICATE,
+                 AccountType::EXCHANGE},
+                {AccountType::NOT_VERIFIED}
+        );
 
-            for (auto updateAccountType : getAllAccountTypes())
-            {
-                if (isSystemAccountType(AccountType(updateAccountType)))
-                    continue;
-                if (updateAccountType == accountType)
-                    continue;
-                const auto isAllowedToUpdateTo = updateAccountType == AccountType::GENERAL ||
-                                                 updateAccountType == AccountType::SYNDICATE ||
-                                                 updateAccountType == AccountType::EXCHANGE;
-                if (isAllowedToUpdateTo && accountType == AccountType::NOT_VERIFIED)
-                    continue;
-                auto toBeCreated = SecretKey::random();
-
-                auto toBeCreatedBuilder = createAccountTestBuilder
-                        .setToPublicKey(toBeCreated.getPublicKey())
-                        .setType(accountType);
-
-                createAccountHelper.applyTx(toBeCreatedBuilder);
-                createAccountHelper.applyTx(toBeCreatedBuilder
-                                                    .setType(updateAccountType)
-                                                    .setResultCode(CreateAccountResultCode::TYPE_NOT_ALLOWED)
-                );
-            }
+        for (auto pair : pairs) {
+            auto toBeCreated = SecretKey::random();
+            auto toBeCreatedBuilder = createAccountTestBuilder
+                    .setToPublicKey(toBeCreated.getPublicKey())
+                    .setType(pair.first);
+            createAccountHelper.applyTx(toBeCreatedBuilder);
+            createAccountHelper.applyTx(toBeCreatedBuilder.setType(pair.second)
+                                                .setResultCode(CreateAccountResultCode::TYPE_NOT_ALLOWED)
+            );
         }
     }
 }

@@ -21,21 +21,20 @@ namespace stellar {
             return std::make_shared<TestManager>(app, db, lm);
         }
 
-        void TestManager::upgradeToCurrentLedgerVersion() {
-            auto const &lcl = mLm.getLastClosedLedgerHeader();
+        void TestManager::upgradeToCurrentLedgerVersion(Application& app) {
+            auto const &lcl = app.getLedgerManager().getLastClosedLedgerHeader();
             auto const &lastHash = lcl.hash;
             TxSetFramePtr txSet = std::make_shared<TxSetFrame>(lastHash);
 
-
             xdr::xvector<UpgradeType, 6> upgrades;
-            auto ledgerVersion = this->ledgerVersion();
+            auto ledgerVersion = TestManager::ledgerVersion(app);
             upgrades.emplace_back(ledgerVersion.begin(), ledgerVersion.end());
-            auto externalSystemGenerators = this->externalSystemGenerators();
+            auto externalSystemGenerators = TestManager::externalSystemGenerators(app);
             upgrades.emplace_back(externalSystemGenerators.begin(), externalSystemGenerators.end());
 
             StellarValue sv(txSet->getContentsHash(), 1, upgrades, StellarValue::_ext_t(LedgerVersion::EMPTY_VERSION));
             LedgerCloseData ledgerData(1, txSet, sv);
-            mLm.closeLedger(ledgerData);
+            app.getLedgerManager().closeLedger(ledgerData);
         }
 
         bool TestManager::apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp) {
@@ -79,14 +78,14 @@ namespace stellar {
             REQUIRE(result.result.code() != TransactionResultCode::txSUCCESS);
         }
 
-        Value TestManager::ledgerVersion() const {
+        Value TestManager::ledgerVersion(Application& application){
             LedgerUpgrade upgrade(LedgerUpgradeType::VERSION);
-            upgrade.newLedgerVersion() = mApp.getConfig().LEDGER_PROTOCOL_VERSION;
+            upgrade.newLedgerVersion() = application.getConfig().LEDGER_PROTOCOL_VERSION;
             Value v(xdr::xdr_to_opaque(upgrade));
             return v;
         }
 
-        Value TestManager::externalSystemGenerators() {
+        Value TestManager::externalSystemGenerators(Application& app) {
             LedgerUpgrade upgrade(LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR);
             upgrade.newExternalSystemIDGenerators().push_back(ExternalSystemIDGeneratorType::BITCOIN_BASIC);
             upgrade.newExternalSystemIDGenerators().push_back(ExternalSystemIDGeneratorType::ETHEREUM_BASIC);

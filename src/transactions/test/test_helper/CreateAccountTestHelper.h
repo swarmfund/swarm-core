@@ -39,7 +39,7 @@ namespace stellar {
         // A - is multiplicity. Generate pair between each element.
         // B - is optional multiplicity. A * B. If B is not empty
         template <typename T>
-        std::vector<std::pair<T, T>> generateAccountTypePairs(std::vector<T> A, std::vector<T> B = std::vector<T>()) {
+        std::vector<std::pair<T, T>> combineElements(std::vector<T> A, std::vector<T> B = std::vector<T>()) {
             std::vector<std::pair<T, T>> G;
             for (int i = 0; i < A.size(); i++) {
                 for (int j = 0; j < A.size(); j++) {

@@ -23,7 +23,7 @@ TEST_CASE("create account", "[tx][create_account]") {
     Application::pointer appPtr = Application::create(clock, cfg);
     Application &app = *appPtr;
     app.start();
-    upgradeToCurrentLedgerVersion(app);
+    TestManager::upgradeToCurrentLedgerVersion(app);
 
     auto testManager = TestManager::make(app);
     auto root = Account{getRoot(), Salt(1)};
@@ -182,7 +182,7 @@ TEST_CASE("create account", "[tx][create_account]") {
         createAccountHelper.applyTx(toBeSyndicateBuilder.setType(AccountType::SYNDICATE));
     }
     SECTION("Can only change account type from Not verified to general") {
-        auto pairs = generateAccountTypePairs<AccountType>(
+        auto pairs = combineElements<AccountType>(
                 {AccountType::GENERAL,
                  AccountType::SYNDICATE,
                  AccountType::EXCHANGE},
@@ -196,8 +196,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                     .setType(pair.first);
             createAccountHelper.applyTx(toBeCreatedBuilder);
             createAccountHelper.applyTx(toBeCreatedBuilder.setType(pair.second)
-                                                .setResultCode(CreateAccountResultCode::TYPE_NOT_ALLOWED)
-            );
+                                                .setResultCode(CreateAccountResultCode::TYPE_NOT_ALLOWED));
         }
     }
 }

@@ -28,9 +28,9 @@ namespace stellar {
 
             void checkResult(TransactionResult result, bool mustSuccess);
 
-            Value ledgerVersion() const;
+            static Value ledgerVersion(Application& app);
 
-            Value externalSystemGenerators();
+            static Value externalSystemGenerators(Application& app);
 
         public:
             typedef std::shared_ptr<TestManager> pointer;
@@ -39,7 +39,7 @@ namespace stellar {
 
             static pointer make(Application &app);
 
-            void upgradeToCurrentLedgerVersion();
+            static void upgradeToCurrentLedgerVersion(Application& app);
 
             Hash const &getNetworkID() const {
                 return mApp.getNetworkID();

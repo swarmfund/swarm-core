@@ -126,6 +126,9 @@ namespace stellar {
             REQUIRE(toAccountAfter);
             REQUIRE(!toAccountAfter->isBlocked());
             REQUIRE(toAccountAfter->getAccountType() == builder.accountType);
+            if (builder.policies != -1){
+                REQUIRE(toAccountAfter->getPolicies() == builder.policies);
+            }
 
             auto statisticsHelper = StatisticsHelper::Instance();
             auto statisticsFrame = statisticsHelper->loadStatistics(builder.to, db);

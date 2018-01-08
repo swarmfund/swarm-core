@@ -78,40 +78,21 @@ TEST_CASE("create account", "[tx][create_account]") {
                 .setToPublicKey(account.getPublicKey())
                 .setReferrer(&validReferrer);
 
-        auto checkAccountPolicies = [&testManager](AccountID accountID, LedgerVersion expectedAccountVersion,
-                                                   int32 expectedPolicies) {
-            auto accountFrame = AccountHelper::Instance()->loadAccount(accountID, testManager->getDB(),
-            &testManager->getLedgerDelta());
-            REQUIRE(!!accountFrame);
-            REQUIRE(accountFrame->getAccount().ext.v() == expectedAccountVersion);
-            if (expectedPolicies != -1)
-                REQUIRE(accountFrame->getAccount().policies == expectedPolicies);
-        };
-
         SECTION("Can update created without policies") {
             createAccountHelper.applyTx(accountTestBuilder);
-            checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION, -1);
             // change type of account not_verified -> general
             createAccountHelper.applyTx(accountTestBuilder.setType(AccountType::GENERAL));
-            checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
-                                 static_cast<int32_t>(AccountPolicies::NO_PERMISSIONS));
             // can update account's policies no_permissions -> allow_to_create_user_via_api
             createAccountHelper.applyTx(accountTestBuilder.setType(AccountType::GENERAL)
                                                 .setPolicies(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
-            checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
-                                 static_cast<int32_t>(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
             // can remove
             createAccountHelper.applyTx(accountTestBuilder.setType(AccountType::GENERAL)
                                                 .setPolicies(AccountPolicies::NO_PERMISSIONS));
-            checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
-                                 static_cast<int32_t>(AccountPolicies::NO_PERMISSIONS));
         }
 
         SECTION("Can create account with policies") {
             createAccountHelper.applyTx(accountTestBuilder.setType(AccountType::GENERAL)
                                                 .setPolicies(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
-            checkAccountPolicies(account.getPublicKey(), LedgerVersion::EMPTY_VERSION,
-                                 static_cast<int32_t>(AccountPolicies::ALLOW_TO_CREATE_USER_VIA_API));
         }
     }
 

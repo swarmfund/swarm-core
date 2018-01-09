@@ -105,7 +105,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                         .setType(AccountType::NOT_VERIFIED)
                         .setReferrer(&validReferrer)
                         .setPolicies(1)
-                        .setResultCode(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAS_POLICIES)
+                        .setResultCode(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAVE_POLICIES)
         );
     }
 

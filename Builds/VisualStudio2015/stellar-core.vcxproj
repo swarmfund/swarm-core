@@ -325,8 +325,11 @@
     <ClCompile Include="..\..\src\transactions\CreateAccountOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateSaleCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateWithdrawalRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\dex\CreateOfferOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\dex\CreateSaleParticipationOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\dex\DeleteOfferOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\dex\DeleteSaleParticipationOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\ManageOfferOpFrame.cpp" />
-    <ClCompile Include="..\..\src\transactions\dex\ManageSaleParticipationOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\OfferExchange.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\OfferManager.cpp" />
     <ClCompile Include="..\..\src\transactions\DirectDebitOpFrame.cpp" />
@@ -589,8 +592,11 @@
     <ClInclude Include="..\..\src\transactions\CreateAccountOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CreateSaleCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CreateWithdrawalRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\dex\CreateOfferOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\dex\CreateSaleParticipationOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\dex\DeleteOfferOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\dex\DeleteSaleParticipationOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\ManageOfferOpFrame.h" />
-    <ClInclude Include="..\..\src\transactions\dex\ManageSaleParticipationOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\OfferExchange.h" />
     <ClInclude Include="..\..\src\transactions\dex\OfferManager.h" />
     <ClInclude Include="..\..\src\transactions\DirectDebitOpFrame.h" />

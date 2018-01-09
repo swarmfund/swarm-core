@@ -174,7 +174,7 @@ namespace stellar {
 
         if (mCreateAccount.accountType == AccountType::NOT_VERIFIED &&
             mCreateAccount.policies != 0) {
-            innerResult().code(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAS_POLICIES);
+            innerResult().code(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAVE_POLICIES);
             return false;
         }
 

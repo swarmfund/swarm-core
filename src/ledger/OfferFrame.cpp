@@ -53,7 +53,12 @@ namespace stellar
 		return mOffer.offerID;
 	}
 
-	bool
+uint64_t OfferFrame::getOrderBookID() const
+{
+    return mOffer.orderBookID;
+}
+
+bool
 		OfferFrame::isValid(OfferEntry const& oe)
 	{
 		return AssetFrame::isAssetCodeValid(oe.base)

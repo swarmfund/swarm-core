@@ -72,6 +72,21 @@ SaleEntry& SaleFrame::getSaleEntry()
     return mSale;
 }
 
+SaleFrame::State SaleFrame::getState(const uint64_t currentTime) const
+{
+    if (getCurrentCap() >= getHardCap() || getEndTime() <= currentTime)
+    {
+        return State::ENDED;
+    }
+
+    if (getStartTime() > currentTime)
+    {
+        return State::NOT_STARTED_YET;
+    }
+
+    return State::ACTIVE;
+}
+
 uint64_t SaleFrame::getStartTime() const
 {
     return mSale.startTime;
@@ -86,6 +101,11 @@ uint64_t SaleFrame::getSoftCap() const
 uint64_t SaleFrame::getCurrentCap() const
 {
     return mSale.currentCap;
+}
+
+uint64_t SaleFrame::getHardCap() const
+{
+    return mSale.hardCap;
 }
 
 uint64_t SaleFrame::getEndTime() const

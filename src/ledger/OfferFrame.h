@@ -36,6 +36,7 @@ namespace stellar
 
 		int64_t getPrice() const;
 		uint64 getOfferID() const;
+                uint64_t getOrderBookID() const;
 
 		OfferEntry& getOffer();
 

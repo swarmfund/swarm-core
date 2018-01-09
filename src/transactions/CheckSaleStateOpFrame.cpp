@@ -16,6 +16,7 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "issuance/CreateIssuanceRequestOpFrame.h"
+#include "dex/CreateOfferOpFrame.h"
 
 namespace stellar
 {
@@ -173,7 +174,8 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     OperationResult opRes;
     opRes.code(OperationResultCode::opINNER);
     opRes.tr().type(OperationType::MANAGE_OFFER);
-    ManageOfferOpFrame manageOfferOpFrame(op, opRes, mParentTx);
+    // need to directly create CreateOfferOpFrame to bypass validation of CreateSaleParticipationOpFrame
+    CreateOfferOpFrame manageOfferOpFrame(op, opRes, mParentTx);
     manageOfferOpFrame.setSourceAccountPtr(saleOwnerAccount);
     if (!manageOfferOpFrame.doCheckValid(app) || !manageOfferOpFrame.doApply(app, delta, lm))
     {

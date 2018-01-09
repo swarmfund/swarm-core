@@ -23,8 +23,7 @@ public:
             SetOptionsResultCode expectedResult =
                 SetOptionsResultCode::SUCCESS);
 
-    static LimitsUpdateRequest createLimitsUpdateRequest(Hash documentHash,
-                                                         std::string externalDetails);
+    static LimitsUpdateRequest createLimitsUpdateRequest(Hash documentHash);
 
     TransactionFramePtr createLimitsUpdateRequestTx(Account& source, LimitsUpdateRequest request);
 };

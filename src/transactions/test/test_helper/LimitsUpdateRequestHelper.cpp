@@ -55,11 +55,10 @@ LimitsUpdateRequestHelper::applyCreateLimitsUpdateRequest(Account &source,
 }
 
 LimitsUpdateRequest
-LimitsUpdateRequestHelper::createLimitsUpdateRequest(Hash documentHash, std::string externalDetails)
+LimitsUpdateRequestHelper::createLimitsUpdateRequest(Hash documentHash)
 {
     LimitsUpdateRequest result;
     result.documentHash = documentHash;
-    result.externalDetails = externalDetails;
     result.ext.v(LedgerVersion::EMPTY_VERSION);
     return result;
 }
@@ -71,8 +70,7 @@ LimitsUpdateRequestHelper::createLimitsUpdateRequestTx(Account& source,
     Operation baseOp;
     baseOp.body.type(OperationType::SET_OPTIONS);
     auto& op = baseOp.body.setOptionsOp();
-    op.limitsUpdateRequestData->documentHash = request.documentHash;
-    op.limitsUpdateRequestData->externalDetails = request.externalDetails;
+    op.limitsUpdateRequestData.activate().documentHash = request.documentHash;
     op.ext.v(LedgerVersion::EMPTY_VERSION);
     return txFromOperation(source, baseOp, nullptr);
 }

@@ -111,12 +111,13 @@ SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& d
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::LIMITS_UPDATE);
     body.limitsUpdateRequest().documentHash = mSetOptions.limitsUpdateRequestData->documentHash;
-    body.limitsUpdateRequest().externalDetails = mSetOptions.limitsUpdateRequestData->externalDetails;
 
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), nullptr, body,
                                                              ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
+
+    innerResult().success().limitsUpdateRequestID = request->getRequestID();
 
     return true;
 }

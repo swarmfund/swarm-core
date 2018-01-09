@@ -1,9 +1,4 @@
 #pragma once
-
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-
 #include "overlay/StellarXDR.h"
 #include "main/Application.h"
 #include "ledger/LedgerDelta.h"
@@ -11,59 +6,59 @@
 #include "transactions/TransactionFrame.h"
 
 
-namespace medida
-{
-	class MetricsRegistry;
+namespace medida {
+    class MetricsRegistry;
 }
 
-namespace stellar
-{
-namespace txtest 
-{
-	class TestManager
-	{
-	protected:
-		Application& mApp;
-		Database& mDB;
-		LedgerDelta mDelta;
-		LedgerManager& mLm;
+namespace stellar {
+    namespace txtest {
+        class TestManager {
+        protected:
+            Application &mApp;
+            Database &mDB;
+            LedgerDelta mDelta;
+            LedgerManager &mLm;
 
-                bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp);
-		void checkResult(TransactionResult result, bool mustSuccess);
+            bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp);
 
-                Value ledgerVersion() const;
-                Value externalSystemGenerators();
+            void checkResult(TransactionResult result, bool mustSuccess);
 
-	public:
-		typedef std::shared_ptr<TestManager> pointer;
+            static Value ledgerVersion(Application& app);
 
-		TestManager(Application& app, Database& db, LedgerManager& lm);
-		static pointer make(Application& app);
+            static Value externalSystemGenerators(Application& app);
 
-		void upgradeToCurrentLedgerVersion();
+        public:
+            typedef std::shared_ptr<TestManager> pointer;
 
-		Hash const & getNetworkID() const {
-			return mApp.getNetworkID();
-		}
+            TestManager(Application &app, Database &db, LedgerManager &lm);
 
-		Database& getDB() {
-			return mDB;
-		}
+            static pointer make(Application &app);
 
-		Application& getApp() {
-			return mApp;
-		}
+            static void upgradeToCurrentLedgerVersion(Application& app);
 
-		LedgerDelta& getLedgerDelta() {
-			return mDelta;
-		}
+            Hash const &getNetworkID() const {
+                return mApp.getNetworkID();
+            }
 
-		LedgerManager& getLedgerManager() {
-			return mLm;
-		}
+            Database &getDB() {
+                return mDB;
+            }
 
-		bool applyCheck(TransactionFramePtr tx);
-                bool applyCheck(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp);
-	};
-}
+            Application &getApp() {
+                return mApp;
+            }
+
+            LedgerDelta &getLedgerDelta() {
+                return mDelta;
+            }
+
+            LedgerManager &getLedgerManager() {
+                return mLm;
+            }
+
+            bool applyCheck(TransactionFramePtr tx);
+
+            bool applyCheck(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp);
+        };
+    }
 }

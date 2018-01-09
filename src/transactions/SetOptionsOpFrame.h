@@ -37,5 +37,7 @@ class SetOptionsOpFrame : public OperationFrame
     {
         return res.tr().setOptionsResult().code();
     }
+
+    std::string getInnerResultCodeAsStr() override;
 };
 }

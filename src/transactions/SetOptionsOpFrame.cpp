@@ -37,6 +37,14 @@ SetOptionsOpFrame::SetOptionsOpFrame(Operation const& op, OperationResult& res,
 {
 }
 
+std::string
+SetOptionsOpFrame::getInnerResultCodeAsStr()
+{
+    const auto result = getResult();
+    const auto code = getInnerCode(result);
+    return xdr::xdr_traits<SetOptionsResultCode>::enum_name(code);
+}
+
 bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledgerManager)
 {
 	if (!mSetOptions.signer)

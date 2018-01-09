@@ -170,7 +170,13 @@ bool SaleFrame::tryAddCap(const uint64_t amount)
 
     if (mSale.hardCap < updatedCap)
     {
-        return false;
+        const auto isViolationTolerable = updatedCap - mSale.hardCap < ONE;
+        if (!isViolationTolerable)
+        {
+            return false;
+        }
+
+        updatedCap = mSale.hardCap;
     }
 
     mSale.currentCap = updatedCap;

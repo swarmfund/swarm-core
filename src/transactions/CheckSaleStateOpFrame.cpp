@@ -59,12 +59,17 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
     updateMaxIssuance(sale, delta, db);
 }
 
-bool CheckSaleStateOpFrame::handleCancel(const SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
-    Database& db)
+void CheckSaleStateOpFrame::cancelAllOffersInOrderBook(const SaleFrame::pointer sale, LedgerDelta& delta, Database& db)
 {
     auto orderBookID = sale->getID();
     const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), sale->getQuoteAsset(), &orderBookID, nullptr, db);
     OfferManager::deleteOffers(offersToCancel, db, delta);
+}
+
+bool CheckSaleStateOpFrame::handleCancel(const SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
+    Database& db)
+{
+    cancelAllOffersInOrderBook(sale, delta, db);
 
     unlockPendingIssunace(sale, delta, db);
 
@@ -91,6 +96,7 @@ bool CheckSaleStateOpFrame::handleClose(const SaleFrame::pointer sale, Applicati
 
     const auto saleOfferResult = applySaleOffer(saleOwnerAccount, sale, app, lm, delta);
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
+    cancelAllOffersInOrderBook(sale, delta, db);
     innerResult().code(CheckSaleStateResultCode::SUCCESS);
     auto& success = innerResult().success();
     success.saleID = sale->getID();
@@ -192,7 +198,13 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
         throw runtime_error("Unexpected result code from manage offer on check sale state");
     }
 
-    return opRes.tr().manageOfferResult().success();
+    auto result = opRes.tr().manageOfferResult().success();
+    if (result.offersClaimed.empty())
+    {
+        throw runtime_error("Unexpected state: sale was closed, but no order matches");
+    }
+
+    return result;
 }
 
 CheckSaleStateOpFrame::CheckSaleStateOpFrame(Operation const& op,

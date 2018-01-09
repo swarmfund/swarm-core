@@ -156,14 +156,15 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     LedgerManager& lm, LedgerDelta& delta)
 {
     auto& db = app.getDatabase();
-    const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, sale->getQuoteAsset(), sale->getCurrentCap(), db);
+    const auto baseAmount = sale->getBaseAmountForCurrentCap();
+    const auto quoteAmount = OfferManager::calcualteQuoteAmount(baseAmount, sale->getPrice());
+    const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, sale->getQuoteAsset(), quoteAmount, db);
     if (feeResult.isOverflow)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: overflow on sale fees calculation: " << xdr::xdr_to_string(sale->getSaleEntry());
         throw runtime_error("Unexpected state: overflow on sale fees calculation");
     }
 
-    const auto baseAmount = sale->getBaseAmountForCurrentCap();
     const auto manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), sale->getQuoteBalanceID(),
         false, baseAmount, sale->getPrice(), feeResult.calculatedPercentFee, 0, sale->getID());
     Operation op;

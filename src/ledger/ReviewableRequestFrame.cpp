@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/json/json.h>
 #include "ReviewableRequestFrame.h"
 #include "database/Database.h"
 #include "LedgerDelta.h"
@@ -150,6 +151,15 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     saleFrame->ensureValid();
 }
 
+void ReviewableRequestFrame::ensureUpdateKYCValid(UpdateKYCRequest const &request)
+{
+    Json::Value root;
+    Json::Reader reader;
+
+    if (!reader.parse(request.dataKYC, root, false))
+        throw std::runtime_error("dataKYC is invalid");
+}
+
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
 {
 	return sha256(xdr::xdr_to_opaque(body));
@@ -181,13 +191,16 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::SALE:
             ensureSaleCreationValid(oe.body.saleCreationRequest());
             return;
+        case ReviewableRequestType::UPDATE_KYC:
+            ensureUpdateKYCValid(oe.body.updateKYCRequest());
+            return;
         default:
             throw runtime_error("Unexpected reviewable request typw");
         }
     } catch(exception ex)
     {
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Reviewable request is invalid: " << xdr::xdr_to_string(oe) << " reason:" << ex.what();
-        throw_with_nested(runtime_error("Reviewable request is invalid")); 
+        throw_with_nested(runtime_error("Reviewable request is invalid"));
     }
 }
 
@@ -196,5 +209,6 @@ ReviewableRequestFrame::ensureValid() const
 {
     ensureValid(mRequest);
 }
+
 }
 

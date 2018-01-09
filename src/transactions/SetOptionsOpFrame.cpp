@@ -2,6 +2,8 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/ReviewableRequestHelper.h>
+#include <lib/json/json.h>
 #include "transactions/SetOptionsOpFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
@@ -10,6 +12,7 @@
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "ManageAccountOpFrame.h"
 
 namespace stellar
 {
@@ -102,6 +105,36 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 	return true;
 }
 
+void SetOptionsOpFrame::updateThresholds()
+{
+    AccountEntry& account = mSourceAccount->getAccount();
+
+    if (mSetOptions.masterWeight)
+    {
+        account.thresholds[static_cast<int32_t>(ThresholdIndexes::MASTER_WEIGHT)] =
+                *mSetOptions.masterWeight & UINT8_MAX;
+    }
+
+    if (mSetOptions.lowThreshold)
+    {
+        account.thresholds[static_cast<int32_t>(ThresholdIndexes::LOW)] =
+                *mSetOptions.lowThreshold & UINT8_MAX;
+    }
+
+    if (mSetOptions.medThreshold)
+    {
+        account.thresholds[static_cast<int32_t>(ThresholdIndexes::MED)] =
+                *mSetOptions.medThreshold & UINT8_MAX;
+    }
+
+    if (mSetOptions.highThreshold)
+    {
+        account.thresholds[static_cast<int32_t>(ThresholdIndexes::HIGH)] =
+                *mSetOptions.highThreshold & UINT8_MAX;
+    }
+
+}
+
 bool SetOptionsOpFrame::processTrustData(Application &app, LedgerDelta &delta)
 {
     Database& db = app.getDatabase();
@@ -145,37 +178,87 @@ bool SetOptionsOpFrame::processTrustData(Application &app, LedgerDelta &delta)
     return true;
 }
 
+ReviewableRequestFrame::pointer
+SetOptionsOpFrame::getUpdatedOrCreateReviewableRequest(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager)
+{
+    if (!mSetOptions.updateKYCData)
+        throw std::runtime_error("Unexpected state. Update KYC data is not set.");
+
+    uint64_t requestID = mSetOptions.updateKYCData->requestID;
+    auto updateKYCRequest = getOrCreateReviewableRequest(app, delta, ledgerManager);
+    if (!updateKYCRequest)
+        return nullptr;
+
+    auto& updateKYCEntry = updateKYCRequest->getRequestEntry();
+    updateKYCEntry.body.type(ReviewableRequestType::UPDATE_KYC);
+    updateKYCEntry.body.updateKYCRequest().dataKYC = mSetOptions.updateKYCData->dataKYC;
+    updateKYCEntry.body.updateKYCRequest().accountType = mSourceAccount->getAccountType();
+    updateKYCRequest->recalculateHashRejectReason();
+
+    return updateKYCRequest;
+}
+
+ReviewableRequestFrame::pointer SetOptionsOpFrame::getOrCreateReviewableRequest(Application &app, LedgerDelta &delta,
+                                                LedgerManager &ledgerManager)
+{
+    if (!mSetOptions.updateKYCData)
+        throw std::runtime_error("Unexpected state. Update KYC data is not set.");
+
+    uint64_t requestID = mSetOptions.updateKYCData->requestID;
+    if (requestID != 0)
+    {
+        auto updateKYCRequest = ReviewableRequestHelper::Instance()->loadRequest(requestID, ledgerManager.getDatabase());
+        if (!updateKYCRequest)
+            return nullptr;
+        return updateKYCRequest;
+    }
+
+    auto reference = xdr::pointer<string64>(new string64(updateKYCReference));
+    auto updateKYCRequest = ReviewableRequestFrame::createNew(delta, mSourceAccount->getID(), app.getMasterID(),
+                                                              reference, ledgerManager.getCloseTime());
+    return updateKYCRequest;
+}
+
+bool SetOptionsOpFrame::updateKYC(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+                                  uint64_t &requestID)
+{
+    Database& db = ledgerManager.getDatabase();
+    // attempt to add another request
+    if (mSetOptions.updateKYCData->requestID == 0 &&
+            ReviewableRequestHelper::Instance()->exists(db, mSourceAccount->getID(), updateKYCReference))
+    {
+        app.getMetrics().NewMeter({"op-set-options", "failure",
+                                   "update-KYC-request-malformed"},
+                                  "operation").Mark();
+        innerResult().code(SetOptionsResultCode::UPDATE_KYC_REQUEST_NOT_FOUND);
+        return false;
+    }
+
+    auto updateKYCRequest = getUpdatedOrCreateReviewableRequest(app, delta, ledgerManager);
+    if (!updateKYCRequest)
+    {
+        app.getMetrics().NewMeter({"op-set-options", "failure",
+                                   "update-KYC-request-not-found"},
+                                  "operation").Mark();
+        innerResult().code(SetOptionsResultCode::UPDATE_KYC_REQUEST_NOT_FOUND);
+        return false;
+    }
+
+    EntryHelperProvider::storeAddOrChangeEntry(delta, db, updateKYCRequest->mEntry);
+    requestID = updateKYCRequest->getRequestID();
+
+    mSourceAccount->setAccountType(AccountType::NOT_VERIFIED);
+
+    return true;
+}
+
 bool
 SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-    AccountEntry& account = mSourceAccount->getAccount();
 
-
-    if (mSetOptions.masterWeight)
-    {
-        account.thresholds[static_cast<int32_t>(ThresholdIndexes::MASTER_WEIGHT)] =
-            *mSetOptions.masterWeight & UINT8_MAX;
-    }
-
-    if (mSetOptions.lowThreshold)
-    {
-        account.thresholds[static_cast<int32_t>(ThresholdIndexes::LOW)] =
-            *mSetOptions.lowThreshold & UINT8_MAX;
-    }
-
-    if (mSetOptions.medThreshold)
-    {
-        account.thresholds[static_cast<int32_t>(ThresholdIndexes::MED)] =
-            *mSetOptions.medThreshold & UINT8_MAX;
-    }
-
-    if (mSetOptions.highThreshold)
-    {
-        account.thresholds[static_cast<int32_t>(ThresholdIndexes::HIGH)] =
-            *mSetOptions.highThreshold & UINT8_MAX;
-    }
+    updateThresholds();
 
 	if (!tryUpdateSigners(app, ledgerManager))
 		return false;
@@ -186,9 +269,17 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
             return false;
     }
 
+    uint64_t requestID = 0;
+    if (mSetOptions.updateKYCData)
+    {
+        if (!updateKYC(app, delta, ledgerManager, requestID))
+            return false;
+    }
+
     app.getMetrics().NewMeter({"op-set-options", "success", "apply"}, "operation")
         .Mark();
     innerResult().code(SetOptionsResultCode::SUCCESS);
+    innerResult().success().requestID = requestID;
     EntryHelperProvider::storeChangeEntry(delta, db, mSourceAccount->mEntry);
     return true;
 }
@@ -262,6 +353,19 @@ SetOptionsOpFrame::doCheckValid(Application& app)
             app.getMetrics().NewMeter({"op-set-options", "invalid", "bad-Trust-account"},
                              "operation").Mark();
             innerResult().code(SetOptionsResultCode::TRUST_MALFORMED);
+            return false;
+        }
+    }
+
+    if (mSetOptions.updateKYCData)
+    {
+        Json::Reader reader;
+        Json::Value value;
+        if (!reader.parse(mSetOptions.updateKYCData->dataKYC, value, false))
+        {
+            app.getMetrics().NewMeter({"op-set-options", "invalid", "KYC-data-malformed"},
+                                      "operation").Mark();
+            innerResult().code(SetOptionsResultCode::UPDATE_KYC_MALFORMED);
             return false;
         }
     }

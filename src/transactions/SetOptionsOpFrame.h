@@ -5,11 +5,14 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/OperationFrame.h"
+#include "ledger/ReviewableRequestFrame.h"
 
 namespace stellar
 {
 class SetOptionsOpFrame : public OperationFrame
 {
+    const std::string updateKYCReference = "updateKYC";
+
 	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
 	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
@@ -24,6 +27,16 @@ class SetOptionsOpFrame : public OperationFrame
 	bool tryUpdateSigners(Application& app, LedgerManager& ledgerManager);
 
     bool processTrustData(Application &app, LedgerDelta &delta);
+
+    void updateThresholds();
+
+    bool updateKYC(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager, uint64_t &requestID);
+
+    ReviewableRequestFrame::pointer getUpdatedOrCreateReviewableRequest(Application &app, LedgerDelta &delta,
+                                                                        LedgerManager &ledgerManager);
+
+    ReviewableRequestFrame::pointer getOrCreateReviewableRequest(Application &app, LedgerDelta &delta,
+                                                                 LedgerManager &ledgerManager);
 
   public:
     SetOptionsOpFrame(Operation const& op, OperationResult& res,

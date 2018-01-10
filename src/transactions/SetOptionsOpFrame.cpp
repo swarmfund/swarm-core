@@ -8,6 +8,7 @@
 #include "ledger/TrustHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
+#include "crypto/SHA.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -112,15 +113,32 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 	return true;
 }
 
+std::string
+SetOptionsOpFrame::getLimitsUpdateRequestReference(Hash const& documentHash) const
+{
+    const auto hash = sha256(xdr_to_opaque(ReviewableRequestType::LIMITS_UPDATE, documentHash));
+    return binToHex(hash);
+}
+
 bool
 SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager) {
     Database& db = ledgerManager.getDatabase();
+
+    auto reference = getLimitsUpdateRequestReference(mSetOptions.limitsUpdateRequestData->documentHash);
+    const auto referencePtr = xdr::pointer<string64>(new string64(reference));
+
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    if (reviewableRequestHelper->isReferenceExist(db, getSourceID(), reference))
+    {
+        innerResult().code(SetOptionsResultCode::LIMITS_UPDATE_REQUEST_REFERENCE_DUPLICATION);
+        return false;
+    }
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::LIMITS_UPDATE);
     body.limitsUpdateRequest().documentHash = mSetOptions.limitsUpdateRequestData->documentHash;
 
-    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), nullptr, body,
+    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr, body,
                                                              ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);

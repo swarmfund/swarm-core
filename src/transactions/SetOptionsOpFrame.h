@@ -24,6 +24,8 @@ class SetOptionsOpFrame : public OperationFrame
 	bool tryUpdateSigners(Application& app, LedgerManager& ledgerManager);
     bool tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager);
 
+    std::string getLimitsUpdateRequestReference(Hash const& documentHash) const;
+
   public:
     SetOptionsOpFrame(Operation const& op, OperationResult& res,
                       TransactionFrame& parentTx);

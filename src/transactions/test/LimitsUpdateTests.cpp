@@ -53,17 +53,16 @@ TEST_CASE("limits update", "[tx][limits_update]")
     limits.annualOut = 300;
     setLimitsTestHelper.applySetLimitsTx(root, &requestorID, nullptr, limits);
 
+    // prepare data for request
+    std::string documentData = "Some document data";
+    stellar::Hash documentHash = Hash(sha256(documentData));
+
+    // create LimitsUpdateRequest
+    auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash);
+    auto limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest);
+
     SECTION("Happy path")
     {
-        // prepare data for request
-        std::string documentData = "Some document data";
-        stellar::Hash documentHash = Hash(sha256(documentData));
-
-        // create LimitsUpdateRequest
-        auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash);
-        auto limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest);
-
-        // review LimitsUpdateRequest
         SECTION("Approve")
         {
             reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().limitsUpdateRequestID,
@@ -90,5 +89,11 @@ TEST_CASE("limits update", "[tx][limits_update]")
             reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult2.success().limitsUpdateRequestID,
                                                           ReviewRequestOpAction::APPROVE, "");
         }
+    }
+    SECTION("Create same request for second time")
+    {
+        auto limitsUpdateRequest2 = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash);
+        auto limitsUpdateResult2 = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest,
+                                                        SetOptionsResultCode::LIMITS_UPDATE_REQUEST_REFERENCE_DUPLICATION);
     }
 }

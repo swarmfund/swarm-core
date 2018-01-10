@@ -7,4 +7,3 @@ title: Transaction
 
 - **Transaction set**: Set of transactions that are applied to a ledger to
   produce the next one in the chain.
-

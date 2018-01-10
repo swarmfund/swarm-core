@@ -7,7 +7,7 @@
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
+#include "test/test_marshaler.h"
 #include "util/Logging.h"
 #include "crypto/ByteSlice.h"
 #include "TxTests.h"
@@ -22,21 +22,15 @@
 #include "transactions/SetOptionsOpFrame.h"
 #include "transactions/RecoverOpFrame.h"
 #include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
-#include "transactions/manage_asset/ManageAssetOpFrame.h"
-#include "transactions/ManageAssetPairOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/SetLimitsOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
-#include "ledger/AssetPairFrame.h"
-#include "ledger/OfferFrame.h"
 #include "ledger/InvoiceFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
-#include "ledger/AssetPairHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/InvoiceHelper.h"
-#include "ledger/OfferHelper.h"
 #include "ledger/PaymentRequestHelper.h"
 #include "ledger/StatisticsHelper.h"
 #include "crypto/SHA.h"
@@ -54,11 +48,9 @@ namespace txtest
 {
 	auto accountHelper = AccountHelper::Instance();
 	auto assetHelper = AssetHelper::Instance();
-	auto assetPairHelper = AssetPairHelper::Instance();
 	auto balanceHelper = BalanceHelper::Instance();
 	auto feeHelper = FeeHelper::Instance();
 	auto invoiceHelper = InvoiceHelper::Instance();
-	auto offerHelper = OfferHelper::Instance();
 	auto paymentRequestHelper = PaymentRequestHelper::Instance();
 	auto statisticsHelper = StatisticsHelper::Instance();
 
@@ -270,7 +262,7 @@ closeLedgerOn(Application& app, uint32 ledgerSeq, int day, int month, int year,
 [[deprecated("Use TestMnager")]]
 void upgradeToCurrentLedgerVersion(Application& app)
 {
-	TestManager::make(app)->upgradeToCurrentLedgerVersion();
+	TestManager::upgradeToCurrentLedgerVersion(app);
 }
 
 SecretKey
@@ -496,114 +488,13 @@ applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
     }
 }
 
-
-TransactionFramePtr createManageOffer(Hash const& networkID,
-	SecretKey& source, Salt seq, uint64_t offerID, BalanceID const& baseBalance,
-	BalanceID const& quoteBalance, int64_t amount, int64_t price, bool isBuy, int64_t fee)
-{
-	Operation op;
-	op.body.type(OperationType::MANAGE_OFFER);
-	op.body.manageOfferOp().amount = amount;
-	op.body.manageOfferOp().baseBalance = baseBalance;
-	op.body.manageOfferOp().isBuy = isBuy;
-	op.body.manageOfferOp().offerID = offerID;
-	op.body.manageOfferOp().price = price;
-	op.body.manageOfferOp().quoteBalance = quoteBalance;
-	op.body.manageOfferOp().fee = fee;
-
-	return transactionFromOperation(networkID, source, seq, op);
-}
-
-OfferFrame::pointer
-loadOffer(SecretKey const& k, uint64 offerID, Application& app, bool mustExist)
-{
-	OfferFrame::pointer res =
-		offerHelper->loadOffer(k.getPublicKey(), offerID, app.getDatabase());
-	if (mustExist)
-	{
-		REQUIRE(res);
-	}
-	return res;
-}
-
-ManageOfferResult
-applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offerID, BalanceID const& baseBalance,
-	BalanceID const& quoteBalance, int64_t amount, int64_t price, bool isBuy, int64_t fee,
-	ManageOfferResultCode result)
-{
-	auto& db = app.getDatabase();
-	
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-		app.getDatabase());
-	uint64_t expectedOfferID = delta.getHeaderFrame().getLastGeneratedID(LedgerEntryType::OFFER_ENTRY) + 1;
-	if (offerID != 0)
-	{
-		expectedOfferID = offerID;
-	}
-	
-	TransactionFramePtr txFrame;
-
-	txFrame = createManageOffer(app.getNetworkID(), source, seq,
-		offerID, baseBalance, quoteBalance, amount, price, isBuy, fee);
-
-	applyCheck(txFrame, delta, app);
-
-	checkTransaction(*txFrame);
-
-	auto& results = txFrame->getResult().result.results();
-
-	REQUIRE(results.size() == 1);
-
-	auto& manageOfferResult = results[0].tr().manageOfferResult();
-
-	REQUIRE(manageOfferResult.code() == result);
-
-	if (manageOfferResult.code() == ManageOfferResultCode::SUCCESS)
-	{
-		OfferFrame::pointer offer;
-
-		auto& offerResult = manageOfferResult.success().offer;
-
-		auto claimedOffers = manageOfferResult.success().offersClaimed;
-		if (!claimedOffers.empty())
-		{
-			auto currentPrice = claimedOffers[claimedOffers.size() - 1].currentPrice;
-			auto assetPair = assetPairHelper->loadAssetPair(manageOfferResult.success().baseAsset, manageOfferResult.success().quoteAsset, db, nullptr);
-			REQUIRE(assetPair->getCurrentPrice() == currentPrice);
-		}
-
-		switch (offerResult.effect())
-		{
-		case ManageOfferEffect::CREATED:
-		case ManageOfferEffect::UPDATED:
-		{
-			offer = loadOffer(source, expectedOfferID, app);
-			auto& offerEntry = offer->getOffer();
-			REQUIRE(offerEntry == offerResult.offer());
-			REQUIRE(offerEntry.price == price);
-			REQUIRE(offerEntry.baseBalance == baseBalance);
-			REQUIRE(offerEntry.quoteBalance == quoteBalance);
-		}
-		break;
-		case ManageOfferEffect::DELETED:
-			REQUIRE(!loadOffer(source, expectedOfferID, app, false));
-			break;
-		default:
-			abort();
-		}
-	}
-
-	return manageOfferResult;
-}
-
 TransactionFramePtr
 createManageBalanceTx(Hash const& networkID, SecretKey& from, SecretKey& account,
-                      Salt seq, BalanceID balanceID, AssetCode asset, ManageBalanceAction action)
+                      Salt seq, AssetCode asset, ManageBalanceAction action)
 {
     Operation op;
     op.body.type(OperationType::MANAGE_BALANCE);
     op.body.manageBalanceOp().destination = account.getPublicKey();
-    op.body.manageBalanceOp().balanceID = balanceID;
     op.body.manageBalanceOp().action = action;
     op.body.manageBalanceOp().asset = asset;
 
@@ -612,7 +503,7 @@ createManageBalanceTx(Hash const& networkID, SecretKey& from, SecretKey& account
 
 ManageBalanceResult
 applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
-                     Salt seq, BalanceID balanceID, AssetCode asset, ManageBalanceAction action,
+                     Salt seq, AssetCode asset, ManageBalanceAction action,
                      ManageBalanceResultCode result)
 {
     TransactionFramePtr txFrame;
@@ -621,7 +512,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
     balanceHelper->loadBalances(account.getPublicKey(), balances, app.getDatabase());
     
     
-    txFrame = createManageBalanceTx(app.getNetworkID(), from, account, seq, balanceID, asset, action);
+    txFrame = createManageBalanceTx(app.getNetworkID(), from, account, seq, asset, action);
 
     LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
                       app.getDatabase());
@@ -649,7 +540,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
         {
             auto assetFrame = assetHelper->loadAsset(asset, app.getDatabase());
             REQUIRE(balances.size() == balancesAfter.size() - 1);
-            auto balance = balanceHelper->loadBalance(balanceID, app.getDatabase());
+            auto balance = balanceHelper->loadBalance(opResult.success().balanceID, app.getDatabase());
             REQUIRE(balance);
             REQUIRE(balance->getBalance().accountID == account.getPublicKey());
             REQUIRE(balance->getBalance().amount == 0);
@@ -658,7 +549,7 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
         else
         {
             REQUIRE(balances.size() == balancesAfter.size() + 1);
-            REQUIRE(!balanceHelper->loadBalance(balanceID, app.getDatabase()));
+            REQUIRE(!balanceHelper->loadBalance(opResult.success().balanceID, app.getDatabase()));
         }
     }
     return opResult;
@@ -674,103 +565,6 @@ createManageAssetTx(Hash const& networkID, SecretKey& source, Salt seq, AssetCod
 void applyManageAssetTx(Application & app, SecretKey & source, Salt seq, AssetCode asset, int32 policies, ManageAssetAction action, ManageAssetResultCode result)
 {
 	throw std::runtime_error("use manageAssetHelper");
-}
-
-TransactionFramePtr createManageAssetPairTx(Hash const& networkID, SecretKey& source,
-	Salt seq, AssetCode base, AssetCode quote,
-	int64_t physicalPrice, int64_t physicalPriceCorrection, int64_t maxPriceStep, int32 policies, ManageAssetPairAction action)
-{
-	Operation op;
-	op.body.type(OperationType::MANAGE_ASSET_PAIR);
-	auto& manageAssetPair = op.body.manageAssetPairOp();
-	manageAssetPair.action = action;
-	manageAssetPair.base = base;
-	manageAssetPair.quote = quote;
-	manageAssetPair.maxPriceStep = maxPriceStep;
-	manageAssetPair.physicalPrice = physicalPrice;
-	manageAssetPair.physicalPriceCorrection = physicalPriceCorrection;
-	manageAssetPair.policies = policies;
-
-	return transactionFromOperation(networkID, source, seq, op);
-}
-
-void
-applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode base, AssetCode quote,
-	int64_t physicalPrice, int64_t physicalPriceCorrection, int64_t maxPriceStep, int32 policies,
-	ManageAssetPairAction action,
-	ManageAssetPairResultCode result)
-{
-
-	auto assetPairFrameBefore = assetPairHelper->loadAssetPair(base, quote, app.getDatabase());
-	auto countBefore = assetPairHelper->countObjects(app.getDatabase().getSession());
-
-	TransactionFramePtr txFrame;
-	txFrame = createManageAssetPairTx(app.getNetworkID(), source, seq, base, quote, physicalPrice, physicalPriceCorrection, maxPriceStep, policies, action);
-
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-		app.getDatabase());
-	applyCheck(txFrame, delta, app);
-
-	checkTransaction(*txFrame);
-	auto txResult = txFrame->getResult();
-	auto innerCode =
-		ManageAssetPairOpFrame::getInnerCode(txResult.result.results()[0]);
-	REQUIRE(innerCode == result);
-	REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
-
-	auto opResult = txResult.result.results()[0].tr().manageAssetPairResult();
-
-	bool isCreate = action == ManageAssetPairAction::CREATE;
-	auto countAfter = assetPairHelper->countObjects(app.getDatabase().getSession());
-	auto assetPairFrameAfter = assetPairHelper->loadAssetPair(base, quote, app.getDatabase());
-
-	if (innerCode != ManageAssetPairResultCode::SUCCESS)
-	{
-		REQUIRE(countBefore == countAfter);
-		if (assetPairFrameBefore)
-			REQUIRE(assetPairFrameBefore->getAssetPair() == assetPairFrameAfter->getAssetPair());
-		return;
-	}
-
-	REQUIRE(assetPairFrameAfter);
-
-	auto assetPairAfter = assetPairFrameAfter->getAssetPair();
-	REQUIRE(opResult.success().currentPrice == assetPairAfter.currentPrice);
-	AssetPairEntry assetPairBefore;
-	switch (action)
-	{
-	case ManageAssetPairAction::CREATE:
-		REQUIRE(countBefore == (countAfter - 1));
-		assetPairBefore.base = base;
-		assetPairBefore.quote = quote;
-		assetPairBefore.currentPrice = physicalPrice;
-		assetPairBefore.maxPriceStep = maxPriceStep;
-		assetPairBefore.physicalPrice = physicalPrice;
-		assetPairBefore.physicalPriceCorrection = physicalPriceCorrection;
-		assetPairBefore.policies = policies;
-		break;
-	case ManageAssetPairAction::UPDATE_PRICE:
-	{
-		REQUIRE(assetPairFrameBefore);
-		int64_t premium = assetPairFrameBefore->getCurrentPrice() - assetPairFrameBefore->getAssetPair().physicalPrice;
-		assetPairBefore = assetPairFrameBefore->getAssetPair();
-		assetPairBefore.physicalPrice = physicalPrice;
-		assetPairBefore.currentPrice = physicalPrice + premium;
-		break;
-	}
-	case ManageAssetPairAction::UPDATE_POLICIES:
-		REQUIRE(assetPairFrameBefore);
-		assetPairBefore = assetPairFrameBefore->getAssetPair();
-		assetPairBefore.policies = policies;
-		assetPairBefore.physicalPriceCorrection = physicalPriceCorrection;
-		assetPairBefore.maxPriceStep = maxPriceStep;
-		break;
-	default:
-		throw new std::runtime_error("Unexpected manage asset pair action");
-	}
-	
-	REQUIRE(assetPairBefore == assetPairAfter);
-
 }
 
 

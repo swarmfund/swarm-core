@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/StatisticsHelper.h>
 #include "transactions/CreateWithdrawalRequestOpFrame.h"
 #include "database/Database.h"
 #include "main/Application.h"
@@ -34,7 +35,7 @@ const
 {
     return SourceDetails({
                              AccountType::GENERAL, AccountType::SYNDICATE,
-                             AccountType::OPERATIONAL
+                             AccountType::OPERATIONAL, AccountType::EXCHANGE
                          }, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER));
 }
@@ -164,12 +165,19 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
+    uint64_t universalAmount = 0;
+    uint64_t amountToAdd = mCreateWithdrawalRequest.request.amount;
+    if (!tryAddStats(accountManager, balanceFrame, amountToAdd, universalAmount))
+        return false;
+
     BalanceHelper::Instance()->storeChange(delta, db, balanceFrame->mEntry);
 
-    auto request = ReviewableRequestFrame::createNew(delta, getSourceID(), assetFrame->getOwner(), nullptr);
+    auto request = ReviewableRequestFrame::createNew(delta, getSourceID(), assetFrame->getOwner(), nullptr,
+                                                     ledgerManager.getCloseTime());
     ReviewableRequestEntry& requestEntry = request->getRequestEntry();
     requestEntry.body.type(ReviewableRequestType::WITHDRAW);
     requestEntry.body.withdrawalRequest() = mCreateWithdrawalRequest.request;
+    requestEntry.body.withdrawalRequest().universalAmount = universalAmount;
     request->recalculateHashRejectReason();
     ReviewableRequestHelper::Instance()->storeAdd(delta, db, request->mEntry);
 
@@ -193,6 +201,31 @@ bool CreateWithdrawalRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
+    if (mCreateWithdrawalRequest.request.universalAmount != 0)
+    {
+        innerResult().code(CreateWithdrawalRequestResultCode::INVALID_UNIVERSAL_AMOUNT);
+        return false;
+    }
+
     return true;
+}
+
+bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager, BalanceFrame::pointer balance,
+                                                 uint64_t amountToAdd, uint64_t& universalAmount)
+{
+    const auto result = accountManager.addStats(mSourceAccount, balance, amountToAdd, universalAmount);
+    switch (result) {
+        case AccountManager::SUCCESS:
+            return true;
+        case AccountManager::STATS_OVERFLOW:
+            innerResult().code(CreateWithdrawalRequestResultCode::STATS_OVERFLOW);
+            return false;
+        case AccountManager::LIMITS_EXCEEDED:
+            innerResult().code(CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
+            return false;
+        default:
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpeced result from accountManager when updating stats:" << result;
+            throw std::runtime_error("Unexpected state from accountManager when updating stats");
+    }
 }
 }

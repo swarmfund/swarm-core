@@ -21,6 +21,7 @@ class WithdrawReviewChecker : public ReviewChecker
     BalanceFrame::pointer balanceBeforeTx;
     BalanceFrame::pointer commissionBalanceBeforeTx;
     AssetFrame::pointer assetBeforeTx;
+    StatisticsFrame::pointer statsBeforeTx;
 public:
     WithdrawReviewChecker(TestManager::pointer testManager, uint64_t requestID);
     void checkApprove(ReviewableRequestFrame::pointer) override;
@@ -33,6 +34,7 @@ class ReviewWithdrawRequestHelper : public ReviewRequestHelper
 public:
     ReviewWithdrawRequestHelper(TestManager::pointer testManager);
 
+    using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source,
                                              uint64_t requestID,
                                              Hash requestHash,
@@ -44,17 +46,6 @@ public:
                                                  ReviewRequestResultCode::
                                                  SUCCESS) override;
 
-    ReviewRequestResult applyReviewRequestTx(Account& source,
-                                             uint64_t requestID,
-                                             ReviewRequestOpAction action,
-                                             std::string rejectReason,
-                                             ReviewRequestResultCode
-                                             expectedResult =
-                                                 ReviewRequestResultCode::
-                                                 SUCCESS);
-
-    void checkApproval(WithdrawalRequest withdrawalRequest,
-                       BalanceFrame::pointer balanceBeforeTx, BalanceFrame::pointer commissionBalanceBeforeTx, AssetFrame::pointer assetBeforeTx);
     TransactionFramePtr createReviewRequestTx(Account& source,
         uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
         ReviewRequestOpAction action, std::string rejectReason) override;

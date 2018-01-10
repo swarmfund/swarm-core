@@ -7,13 +7,12 @@
 #include "main/Application.h"
 #include "xdrpp/autocheck.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "util/Timer.h"
 #include "lib/util/format.h"
 #include "util/Fs.h"
 #include <future>
 #include "process/ProcessManager.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

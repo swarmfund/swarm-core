@@ -6,6 +6,7 @@
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
+#include "test/test_marshaler.h"
 
 
 
@@ -28,33 +29,40 @@ ReviewPreIssuanceChecker::ReviewPreIssuanceChecker(
 
 void ReviewPreIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer requestBeforeTx)
 {
-    REQUIRE(!!requestBeforeTx);
     REQUIRE(!!assetFrameBeforeTx);
-    auto preIssuanceRequest = requestBeforeTx->getRequestEntry().body.preIssuanceRequest();
     auto assetHelper = AssetHelper::Instance();
-    auto assetFrameAfterTx = assetHelper->loadAsset(preIssuanceRequest.asset, mTestManager->getDB());
-    REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() + preIssuanceRequest.amount);
+    auto assetFrameAfterTx = assetHelper->loadAsset(preIssuanceRequest->asset, mTestManager->getDB());
+    REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() + preIssuanceRequest->amount);
 }
 
-	ReviewPreIssuanceRequestHelper::ReviewPreIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)
-	{
-	}
+ReviewPreIssuanceChecker::ReviewPreIssuanceChecker(const TestManager::pointer &testManager,
+                                                   std::shared_ptr<PreIssuanceRequest> request) : ReviewChecker(testManager)
+{
+    preIssuanceRequest = request;
+    assetFrameBeforeTx = AssetHelper::Instance()->loadAsset(preIssuanceRequest->asset, mTestManager->getDB());
+}
 
-	ReviewRequestResult ReviewPreIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash,
-		ReviewableRequestType requestType, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
-	{
-            auto reviewPreIssuanceChecker = ReviewPreIssuanceChecker(mTestManager, requestID);
-		return ReviewRequestHelper::applyReviewRequestTx(source, requestID, requestHash, requestType, action, rejectReason, expectedResult,
-                    reviewPreIssuanceChecker);
-	}
+ReviewPreIssuanceRequestHelper::ReviewPreIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)
+{
+}
 
-	ReviewRequestResult ReviewPreIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
-	{
-		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-		auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
-		REQUIRE(request);
-		return applyReviewRequestTx(source, requestID, request->getHash(), request->getRequestType(), action, rejectReason, expectedResult);
-	}
+ReviewRequestResult ReviewPreIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash,
+    ReviewableRequestType requestType, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
+{
+    auto reviewPreIssuanceChecker = ReviewPreIssuanceChecker(mTestManager, requestID);
+    return ReviewRequestHelper::applyReviewRequestTx(source, requestID, requestHash, requestType, action, rejectReason, expectedResult,
+                reviewPreIssuanceChecker);
+}
+
+ReviewRequestResult ReviewPreIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID,
+                                                                         ReviewRequestOpAction action, std::string rejectReason,
+                                                                         ReviewRequestResultCode expectedResult)
+{
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
+    REQUIRE(request);
+    return applyReviewRequestTx(source, requestID, request->getHash(), request->getRequestType(), action, rejectReason, expectedResult);
+}
 
 
 }

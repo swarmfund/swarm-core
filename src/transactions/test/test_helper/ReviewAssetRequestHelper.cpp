@@ -5,6 +5,7 @@
 #include "ReviewAssetRequestHelper.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
+#include "test/test_marshaler.h"
 
 
 namespace stellar
@@ -20,13 +21,11 @@ void AssetReviewChecker::checkApproval(AssetCreationRequest const& request,
         mTestManager->getDB(), &delta);
     REQUIRE(!!assetFrame);
     auto assetEntry = assetFrame->getAsset();
-    REQUIRE(assetEntry.availableForIssueance == 0);
+    REQUIRE(assetEntry.availableForIssueance == request.initialPreissuedAmount);
     REQUIRE(assetEntry.code == request.code);
-    REQUIRE(assetEntry.description == request.description);
-    REQUIRE(assetEntry.externalResourceLink == request.externalResourceLink);
+    REQUIRE(assetEntry.details == request.details);
     REQUIRE(assetEntry.issued == 0);
     REQUIRE(assetEntry.maxIssuanceAmount == request.maxIssuanceAmount);
-    REQUIRE(assetEntry.name == request.name);
     REQUIRE(assetEntry.owner == requestor);
     REQUIRE(assetEntry.policies == request.policies);
     REQUIRE(assetEntry.maxIssuanceAmount == request.maxIssuanceAmount);
@@ -42,8 +41,7 @@ void AssetReviewChecker::checkApproval(AssetUpdateRequest const& request,
     REQUIRE(!!assetFrame);
     auto assetEntry = assetFrame->getAsset();
     REQUIRE(assetEntry.code == request.code);
-    REQUIRE(assetEntry.description == request.description);
-    REQUIRE(assetEntry.externalResourceLink == request.externalResourceLink);
+    REQUIRE(assetEntry.details == request.details);
     REQUIRE(assetEntry.owner == requestor);
     REQUIRE(assetEntry.policies == request.policies);
 }

@@ -7,8 +7,8 @@
 #include "main/Application.h"
 #include "main/Config.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "util/make_unique.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

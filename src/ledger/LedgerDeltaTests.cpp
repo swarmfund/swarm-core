@@ -4,12 +4,12 @@
 
 #include "util/Timer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "ledger/LedgerDelta.h"
 #include "main/Application.h"
 #include "LedgerTestUtils.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/AccountFrame.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

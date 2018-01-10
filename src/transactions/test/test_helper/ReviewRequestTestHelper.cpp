@@ -7,6 +7,7 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include <functional>
+#include "test/test_marshaler.h"
 
 
 namespace stellar
@@ -74,6 +75,15 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
 
     reviewChecker.checkApprove(requestBeforeTx);
     return reviewResult;
+}
+
+ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(Account& source,
+    uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason,
+    ReviewRequestResultCode expectedResult)
+{
+    auto request = ReviewableRequestHelper::Instance()->loadRequest(requestID, mTestManager->getDB());
+    REQUIRE(!!request);
+    return applyReviewRequestTx(source, requestID, request->getHash(), request->getRequestType(), action, rejectReason, expectedResult);
 }
 
 TransactionFramePtr ReviewRequestHelper::createReviewRequestTx(

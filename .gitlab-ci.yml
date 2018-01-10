@@ -67,7 +67,7 @@ deploy-dev:
   stage: deploy
   script:
     - ssh ubuntu@$HOST_DEV "artifacts/update.sh core dev ${CI_COMMIT_SHA:0:8}"
-    - curl -X POST http://$HOST_DEV:8842/RCzMigpWTlPaAitOCjpfDw
+    - curl -X POST http://$HOST_DEV:8842/${HOOK_TOKEN}
   when: manual
   only:
     - dev
@@ -77,7 +77,7 @@ deploy-staging:
   stage: deploy
   script:
     - ssh ubuntu@$HOST_DEV "artifacts/update.sh core staging ${CI_COMMIT_SHA:0:8}"
-    - curl -X POST http://$HOST_STAGING:8842/RCzMigpWTlPaAitOCjpfDw
+    - curl -X POST http://$HOST_STAGING:8842/${HOOK_TOKEN}
   when: manual
   only:
     - staging

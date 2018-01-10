@@ -8,11 +8,8 @@
 #include "main/Config.h"
 #include "main/test.h"
 #include "crypto/Hex.h"
-#include "util/Logging.h"
-#include "util/Timer.h"
-#include "util/TmpDir.h"
-#include "lib/catch.hpp"
 #include <random>
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

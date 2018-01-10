@@ -31,7 +31,7 @@ When running a node, the best bet is to go with the latest release.
 
     # sudo add-apt-repository ppa:ubuntu-toolchain-r/test
     # apt-get update
-    # sudo apt-get install git build-essential pkg-config autoconf automake libtool bison flex libpq-dev clang++-3.5 gcc-4.9 g++-4.9 cpp-4.9
+    # sudo apt-get install git build-essential pkg-config autoconf automake libtool bison flex libpq-dev libssl-dev clang++-3.5 gcc-4.9 g++-4.9 cpp-4.9
 
 
 See [installing gcc 4.9 on ubuntu 14.04](http://askubuntu.com/questions/428198/getting-installing-gcc-g-4-9-on-ubuntu)
@@ -45,6 +45,7 @@ When building on OSX, here's some dependencies you'll need:
 - brew install automake
 - brew install pkg-config
 - brew install libpqxx *(If ./configure later complains about libpq missing, try PKG_CONFIG_PATH='/usr/local/lib/pkgconfig')* 
+- brew install openssl
 
 ### Windows 
 See [INSTALL-Windows.txt](INSTALL-Windows.txt)

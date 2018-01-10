@@ -36,8 +36,12 @@ namespace stellar
 
 		int64_t getPrice() const;
 		uint64 getOfferID() const;
+                uint64_t getOrderBookID() const;
 
 		OfferEntry& getOffer();
+
+                uint64_t getLockedAmount() const;
+                BalanceID const& getLockedBalance() const;
 
 		OfferEntry const& getOffer() const;
 

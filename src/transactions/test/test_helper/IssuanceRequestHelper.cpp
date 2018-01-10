@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/test/TxTests.h>
 #include "IssuanceRequestHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
@@ -14,6 +15,7 @@
 #include "ReviewPreIssuanceRequestHelper.h"
 #include "ReviewIssuanceRequestHelper.h"
 #include "ManageAssetTestHelper.h"
+#include "test/test_marshaler.h"
 
 
 namespace stellar
@@ -38,6 +40,8 @@ namespace txtest
         auto preIssuanceRequest = createPreIssuanceRequest(preIssuedAssetSigner, assetCode, amount, reference);
 		auto txFrame = createPreIssuanceRequestTx(source, preIssuanceRequest);
 
+        auto checker = ReviewPreIssuanceChecker(mTestManager, std::make_shared<PreIssuanceRequest>(preIssuanceRequest));
+
 		mTestManager->applyCheck(txFrame);
 		auto txResult = txFrame->getResult();
 		auto opResult = txResult.result.results()[0];
@@ -51,9 +55,18 @@ namespace txtest
 			return CreatePreIssuanceRequestResult{};
 		}
 
+        auto createPreIssuanceResult = opResult.tr().createPreIssuanceRequestResult();
+        if (source.key == getRoot())
+        {
+            REQUIRE(createPreIssuanceResult.success().fulfilled);
+            checker.checkApprove(nullptr);
+            return createPreIssuanceResult;
+        }
+
 		REQUIRE(!referenceBeforeTx);
 		REQUIRE(reviewableRequestCountBeforeTx + 1 == reviewableRequestCountAfterTx);
-		return opResult.tr().createPreIssuanceRequestResult();
+        REQUIRE(!createPreIssuanceResult.success().fulfilled);
+		return createPreIssuanceResult;
 	}
 
 	TransactionFramePtr IssuanceRequestHelper::createPreIssuanceRequestTx(Account &source, const PreIssuanceRequest &request)
@@ -104,7 +117,7 @@ namespace txtest
         auto issuanceRequest = createIssuanceRequest(assetCode, amount, receiver);
         auto txFrame = createIssuanceRequestTx(source, issuanceRequest, reference);
 
-                auto reviewIssuanceChecker = ReviewIssuanceChecker(mTestManager, std::make_shared<IssuanceRequest>(issuanceRequest));
+        auto reviewIssuanceChecker = ReviewIssuanceChecker(mTestManager, std::make_shared<IssuanceRequest>(issuanceRequest));
 
 		mTestManager->applyCheck(txFrame);
 		auto txResult = txFrame->getResult();
@@ -128,7 +141,7 @@ namespace txtest
 		REQUIRE(expectedReviewableRequestAfterTx == reviewableRequestCountAfterTx);
 		// if request was auto fulfilled, lets check if receiver actually got assets
 		if (result.success().fulfilled) {
-                    reviewIssuanceChecker.checkApprove(nullptr);
+            reviewIssuanceChecker.checkApprove(nullptr);
 		}
 
 		return result;
@@ -166,6 +179,8 @@ namespace txtest
 	{
 		auto preIssuanceResult = applyCreatePreIssuanceRequest(assetOwner, preIssuedAssetSigner, assetCode, preIssuedAmount,
 			SecretKey::random().getStrKeyPublic());
+        if (assetOwner.key == getRoot())
+            return;
 		auto reviewPreIssuanceRequestHelper = ReviewPreIssuanceRequestHelper(mTestManager);
 		reviewPreIssuanceRequestHelper.applyReviewRequestTx(root, preIssuanceResult.success().requestID, ReviewRequestOpAction::APPROVE, "");
 	}

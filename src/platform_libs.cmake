@@ -19,6 +19,7 @@ target_link_libraries(core 3rdparty)
 target_link_libraries(core medida)
 target_link_libraries(core xdrpp)
 target_link_libraries(core sodium)
+target_link_libraries(core coincore)
 
 #For windows.
 if(${CMAKE_HOST_WIN32})

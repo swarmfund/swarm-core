@@ -4,20 +4,10 @@
 
 #include "main/Application.h"
 #include "overlay/LoopbackPeer.h"
-#include "util/make_unique.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
-#include "util/Timer.h"
-#include "crypto/SecretKey.h"
-#include "main/Config.h"
-#include "overlay/PeerRecord.h"
 #include "overlay/OverlayManagerImpl.h"
 #include "BanManager.h"
-
-#include "medida/metrics_registry.h"
-#include "medida/timer.h"
-#include "medida/meter.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

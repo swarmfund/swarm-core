@@ -3,18 +3,20 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/ManageAssetPairOpFrame.h"
-#include "transactions/ManageOfferOpFrame.h"
+#include "transactions/dex/ManageOfferOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/AssetPairHelper.h"
-#include "ledger/OfferFrame.h"
 
 #include "database/Database.h"
 
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "ledger/OfferHelper.h"
+#include "dex/OfferManager.h"
+#include "ledger/BalanceHelper.h"
 
 namespace stellar
 {
@@ -73,6 +75,8 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 		mManageAssetPair.physicalPrice, mManageAssetPair.physicalPriceCorrection,
 		mManageAssetPair.maxPriceStep, mManageAssetPair.policies);
 	EntryHelperProvider::storeAddEntry(delta, db, assetPair->mEntry);
+        AccountManager::loadOrCreateBalanceForAsset(app.getCommissionID(), assetPair->getQuoteAsset(), db, delta);
+
 	app.getMetrics().NewMeter({ "op-manage-asset-pair", "success", "apply" },
 		"operation").Mark();
 	innerResult().code(ManageAssetPairResultCode::SUCCESS);
@@ -109,9 +113,11 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		assetPairEntry.physicalPriceCorrection = mManageAssetPair.physicalPriceCorrection;
 		assetPairEntry.policies = mManageAssetPair.policies;
 		// if pair not tradable remove all offers
-		if (!assetPair->checkPolicy(AssetPairPolicy::TRADEABLE))
+		if (!assetPair->checkPolicy(AssetPairPolicy::TRADEABLE_SECONDARY_MARKET))
 		{
-			ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, INT64_MAX);
+		    auto orderBookID = ManageOfferOpFrame::SECONDARY_MARKET_ORDER_BOOK_ID;
+		    const auto offersToRemove = OfferHelper::Instance()->loadOffersWithFilters(assetPair->getBaseAsset(), assetPair->getQuoteAsset(), &orderBookID, nullptr, db);
+                    OfferManager::deleteOffers(offersToRemove, db, delta);
 		}
 	}
 	else
@@ -123,7 +129,10 @@ ManageAssetPairOpFrame::doApply(Application& app,
 		}
 		assetPairEntry.physicalPrice = mManageAssetPair.physicalPrice;
 		assetPairEntry.currentPrice = mManageAssetPair.physicalPrice + premium;
-		ManageOfferOpFrame::removeOffersBelowPrice(db, delta, assetPair, assetPair->getMinAllowedPrice());
+                auto orderBookID = ManageOfferOpFrame::SECONDARY_MARKET_ORDER_BOOK_ID;
+                uint64_t minAllowedPrice = assetPair->getMinAllowedPrice();
+                const auto offersToRemove = OfferHelper::Instance()->loadOffersWithFilters(assetPair->getBaseAsset(), assetPair->getQuoteAsset(), &orderBookID, &minAllowedPrice, db);
+                OfferManager::deleteOffers(offersToRemove, db, delta);
 	}
 
 	EntryHelperProvider::storeChangeEntry(delta, db, assetPair->mEntry);

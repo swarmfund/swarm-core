@@ -232,6 +232,10 @@ namespace stellar {
         return mConfig.WITHDRAWAL_DETAILS_MAX_LENGTH;
     }
 
+	uint64 ApplicationImpl::getIssuanceDetailsMaxLength() const {
+		return mConfig.ISSUANCE_DETAILS_MAX_LENGTH;
+	}
+
     AssetCode ApplicationImpl::getStatsQuoteAsset() const {
         assert(mConfig.STATS_QUOTE_ASSET.size() > 0);
         return mConfig.STATS_QUOTE_ASSET;
@@ -608,41 +612,43 @@ namespace stellar {
         return result;
     }
 
-bool ApplicationImpl::areAllExternalSystemGeneratorsAvailable(
-    xdr::xvector<ExternalSystemIDGeneratorType> ex) const
-{
-        for (auto generator : ex)
-        {
-            if (mAvailableExternalSystemIDGenerators.find(generator) == mAvailableExternalSystemIDGenerators.end())
-                return false;
-        }
 
-        return true;
-}
+    const std::string ApplicationImpl::getBTCAddressRoot() const
+    {
+        return mConfig.BTC_ADDRESS_ROOT;
+    }
 
-void ApplicationImpl::addAvailableExternalSystemGenerator(
-    const ExternalSystemIDGeneratorType ex)
-{
-    mAvailableExternalSystemIDGenerators.insert(ex);
-}
+    const std::string ApplicationImpl::getETHAddressRoot() const
+    {
+        return mConfig.ETH_ADDRESS_ROOT;
+    }
 
-const std::unordered_set<ExternalSystemIDGeneratorType>& ApplicationImpl::
-getAvailableExternalSystemGenerator()
-{
-    return mAvailableExternalSystemIDGenerators;
-}
+    bool ApplicationImpl::areAllExternalSystemGeneratorsAvailable(
+        xdr::xvector<ExternalSystemIDGeneratorType> ex) const
+    {
+            for (auto generator : ex)
+            {
+                if (mAvailableExternalSystemIDGenerators.find(generator) == mAvailableExternalSystemIDGenerators.end())
+                    return false;
+            }
 
-const std::vector<std::string>& ApplicationImpl::getBTCAddresses() const
-{
-    return mConfig.BTC_ADDRESSES;
-}
+            return true;
+    }
 
-const std::vector<std::string>& ApplicationImpl::getETHAddresses() const
-{
-    return mConfig.ETH_ADDRESSES;
-}
+    void ApplicationImpl::addAvailableExternalSystemGenerator(
+        const ExternalSystemIDGeneratorType ex)
+    {
+        mAvailableExternalSystemIDGenerators.insert(ex);
+    }
 
-Invariants &ApplicationImpl::getInvariants() {
+    const std::unordered_set<ExternalSystemIDGeneratorType>& ApplicationImpl::
+    getAvailableExternalSystemGenerator()
+    {
+        return mAvailableExternalSystemIDGenerators;
+    }
+
+
+    Invariants &ApplicationImpl::getInvariants() {
         return *mInvariants;
     }
 }

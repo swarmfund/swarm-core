@@ -3,18 +3,18 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
-#include "main/Config.h"
+#include <ledger/FeeHelper.h>
+#include <ledger/AccountHelper.h>
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
-#include "test_helper/TestManager.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ReviewIssuanceRequestHelper.h"
 #include "test_helper/ReviewPreIssuanceRequestHelper.h"
+#include "test/test_marshaler.h"
 
 
 using namespace stellar;
@@ -30,7 +30,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 	// create new account with balance 
 	auto newAccountKP = SecretKey::random();
     CreateAccountTestHelper createAccountTestHelper(testManager);
-	createAccountTestHelper.applyCreateAccountTx(root, newAccountKP.getPublicKey(), AccountType::GENERAL);
+    createAccountTestHelper.applyCreateAccountTx(root, newAccountKP.getPublicKey(), AccountType::GENERAL);
 
 	auto balanceHelper = BalanceHelper::Instance();
 	auto newAccountBalance = balanceHelper->loadBalance(newAccountKP.getPublicKey(), assetCode, testManager->getDB(), nullptr);
@@ -47,6 +47,44 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 		auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
 		REQUIRE(!issuanceRequest);
 	}
+    
+    SECTION("charge fee on issuance") 
+    {
+        //set ISSUANCE_FEE for newAccount
+        uint64_t percentFee = 1 * ONE;
+        uint64_t fixedFee = preIssuedAmount/2;
+        AccountID account = newAccountKP.getPublicKey();
+        auto feeEntry = createFeeEntry(FeeType::ISSUANCE_FEE, fixedFee, percentFee, assetCode, &account, nullptr);
+        applySetFees(testManager->getApp(), root.key, root.getNextSalt(), &feeEntry, false);
+
+        auto accountFrame = AccountHelper::Instance()->loadAccount(account, testManager->getDB());
+        auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::ISSUANCE_FEE, assetCode, FeeFrame::SUBTYPE_ANY,
+                                                              accountFrame, preIssuedAmount, testManager->getDB());
+        REQUIRE(feeFrame);
+
+        SECTION("successful issuance")
+        {
+            auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, preIssuedAmount,
+                                                                                          newAccountBalance->getBalanceID(), newAccountKP.getStrKeyPublic());
+            uint64_t percentFeeToPay = 0;
+            feeFrame->calculatePercentFee(preIssuedAmount, percentFeeToPay, ROUND_UP);
+
+            REQUIRE(issuanceRequestResult.success().fee.fixed == fixedFee);
+            REQUIRE(issuanceRequestResult.success().fee.percent == percentFeeToPay);
+        }
+
+        SECTION("total fee exceeds issuance amount")
+        {
+            uint64_t insufficientAmount = fixedFee;
+            auto result = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode,
+                                                                           insufficientAmount,
+                                                                           newAccountBalance->getBalanceID(),
+                                                                           newAccountKP.getStrKeyPublic(),
+                                                                           CreateIssuanceRequestResultCode::FEE_EXCEEDS_AMOUNT);
+        }
+
+    }
+    
 	SECTION("Request was created but was not auto reviwed")
 	{
 		// request was create but not fulfilleds as amount of pre issued asset is insufficient
@@ -92,9 +130,8 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
     uint64_t maxIssuanceAmount = UINT64_MAX/2;
     SecretKey preissuedSigner = SecretKey::random();
     uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
-    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, "UAH", preissuedSigner.getPublicKey(),
-                                                                                 "long description", "http://bank.gov.ua",
-                                                                                 maxIssuanceAmount, baseAssetPolicy, "123");
+    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, preissuedSigner.getPublicKey(),
+                                                                                 "{}", maxIssuanceAmount, baseAssetPolicy);
     manageAssetTestHelper.applyManageAssetTx(assetOwner, 0, assetCreationRequest);
 
     uint64 amount = 10000;
@@ -222,9 +259,9 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     uint64_t maxIssuanceAmount = UINT64_MAX/2;
     SecretKey preissuedSigner = SecretKey::random();
     uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
-    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, "UAH", preissuedSigner.getPublicKey(),
-                                                                                 "long description", "http://bank.gov.ua",
-                                                                                 maxIssuanceAmount, baseAssetPolicy, "123");
+    auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, preissuedSigner.getPublicKey(),
+                                                                                 "{}",
+                                                                                 maxIssuanceAmount, baseAssetPolicy);
     manageAssetTestHelper.applyManageAssetTx(assetOwner, 0, assetCreationRequest);
 
     //pre-issue some amount

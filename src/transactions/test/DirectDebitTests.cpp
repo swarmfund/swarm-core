@@ -6,13 +6,11 @@
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
-#include "database/Database.h"
-#include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReferenceFrame.h"
 #include "crypto/SHA.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

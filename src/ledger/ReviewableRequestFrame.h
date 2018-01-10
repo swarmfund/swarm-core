@@ -25,11 +25,12 @@ class ReviewableRequestFrame : public EntryFrame
 
     ReviewableRequestFrame(ReviewableRequestFrame const& from);
 
-	static bool isAssetCreateValid(AssetCreationRequest const & request);
-	static bool isAssetUpdateValid(AssetUpdateRequest const& request);
-	static bool isPreIssuanceValid(PreIssuanceRequest const& request);
-	static bool isIssuanceValid(IssuanceRequest const& request);
-        static bool isWithdrawalValid(WithdrawalRequest const& request);
+	static void ensureAssetCreateValid(AssetCreationRequest const & request);
+	static void ensureAssetUpdateValid(AssetUpdateRequest const& request);
+	static void ensurePreIssuanceValid(PreIssuanceRequest const& request);
+	static void ensureIssuanceValid(IssuanceRequest const& request);
+        static void ensureWithdrawalValid(WithdrawalRequest const& request);
+        static void ensureSaleCreationValid(SaleCreationRequest const& request);
 
   public:
     typedef std::shared_ptr<ReviewableRequestFrame> pointer;
@@ -39,9 +40,14 @@ class ReviewableRequestFrame : public EntryFrame
 
     ReviewableRequestFrame& operator=(ReviewableRequestFrame const& other);
 
-	static pointer createNew(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference);
+    static pointer createNew(uint64_t requestID, AccountID requestor, AccountID reviewer,
+        xdr::pointer<stellar::string64> reference, time_t createdAt);
+	static pointer createNew(LedgerDelta &delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference,
+                                 time_t createdAt);
 	// creates new reviewable request and calculates hash for it
-	static pointer createNewWithHash(LedgerDelta& delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body);
+	static pointer createNewWithHash(LedgerDelta &delta, AccountID requestor, AccountID reviewer,
+                                     xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body,
+                                     time_t createdAt);
 
 	void setBody(ReviewableRequestEntry::_body_t body) {
 		mRequest.body = body;
@@ -61,6 +67,11 @@ class ReviewableRequestFrame : public EntryFrame
 
 	uint64 getRequestID() const {
 		return mRequest.requestID;
+	}
+
+        void setRequestID(uint64_t requestID)
+	{
+            mRequest.requestID = requestID;
 	}
 
 	stellar::string256 const& getRejectReason() const {
@@ -87,6 +98,10 @@ class ReviewableRequestFrame : public EntryFrame
 		return mRequest.body.type();
 	}
 
+    time_t getCreatedAt() {
+        return mRequest.createdAt;
+    }
+
 	void setRejectReason(stellar::string256 rejectReason) {
 		mRequest.rejectReason = rejectReason;
 	}
@@ -94,10 +109,7 @@ class ReviewableRequestFrame : public EntryFrame
 	static uint256 calculateHash(ReviewableRequestEntry::_body_t const& body);
 
 	void recalculateHashRejectReason() {
-		auto newHash = calculateHash(mRequest.body);
-		// nothing to update
-		if (newHash == mRequest.hash)
-			return;
+	        const auto newHash = calculateHash(mRequest.body);
 		mRequest.hash = newHash;
 		mRequest.rejectReason = "";
 	}
@@ -108,8 +120,8 @@ class ReviewableRequestFrame : public EntryFrame
         return EntryFrame::pointer(new ReviewableRequestFrame(*this));
     }
         
-    static bool isValid(ReviewableRequestEntry const& oe);
-    bool isValid() const;
+    static void ensureValid(ReviewableRequestEntry const& oe);
+    void ensureValid() const;
 
 };
 }

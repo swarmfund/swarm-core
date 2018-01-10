@@ -4,7 +4,6 @@
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
 #include "test_helper/TestManager.h"
 #include "transactions/test/test_helper/ManageAssetTestHelper.h"
@@ -12,6 +11,7 @@
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ReviewPreIssuanceRequestHelper.h"
 #include "ledger/AssetHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -29,10 +29,13 @@ void testAuthPreissuedAssetHappyPath(TestManager::pointer testManager, Account& 
 	auto asset = assetHelper->loadAsset(assetCode, testManager->getDB());
 	const uint64_t amountToIssue = 10000;
 	const int issueTimes = 3;
+    bool isMaster = account.key == getRoot();
 	for (int i = 0; i < issueTimes; i++) {
 		auto preIssuanceResult = issuanceRequestHelper.applyCreatePreIssuanceRequest(account, preissuedSigner, assetCode, amountToIssue,
 			SecretKey::random().getStrKeyPublic());
-		reviewPreIssuanceRequestHelper.applyReviewRequestTx(root, preIssuanceResult.success().requestID, ReviewRequestOpAction::APPROVE, "");
+        if (!isMaster)
+            reviewPreIssuanceRequestHelper.applyReviewRequestTx(root, preIssuanceResult.success().requestID,
+                                                                ReviewRequestOpAction::APPROVE, "");
 	}
 	asset = assetHelper->loadAsset(assetCode, testManager->getDB());
 	REQUIRE(asset->getAvailableForIssuance() == amountToIssue * issueTimes);	

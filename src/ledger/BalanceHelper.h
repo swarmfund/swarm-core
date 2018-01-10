@@ -60,7 +60,7 @@ namespace stellar
 		}
 
 		// load all Balances from the database (very slow)
-		std::unordered_map<AccountID, std::vector<BalanceFrame::pointer>>
+		std::unordered_map<BalanceID, std::vector<BalanceFrame::pointer>>
 			loadAllBalances(Database& db);
 
 

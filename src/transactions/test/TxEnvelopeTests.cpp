@@ -7,8 +7,6 @@
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
-#include "util/Logging.h"
 #include "lib/json/json.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
@@ -19,6 +17,7 @@
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/test/TxTests.h"
 #include "crypto/SHA.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -355,8 +354,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                 SECTION("one failed tx")
                 {
 					// not found to delete
-					TransactionFramePtr tx_b = createManageBalanceTx(networkID, b1, b1, b1Seq++,
-						b1.getPublicKey(), "AETH", ManageBalanceAction::CREATE);
+					TransactionFramePtr tx_b = createManageBalanceTx(networkID, b1, b1, b1Seq++, "AETH", ManageBalanceAction::DELETE_BALANCE);
 
                     tx_b->getEnvelope()
                         .tx.operations[0]
@@ -386,7 +384,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 						SetOptionsResultCode::SUCCESS);
                     REQUIRE(ManageBalanceOpFrame::getInnerCode(
                                     tx->getOperations()[1]->getResult()) ==
-						ManageBalanceResultCode::ALREADY_EXISTS);
+                        ManageBalanceResultCode::MALFORMED);
                 }
                 SECTION("both success")
                 {

@@ -14,8 +14,8 @@ namespace stellar
 using xdr::operator<;
 
 static const char* assetColumnSelector =
-    "SELECT code, owner, name, preissued_asset_signer, description, external_resource_link, max_issuance_amount, available_for_issueance,"
-    " issued, policies, logo_id, lastmodified, version FROM asset";
+    "SELECT code, owner, preissued_asset_signer, details, max_issuance_amount, available_for_issueance,"
+    " issued, pending_issuance, policies, lastmodified, version FROM asset";
 
 void AssetHelper::dropAll(Database& db)
 {
@@ -24,15 +24,13 @@ void AssetHelper::dropAll(Database& db)
         "("
         "code                    VARCHAR(16)   NOT NULL,"
         "owner                   VARCHAR(56)   NOT NULL,"
-        "name                    VARCHAR(64)   NOT NULL,"
         "preissued_asset_signer  VARCHAR(56)   NOT NULL,"
-        "description             TEXT          NOT NULL,"
-        "external_resource_link  VARCHAR(256)  NOT NULL,"
+        "details                 TEXT          NOT NULL,"
         "max_issuance_amount     NUMERIC(20,0) NOT NULL CHECK (max_issuance_amount >= 0),"
         "available_for_issueance NUMERIC(20,0) NOT NULL CHECK (available_for_issueance >= 0),"
         "issued                  NUMERIC(20,0) NOT NULL CHECK (issued >= 0),"
+        "pending_issuance         NUMERIC(20,0) NOT NULL CHECK (issued >= 0),"
         "policies                INT           NOT NULL, "
-        "logo_id				 TEXT          NOT NULL, "
         "lastmodified            INT           NOT NULL, "
         "version                 INT           NOT NULL, "
         "PRIMARY KEY (code)"
@@ -40,69 +38,54 @@ void AssetHelper::dropAll(Database& db)
 }
 
 void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
-                                    bool insert, LedgerEntry const& entry)
+                                    const bool insert, LedgerEntry const& entry)
 {
     auto assetFrame = make_shared<AssetFrame>(entry);
     auto assetEntry = assetFrame->getAsset();
 
     assetFrame->touch(delta);
 
-    bool isValid = assetFrame->isValid();
-    if (!isValid)
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) <<
-            "Unexpected state - asset is invalid: " << xdr::
-            xdr_to_string(assetEntry);
-        throw std::runtime_error("Unexpected state - asset is invalid");
-    }
+    assetFrame->ensureValid();
 
-    auto key = assetFrame->getKey();
+    const auto key = assetFrame->getKey();
     flushCachedEntry(key, db);
 
-    string assetCode = assetEntry.code;
-    string owner = PubKeyUtils::toStrKey(assetEntry.owner);
-    string name = assetEntry.name;
-    string preissuedAssetSigner = PubKeyUtils::
-        toStrKey(assetEntry.preissuedAssetSigner);
-    string desc = assetEntry.description;
-    string externalLink = assetEntry.externalResourceLink;
-    string logoID = assetEntry.logoID;
-    int32_t assetVersion = static_cast<int32_t>(assetEntry.ext.v());
+    auto assetVersion = static_cast<int32_t>(assetEntry.ext.v());
 
     string sql;
 
     if (insert)
     {
         sql =
-            "INSERT INTO asset (code, owner, name, preissued_asset_signer, description, external_resource_link, max_issuance_amount,"
-            "available_for_issueance, issued, policies, logo_id, lastmodified, version) "
-            "VALUES (:code, :owner, :name, :preissued_asset_signer, :description, :external_resource_link, :max_issuance_amount, "
-            ":available_for_issueance, :issued, :policies, :logo_id, :lm, :v)";
+            "INSERT INTO asset (code, owner, preissued_asset_signer, details, max_issuance_amount,"
+            "available_for_issueance, issued, pending_issuance, policies, lastmodified, version) "
+            "VALUES (:code, :owner, :preissued_asset_signer, :details, :max_issuance_amount, "
+            ":available_for_issueance, :issued, :pending_issuance, :policies, :lm, :v)";
     }
     else
     {
         sql =
-            "UPDATE asset SET owner = :owner, name = :name, preissued_asset_signer = :preissued_asset_signer, description = :description,"
-            "external_resource_link = :external_resource_link, max_issuance_amount = :max_issuance_amount,"
-            "available_for_issueance = :available_for_issueance, issued = :issued, policies = :policies, logo_id = :logo_id, lastmodified = :lm, version = :v "
+            "UPDATE asset SET owner = :owner, preissued_asset_signer = :preissued_asset_signer, details = :details,"
+            " max_issuance_amount = :max_issuance_amount,"
+            "available_for_issueance = :available_for_issueance, issued = :issued, pending_issuance = :pending_issuance, policies = :policies, lastmodified = :lm, version = :v "
             "WHERE code = :code";
     }
 
     auto prep = db.getPreparedStatement(sql);
     auto& st = prep.statement();
 
-    st.exchange(use(assetCode, "code"));
+    st.exchange(use(assetEntry.code, "code"));
+    auto owner = PubKeyUtils::toStrKey(assetEntry.owner);
     st.exchange(use(owner, "owner"));
-    st.exchange(use(name, "name"));
+    auto preissuedAssetSigner = PubKeyUtils::toStrKey(assetEntry.preissuedAssetSigner);
     st.exchange(use(preissuedAssetSigner, "preissued_asset_signer"));
-    st.exchange(use(desc, "description"));
-    st.exchange(use(externalLink, "external_resource_link"));
+    st.exchange(use(assetEntry.details, "details"));
     st.exchange(use(assetEntry.maxIssuanceAmount, "max_issuance_amount"));
     st.exchange(use(assetEntry.availableForIssueance,
                     "available_for_issueance"));
     st.exchange(use(assetEntry.issued, "issued"));
+    st.exchange(use(assetEntry.pendingIssuance, "pending_issuance"));
     st.exchange(use(assetEntry.policies, "policies"));
-    st.exchange(use(logoID, "logo_id"));
     st.exchange(use(assetFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     st.exchange(use(assetVersion, "v"));
     st.define_and_bind();
@@ -114,7 +97,7 @@ void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     st.execute(true);
     if (st.get_affected_rows() != 1)
     {
-        throw std::runtime_error("could not update SQL");
+        throw runtime_error("could not update SQL");
     }
 
     if (insert)
@@ -158,7 +141,7 @@ bool AssetHelper::exists(Database& db, LedgerKey const& key)
     return AssetHelper::exists(db, key.asset().code);
 }
 
-bool AssetHelper::exists(Database& db, AssetCode code)
+bool AssetHelper::exists(Database& db, const AssetCode code)
 {
     int exists = 0;
     auto timer = db.getSelectTimer("asset-exists");
@@ -210,12 +193,16 @@ AssetHelper::loadAsset(AssetCode code, Database& db,
     if (cachedEntryExists(key, db))
     {
         auto p = getCachedEntry(key, db);
-        return p ? std::make_shared<AssetFrame>(*p) : nullptr;
+        auto assetFrame = p ? std::make_shared<AssetFrame>(*p) : nullptr;
+        if (!!delta && !!assetFrame)
+        {
+            delta->recordEntry(*assetFrame);
+        }
     }
 
     AssetFrame::pointer retAsset;
     string assetCode = code;
-    std::string sql = assetColumnSelector;
+    string sql = assetColumnSelector;
     sql += " WHERE code = :code";
     auto prep = db.getPreparedStatement(sql);
     auto& st = prep.statement();
@@ -329,46 +316,27 @@ void AssetHelper::loadAssets(StatementContext& prep,
     LedgerEntry le;
     le.data.type(LedgerEntryType::ASSET);
     AssetEntry& oe = le.data.asset();
-    string code, owner, name, preissuedAssetSigner, description,
-           externalResourceLink, logoID;
     int32_t assetVersion;
 
     statement& st = prep.statement();
-    st.exchange(into(code));
-    st.exchange(into(owner));
-    st.exchange(into(name));
-    st.exchange(into(preissuedAssetSigner));
-    st.exchange(into(description));
-    st.exchange(into(externalResourceLink));
+    st.exchange(into(oe.code));
+    st.exchange(into(oe.owner));
+    st.exchange(into(oe.preissuedAssetSigner));
+    st.exchange(into(oe.details));
     st.exchange(into(oe.maxIssuanceAmount));
     st.exchange(into(oe.availableForIssueance));
     st.exchange(into(oe.issued));
+    st.exchange(into(oe.pendingIssuance));
     st.exchange(into(oe.policies));
-    st.exchange(into(logoID));
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.exchange(into(assetVersion));
     st.define_and_bind();
     st.execute(true);
     while (st.got_data())
     {
-        oe.ext.v((LedgerVersion)assetVersion);
-        oe.code = code;
-        oe.owner = PubKeyUtils::fromStrKey(owner);
-        oe.name = name;
-        oe.preissuedAssetSigner = PubKeyUtils::fromStrKey(preissuedAssetSigner);
-        oe.description = description;
-        oe.externalResourceLink = externalResourceLink;
-        oe.logoID = logoID;
-        oe.ext.v((LedgerVersion)assetVersion);
+        oe.ext.v(static_cast<LedgerVersion>(assetVersion));
 
-        bool isValid = AssetFrame::isValid(oe);
-        if (!isValid)
-        {
-            CLOG(ERROR, Logging::ENTRY_LOGGER) <<
-                "Unexpected state - asset is invalid: " << xdr::
-                xdr_to_string(oe);
-            throw std::runtime_error("Unexpected state - asset is invalid");
-        }
+        AssetFrame::ensureValid(oe);
 
         assetProcessor(le);
         st.fetch();

@@ -6,16 +6,14 @@
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
-#include "database/Database.h"
-#include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/PaymentRequestHelper.h"
 #include "transactions/PaymentOpFrame.h"
 #include "crypto/SHA.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -127,7 +125,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
 
         applyManageAssetTx(app, root, rootSeq++, secondAsset);
 
-		applyManageBalanceTx(app, account, account, accSeq++, balanceID, secondAsset);
+		applyManageBalanceTx(app, account, account, accSeq++, secondAsset);
 
         auto accBalanceForSecondAsset = balanceHelper->loadBalance(account.getPublicKey(), secondAsset, app.getDatabase(), &delta);
 

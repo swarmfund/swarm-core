@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <transactions/review_request/ReviewRequestHelper.h>
+#include <ledger/FeeHelper.h>
 #include "util/asio.h"
 #include "CreateIssuanceRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
@@ -31,6 +32,7 @@ CreateIssuanceRequestOpFrame::CreateIssuanceRequestOpFrame(Operation const& op,
     : OperationFrame(op, res, parentTx)
     , mCreateIssuanceRequest(mOperation.body.createIssuanceRequestOp())
 {
+    mIsFeeRequired = true;
 }
 
 bool
@@ -70,6 +72,7 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 	innerResult().code(CreateIssuanceRequestResultCode::SUCCESS);
 	innerResult().success().requestID = request->getRequestID();
 	innerResult().success().fulfilled = isFulfilled;
+    innerResult().success().fee = request->getRequestEntry().body.issuanceRequest().fee;
 	auto& db = app.getDatabase();
 	auto balanceHelper = BalanceHelper::Instance();
 	auto receiver = balanceHelper->mustLoadBalance(mCreateIssuanceRequest.request.receiver, db);
@@ -94,6 +97,12 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 	if (mCreateIssuanceRequest.reference.empty()) {
 		innerResult().code(CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
 		return false;
+	}
+
+	if (mCreateIssuanceRequest.request.externalDetails.size() > app.
+		getIssuanceDetailsMaxLength())
+	{
+		innerResult().code(CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS);
 	}
 	
     return true;
@@ -150,13 +159,65 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
+    Fee feeToPay;
+    if (!calculateFee(balance->getAccountID(), db, feeToPay)) {
+        innerResult().code(CreateIssuanceRequestResultCode::FEE_EXCEEDS_AMOUNT);
+        return nullptr;
+    }
+
 	auto reference = xdr::pointer<stellar::string64>(new stellar::string64(mCreateIssuanceRequest.reference));
 	ReviewableRequestEntry::_body_t body;
 	body.type(ReviewableRequestType::ISSUANCE_CREATE);
 	body.issuanceRequest() = mCreateIssuanceRequest.request;
-	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference, body);
+    body.issuanceRequest().fee = feeToPay;
+	auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), asset->getOwner(), reference,
+                                                             body, ledgerManager.getCloseTime());
 	EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 	return request;
 }
 
+bool CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db, Fee &fee)
+{
+    // calculate fee which will be charged from receiver
+    fee.percent = 0;
+    fee.fixed = 0;
+
+    if (!mIsFeeRequired)
+        return true;
+
+    auto receiverFrame = AccountHelper::Instance()->mustLoadAccount(receiver, db);
+    if (isSystemAccountType(receiverFrame->getAccountType()))
+        return true;
+
+    auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::ISSUANCE_FEE, mCreateIssuanceRequest.request.asset,
+                                                          FeeFrame::SUBTYPE_ANY, receiverFrame,
+                                                          mCreateIssuanceRequest.request.amount, db);
+    if (feeFrame) {
+        fee.fixed = feeFrame->getFee().fixedFee;
+        feeFrame->calculatePercentFee(mCreateIssuanceRequest.request.amount, fee.percent, ROUND_UP);
+    }
+
+    uint64_t totalFee = 0;
+    if (!safeSum(fee.fixed, fee.percent, totalFee))
+        throw std::runtime_error("totalFee overflows uint64");
+
+    return totalFee < mCreateIssuanceRequest.request.amount;
+}
+
+CreateIssuanceRequestOp CreateIssuanceRequestOpFrame::build(
+    AssetCode const& asset, const uint64_t amount, BalanceID const& receiver,
+    LedgerManager& lm)
+{
+    IssuanceRequest request;
+    request.amount = amount;
+    request.asset = asset;
+    request.externalDetails = "{}";
+    request.fee.percent = 0;
+    request.fee.fixed = 0;
+    request.receiver = receiver;
+    CreateIssuanceRequestOp issuanceRequestOp;
+    issuanceRequestOp.request = request;
+    issuanceRequestOp.reference = binToHex(sha256(xdr_to_opaque(receiver, asset, amount, lm.getCloseTime())));
+    return issuanceRequestOp;
+}
 }

@@ -25,9 +25,7 @@ performance needs.
  1. The latest ledger is stored in a postgresql or sqlite database in order to
     provide full "acid" safety and fast access to current state, notably to make
     it possible to determine efficiently whether a newly submitted operation is
-    valid. (See the `load` and `store` functions in the subclasses of
-    `EntryFrame`: `AccountFrame`, `TrustFrame`, and `OfferFrame` in
-    [`src/ledger`](/src/ledger)).
+    valid.
 
  2. The ledger chain is represented in the the ledger headers as hashes linking
     each hedger to the previous one. The spine of the chain is lightweight data

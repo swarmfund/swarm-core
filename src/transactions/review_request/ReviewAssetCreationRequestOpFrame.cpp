@@ -42,7 +42,7 @@ bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerD
         ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta);
     } else
     {
-        ManageAssetHelper::createBalanceForAccount(assetFrame->getOwner(), assetFrame->getCode(), app, delta);
+        AccountManager::loadOrCreateBalanceForAsset(assetFrame->getOwner(), assetFrame->getCode(), db, delta);
     }
 
 	EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());

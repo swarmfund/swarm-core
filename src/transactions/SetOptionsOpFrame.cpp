@@ -192,7 +192,7 @@ SetOptionsOpFrame::getUpdatedOrCreateReviewableRequest(Application &app, LedgerD
     auto& updateKYCEntry = updateKYCRequest->getRequestEntry();
     updateKYCEntry.body.type(ReviewableRequestType::UPDATE_KYC);
     updateKYCEntry.body.updateKYCRequest().dataKYC = mSetOptions.updateKYCData->dataKYC;
-    updateKYCEntry.body.updateKYCRequest().accountType = mSourceAccount->getAccountType();
+    updateKYCEntry.body.updateKYCRequest().accountTypeBeforeUpdate = mSourceAccount->getAccountType();
     updateKYCRequest->recalculateHashRejectReason();
 
     return updateKYCRequest;

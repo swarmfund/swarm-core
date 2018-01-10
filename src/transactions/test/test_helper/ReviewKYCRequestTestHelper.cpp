@@ -34,7 +34,7 @@ void ReviewKYCRequestChecker::checkApprove(ReviewableRequestFrame::pointer)
 
     //after review account type restored to original state
     auto accountAfterTx = AccountHelper::Instance()->mustLoadAccount(accountBeforeTx->getID(), mTestManager->getDB());
-    REQUIRE(accountAfterTx->getAccountType() == updateKYCRequest->accountType);
+    REQUIRE(accountAfterTx->getAccountType() == updateKYCRequest->accountTypeBeforeUpdate);
 
     //KYCData entry was created:
     auto KYCData = AccountKYCHelper::Instance()->loadAccountKYC(accountBeforeTx->getID(), mTestManager->getDB());

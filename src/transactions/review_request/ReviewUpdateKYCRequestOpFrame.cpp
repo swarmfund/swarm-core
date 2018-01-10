@@ -44,11 +44,11 @@ bool ReviewUpdateKYCRequestOpFrame::handleApprove(Application &app, LedgerDelta 
     auto requestorAccount = AccountHelper::Instance()->loadAccount(requestorID, db);
     if (!requestorAccount)
     {
-        innerResult().code(ReviewRequestResultCode::REQUESTOR_NOT_FOUND);
-        return false;
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Requestor account not found.";
+        throw std::runtime_error("Unexpected state. Requestor not found.");
     }
     // change requestor's account type back to the original state
-    requestorAccount->setAccountType(updateKYCRequest.accountType);
+    requestorAccount->setAccountType(updateKYCRequest.accountTypeBeforeUpdate);
     EntryHelperProvider::storeChangeEntry(delta, db, requestorAccount->mEntry);
 
     //update KYC data of the account

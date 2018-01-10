@@ -20,6 +20,9 @@ protected:
 
     SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
+    bool tryCallSetLimits(Application &app,  LedgerManager &ledgerManager, LedgerDelta &delta,
+                          ReviewableRequestFrame::pointer request);
+
 public:
     ReviewLimitsUpdateRequestOpFrame(Operation const& op, OperationResult& res,
                                      TransactionFrame& parentTx);

@@ -16,6 +16,7 @@ class ReviewChecker
 {
 protected:
     TestManager::pointer mTestManager;
+    Operation mOperation;
 public:
     ReviewChecker(TestManager::pointer testManager)
     {
@@ -33,6 +34,11 @@ public:
 
     virtual void checkPermanentReject(ReviewableRequestFrame::pointer)
     {
+    }
+
+    void setOperation(Operation &op)
+    {
+        mOperation = op;
     }
 };
 

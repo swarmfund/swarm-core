@@ -31,6 +31,40 @@ namespace stellar {
                              static_cast<int32_t >(SignerType::LIMITS_MANAGER));
     }
 
+    bool ReviewLimitsUpdateRequestOpFrame::tryCallSetLimits(Application &app,
+                                                            LedgerManager &ledgerManager, LedgerDelta &delta,
+                                                            ReviewableRequestFrame::pointer request)
+    {
+        Database& db = ledgerManager.getDatabase();
+        auto requestorID = request->getRequestor();
+
+        Operation op;
+        op.body.type(OperationType::SET_LIMITS);
+        SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
+        setLimitsOp.account.activate() = requestorID;
+        setLimitsOp.limits = mReviewRequest.requestDetails.limitsUpdate().newLimits;
+
+        OperationResult opRes;
+        opRes.code(OperationResultCode::opINNER);
+        opRes.tr().type(OperationType::SET_LIMITS);
+        SetLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
+
+        auto accountHelper = AccountHelper::Instance();
+        auto master = accountHelper->loadAccount(app.getMasterID(), db, &delta);
+        setLimitsOpFrame.setSourceAccountPtr(master);
+
+        if (!setLimitsOpFrame.doCheckValid(app) || !setLimitsOpFrame.doApply(app, delta, ledgerManager))
+        {
+            auto resultCodeString = setLimitsOpFrame.getInnerResultCodeAsStr();
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to apply set limits on review limits update request: "
+                                                   << request->getRequestID() << " with code: " << resultCodeString;
+            throw runtime_error("Unexpected state: failed to set limits on review limits update request with code: " +
+                                 resultCodeString);
+        }
+
+        innerResult().code(ReviewRequestResultCode::SUCCESS);
+        return true;
+    }
 
     bool ReviewLimitsUpdateRequestOpFrame::handleApprove(Application &app, LedgerDelta &delta,
                                                          LedgerManager &ledgerManager,
@@ -45,7 +79,6 @@ namespace stellar {
         EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
         auto accountHelper = AccountHelper::Instance();
-        auto accountLimitsHelper = AccountLimitsHelper::Instance();
 
         auto requestorID = request->getRequestor();
 
@@ -56,38 +89,7 @@ namespace stellar {
             throw std::runtime_error("Requestor account expected to exist");
         }
 
-        auto requestorAccountLimitsFrame = accountLimitsHelper->loadLimits(requestorID, db, &delta);
-
-        if (!requestorAccountLimitsFrame)
-        {
-            throw std::runtime_error("Requestor account limits expected to exist");
-        }
-
-
-        Operation op;
-        op.body.type(OperationType::SET_LIMITS);
-        SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
-        setLimitsOp.account.activate() = requestorAccountFrame->getID();
-        setLimitsOp.limits = mReviewRequest.requestDetails.limitsUpdate().newLimits;
-
-        OperationResult opRes;
-        opRes.code(OperationResultCode::opINNER);
-        opRes.tr().type(OperationType::SET_LIMITS);
-        SetLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
-
-        auto master = accountHelper->loadAccount(app.getMasterID(), db, &delta);
-        setLimitsOpFrame.setSourceAccountPtr(master);
-
-        if (!setLimitsOpFrame.doCheckValid(app) || !setLimitsOpFrame.doApply(app, delta, ledgerManager))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) <<
-               "Unexpected state: failed to apply set limits on review limits update request: " << request->getRequestID();
-            throw runtime_error("Unexpected state: failed to set limits on review limits update request");
-        }
-
-
-        innerResult().code(ReviewRequestResultCode::SUCCESS);
-        return true;
+        return tryCallSetLimits(app, ledgerManager, delta, request);
     }
 
     bool ReviewLimitsUpdateRequestOpFrame::handleReject(Application &app, LedgerDelta &delta,

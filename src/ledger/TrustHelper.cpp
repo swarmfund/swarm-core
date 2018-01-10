@@ -194,7 +194,7 @@ namespace stellar {
 		{
 			sql = std::string(
 				"UPDATE trusts "
-				"SET    lastmodified=:v3 version=:v4"
+				"SET    lastmodified=:v3, version=:v4 "
 				"WHERE  allowed_account=:id AND balance_to_use=:v2");
 		}
 

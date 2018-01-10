@@ -21,16 +21,11 @@ LimitsUpdateReviewChecker::LimitsUpdateReviewChecker(TestManager::pointer testMa
     {
         return;
     }
-
     limitsUpdateRequest = std::make_shared<LimitsUpdateRequest>(request->getRequestEntry().body.limitsUpdateRequest());
 
     auto accountLimitsHelper = AccountLimitsHelper::Instance();
     AccountID requestor = request->getRequestor();
     accountLimitsBeforeTx = accountLimitsHelper->loadLimits(requestor, db);
-    if (!accountLimitsBeforeTx)
-    {
-        return;
-    }
 }
 
 void
@@ -40,11 +35,16 @@ LimitsUpdateReviewChecker::checkApprove(ReviewableRequestFrame::pointer request)
     REQUIRE(!!limitsUpdateRequest);
 
     // check accountLimits
-    REQUIRE(!!accountLimitsBeforeTx);
     auto accountLimitsHelper = AccountLimitsHelper::Instance();
     AccountID requestor = request->getRequestor();
     auto accountLimitsAfterTx = accountLimitsHelper->loadLimits(requestor, db);
     REQUIRE(!!accountLimitsAfterTx);
+    auto limitsEntryAfterTx = accountLimitsAfterTx->getLimits();
+    auto reviewRequestLimits = mOperation.body.reviewRequestOp().requestDetails.limitsUpdate().newLimits;
+    REQUIRE(limitsEntryAfterTx.dailyOut == reviewRequestLimits.dailyOut);
+    REQUIRE(limitsEntryAfterTx.weeklyOut == reviewRequestLimits.weeklyOut);
+    REQUIRE(limitsEntryAfterTx.monthlyOut == reviewRequestLimits.monthlyOut);
+    REQUIRE(limitsEntryAfterTx.annualOut == reviewRequestLimits.annualOut);
 }
 
 void
@@ -56,10 +56,13 @@ LimitsUpdateReviewChecker::checkPermanentReject(ReviewableRequestFrame::pointer 
     AccountID requestor = request->getRequestor();
     auto accountLimitsAfterTx = accountLimitsHelper->loadLimits(requestor, db);
 
-    REQUIRE(accountLimitsBeforeTx->getLimits().annualOut == accountLimitsAfterTx->getLimits().annualOut);
-    REQUIRE(accountLimitsBeforeTx->getLimits().dailyOut == accountLimitsAfterTx->getLimits().dailyOut);
-    REQUIRE(accountLimitsBeforeTx->getLimits().monthlyOut == accountLimitsAfterTx->getLimits().monthlyOut);
-    REQUIRE(accountLimitsBeforeTx->getLimits().weeklyOut == accountLimitsAfterTx->getLimits().weeklyOut);
+    if (!!accountLimitsBeforeTx)
+    {
+        REQUIRE(accountLimitsBeforeTx->getLimits().annualOut == accountLimitsAfterTx->getLimits().annualOut);
+        REQUIRE(accountLimitsBeforeTx->getLimits().dailyOut == accountLimitsAfterTx->getLimits().dailyOut);
+        REQUIRE(accountLimitsBeforeTx->getLimits().monthlyOut == accountLimitsAfterTx->getLimits().monthlyOut);
+        REQUIRE(accountLimitsBeforeTx->getLimits().weeklyOut == accountLimitsAfterTx->getLimits().weeklyOut);
+    }
 }
 
 ReviewLimitsUpdateRequestHelper::ReviewLimitsUpdateRequestHelper(

@@ -73,6 +73,8 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
         return reviewResult;
     }
 
+    auto txOperation = txFrame->getOperations()[0]->getOperation();
+    reviewChecker.setOperation(txOperation);
     reviewChecker.checkApprove(requestBeforeTx);
     return reviewResult;
 }

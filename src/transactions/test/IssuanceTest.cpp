@@ -30,7 +30,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 	// create new account with balance 
 	auto newAccountKP = SecretKey::random();
     CreateAccountTestHelper createAccountTestHelper(testManager);
-	createAccountTestHelper.applyCreateAccountTx(root, newAccountKP.getPublicKey(), AccountType::GENERAL);
+    createAccountTestHelper.applyCreateAccountTx(root, newAccountKP.getPublicKey(), AccountType::GENERAL);
 
 	auto balanceHelper = BalanceHelper::Instance();
 	auto newAccountBalance = balanceHelper->loadBalance(newAccountKP.getPublicKey(), assetCode, testManager->getDB(), nullptr);

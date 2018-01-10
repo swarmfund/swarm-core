@@ -4,6 +4,7 @@ SUBDIRS = lib src
 AM_EXTRA_RECURSIVE_TARGETS = check-valgrind
 ACLOCAL_AMFLAGS = -I m4
 
+
 include $(top_srcdir)/common.mk
 
 .PHONY: always

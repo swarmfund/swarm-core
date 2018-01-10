@@ -527,7 +527,7 @@ namespace stellar
 		return state;
 	}
 
-	bool AccountHelper::exists(AccountID const &accountID, Database &db) {
+	bool AccountHelper::exists(AccountID const &rawAccountID, Database &db) {
 		int exists = 0;
 		{
 			auto timer = db.getSelectTimer("account-exists");
@@ -535,6 +535,7 @@ namespace stellar
 					db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM accounts "
 													"WHERE accountid=:v1)");
 			auto& st = prep.statement();
+                        auto accountID = PubKeyUtils::toStrKey(rawAccountID);
 			st.exchange(use(accountID));
 			st.exchange(into(exists));
 			st.define_and_bind();

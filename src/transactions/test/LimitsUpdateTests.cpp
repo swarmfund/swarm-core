@@ -34,7 +34,7 @@ TEST_CASE("limits update", "[tx][limits_update]")
 
     auto root = Account{ getRoot(), Salt(0) };
     auto createAccountTestHelper = CreateAccountTestHelper(testManager);
-    auto limitsUpdateRequstHelper = LimitsUpdateRequestHelper(testManager);
+    auto limitsUpdateRequestHelper = LimitsUpdateRequestHelper(testManager);
     auto reviewLimitsUpdateHelper = ReviewLimitsUpdateRequestHelper(testManager);
     auto setLimitsTestHelper = SetLimitsTestHelper(testManager);
     auto setOptionsTestHelper = SetOptionsTestHelper(testManager);
@@ -60,8 +60,8 @@ TEST_CASE("limits update", "[tx][limits_update]")
         stellar::Hash documentHash = Hash(sha256(documentData));
 
         // create LimitsUpdateRequest
-        auto limitsUpdateRequest = limitsUpdateRequstHelper.createLimitsUpdateRequest(documentHash);
-        auto limitsUpdateResult = limitsUpdateRequstHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest);
+        auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash);
+        auto limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest);
 
         // review LimitsUpdateRequest
         SECTION("Approve")
@@ -73,6 +73,22 @@ TEST_CASE("limits update", "[tx][limits_update]")
         {
             reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().limitsUpdateRequestID,
                                                           ReviewRequestOpAction::PERMANENT_REJECT, "Invalid document");
+        }
+        SECTION("Approve for account without limits")
+        {
+            auto accountWithoutLimits = Account {SecretKey::random(), Salt(0)};
+            AccountID accountWithoutLimitsID = accountWithoutLimits.key.getPublicKey();
+            createAccountTestHelper.applyCreateAccountTx(root, accountWithoutLimitsID,
+                                                         AccountType::GENERAL);
+            std::string documentData2 = "Some other document data";
+            stellar::Hash documentHash2 = Hash(sha256(documentData2));
+
+            auto limitsUpdateRequest2 = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash2);
+            auto limitsUpdateResult2 = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(accountWithoutLimits,
+                                                                                                limitsUpdateRequest2);
+
+            reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult2.success().limitsUpdateRequestID,
+                                                          ReviewRequestOpAction::APPROVE, "");
         }
     }
 }

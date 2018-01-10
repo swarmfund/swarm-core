@@ -56,7 +56,8 @@ namespace stellar
 		auto& st = prep.statement();
 
 
-		st.exchange(use(externalSystemAccountIDEntry.accountID, "id"));
+                auto accountID = PubKeyUtils::toStrKey(externalSystemAccountIDEntry.accountID);
+		st.exchange(use(accountID, "id"));
 		st.exchange(use(externalSystemAccountIDEntry.externalSystemType, "ex_sys_type"));
 		st.exchange(use(externalSystemAccountIDEntry.data, "data"));
 		st.exchange(use(externalSystemAccountIDFrame->mEntry.lastModifiedLedgerSeq, "lm"));
@@ -99,7 +100,8 @@ namespace stellar
 		auto prep = db.getPreparedStatement("DELETE FROM external_system_account_id WHERE account_id=:id AND external_system_type=:etype");
 		auto& st = prep.statement();
 		const auto exSysAccountID = key.externalSystemAccountID();
-		st.exchange(use(exSysAccountID.accountID, "id"));
+                auto accountID = PubKeyUtils::toStrKey(exSysAccountID.accountID);
+		st.exchange(use(accountID, "id"));
 		st.exchange(use(exSysAccountID.externalSystemType, "etype"));
 		st.define_and_bind();
 		st.execute(true);
@@ -127,7 +129,7 @@ namespace stellar
 		return exists(db, exSysAccountID.accountID, exSysAccountID.externalSystemType);
 	}
 
-	bool ExternalSystemAccountIDHelper::exists(Database& db, AccountID accountID,
+	bool ExternalSystemAccountIDHelper::exists(Database& db, AccountID rawAccountID,
 		ExternalSystemType externalSystemType)
 	{
 		int exists = 0;
@@ -135,6 +137,7 @@ namespace stellar
 		auto prep =
 			db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM external_system_account_id WHERE account_id=:id AND external_system_type = :ex_sys_type)");
 		auto& st = prep.statement();
+                auto accountID = PubKeyUtils::toStrKey(rawAccountID);
 		st.exchange(use(accountID, "id"));
 		st.exchange(use(externalSystemType, "ex_sys_type"));
 		st.exchange(into(exists));
@@ -175,7 +178,7 @@ namespace stellar
 	}
 
 	ExternalSystemAccountIDFrame::pointer 
-	ExternalSystemAccountIDHelper::	load(const AccountID accountID,
+	ExternalSystemAccountIDHelper::	load(const AccountID rawAccountID,
 		const ExternalSystemType externalSystemType,
 		Database& db, LedgerDelta* delta)
 	{
@@ -183,6 +186,7 @@ namespace stellar
 		sql += +" WHERE account_id = :id AND external_system_type = :ex_sys_type";
 		auto prep = db.getPreparedStatement(sql);
 		auto& st = prep.statement();
+                auto accountID = PubKeyUtils::toStrKey(rawAccountID);
 		st.exchange(use(accountID, "id"));
 		st.exchange(use(externalSystemType, "ex_sys_type"));
 

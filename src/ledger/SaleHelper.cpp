@@ -144,7 +144,8 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     auto& st = prep.statement();
 
     st.exchange(use(saleEntry.saleID, "id"));
-    st.exchange(use(saleEntry.ownerID, "owner_id"));
+    auto ownerID = PubKeyUtils::toStrKey(saleEntry.ownerID);
+    st.exchange(use(ownerID, "owner_id"));
     st.exchange(use(saleEntry.baseAsset, "base_asset"));
     st.exchange(use(saleEntry.quoteAsset, "quote_asset"));
     st.exchange(use(saleEntry.startTime, "start_time"));
@@ -156,8 +157,10 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     st.exchange(use(saleEntry.details, "details"));
     st.exchange(use(version, "v"));
     st.exchange(use(saleFrame->mEntry.lastModifiedLedgerSeq, "lm"));
-    st.exchange(use(saleEntry.baseBalance, "base_balance"));
-    st.exchange(use(saleEntry.quoteBalance, "quote_balance"));
+    auto baseBalance = BalanceKeyUtils::toStrKey(saleEntry.baseBalance);
+    st.exchange(use(baseBalance, "base_balance"));
+    auto quoteBalance = BalanceKeyUtils::toStrKey(saleEntry.quoteBalance);
+    st.exchange(use(quoteBalance, "quote_balance"));
     st.define_and_bind();
 
     auto timer = insert

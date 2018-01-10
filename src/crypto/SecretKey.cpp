@@ -382,18 +382,34 @@ StrKeyUtils::logKey(std::ostream& s, std::string const& key)
 }
 
 PublicKey
-StrKeyUtils::fromStrKey(std::string const& s, int keyType)
+StrKeyUtils::fromStrKey(std::string const& s, const int expectedKeyType)
 {
-    PublicKey pk;
-    uint8_t ver;
+    uint8_t actualKeyType = 0;
+    auto pubKey = fromStr(s, actualKeyType);
+    if (actualKeyType != expectedKeyType)
+    {
+        throw std::invalid_argument("Expected key type does not match actual: bad public key");
+    }
+
+    return pubKey;
+}
+
+PublicKey StrKeyUtils::fromStrKey(std::string const& s)
+{
+    uint8_t keyType = 0;
+    return fromStr(s, keyType);
+}
+
+PublicKey StrKeyUtils::fromStr(std::string const& s, uint8_t& keyType)
+{
     std::vector<uint8_t> k;
-    if (!strKey::fromStrKey(s, ver, k) ||
-        (ver != keyType) ||
+    if (!strKey::fromStrKey(s, keyType, k) ||
         (k.size() != crypto_sign_PUBLICKEYBYTES) ||
         (s.size() != strKey::getStrKeySize(crypto_sign_PUBLICKEYBYTES)))
     {
         throw std::invalid_argument("bad public key");
     }
+    PublicKey pk;
     std::copy(k.begin(), k.end(), pk.ed25519().begin());
     return pk;
 }

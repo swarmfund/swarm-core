@@ -11,25 +11,6 @@ namespace soci
 using namespace stellar;
 using namespace std;
 
-void type_conversion<AccountID>::from_base(std::string rawAccountID,
-                                           indicator ind, AccountID& accountID)
-{
-    if (ind == i_null)
-    {
-        throw soci_error("Null value not allowed for AccountID type");
-    }
-
-    accountID = PubKeyUtils::fromStrKey(rawAccountID);
-}
-
-
-void type_conversion<AccountID>::to_base(const AccountID& accountID,
-                                         std::string& result, indicator& ind)
-{
-    result = PubKeyUtils::toStrKey(accountID);
-    ind = i_ok;
-}
-
 void type_conversion<xdr::pointer<string64>>::from_base(
     std::string rawStr, indicator ind, xdr::pointer<string64>& result)
 {
@@ -99,5 +80,23 @@ void type_conversion<ExternalSystemType, void>::to_base(
 {
     result = static_cast<int32_t>(number);
     ind = i_ok;
+}
+
+void type_conversion<PublicKey, void>::from_base(std::string raw, indicator ind,
+    PublicKey& result)
+{
+    if (ind != i_ok)
+    {
+        throw std::runtime_error("Unexpected ind valud for public key");
+    }
+
+    result = StrKeyUtils::fromStrKey(raw);
+}
+
+void type_conversion<PublicKey, void>::to_base(PublicKey& raw,
+    std::string& result, indicator& ind)
+{
+    throw std::runtime_error("It's now allowed to use `use` for any of the typedef for PublicKey. It should be converted to"
+        " string manually. As it's not possible to define based on the value of PublicKey which conversion should we use");
 }
 }

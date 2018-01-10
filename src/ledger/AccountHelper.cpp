@@ -4,14 +4,11 @@
 
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountTypeLimitsFrame.h"
-#include "crypto/SecretKey.h"
-#include "crypto/Hex.h"
-#include "database/Database.h"
+
 #include "LedgerDelta.h"
 #include "util/basen.h"
 #include "util/types.h"
 #include "lib/util/format.h"
-#include <algorithm>
 
 using namespace soci;
 using namespace std;
@@ -354,20 +351,7 @@ namespace stellar
 			return true;
 		}
 
-		std::string actIDStrKey = PubKeyUtils::toStrKey(key.account().accountID);
-		int exists = 0;
-		{
-			auto timer = db.getSelectTimer("account-exists");
-			auto prep =
-				db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM accounts "
-					"WHERE accountid=:v1)");
-			auto& st = prep.statement();
-			st.exchange(use(actIDStrKey));
-			st.exchange(into(exists));
-			st.define_and_bind();
-			st.execute(true);
-		}
-		return exists != 0;
+		return exists(key.account().accountID, db);
 	}
 
 	LedgerKey
@@ -541,6 +525,22 @@ namespace stellar
 			}
 		}
 		return state;
+	}
+
+	bool AccountHelper::exists(AccountID const &accountID, Database &db) {
+		int exists = 0;
+		{
+			auto timer = db.getSelectTimer("account-exists");
+			auto prep =
+					db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM accounts "
+													"WHERE accountid=:v1)");
+			auto& st = prep.statement();
+			st.exchange(use(accountID));
+			st.exchange(into(exists));
+			st.define_and_bind();
+			st.execute(true);
+		}
+		return exists != 0;
 	}
 
 }

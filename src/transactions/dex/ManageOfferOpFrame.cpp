@@ -318,7 +318,7 @@ const
     uint32_t allowedBlockedReasons = 0;
     if (mManageOffer.offerID != 0 && mManageOffer.amount == 0)
         allowedBlockedReasons = getAnyBlockReason();
-    return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED},
+    return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE, AccountType::EXCHANGE},
                          mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER),
                          allowedBlockedReasons);

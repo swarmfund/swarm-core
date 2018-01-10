@@ -98,6 +98,7 @@ bool ManageSaleParticipationOpFrame::deleteOffer(Database& db,
     }
 
     sale->subCurrentCap(offer->getOffer().quoteAmount);
+    SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);
     return ManageOfferOpFrame::deleteOffer(db, delta);
 }
 

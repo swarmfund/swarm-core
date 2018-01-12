@@ -130,6 +130,11 @@ class AccountFrame : public EntryFrame
 		return mAccountEntry.referrer.get();
     }
 
+    AccountID getRecoveryID() const
+    {
+        return mAccountEntry.recoveryID;
+    }
+
 	int32_t getPolicies() const
 	{
 		return mAccountEntry.policies;

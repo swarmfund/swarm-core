@@ -119,6 +119,10 @@ namespace stellar {
         auto &db = app.getDatabase();
         auto destAccountFrame = make_shared<AccountFrame>(mCreateAccount.destination);
         buildAccount(app, delta, destAccountFrame);
+
+        //save recovery accountID
+        destAccountFrame->getAccount().recoveryID = mCreateAccount.recoveryKey;
+
         EntryHelperProvider::storeAddEntry(delta, db, destAccountFrame->mEntry);
         AccountManager accountManager(app, db, delta, ledgerManager);
         accountManager.createStats(destAccountFrame);
@@ -174,7 +178,7 @@ namespace stellar {
 
         if (mCreateAccount.accountType == AccountType::NOT_VERIFIED &&
             mCreateAccount.policies != 0) {
-            innerResult().code(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAS_POLICIES);
+            innerResult().code(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAVE_POLICIES);
             return false;
         }
 

@@ -32,7 +32,8 @@ TEST_CASE("create account", "[tx][create_account]") {
     auto createAccountTestBuilder = CreateAccountTestBuilder()
             .setSource(root)
             .setToPublicKey(randomAccount.getPublicKey())
-            .setType(AccountType::NOT_VERIFIED);
+            .setType(AccountType::NOT_VERIFIED)
+            .setRecovery(SecretKey::random().getPublicKey());
 
     auto createAccountHelper = CreateAccountTestHelper(testManager);
 
@@ -105,7 +106,7 @@ TEST_CASE("create account", "[tx][create_account]") {
                         .setType(AccountType::NOT_VERIFIED)
                         .setReferrer(&validReferrer)
                         .setPolicies(1)
-                        .setResultCode(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAS_POLICIES)
+                        .setResultCode(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAVE_POLICIES)
         );
     }
 

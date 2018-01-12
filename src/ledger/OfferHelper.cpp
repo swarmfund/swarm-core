@@ -139,9 +139,10 @@ namespace stellar {
 
         auto offerVersion = static_cast<int32_t >(offerEntry.ext.v());
 
+        auto ownerID = PubKeyUtils::toStrKey(offerEntry.ownerID);
         if (insert)
         {
-            st.exchange(use(offerEntry.ownerID, "sid"));
+            st.exchange(use(ownerID, "sid"));
         }
         st.exchange(use(offerEntry.offerID, "oid"));
         st.exchange(use(offerEntry.orderBookID, "order_book_id"));
@@ -154,8 +155,10 @@ namespace stellar {
         st.exchange(use(offerEntry.percentFee, "pf"));
         int isBuy = offerEntry.isBuy ? 1 : 0;
         st.exchange(use(isBuy, "ib"));
-        st.exchange(use(offerEntry.baseBalance, "sbi"));
-        st.exchange(use(offerEntry.quoteBalance, "bbi"));
+        auto baseBalance = BalanceKeyUtils::toStrKey(offerEntry.baseBalance);
+        st.exchange(use(baseBalance, "sbi"));
+        auto quoteBalance = BalanceKeyUtils::toStrKey(offerEntry.quoteBalance);
+        st.exchange(use(quoteBalance, "bbi"));
         st.exchange(use(offerEntry.createdAt, "ca"));
         st.exchange(use(offerFrame->mEntry.lastModifiedLedgerSeq, "l"));
         st.exchange(use(offerVersion, "v"));

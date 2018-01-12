@@ -26,6 +26,22 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
+void addNewParticipant(TestManager::pointer testManager, Account& root, const uint64_t saleID, const AssetCode baseAsset,
+                       const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee)
+{
+    auto account = Account{ SecretKey::random(), 0 };
+    CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
+    auto quoteBalance = BalanceHelper::Instance()->loadBalance(account.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
+    REQUIRE(!!quoteBalance);
+    IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount, quoteBalance->getBalanceID(),
+        SecretKey::random().getStrKeyPublic());
+    auto accountID = account.key.getPublicKey();
+    auto balanceCreationResult = ManageBalanceTestHelper(testManager).applyManageBalanceTx(account, accountID, baseAsset);
+    const auto baseAssetAmount = bigDivide(quoteAssetAmount, ONE, price, ROUND_UP);
+    auto manageOfferOp = OfferManager::buildManageOfferOp(balanceCreationResult.success().balanceID, quoteBalance->getBalanceID(),
+        true, baseAssetAmount, price, 0, fee, saleID);
+    ParticipateInSaleTestHelper(testManager).applyManageOffer(account, manageOfferOp);
+}
 
 TEST_CASE("Sale", "[tx][sale]")
 {
@@ -46,7 +62,12 @@ TEST_CASE("Sale", "[tx][sale]")
     SECTION("Happy path")
     {
         auto syndicate = Account{ SecretKey::random(), 0 };
-        const auto syndicatePubKey = syndicate.key.getPublicKey();
+        auto syndicatePubKey = syndicate.key.getPublicKey();
+        auto offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0,
+            int64_t(0.2 * ONE), quoteAsset,
+            &syndicatePubKey);
+        auto offerFee = offerFeeFrame->getFee();
+
         CreateAccountTestHelper(testManager).applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
         const AssetCode baseAsset = "BTC";
         const auto maxIssuanceAmount = 1000 * ONE;
@@ -59,32 +80,19 @@ TEST_CASE("Sale", "[tx][sale]")
         const auto softCap = hardCap / 2;
         const auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime, currentTime + 1000, price, softCap, hardCap, "{}");
         saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
+        auto accountTestHelper = CreateAccountTestHelper(testManager);
+        IssuanceRequestHelper(testManager).authorizePreIssuedAmount(root, root.key, quoteAsset, hardCap, root);
+        auto sales = SaleHelper::Instance()->loadSales(baseAsset, quoteAsset, testManager->getDB());
+        REQUIRE(sales.size() == 1);
+        const auto saleID = sales[0]->getID();
         SECTION("Reached hard cap")
         {
-            auto accountTestHelper = CreateAccountTestHelper(testManager);
-            auto issuanceHelper = IssuanceRequestHelper(testManager);
-            issuanceHelper.authorizePreIssuedAmount(root, root.key, quoteAsset, hardCap, root);
-            auto balanceHelper = ManageBalanceTestHelper(testManager);
             const int numberOfParticipants = 10;
-            auto participateInSaleHelper = ParticipateInSaleTestHelper(testManager);
-            auto sales = SaleHelper::Instance()->loadSales(baseAsset, quoteAsset, testManager->getDB());
-            REQUIRE(sales.size() == 1);
-            auto saleID = sales[0]->getID();
             for (auto i = 0; i < numberOfParticipants; i++)
             {
-                auto account = Account{ SecretKey::random(), 0 };
-                accountTestHelper.applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
-                auto quoteBalance = BalanceHelper::Instance()->loadBalance(account.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
-                REQUIRE(!!quoteBalance);
+                
                 const auto quoteAssetAmount = hardCap / numberOfParticipants;
-                issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount, quoteBalance->getBalanceID(),
-                    SecretKey::random().getStrKeyPublic());
-                auto accountID = account.key.getPublicKey();
-                auto balanceCreationResult = balanceHelper.applyManageBalanceTx(account, accountID, baseAsset);
-                const auto baseAssetAmount = bigDivide(quoteAssetAmount, ONE, price, ROUND_UP);
-                auto manageOfferOp = OfferManager::buildManageOfferOp(balanceCreationResult.success().balanceID, quoteBalance->getBalanceID(),
-                    true, baseAssetAmount, price, 0, 0, saleID);
-                participateInSaleHelper.applyManageOffer(account, manageOfferOp);
+                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0);
                 if (i < numberOfParticipants - 1)
                 {
                     CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, CheckSaleStateResultCode::NO_SALES_FOUND);
@@ -92,6 +100,19 @@ TEST_CASE("Sale", "[tx][sale]")
             }
 
             CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root);
+        }
+        SECTION("Canceled")
+        {
+            const int numberOfParticipants = 10;
+            for (auto i = 0; i < numberOfParticipants - 1; i++)
+            {
+
+                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, softCap / numberOfParticipants, price, 0);
+                CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, CheckSaleStateResultCode::NO_SALES_FOUND);
+            }
+            // hardcap is not reached, so no sale to close
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, CheckSaleStateResultCode::NO_SALES_FOUND);
+            // TODO close ledger after end time of the sale and check sale state
         }
     }
 }

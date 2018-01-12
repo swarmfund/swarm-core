@@ -26,6 +26,8 @@ class CheckSaleStateOpFrame : public OperationFrame
         counterpartiesDetails) const override;
 
     void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app, LedgerDelta& delta, Database& db, LedgerManager& lm) const;
+    static void cancelAllOffersInOrderBook(const SaleFrame::pointer sale,
+                                    LedgerDelta& delta, Database& db);
 
     bool handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta, Database& db);
     bool handleClose(SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db);

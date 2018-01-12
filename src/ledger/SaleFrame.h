@@ -26,6 +26,14 @@ class SaleFrame : public EntryFrame
     SaleFrame(SaleFrame const& from);
 
   public:
+    enum class State : int32_t
+    {
+        ACTIVE = 1,
+        NOT_STARTED_YET = 2,
+        ENDED = 3
+    };
+
+
     typedef std::shared_ptr<SaleFrame> pointer;
 
     SaleFrame();
@@ -45,9 +53,12 @@ class SaleFrame : public EntryFrame
 
     SaleEntry& getSaleEntry();
 
+    State getState(const uint64_t currentTime) const;
+
     uint64_t getStartTime() const;
     uint64_t getSoftCap() const;
     uint64_t getCurrentCap() const;
+    uint64_t getHardCap() const;
     uint64_t getEndTime() const;
     uint64_t getPrice() const;
     uint64_t getID() const;

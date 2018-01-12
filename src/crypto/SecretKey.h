@@ -109,7 +109,9 @@ namespace StrKeyUtils
 // logs a key (can be a public or private key) in all
 // known formats
 void logKey(std::ostream& s, std::string const& key);
-PublicKey fromStrKey(std::string const& s, int keyType);
+PublicKey fromStrKey(std::string const& s, int expectedKeyType);
+PublicKey fromStrKey(std::string const& s);
+PublicKey fromStr(std::string const& s, uint8_t& keyType);
 }
 
 namespace HashUtils

@@ -59,19 +59,6 @@ void type_conversion<T, typename std::enable_if<IsStringable<T>::value>::type>::
     result = raw;
 }
 
-
-
-template <> struct type_conversion<AccountID>
-{
-    typedef std::string base_type;
-
-    static void from_base(std::string rawAccountID, indicator ind,
-                          AccountID& accountID);
-
-    static void to_base(const AccountID& accountID, std::string& result,
-                        indicator& ind);
-};
-
 template <> struct type_conversion<xdr::pointer<string64>>
 {
     typedef std::string base_type;
@@ -104,4 +91,16 @@ template <> struct type_conversion<ExternalSystemType>
     static void to_base(ExternalSystemType& number, int32_t& result,
                         indicator& ind);
 };
+
+template <> struct type_conversion<PublicKey>
+{
+    typedef std::string base_type;
+
+    static void from_base(std::string raw, indicator ind,
+        PublicKey& result);
+
+    static void to_base(PublicKey& raw, std::string& result,
+        indicator& ind);
+};
+
 }

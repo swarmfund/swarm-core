@@ -16,6 +16,7 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "issuance/CreateIssuanceRequestOpFrame.h"
+#include "dex/CreateOfferOpFrame.h"
 
 namespace stellar
 {
@@ -58,12 +59,17 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
     updateMaxIssuance(sale, delta, db);
 }
 
-bool CheckSaleStateOpFrame::handleCancel(const SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
-    Database& db)
+void CheckSaleStateOpFrame::cancelAllOffersInOrderBook(const SaleFrame::pointer sale, LedgerDelta& delta, Database& db)
 {
     auto orderBookID = sale->getID();
     const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), sale->getQuoteAsset(), &orderBookID, nullptr, db);
     OfferManager::deleteOffers(offersToCancel, db, delta);
+}
+
+bool CheckSaleStateOpFrame::handleCancel(const SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
+    Database& db)
+{
+    cancelAllOffersInOrderBook(sale, delta, db);
 
     unlockPendingIssunace(sale, delta, db);
 
@@ -90,6 +96,7 @@ bool CheckSaleStateOpFrame::handleClose(const SaleFrame::pointer sale, Applicati
 
     const auto saleOfferResult = applySaleOffer(saleOwnerAccount, sale, app, lm, delta);
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
+    cancelAllOffersInOrderBook(sale, delta, db);
     innerResult().code(CheckSaleStateResultCode::SUCCESS);
     auto& success = innerResult().success();
     success.saleID = sale->getID();
@@ -155,14 +162,15 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     LedgerManager& lm, LedgerDelta& delta)
 {
     auto& db = app.getDatabase();
-    const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, sale->getQuoteAsset(), sale->getCurrentCap(), db);
+    const auto baseAmount = sale->getBaseAmountForCurrentCap();
+    const auto quoteAmount = OfferManager::calcualteQuoteAmount(baseAmount, sale->getPrice());
+    const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, sale->getQuoteAsset(), quoteAmount, db);
     if (feeResult.isOverflow)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: overflow on sale fees calculation: " << xdr::xdr_to_string(sale->getSaleEntry());
         throw runtime_error("Unexpected state: overflow on sale fees calculation");
     }
 
-    const auto baseAmount = sale->getBaseAmountForCurrentCap();
     const auto manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), sale->getQuoteBalanceID(),
         false, baseAmount, sale->getPrice(), feeResult.calculatedPercentFee, 0, sale->getID());
     Operation op;
@@ -173,7 +181,8 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     OperationResult opRes;
     opRes.code(OperationResultCode::opINNER);
     opRes.tr().type(OperationType::MANAGE_OFFER);
-    ManageOfferOpFrame manageOfferOpFrame(op, opRes, mParentTx);
+    // need to directly create CreateOfferOpFrame to bypass validation of CreateSaleParticipationOpFrame
+    CreateOfferOpFrame manageOfferOpFrame(op, opRes, mParentTx);
     manageOfferOpFrame.setSourceAccountPtr(saleOwnerAccount);
     if (!manageOfferOpFrame.doCheckValid(app) || !manageOfferOpFrame.doApply(app, delta, lm))
     {
@@ -189,7 +198,13 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
         throw runtime_error("Unexpected result code from manage offer on check sale state");
     }
 
-    return opRes.tr().manageOfferResult().success();
+    auto result = opRes.tr().manageOfferResult().success();
+    if (result.offersClaimed.empty())
+    {
+        throw runtime_error("Unexpected state: sale was closed, but no order matches");
+    }
+
+    return result;
 }
 
 CheckSaleStateOpFrame::CheckSaleStateOpFrame(Operation const& op,

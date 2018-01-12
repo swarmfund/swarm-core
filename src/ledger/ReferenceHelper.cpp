@@ -42,7 +42,8 @@ namespace stellar {
         auto& st = prep.statement();
 
         st.exchange(use(referenceEntry.reference, "r"));
-        st.exchange(use(referenceEntry.sender, "se"));
+        auto sender = PubKeyUtils::toStrKey(referenceEntry.sender);
+        st.exchange(use(sender, "se"));
         st.exchange(use(referenceFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.define_and_bind();
 
@@ -65,7 +66,8 @@ namespace stellar {
         auto prep = db.getPreparedStatement("DELETE FROM reference WHERE reference=:r AND sender=:se");
         auto& st = prep.statement();
         st.exchange(use(key.reference().reference));
-        st.exchange(use(key.reference().sender));
+        auto sender = PubKeyUtils::toStrKey(key.reference().sender);
+        st.exchange(use(sender));
         st.define_and_bind();
         st.execute(true);
         delta.deleteEntry(key);
@@ -124,13 +126,14 @@ namespace stellar {
         }
     }
 
-    bool ReferenceHelper::exists(Database &db, std::string reference, AccountID sender) {
+    bool ReferenceHelper::exists(Database &db, std::string reference, AccountID rawSender) {
         int exists = 0;
         auto timer = db.getSelectTimer("reference-exists");
         auto prep =
                 db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM reference WHERE reference=:r AND sender=:se)");
         auto& st = prep.statement();
         st.exchange(use(reference));
+        auto sender = PubKeyUtils::toStrKey(rawSender);
         st.exchange(use(sender));
         st.exchange(into(exists));
         st.define_and_bind();
@@ -140,12 +143,13 @@ namespace stellar {
     }
 
     ReferenceFrame::pointer
-    ReferenceHelper::loadReference(AccountID sender, std::string reference, Database &db, LedgerDelta *delta) {
+    ReferenceHelper::loadReference(AccountID rawSender, std::string reference, Database &db, LedgerDelta *delta) {
         std::string sql = "SELECT sender, reference, lastmodified FROM reference";
         sql += " WHERE reference = :ref AND sender = :sender";
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
         st.exchange(use(reference, "ref"));
+        auto sender = PubKeyUtils::toStrKey(rawSender);
         st.exchange(use(sender, "sender"));
 
         auto timer = db.getSelectTimer("reference");

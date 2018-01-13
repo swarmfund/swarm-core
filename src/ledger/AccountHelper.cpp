@@ -54,7 +54,7 @@ namespace stellar
 		{
 			sql = std::string(
 				"UPDATE accounts "
-				"SET    thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
+				"SET    recoveryid=:rid, thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
 				"       referrer=:ref, policies=:p, version=:v "
 				"WHERE  accountid=:id");
 		}
@@ -68,11 +68,7 @@ namespace stellar
 		{
 			soci::statement& st = prep.statement();
 			st.exchange(use(actIDStrKey, "id"));
-            // set recovery id on storeAdd only
-            if (insert)
-            {
-                st.exchange(use(recIdStrKey, "rid"));
-            }
+            st.exchange(use(recIdStrKey, "rid"));
 			st.exchange(use(thresholds, "th"));
 			st.exchange(use(accountFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 			st.exchange(use(accountType, "type"));

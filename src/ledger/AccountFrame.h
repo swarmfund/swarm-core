@@ -134,6 +134,11 @@ class AccountFrame : public EntryFrame
     {
         return mAccountEntry.recoveryID;
     }
+    
+    void setRecoveryID(const AccountID& recovery)
+    {
+        mAccountEntry.recoveryID = recovery;
+    }
 
 	int32_t getPolicies() const
 	{

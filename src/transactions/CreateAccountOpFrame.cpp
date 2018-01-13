@@ -121,7 +121,7 @@ namespace stellar {
         buildAccount(app, delta, destAccountFrame);
 
         //save recovery accountID
-        destAccountFrame->getAccount().recoveryID = mCreateAccount.recoveryKey;
+        destAccountFrame->setRecoveryID(mCreateAccount.recoveryKey);
 
         EntryHelperProvider::storeAddEntry(delta, db, destAccountFrame->mEntry);
         AccountManager accountManager(app, db, delta, ledgerManager);

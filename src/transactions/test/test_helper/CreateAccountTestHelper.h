@@ -2,6 +2,7 @@
 #define STELLAR_CREATEACCOUNTTESTHELPER_H
 
 #include "TxHelper.h"
+#include "transactions/test/TxTests.h"
 
 namespace stellar {
     namespace txtest {

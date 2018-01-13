@@ -548,4 +548,13 @@ namespace stellar
 		return exists != 0;
 	}
 
+	void AccountHelper::ensureExists(AccountID const &accountID, Database &db) {
+		if (!exists(accountID, db))
+		{
+			auto accountIdStr = PubKeyUtils::toStrKey(accountID);
+			CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: account not found in database, accountID: "
+												   << accountIdStr;
+			throw runtime_error("Unexpected state: failed to found account in database, accountID: " + accountIdStr);
+		}
+	}
 }

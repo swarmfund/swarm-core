@@ -165,14 +165,6 @@ applyReviewPaymentRequestTx(Application& app, SecretKey& from,
             bool accept = true, ReviewPaymentRequestResultCode result = ReviewPaymentRequestResultCode::SUCCESS);
 
 
-TransactionFramePtr createRecover(Hash const& networkID, SecretKey& source,
-                                     Salt seq, AccountID account,
-                                     PublicKey oldSigner, PublicKey newSigner);
-
-void applyRecover(Application& app, SecretKey& source, Salt seq, AccountID account,
-                    PublicKey oldSigner, PublicKey newSigner, RecoverResultCode targetResult = RecoverResultCode::SUCCESS);
-
-
 TransactionFramePtr createSetOptions(Hash const& networkID, SecretKey& source, Salt seq,
                                      ThresholdSetter* thrs, Signer* signer,
                                      TrustData* trustData = nullptr);

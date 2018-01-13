@@ -18,6 +18,8 @@ namespace stellar {
 
             CreateAccountTestBuilder setToPublicKey(PublicKey to);
 
+            CreateAccountTestBuilder setRecovery(const PublicKey& recovery);
+
             CreateAccountTestBuilder setType(AccountType accountType);
 
             CreateAccountTestBuilder setType(int32_t accountType);
@@ -31,6 +33,7 @@ namespace stellar {
             CreateAccountTestBuilder setResultCode(CreateAccountResultCode expectedResult);
 
             PublicKey to;
+            PublicKey recovery;
             AccountType accountType;
             AccountID *referrer = nullptr;
             int32 policies = -1;
@@ -87,6 +90,7 @@ namespace stellar {
         private:
             Account from;
             PublicKey to;
+            PublicKey recovery;
             AccountType accountType;
             Account *signer = nullptr;
             AccountID *referrer = nullptr;

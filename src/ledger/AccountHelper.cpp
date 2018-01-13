@@ -32,6 +32,7 @@ namespace stellar
 		flushCachedEntry(key, db);
 
 		std::string actIDStrKey = PubKeyUtils::toStrKey(accountFrame->getID());
+        std::string recIdStrKey = PubKeyUtils::toStrKey(accountFrame->getRecoveryID());
 		std::string refIDStrKey = "";
 		AccountID* referrer = accountFrame->getReferrer();
 		if (referrer)
@@ -45,15 +46,15 @@ namespace stellar
 		if (insert)
 		{
 			sql = std::string(
-				"INSERT INTO accounts (accountid, thresholds, lastmodified, account_type, block_reasons,"
+				"INSERT INTO accounts (accountid, recoveryid, thresholds, lastmodified, account_type, block_reasons,"
 				"referrer, policies, version) "
-				"VALUES (:id, :th, :lm, :type, :br, :ref, :p, :v)");
+				"VALUES (:id, :rid, :th, :lm, :type, :br, :ref, :p, :v)");
 		}
 		else
 		{
 			sql = std::string(
 				"UPDATE accounts "
-				"SET    thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
+				"SET    recoveryid=:rid, thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
 				"       referrer=:ref, policies=:p, version=:v "
 				"WHERE  accountid=:id");
 		}
@@ -67,6 +68,7 @@ namespace stellar
 		{
 			soci::statement& st = prep.statement();
 			st.exchange(use(actIDStrKey, "id"));
+            st.exchange(use(recIdStrKey, "rid"));
 			st.exchange(use(thresholds, "th"));
 			st.exchange(use(accountFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 			st.exchange(use(accountType, "type"));
@@ -280,6 +282,7 @@ namespace stellar
 		db.getSession() << "CREATE TABLE accounts"
 			"("
 			"accountid          VARCHAR(56)  PRIMARY KEY,"
+            "recoveryid         VARCHAR(56)  NOT NULL,"
 			"thresholds         TEXT         NOT NULL,"
 			"lastmodified       INT          NOT NULL,"
 			"account_type       INT          NOT NULL,"
@@ -406,11 +409,12 @@ namespace stellar
 		uint32 accountPolicies;
 		int32_t accountVersion;
 		auto prep =
-			db.getPreparedStatement("SELECT thresholds, lastmodified, account_type, block_reasons,"
+			db.getPreparedStatement("SELECT recoveryid, thresholds, lastmodified, account_type, block_reasons,"
 				"referrer, policies, version "
 				"FROM   accounts "
 				"WHERE  accountid=:v1");
 		auto& st = prep.statement();
+        st.exchange(into(account.recoveryID));
 		st.exchange(into(thresholds));
 		st.exchange(into(res->mEntry.lastModifiedLedgerSeq));
 		st.exchange(into(accountType));

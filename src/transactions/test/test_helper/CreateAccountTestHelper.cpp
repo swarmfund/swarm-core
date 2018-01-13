@@ -17,6 +17,7 @@ namespace stellar {
             CreateAccountOp &createAccountOp = op.body.createAccountOp();
             createAccountOp.accountType = accountType;
             createAccountOp.destination = to;
+            createAccountOp.recoveryKey = recovery;
 
             if (policies != -1)
                 createAccountOp.policies = policies;
@@ -63,6 +64,12 @@ namespace stellar {
             return newTestHelper;
         }
 
+        CreateAccountTestBuilder CreateAccountTestBuilder::setRecovery(const PublicKey& recovery) {
+            auto newTestHelper = copy();
+            newTestHelper.recovery = recovery;
+            return newTestHelper;
+        }
+
         CreateAccountResultCode
         CreateAccountTestHelper::applyCreateAccountTx(Account &from, PublicKey to, AccountType accountType,
                                                       Account *signer, AccountID *referrer, int32 policies,
@@ -74,7 +81,8 @@ namespace stellar {
                     .setSigner(signer)
                     .setReferrer(referrer)
                     .setPolicies(policies)
-                    .setResultCode(expectedResult);
+                    .setResultCode(expectedResult)
+                    .setRecovery(SecretKey::random().getPublicKey());
             return applyTx(builder);
         }
 
@@ -126,6 +134,7 @@ namespace stellar {
             REQUIRE(toAccountAfter);
             REQUIRE(!toAccountAfter->isBlocked());
             REQUIRE(toAccountAfter->getAccountType() == builder.accountType);
+            REQUIRE(toAccountAfter->getAccount().recoveryID == builder.recovery);
             if (builder.policies != -1){
                 REQUIRE(toAccountAfter->getPolicies() == builder.policies);
             }

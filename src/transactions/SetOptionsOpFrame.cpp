@@ -155,6 +155,7 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
     Database& db = ledgerManager.getDatabase();
     AccountEntry& account = mSourceAccount->getAccount();
 
+    innerResult().code(SetOptionsResultCode::SUCCESS);
 
     if (mSetOptions.masterWeight)
     {
@@ -231,8 +232,8 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
     }
 
     app.getMetrics().NewMeter({"op-set-options", "success", "apply"}, "operation")
-        .Mark();
-    innerResult().code(SetOptionsResultCode::SUCCESS);
+            .Mark();
+
     EntryHelperProvider::storeChangeEntry(delta, db, mSourceAccount->mEntry);
     return true;
 }

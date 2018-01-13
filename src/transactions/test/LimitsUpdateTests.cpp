@@ -79,21 +79,28 @@ TEST_CASE("limits update", "[tx][limits_update]")
             AccountID accountWithoutLimitsID = accountWithoutLimits.key.getPublicKey();
             createAccountTestHelper.applyCreateAccountTx(root, accountWithoutLimitsID,
                                                          AccountType::GENERAL);
-            std::string documentData2 = "Some other document data";
-            stellar::Hash documentHash2 = Hash(sha256(documentData2));
 
-            auto limitsUpdateRequest2 = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash2);
-            auto limitsUpdateResult2 = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(accountWithoutLimits,
-                                                                                                limitsUpdateRequest2);
+            std::string documentDataOfAccountWithoutLimits = "Some other document data";
+            stellar::Hash documentHashOfAccountWithoutLimits = Hash(sha256(documentDataOfAccountWithoutLimits));
 
-            reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult2.success().limitsUpdateRequestID,
+            limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHashOfAccountWithoutLimits);
+            limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(accountWithoutLimits,
+                                                                                          limitsUpdateRequest);
+
+            reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().limitsUpdateRequestID,
                                                           ReviewRequestOpAction::APPROVE, "");
         }
     }
     SECTION("Create same request for second time")
     {
-        auto limitsUpdateRequest2 = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash);
-        auto limitsUpdateResult2 = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest,
+        limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest,
+                                                        SetOptionsResultCode::LIMITS_UPDATE_REQUEST_REFERENCE_DUPLICATION);
+    }
+    SECTION("Approve and create same request for second time")
+    {
+        reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().limitsUpdateRequestID,
+                                                      ReviewRequestOpAction::APPROVE, "");
+        limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest,
                                                         SetOptionsResultCode::LIMITS_UPDATE_REQUEST_REFERENCE_DUPLICATION);
     }
 }

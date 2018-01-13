@@ -41,10 +41,7 @@ LimitsUpdateReviewChecker::checkApprove(ReviewableRequestFrame::pointer request)
     REQUIRE(!!accountLimitsAfterTx);
     auto limitsEntryAfterTx = accountLimitsAfterTx->getLimits();
     auto reviewRequestLimits = mOperation.body.reviewRequestOp().requestDetails.limitsUpdate().newLimits;
-    REQUIRE(limitsEntryAfterTx.dailyOut == reviewRequestLimits.dailyOut);
-    REQUIRE(limitsEntryAfterTx.weeklyOut == reviewRequestLimits.weeklyOut);
-    REQUIRE(limitsEntryAfterTx.monthlyOut == reviewRequestLimits.monthlyOut);
-    REQUIRE(limitsEntryAfterTx.annualOut == reviewRequestLimits.annualOut);
+    REQUIRE(limitsEntryAfterTx == reviewRequestLimits);
 }
 
 void
@@ -58,10 +55,9 @@ LimitsUpdateReviewChecker::checkPermanentReject(ReviewableRequestFrame::pointer 
 
     if (!!accountLimitsBeforeTx)
     {
-        REQUIRE(accountLimitsBeforeTx->getLimits().annualOut == accountLimitsAfterTx->getLimits().annualOut);
-        REQUIRE(accountLimitsBeforeTx->getLimits().dailyOut == accountLimitsAfterTx->getLimits().dailyOut);
-        REQUIRE(accountLimitsBeforeTx->getLimits().monthlyOut == accountLimitsAfterTx->getLimits().monthlyOut);
-        REQUIRE(accountLimitsBeforeTx->getLimits().weeklyOut == accountLimitsAfterTx->getLimits().weeklyOut);
+        auto limitsEntryBeforeTx = accountLimitsBeforeTx->getLimits();
+        auto limitsEntryAfterTx = accountLimitsAfterTx->getLimits();
+        REQUIRE(limitsEntryBeforeTx == limitsEntryAfterTx);
     }
 }
 

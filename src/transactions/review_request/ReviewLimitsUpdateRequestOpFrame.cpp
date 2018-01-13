@@ -62,6 +62,10 @@ namespace stellar {
                                  resultCodeString);
         }
 
+        auto reference = request->getReference();
+
+        createReference(delta, db, requestorID, reference);
+
         innerResult().code(ReviewRequestResultCode::SUCCESS);
         return true;
     }

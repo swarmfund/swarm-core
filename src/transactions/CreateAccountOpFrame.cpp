@@ -176,6 +176,11 @@ namespace stellar {
             return false;
         }
 
+        if (mCreateAccount.recoveryKey == mCreateAccount.destination) {
+            innerResult().code(CreateAccountResultCode::MALFORMED);
+            return false;
+        }
+
         if (mCreateAccount.accountType == AccountType::NOT_VERIFIED &&
             mCreateAccount.policies != 0) {
             innerResult().code(CreateAccountResultCode::NOT_VERIFIED_CANNOT_HAVE_POLICIES);

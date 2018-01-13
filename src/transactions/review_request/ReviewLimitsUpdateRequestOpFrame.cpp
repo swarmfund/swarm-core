@@ -50,7 +50,7 @@ namespace stellar {
         SetLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
 
         auto accountHelper = AccountHelper::Instance();
-        auto master = accountHelper->loadAccount(app.getMasterID(), db, &delta);
+        auto master = accountHelper->mustLoadAccount(app.getMasterID(), db);
         setLimitsOpFrame.setSourceAccountPtr(master);
 
         if (!setLimitsOpFrame.doCheckValid(app) || !setLimitsOpFrame.doApply(app, delta, ledgerManager))
@@ -82,16 +82,8 @@ namespace stellar {
         Database& db = ledgerManager.getDatabase();
         EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
-        auto accountHelper = AccountHelper::Instance();
-
         auto requestorID = request->getRequestor();
-
-        auto requestorAccountFrame = accountHelper->loadAccount(requestorID, db, &delta);
-
-        if (!requestorAccountFrame)
-        {
-            throw std::runtime_error("Requestor account expected to exist");
-        }
+        AccountHelper::Instance()->ensureExists(requestorID, db);
 
         return tryCallSetLimits(app, ledgerManager, delta, request);
     }

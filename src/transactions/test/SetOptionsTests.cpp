@@ -9,6 +9,7 @@
 #include "util/make_unique.h"
 #include "main/test.h"
 #include "TxTests.h"
+#include "crypto/SHA.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/TrustFrame.h"
@@ -289,6 +290,24 @@ TEST_CASE("set options", "[tx][set_options]")
             auto a1Account = loadAccount(a1.key, app);
             REQUIRE(a1Account->getAccount().signers.size() == 0);
         }
+    }
+
+    SECTION("Limits update request")
+    {
+        // create requestor
+        auto requestor = Account{ SecretKey::random(), Salt(0) };
+        AccountID requestorID = requestor.key.getPublicKey();
+        createAccountTestHelper.applyCreateAccountTx(root, requestorID,
+                                                     AccountType::GENERAL);
+
+        // prepare data for request
+        std::string documentData = "Some document data";
+        stellar::Hash documentHash = Hash(sha256(documentData));
+
+        LimitsUpdateRequestData limitsUpdateRequestData;
+        limitsUpdateRequestData.documentHash = documentHash;
+
+        setOptionsTestHelper.applySetOptionsTx(requestor, nullptr, nullptr, nullptr, &limitsUpdateRequestData);
     }
 
     // these are all tested by other tests

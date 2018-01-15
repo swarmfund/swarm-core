@@ -54,6 +54,10 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         {
             throw runtime_error("soft cap exceeds hard cap");
         }
+        if (!isValidJson(oe.details))
+        {
+            throw runtime_error("details is invalid");
+        }
     } catch (...)
     {
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state sale entry is invalid: " << xdr::xdr_to_string(oe);

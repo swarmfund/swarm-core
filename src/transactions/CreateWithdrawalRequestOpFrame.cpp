@@ -194,8 +194,8 @@ bool CreateWithdrawalRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    if (mCreateWithdrawalRequest.request.externalDetails.size() > app.
-        getWithdrawalDetailsMaxLength())
+    if (mCreateWithdrawalRequest.request.externalDetails.size() > app.getWithdrawalDetailsMaxLength()
+            || !isValidJson(mCreateWithdrawalRequest.request.externalDetails))
     {
         innerResult().code(CreateWithdrawalRequestResultCode::INVALID_EXTERNAL_DETAILS);
         return false;

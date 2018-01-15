@@ -158,4 +158,16 @@ bool ReviewWithdrawalRequestOpFrame::handlePermanentReject(Application& app,
     EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
     return ReviewRequestOpFrame::handlePermanentReject(app, delta, ledgerManager, request);
 }
+
+bool ReviewWithdrawalRequestOpFrame::doCheckValid(Application &app)
+{
+    std::string externalDetails = mReviewRequest.requestDetails.withdrawal().externalDetails;
+    if (externalDetails.size() > app.getWithdrawalDetailsMaxLength() || !isValidJson(externalDetails))
+    {
+        innerResult().code(ReviewRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        return false;
+    }
+
+    return ReviewRequestOpFrame::doCheckValid(app);
+}
 }

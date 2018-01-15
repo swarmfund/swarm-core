@@ -8,13 +8,12 @@
 #define EXTERNAL_SYSTEM_ID_BTC_GENERATOR_H
 
 #include "Secp256k1IDGenerator.h"
-#include "../crypto/HdKeychain.h"
 
 namespace stellar {
 
     class BTCIDGenerator : public Secp256k1IDGenerator {
     private:
-        std::string encodePublicKey(const uchar_vector rawPublicKey) override;
+        std::string encodePublicKey(HDKeychain keychain) override;
     public:
         BTCIDGenerator(Application& app, Database& db, std::string extendedPublicKey)
         : Secp256k1IDGenerator(app, db, extendedPublicKey)

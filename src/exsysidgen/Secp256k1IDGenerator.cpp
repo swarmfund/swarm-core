@@ -15,8 +15,8 @@ namespace stellar {
             throw std::runtime_error("Child public key index out of range. Expected value in [0, 2^31 - 1]");
         }
 
-        auto rawPublicKey = mHdKeychain.getChildPublicKey(id);
-        auto address = encodePublicKey(rawPublicKey);
+        auto child = mHdKeychain.getChild(id);
+        auto address = encodePublicKey(child);
 
         return ExternalSystemAccountIDFrame::createNew(accountID, getExternalSystemType(), address);
     }

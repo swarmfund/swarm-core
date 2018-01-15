@@ -5,22 +5,24 @@
 #ifndef STELLAR_SECP256K1IDGENERATOR_H
 #define STELLAR_SECP256K1IDGENERATOR_H
 
+#include <hdkeys.h>
 #include "exsysidgen/Generator.h"
-#include "../crypto/HdKeychain.h"
 #include "uchar_vector.h"
+
+using namespace Coin;
 
 namespace stellar {
     // Base class for all cryptocurrencies that utilize Secp256K1 curve
     class Secp256k1IDGenerator : public Generator {
     private:
-        HdKeychain mHdKeychain;
-        virtual std::string encodePublicKey(const uchar_vector rawPublicKey) = 0;
+        HDKeychain mHdKeychain;
+        virtual std::string encodePublicKey(HDKeychain keychain) = 0;
     public:
         Secp256k1IDGenerator() = default;
         Secp256k1IDGenerator(Application& app, Database& db, std::string extendedPublicKey)
                 : Generator(app, db)
         {
-            mHdKeychain = HdKeychain::fromExtendedPublicKey(extendedPublicKey);
+            mHdKeychain = HDKeychain::fromExtendedPublicKey(extendedPublicKey);
         }
 
         ExternalSystemAccountIDFrame::pointer generateNewID(

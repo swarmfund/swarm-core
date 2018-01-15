@@ -7,10 +7,7 @@
 #include "main/Application.h"
 
 namespace stellar {
-    std::string BTCIDGenerator::encodePublicKey(const uchar_vector rawPublicKey) {
-        CoinKey keyPair;
-        keyPair.setPublicKey(rawPublicKey);
-
-        return  keyPair.getBitcoinAddress();
+    std::string BTCIDGenerator::encodePublicKey(HDKeychain keychain) {
+        return  keychain.getBitcoinAddress();
     }
 }

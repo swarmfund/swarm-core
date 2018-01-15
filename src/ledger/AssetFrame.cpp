@@ -210,6 +210,11 @@ void AssetFrame::ensureValid(AssetEntry const& oe)
        {
            throw runtime_error("asset code is invalid");
        }
+
+        if (!isValidJson(oe.details))
+        {
+            throw runtime_error("details is invalid");
+        }
     }
     catch (...)
     {

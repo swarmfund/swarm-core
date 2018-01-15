@@ -6,6 +6,7 @@
 #include <transactions/test/test_helper/ManageAssetPairTestHelper.h>
 #include <ledger/AccountHelper.h>
 #include <ledger/FeeHelper.h>
+#include <ledger/ReviewableRequestHelper.h>
 #include "main/test.h"
 #include "TxTests.h"
 #include "crypto/SHA.h"
@@ -156,6 +157,41 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
             withdrawRequest.externalDetails = longExternalDetails;
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
                                                              CreateWithdrawalRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        }
+
+        SECTION("invalid external details json")
+        {
+            //missed colon
+            std::string invalidExternalDetails = "{ \"key\" \"value\" }";
+            withdrawRequest.externalDetails = invalidExternalDetails;
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+                                                             CreateWithdrawalRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        }
+
+        SECTION("try to review with invalid external details")
+        {
+            auto opRes = withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest);
+            uint64_t requestID = opRes.success().requestID;
+
+            auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(requestID, testManager->getDB());
+            REQUIRE(!!requestFrame);
+
+            Operation op;
+            op.body.type(OperationType::REVIEW_REQUEST);
+            auto& reviewWithdraw = op.body.reviewRequestOp();
+            reviewWithdraw.requestID = requestID;
+            reviewWithdraw.action = ReviewRequestOpAction::APPROVE;
+            reviewWithdraw.reason = "";
+            reviewWithdraw.requestHash = requestFrame->getHash();
+            reviewWithdraw.requestDetails.requestType(ReviewableRequestType::WITHDRAW);
+            reviewWithdraw.requestDetails.withdrawal().externalDetails = "{\"key\"}";
+
+            TxHelper txHelper(testManager);
+            auto txFrame = txHelper.txFromOperation(root, op);
+            testManager->applyCheck(txFrame);
+
+            auto opResCode = txFrame->getResult().result.results()[0].tr().reviewRequestResult().code();
+            REQUIRE(opResCode == ReviewRequestResultCode::INVALID_EXTERNAL_DETAILS);
         }
 
         SECTION("non-zero universal amount")

@@ -99,10 +99,11 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 		return false;
 	}
 
-	if (mCreateIssuanceRequest.request.externalDetails.size() > app.
-		getIssuanceDetailsMaxLength())
+	if (mCreateIssuanceRequest.request.externalDetails.size() > app.getIssuanceDetailsMaxLength()
+            || !isValidJson(mCreateIssuanceRequest.request.externalDetails))
 	{
 		innerResult().code(CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        return false;
 	}
 	
     return true;

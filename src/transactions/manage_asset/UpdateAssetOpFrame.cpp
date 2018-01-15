@@ -114,6 +114,11 @@ bool UpdateAssetOpFrame::doCheckValid(Application & app)
 		return false;
 	}
 
+    if (!isValidJson(mAssetUpdateRequest.details)) {
+        innerResult().code(ManageAssetResultCode::INVALID_DETAILS);
+        return false;
+    }
+
 	return true;
 }
 

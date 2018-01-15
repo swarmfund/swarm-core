@@ -103,7 +103,8 @@ namespace txtest
 	CreateIssuanceRequestResult IssuanceRequestHelper::applyCreateIssuanceRequest(Account & source, AssetCode assetCode,
                                                                                   uint64_t amount, BalanceID receiver,
                                                                                   std::string reference,
-                                                                                  CreateIssuanceRequestResultCode expectedResult)
+                                                                                  CreateIssuanceRequestResultCode expectedResult,
+                                                                                  std::string externalDetails)
 	{
 		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 		auto expectedReviewableRequestAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
@@ -114,7 +115,7 @@ namespace txtest
 		auto assetHelper = AssetHelper::Instance();
 		auto assetBeforeTx = assetHelper->loadAsset(assetCode, mTestManager->getDB());
 
-        auto issuanceRequest = createIssuanceRequest(assetCode, amount, receiver);
+        auto issuanceRequest = createIssuanceRequest(assetCode, amount, receiver, externalDetails);
         auto txFrame = createIssuanceRequestTx(source, issuanceRequest, reference);
 
         auto reviewIssuanceChecker = ReviewIssuanceChecker(mTestManager, std::make_shared<IssuanceRequest>(issuanceRequest));
@@ -158,12 +159,14 @@ namespace txtest
 		return txFromOperation(source, op, nullptr);
 	}
 
-    IssuanceRequest IssuanceRequestHelper::createIssuanceRequest(AssetCode assetCode, uint64_t amount, BalanceID receiver)
+    IssuanceRequest
+    IssuanceRequestHelper::createIssuanceRequest(AssetCode assetCode, uint64_t amount, BalanceID receiver, std::string externalDetails)
     {
         IssuanceRequest issuanceRequest;
         issuanceRequest.amount = amount;
         issuanceRequest.asset = assetCode;
         issuanceRequest.receiver = receiver;
+        issuanceRequest.externalDetails = externalDetails;
         issuanceRequest.ext.v(LedgerVersion::EMPTY_VERSION);
         return issuanceRequest;
     }

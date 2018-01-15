@@ -181,6 +181,8 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::SALE:
             ensureSaleCreationValid(oe.body.saleCreationRequest());
             return;
+        case ReviewableRequestType ::LIMITS_UPDATE:
+            return;
         default:
             throw runtime_error("Unexpected reviewable request typw");
         }
@@ -197,4 +199,3 @@ ReviewableRequestFrame::ensureValid() const
     ensureValid(mRequest);
 }
 }
-

@@ -18,7 +18,7 @@ namespace stellar
 
 const std::locale cLocale("C");
 
-const int64 ONE = 10000LL;
+const int64 ONE = 1000000LL;
 
 enum Rounding
 {

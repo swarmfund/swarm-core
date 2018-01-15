@@ -37,7 +37,7 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     auto actualResultCode = CreateWithdrawalRequestOpFrame::getInnerCode(opResult);
     REQUIRE(actualResultCode == expectedResult);
 
-    uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
+    uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(db.getSession());
     if (expectedResult != CreateWithdrawalRequestResultCode::SUCCESS)
     {
         REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
@@ -51,7 +51,7 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     REQUIRE(!!balanceBeforeRequest);
     REQUIRE(reviewableRequestCountBeforeTx + 1 == reviewableRequestCountAfterTx);
 
-    auto balanceAfterRequest = BalanceHelper::Instance()->loadBalance(request.balance, mTestManager->getDB());
+    auto balanceAfterRequest = BalanceHelper::Instance()->loadBalance(request.balance, db);
     REQUIRE(!!balanceAfterRequest);
     REQUIRE(balanceBeforeRequest->getAmount() == balanceAfterRequest->getAmount() + request.amount + request.fee.fixed + request.fee.percent);
     REQUIRE(balanceAfterRequest->getLocked() == balanceBeforeRequest->getLocked() + request.amount + request.fee.fixed + request.fee.percent);

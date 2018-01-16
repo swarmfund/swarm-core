@@ -50,6 +50,7 @@ tx-test:
   script:
     - ./src/stellar-core --test [tx]
   only:
+    - prod
     - staging
     - dev
 
@@ -59,6 +60,7 @@ delivery:
   script:
     - rsync src/stellar-core ubuntu@$HOST_DEV:artifacts/core/${CI_COMMIT_SHA:0:8}/
   only:
+    - prod
     - staging
     - dev
 

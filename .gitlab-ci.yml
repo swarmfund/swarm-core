@@ -32,6 +32,7 @@ build:
       paths:
         - src/stellar-core
   only:
+    - prod
     - staging
     - dev
 

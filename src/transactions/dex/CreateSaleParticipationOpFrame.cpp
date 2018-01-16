@@ -118,7 +118,7 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
     }
 
     const auto quoteAmount = OfferManager::
-        calcualteQuoteAmount(mManageOffer.amount, mManageOffer.price);
+    calculateQuoteAmount(mManageOffer.amount, mManageOffer.price);
     if (quoteAmount == 0)
     {
         innerResult().code(ManageOfferResultCode::MALFORMED);

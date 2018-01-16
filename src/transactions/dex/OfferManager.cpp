@@ -56,7 +56,7 @@ OfferFrame::pointer OfferManager::buildOffer(AccountID const& sourceID, ManageOf
     o.ownerID = sourceID;
     o.price = op.price;
     o.quote = quote;
-    o.quoteAmount = calcualteQuoteAmount(op.amount, op.price);
+    o.quoteAmount = calculateQuoteAmount(op.amount, op.price);
 
     LedgerEntry le;
     le.data.type(LedgerEntryType::OFFER_ENTRY);
@@ -81,10 +81,10 @@ ManageOfferOp OfferManager::buildManageOfferOp(BalanceID const& baseBalance,
     return op;
 }
 
-int64_t OfferManager::calcualteQuoteAmount(int64_t const baseAmount,
-    int64_t const price)
+int64_t OfferManager::calculateQuoteAmount(int64_t const baseAmount,
+                                           int64_t const price)
 {
-    // 1. Check quote amount fits minimal presidion 
+    // 1. Check quote amount fits minimal precision
     int64_t result;
     if (!bigDivide(result, baseAmount, price, ONE, ROUND_DOWN))
         return 0;

@@ -163,7 +163,7 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
 {
     auto& db = app.getDatabase();
     const auto baseAmount = sale->getBaseAmountForCurrentCap();
-    const auto quoteAmount = OfferManager::calcualteQuoteAmount(baseAmount, sale->getPrice());
+    const auto quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, sale->getPrice());
     const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, sale->getQuoteAsset(), quoteAmount, db);
     if (feeResult.isOverflow)
     {

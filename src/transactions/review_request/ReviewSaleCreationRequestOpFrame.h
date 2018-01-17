@@ -19,7 +19,7 @@ public:
 protected:
     bool handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) override;
 
-    virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
     void createAssetPair(SaleFrame::pointer sale, Application &app, LedgerManager &ledgerManager, LedgerDelta &delta) const;
 };

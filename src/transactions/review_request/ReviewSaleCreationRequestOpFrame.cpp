@@ -56,11 +56,22 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
         throw runtime_error("Failed to calculate required base asset for soft cap");
     }
 
-    
-    if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
+    if (baseAsset->willExceedMaxIssuanceAmount(requiredBaseAssetForHardCap))
     {
         innerResult().code(ReviewRequestResultCode::HARD_CAP_WILL_EXCEED_MAX_ISSUANCE);
         return false;
+    }
+
+    if (!baseAsset->isAvailableForIssuanceAmountSufficient(requiredBaseAssetForHardCap))
+    {
+        innerResult().code(ReviewRequestResultCode::INSUFFICIENT_PREISSUED_FOR_HARD_CAP);
+        return false;
+    }
+
+    if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state, failed to lock issuance amount: " << request->getRequestID();
+        throw runtime_error("Failed to lock issuance amount");
     }
 
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);

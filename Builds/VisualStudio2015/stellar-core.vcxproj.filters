@@ -873,12 +873,6 @@
     <ClCompile Include="..\..\src\exsysidgen\Secp256k1IDGenerator.cpp">
       <Filter>exsysidgen</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\crypto\HdKeychain.cpp">
-      <Filter>crypto</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\crypto\HdKeychainTests.cpp">
-      <Filter>crypto</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\transactions\dex\CreateOfferOpFrame.cpp">
       <Filter>transactions\dex</Filter>
     </ClCompile>
@@ -1726,9 +1720,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\exsysidgen\Secp256k1IDGenerator.h">
       <Filter>exsysidgen</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\crypto\HdKeychain.h">
-      <Filter>crypto</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\dex\CreateOfferOpFrame.h">
       <Filter>transactions\dex</Filter>

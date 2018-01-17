@@ -59,6 +59,7 @@ TEST_CASE("Sale", "[tx][sale]")
     auto assetTestHelper = ManageAssetTestHelper(testManager);
     auto assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAsset, root.key.getPublicKey(), "{}", INT64_MAX, uint32_t(AssetPolicy::BASE_ASSET));
     assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
+    CreateAccountTestHelper createAccountTestHelper(testManager);
     SECTION("Happy path")
     {
         auto syndicate = Account{ SecretKey::random(), 0 };

@@ -40,8 +40,8 @@ ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, ui
 	{
 		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 		auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
-		LedgerDelta& delta = mTestManager->getLedgerDelta();
-		auto requestBeforeTx = reviewableRequestHelper->loadRequest(requestID, mTestManager->getLedgerManager().getDatabase(), &delta);
+		auto requestBeforeTx = reviewableRequestHelper->loadRequest(requestID, mTestManager->getLedgerManager().getDatabase(),
+                                                                    nullptr);
 		auto txFrame = createManageAssetTx(source, requestID, request);
 
 		mTestManager->applyCheck(txFrame);
@@ -78,7 +78,8 @@ ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, ui
             REQUIRE(!!requestBeforeTx);
         }
 
-		auto requestAfterTx = reviewableRequestHelper->loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(), &delta);
+		auto requestAfterTx = reviewableRequestHelper->loadRequest(manageAssetResult.success().requestID, mTestManager->getDB(),
+                                                                   nullptr);
 		if (request.action() == ManageAssetAction::CANCEL_ASSET_REQUEST) {
 			REQUIRE(!requestAfterTx);
 			return manageAssetResult;
@@ -163,9 +164,9 @@ ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(Account & source, ui
             if (assetOwnerFrame->getAccountType() == AccountType::MASTER)
                 return;
 
-            LedgerDelta& delta = mTestManager->getLedgerDelta();
             auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-            auto approvingRequest = reviewableRequestHelper->loadRequest(creationResult.success().requestID, mTestManager->getDB(), &delta);
+            auto approvingRequest = reviewableRequestHelper->loadRequest(creationResult.success().requestID, mTestManager->getDB(),
+                                                                         nullptr);
             REQUIRE(approvingRequest);
             auto reviewRequetHelper = ReviewAssetRequestHelper(mTestManager);
             reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
@@ -182,9 +183,9 @@ void ManageAssetTestHelper::updateAsset(Account& assetOwner,
     if (assetOwner.key.getPublicKey() == root.key.getPublicKey())
         return;
 
-    LedgerDelta& delta = mTestManager->getLedgerDelta();
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-    auto approvingRequest = reviewableRequestHelper->loadRequest(updateResult.success().requestID, mTestManager->getDB(), &delta);
+    auto approvingRequest = reviewableRequestHelper->loadRequest(updateResult.success().requestID, mTestManager->getDB(),
+                                                                 nullptr);
     REQUIRE(approvingRequest);
     auto reviewRequetHelper = ReviewAssetRequestHelper(mTestManager);
     reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->getRequestID(), approvingRequest->getHash(), approvingRequest->getType(),
@@ -218,7 +219,7 @@ void ManageAssetTestHelper::validateManageAssetEffect(ManageAssetOp::_request_t 
             auto systemAccounts = mTestManager->getApp().getSystemAccounts();
             for (auto systemAccount : systemAccounts) {
                 auto balanceFrame = balanceHelper->loadBalance(systemAccount, assetCode,
-                                                              mTestManager->getDB(), &mTestManager->getLedgerDelta());
+                                                              mTestManager->getDB(), nullptr);
                 REQUIRE(balanceFrame);
             }
         }

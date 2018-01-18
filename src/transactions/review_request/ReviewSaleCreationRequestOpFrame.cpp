@@ -38,8 +38,8 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     auto& saleCreationRequest = request->getRequestEntry().body.saleCreationRequest();
     if (!AssetHelper::Instance()->exists(db, saleCreationRequest.quoteAsset))
     {
-        innerResult().code(ReviewRequestResultCode::QUOTE_ASSET_DOES_NOT_EXISTS);
-        return false;
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state, quote asset does not exist: " << request->getRequestID();
+        throw runtime_error("Quote asset does not exist");
     }
 
     auto baseAsset = AssetHelper::Instance()->loadAsset(saleCreationRequest.baseAsset, request->getRequestor(), db, &delta);

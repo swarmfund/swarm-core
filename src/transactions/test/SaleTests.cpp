@@ -58,8 +58,6 @@ TEST_CASE("Sale", "[tx][sale]")
 
     Database& db = testManager->getDB();
 
-    LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
-
     auto root = Account{ getRoot(), Salt(0) };
 
     const AssetCode quoteAsset = "USD";
@@ -148,24 +146,18 @@ TEST_CASE("Sale", "[tx][sale]")
         }
         SECTION("Try to update not existent request")
         {
-            auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
-            auto requestID = requestCreationResult.success().requestID;
-            auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(requestID, db);
-            ReviewableRequestHelper::Instance()->storeDelete(delta, db, requestFrame->getKey());
-            requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, requestID, saleRequest,
+            auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 42, saleRequest,
             CreateSaleCreationRequestResultCode::REQUEST_NOT_FOUND);
         }
         SECTION("Base asset not found")
         {
-            auto baseAssetFrame = AssetHelper::Instance()->loadAsset(baseAsset, db);
-            AssetHelper::Instance()->storeDelete(delta, db, baseAssetFrame->getKey());
+            saleRequest.baseAsset = "GSC";
             auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest,
             CreateSaleCreationRequestResultCode::BASE_ASSET_OR_ASSET_REQUEST_NOT_FOUND);
         }
         SECTION("Quote asset not found")
         {
-            auto quoteAssetFrame = AssetHelper::Instance()->loadAsset(quoteAsset, db);
-            AssetHelper::Instance()->storeDelete(delta, db, quoteAssetFrame->getKey());
+            saleRequest.quoteAsset = "GSC";
             auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest,
             CreateSaleCreationRequestResultCode::QUOTE_ASSET_NOT_FOUND);
         }
@@ -196,20 +188,6 @@ TEST_CASE("Sale", "[tx][sale]")
         auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
         auto requestID = requestCreationResult.success().requestID;
 
-        SECTION("Quote asset does not exist")
-        {
-            auto quoteAssetFrame = AssetHelper::Instance()->loadAsset(quoteAsset, db);
-            AssetHelper::Instance()->storeDelete(delta, db, quoteAssetFrame->getKey());
-            saleReviewer.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "",
-            ReviewRequestResultCode::QUOTE_ASSET_DOES_NOT_EXISTS);
-        }
-        SECTION("Base asset does not exist")
-        {
-            auto baseAssetFrame = AssetHelper::Instance()->loadAsset(baseAsset, db);
-            AssetHelper::Instance()->storeDelete(delta, db, baseAssetFrame->getKey());
-            saleReviewer.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "",
-            ReviewRequestResultCode::BASE_ASSET_DOES_NOT_EXISTS);
-        }
         SECTION("Max issuance or preissued amount is less then hard cap")
         {
             const AssetCode asset = "GSC";

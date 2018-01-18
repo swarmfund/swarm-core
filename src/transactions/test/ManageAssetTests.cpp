@@ -294,10 +294,9 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
         }
         SECTION("Given approved asset")
         {
-            auto& delta = testManager->getLedgerDelta();
             auto approvingRequest = reviewableRequestHelper->
 				loadRequest(creationResult.success().requestID,
-                            testManager->getDB(), &delta);
+                            testManager->getDB(), nullptr);
             REQUIRE(approvingRequest);
             auto reviewRequetHelper = ReviewAssetRequestHelper(testManager);
             reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->
@@ -315,7 +314,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
                     applyManageAssetTx(account, 0, updateRequestBody);
                 approvingRequest = reviewableRequestHelper->
                     loadRequest(updateResult.success().requestID,
-                                testManager->getDB(), &delta);
+                                testManager->getDB(), nullptr);
                 REQUIRE(approvingRequest);
                 reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->
                                                         getRequestID(),

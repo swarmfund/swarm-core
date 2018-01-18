@@ -39,7 +39,7 @@ TEST_CASE("manage offer", "[tx][offer]")
     app.start();
     auto testManager = TestManager::make(app);
     auto& db = testManager->getDB();
-    LedgerDelta& delta = testManager->getLedgerDelta();
+    LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), testManager->getDB());
 
     // set up world
     SecretKey root = getRoot();

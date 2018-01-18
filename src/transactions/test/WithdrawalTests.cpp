@@ -249,7 +249,8 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
 
         SECTION("exceed limits")
         {
-            AccountManager accountManager(app, testManager->getDB(), testManager->getLedgerDelta(),
+            LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), testManager->getDB());
+            AccountManager accountManager(app, testManager->getDB(), delta,
                                           testManager->getLedgerManager());
             Limits limits = accountManager.getDefaultLimits(AccountType::GENERAL);
             limits.dailyOut = amountToWithdraw - 1;

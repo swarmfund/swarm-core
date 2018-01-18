@@ -26,7 +26,7 @@ public:
     static ManageOfferOp buildManageOfferOp(BalanceID const& baseBalance, BalanceID const& quoteBalance, bool const isBuy, int64_t const amount,
         int64_t const price, int64_t const fee, uint64_t const offerID, uint64_t const orderBookID);
     // Calculates quote amount. Returns 0 if fails due to overflow
-    static int64_t calcualteQuoteAmount(int64_t const baseAmount, int64_t const price);
+    static int64_t calculateQuoteAmount(int64_t const baseAmount, int64_t const price);
 
 };
 }

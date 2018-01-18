@@ -88,6 +88,7 @@ TEST_CASE("Sale", "[tx][sale]")
     const uint64_t softCap = hardCap / 2;
     auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
                                                            currentTime + 1000, price, softCap, hardCap, "{}");
+    
     SECTION("Happy path")
     {
         saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);

@@ -28,11 +28,10 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto reviewableRequestCountBeforeTx = reviewableRequestHelper->
         countObjects(mTestManager->getDB().getSession());
-    LedgerDelta& delta = mTestManager->getLedgerDelta();
     auto requestBeforeTx = reviewableRequestHelper->loadRequest(requestID,
                                                                 mTestManager->
                                                                 getDB(),
-                                                                &delta);
+                                                                nullptr);
     auto txFrame = createReviewRequestTx(source, requestID, requestHash,
                                          requestType, action, rejectReason);
 
@@ -56,7 +55,7 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
 
     auto requestAfterTx = reviewableRequestHelper->loadRequest(requestID,
                                                                mTestManager->
-                                                               getDB(), &delta);
+                                                               getDB(), nullptr);
     if (action == ReviewRequestOpAction::REJECT)
     {
         REQUIRE(!!requestAfterTx);

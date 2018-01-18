@@ -47,7 +47,7 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         if (!AssetFrame::isAssetCodeValid(oe.baseAsset) || !AssetFrame::isAssetCodeValid(oe.quoteAsset))
             throw runtime_error("invalid asset code");
         if (oe.baseAsset == oe.quoteAsset)
-            throw runtime_error("base asset can not be equeal quote");
+            throw runtime_error("base asset cannot be equal to quote asset");
         if (oe.endTime <= oe.startTime)
             throw runtime_error("start time is after end time");
         if (oe.softCap > oe.hardCap)

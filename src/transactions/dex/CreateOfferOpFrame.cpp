@@ -283,7 +283,7 @@ bool CreateOfferOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    const bool isQuoteAmountFits = OfferManager::calcualteQuoteAmount(mManageOffer.amount, mManageOffer.price) > 0;
+    const bool isQuoteAmountFits = OfferManager::calculateQuoteAmount(mManageOffer.amount, mManageOffer.price) > 0;
     if (!isQuoteAmountFits)
     {
         innerResult().code(ManageOfferResultCode::INVALID_AMOUNT);

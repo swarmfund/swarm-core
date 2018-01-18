@@ -58,7 +58,7 @@ TEST_CASE("Sale", "[tx][sale]")
 
     Database& db = testManager->getDB();
 
-    LedgerDelta& delta = testManager->getLedgerDelta();
+    LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
 
     auto root = Account{ getRoot(), Salt(0) };
 
@@ -84,7 +84,7 @@ TEST_CASE("Sale", "[tx][sale]")
     auto saleRequestHelper = SaleRequestHelper(testManager);
     const auto currentTime = testManager->getLedgerManager().getCloseTime();
     const uint64_t price = 2 * ONE;
-    const uint64_t hardCap = static_cast<const uint64_t>(bigDivide(preIssuedAmount, price, ONE, ROUND_DOWN));
+    const auto hardCap = static_cast<const uint64_t>(bigDivide(preIssuedAmount, price, ONE, ROUND_DOWN));
     const uint64_t softCap = hardCap / 2;
     auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
                                                            currentTime + 1000, price, softCap, hardCap, "{}");
@@ -220,7 +220,6 @@ TEST_CASE("Sale", "[tx][sale]")
                                                                               preIssuedAmount);
             auto assetRequestCreationResult = assetTestHelper.applyManageAssetTx(syndicate, 0, assetCreationRequest);
             auto assetRequestID = assetRequestCreationResult.success().requestID;
-            auto assetRequestFrame = ReviewableRequestHelper::Instance()->loadRequest(assetRequestID, db);
 
             // Create sale creation request with hardCap 1000 * ONE
             saleRequest = saleRequestHelper.createSaleRequest(asset, quoteAsset, currentTime, currentTime + 1000,
@@ -235,13 +234,9 @@ TEST_CASE("Sale", "[tx][sale]")
                 assetCreationRequest.createAsset().initialPreissuedAmount = 500 * ONE;
                 assetRequestCreationResult = assetTestHelper.applyManageAssetTx(syndicate, assetRequestID,
                                                                                 assetCreationRequest);
-                assetRequestFrame = ReviewableRequestHelper::Instance()->loadRequest(assetRequestID, db);
-
                 // Approve asset creation request
                 auto assetReviewer = ReviewAssetRequestHelper(testManager);
-                assetReviewer.applyReviewRequestTx(root, assetRequestID, assetRequestFrame->getHash(),
-                                                   assetRequestFrame->getRequestType(),
-                                                   ReviewRequestOpAction::APPROVE, "");
+                assetReviewer.applyReviewRequestTx(root, assetRequestID, ReviewRequestOpAction::APPROVE, "");
 
                 //Try to approve sale creation request
                 saleReviewer.applyReviewRequestTx(root, saleRequestID, ReviewRequestOpAction::APPROVE, "",
@@ -253,13 +248,9 @@ TEST_CASE("Sale", "[tx][sale]")
                 assetCreationRequest.createAsset().initialPreissuedAmount = 500 * ONE;
                 assetRequestCreationResult = assetTestHelper.applyManageAssetTx(syndicate, assetRequestID,
                                                                                 assetCreationRequest);
-                assetRequestFrame = ReviewableRequestHelper::Instance()->loadRequest(assetRequestID, db);
-
                 // Approve asset creation request
                 auto assetReviewer = ReviewAssetRequestHelper(testManager);
-                assetReviewer.applyReviewRequestTx(root, assetRequestID, assetRequestFrame->getHash(),
-                                                   assetRequestFrame->getRequestType(),
-                                                   ReviewRequestOpAction::APPROVE, "");
+                assetReviewer.applyReviewRequestTx(root, assetRequestID, ReviewRequestOpAction::APPROVE, "");
 
                 //Try to approve sale creation request
                 saleReviewer.applyReviewRequestTx(root, saleRequestID, ReviewRequestOpAction::APPROVE, "",
@@ -278,8 +269,8 @@ TEST_CASE("Sale", "[tx][sale]")
         CreateAccountTestHelper(testManager).applyCreateAccountTx(root, thiefSyndicatePubKey, AccountType::SYNDICATE);
 
         const AssetCode asset = "GSC";
-        const auto assetMaxIssuanceAmount = 2000 * ONE;
-        const auto assetPreIssuedAmount = 1000 * ONE;
+        const uint64_t assetMaxIssuanceAmount = 2000 * ONE;
+        const uint64_t assetPreIssuedAmount = 1000 * ONE;
 
         // Owner creates asset creation request
         assetCreationRequest = assetTestHelper.createAssetCreationRequest(asset, ownerSyndicatePubKey, "{}",
@@ -287,7 +278,6 @@ TEST_CASE("Sale", "[tx][sale]")
                                                                           assetPreIssuedAmount);
         auto ownerRequestCreationResult = assetTestHelper.applyManageAssetTx(ownerSyndicate, 0, assetCreationRequest);
         auto ownerAssetRequestID = ownerRequestCreationResult.success().requestID;
-        auto ownerRequestFrame = ReviewableRequestHelper::Instance()->loadRequest(ownerAssetRequestID, db);
 
         // Thief creates asset creation request
         assetCreationRequest = assetTestHelper.createAssetCreationRequest(asset, thiefSyndicatePubKey, "{}",
@@ -295,7 +285,6 @@ TEST_CASE("Sale", "[tx][sale]")
                                                                           assetPreIssuedAmount);
         auto thiefRequestCreationResult = assetTestHelper.applyManageAssetTx(thiefSyndicate, 0, assetCreationRequest);
         auto thiefAssetRequestID = thiefRequestCreationResult.success().requestID;
-        auto thiefRequestFrame = ReviewableRequestHelper::Instance()->loadRequest(thiefAssetRequestID, db);
 
         // Thief creates sale creation request
         auto thiefSaleRequest = SaleRequestHelper::createSaleRequest(asset, quoteAsset, currentTime, currentTime + 1000,
@@ -307,18 +296,24 @@ TEST_CASE("Sale", "[tx][sale]")
         auto assetReviewer = ReviewAssetRequestHelper(testManager);
 
         // Reviewer approves owner's asset creation request
-        assetReviewer.applyReviewRequestTx(root, ownerAssetRequestID, ownerRequestFrame->getHash(),
-                                           ownerRequestFrame->getRequestType(),
-                                           ReviewRequestOpAction::APPROVE, "");
-
-        // Reviewer rejects thief's asset creation request
-        assetReviewer.applyReviewRequestTx(root, thiefAssetRequestID, thiefRequestFrame->getHash(),
-                                           thiefRequestFrame->getRequestType(),
-                                           ReviewRequestOpAction::PERMANENT_REJECT, "Because");
+        assetReviewer.applyReviewRequestTx(root, ownerAssetRequestID, ReviewRequestOpAction::APPROVE, "");
 
         // Reviewer approves thief's sale creation request
         saleReviewer.applyReviewRequestTx(root, thiefSaleRequestID, ReviewRequestOpAction::APPROVE, "",
         ReviewRequestResultCode::BASE_ASSET_DOES_NOT_EXISTS);
     }
-
+    SECTION("Try to create sale, which is already started")
+    {
+        testManager->advanceToTime(2000);
+        saleRequest.endTime = testManager->getLedgerManager().getCloseTime() + 1000;
+        auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+        auto requestID = requestCreationResult.success().requestID;
+        saleReviewer.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "");
+    }
+    SECTION("Try to create sale, which is already ended")
+    {
+        testManager->advanceToTime(2000);
+        auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest,
+        CreateSaleCreationRequestResultCode::INVALID_END);
+    }
 }

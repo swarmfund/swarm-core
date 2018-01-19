@@ -147,6 +147,7 @@ class Config : public std::enable_shared_from_this<Config>
     int64 TX_EXPIRATION_PERIOD;
     int64 TX_EXPIRATION_PERIOD_WINDOW = 60*60;
     uint64 WITHDRAWAL_DETAILS_MAX_LENGTH = 1000;
+	uint64 ISSUANCE_DETAILS_MAX_LENGTH = 1000;
     
     uint64 MAX_INVOICES_FOR_RECEIVER_ACCOUNT = 20;
 
@@ -206,8 +207,8 @@ class Config : public std::enable_shared_from_this<Config>
 
     std::string NTP_SERVER; // ntp server used to check if time is valid on host
 
-    std::vector<std::string> BTC_ADDRESSES;
-    std::vector<std::string> ETH_ADDRESSES;
+    std::string BTC_ADDRESS_ROOT;
+    std::string ETH_ADDRESS_ROOT;
 
     Config();
 

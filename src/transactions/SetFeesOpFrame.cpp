@@ -3,12 +3,10 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/SetFeesOpFrame.h"
-#include "transactions/ManageOfferOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/AssetHelper.h"
-#include "ledger/AssetPairFrame.h"
 #include "database/Database.h"
 
 #include "main/Application.h"

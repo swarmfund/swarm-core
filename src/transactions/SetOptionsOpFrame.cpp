@@ -2,10 +2,13 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include "transactions/review_request/ReviewRequestHelper.h"
 #include "transactions/SetOptionsOpFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/ReviewableRequestHelper.h"
+#include "crypto/SHA.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -23,7 +26,8 @@ std::unordered_map<AccountID, CounterpartyDetails> SetOptionsOpFrame::getCounter
 
 SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
+	return SourceDetails({AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE, AccountType::EXCHANGE},
+                         mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), static_cast<int32_t>(BlockReasons::KYC_UPDATE));
 }
 
@@ -32,6 +36,14 @@ SetOptionsOpFrame::SetOptionsOpFrame(Operation const& op, OperationResult& res,
     : OperationFrame(op, res, parentTx)
     , mSetOptions(mOperation.body.setOptionsOp())
 {
+}
+
+std::string
+SetOptionsOpFrame::getInnerResultCodeAsStr()
+{
+    const auto result = getResult();
+    const auto code = getInnerCode(result);
+    return xdr::xdr_traits<SetOptionsResultCode>::enum_name(code);
 }
 
 bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledgerManager)
@@ -101,6 +113,41 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 	return true;
 }
 
+std::string
+SetOptionsOpFrame::getLimitsUpdateRequestReference(Hash const& documentHash) const
+{
+    const auto hash = sha256(xdr_to_opaque(ReviewableRequestType::LIMITS_UPDATE, documentHash));
+    return binToHex(hash);
+}
+
+bool
+SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager) {
+    Database& db = ledgerManager.getDatabase();
+
+    auto reference = getLimitsUpdateRequestReference(mSetOptions.limitsUpdateRequestData->documentHash);
+    const auto referencePtr = xdr::pointer<string64>(new string64(reference));
+
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    if (reviewableRequestHelper->isReferenceExist(db, getSourceID(), reference))
+    {
+        innerResult().code(SetOptionsResultCode::LIMITS_UPDATE_REQUEST_REFERENCE_DUPLICATION);
+        return false;
+    }
+
+    ReviewableRequestEntry::_body_t body;
+    body.type(ReviewableRequestType::LIMITS_UPDATE);
+    body.limitsUpdateRequest().documentHash = mSetOptions.limitsUpdateRequestData->documentHash;
+
+    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr, body,
+                                                             ledgerManager.getCloseTime());
+
+    EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
+
+    innerResult().success().limitsUpdateRequestID = request->getRequestID();
+
+    return true;
+}
+
 bool
 SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
@@ -108,6 +155,7 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
     Database& db = ledgerManager.getDatabase();
     AccountEntry& account = mSourceAccount->getAccount();
 
+    innerResult().code(SetOptionsResultCode::SUCCESS);
 
     if (mSetOptions.masterWeight)
     {
@@ -177,9 +225,15 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
         }
     }
 
+    if (mSetOptions.limitsUpdateRequestData)
+    {
+        if (!tryCreateUpdateLimitsRequest(app, delta, ledgerManager))
+            return false;
+    }
+
     app.getMetrics().NewMeter({"op-set-options", "success", "apply"}, "operation")
-        .Mark();
-    innerResult().code(SetOptionsResultCode::SUCCESS);
+            .Mark();
+
     EntryHelperProvider::storeChangeEntry(delta, db, mSourceAccount->mEntry);
     return true;
 }

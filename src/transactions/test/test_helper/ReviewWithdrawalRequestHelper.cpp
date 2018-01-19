@@ -9,7 +9,7 @@
 #include "ledger/BalanceFrame.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
-
+#include "test/test_marshaler.h"
 
 namespace stellar
 {
@@ -98,7 +98,7 @@ TransactionFramePtr ReviewWithdrawRequestHelper::createReviewRequestTx(
     reviewRequestOp.requestHash = requestHash;
     reviewRequestOp.requestID = requestID;
     reviewRequestOp.requestDetails.requestType(requestType);
-    reviewRequestOp.requestDetails.withdrawal().externalDetails = "Updated external details on review";
+    reviewRequestOp.requestDetails.withdrawal().externalDetails = "{}";
     return txFromOperation(source, op, nullptr);
 }
 

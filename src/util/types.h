@@ -11,13 +11,14 @@
 #include "xdrpp/message.h"
 #include <locale>
 #include <algorithm>
+#include "lib/json/json.h"
 
 namespace stellar
 {
 
 const std::locale cLocale("C");
 
-const int64 ONE = 10000LL;
+const int64 ONE = 1000000LL;
 
 enum Rounding
 {
@@ -92,6 +93,9 @@ bool isSetFlag(uint32 value, EnumType flag)
     return (flagValue & value) == flagValue;
 }
 
+// returns true if strJson is a valid json
+bool isValidJson(std::string strJson);
+
 // returns true if result is valid (no overflow)
 bool safeSum(uint64_t a, uint64_t b, uint64_t& result);
 bool safeSum(uint64_t& result, std::vector<uint64_t> params);
@@ -120,5 +124,4 @@ namespace std {
             return hash<int32_t>()(rawKey);
         }
     };
-
 }

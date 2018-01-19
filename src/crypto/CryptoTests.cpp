@@ -3,18 +3,14 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "main/test.h"
-#include "util/Logging.h"
-#include "lib/catch.hpp"
 #include "crypto/Hex.h"
 #include "crypto/SHA.h"
-#include "crypto/SecretKey.h"
 #include "crypto/Random.h"
 #include "crypto/StrKey.h"
 #include "util/basen.h"
 #include <autocheck/autocheck.hpp>
-#include <sodium.h>
-#include <map>
 #include <regex>
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 

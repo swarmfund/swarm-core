@@ -38,15 +38,17 @@ namespace stellar
         EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
         uint64_t countObjects(soci::session& sess) override;
 
-        void loadRequests(StatementContext & prep, std::function<void(LedgerEntry const&)> requestsProcessor) const;
-
         SaleFrame::pointer loadSale(uint64_t saleID, Database& db, LedgerDelta* delta = nullptr);
+        SaleFrame::pointer loadSale(uint64_t saleID, AssetCode const& base, AssetCode const& quote, Database& db, LedgerDelta* delta = nullptr);
         std::vector<SaleFrame::pointer> loadSales(AssetCode const& base, AssetCode const& quote, Database& db);
+
+        SaleFrame::pointer loadRequireStateChange(uint64_t const currentTime, Database& db, LedgerDelta& delta) const;
 
     private:
         SaleHelper() { ; }
         ~SaleHelper() { ; }
 
         void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
+        void loadSales(StatementContext & prep, std::function<void(LedgerEntry const&)> requestsProcessor) const;
     };
 }

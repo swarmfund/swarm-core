@@ -35,7 +35,7 @@ const
 {
     return SourceDetails({
                              AccountType::GENERAL, AccountType::SYNDICATE,
-                             AccountType::OPERATIONAL
+                             AccountType::OPERATIONAL, AccountType::EXCHANGE
                          }, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER));
 }
@@ -194,8 +194,8 @@ bool CreateWithdrawalRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    if (mCreateWithdrawalRequest.request.externalDetails.size() > app.
-        getWithdrawalDetailsMaxLength())
+    if (mCreateWithdrawalRequest.request.externalDetails.size() > app.getWithdrawalDetailsMaxLength()
+            || !isValidJson(mCreateWithdrawalRequest.request.externalDetails))
     {
         innerResult().code(CreateWithdrawalRequestResultCode::INVALID_EXTERNAL_DETAILS);
         return false;

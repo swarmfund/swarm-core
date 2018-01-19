@@ -8,6 +8,7 @@
 #include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/SaleFrame.h"
+#include "test/test_marshaler.h"
 
 
 namespace stellar
@@ -33,10 +34,10 @@ void SaleReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(!!baseAssetBeforeTx);
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(saleCreationRequest->baseAsset, mTestManager->getDB());
     REQUIRE(!!baseAssetAfterTx);
-    uint64_t softCapInBaseAsset;
+    uint64_t hardCapInBaseAsset;
     const auto saleRequest = *saleCreationRequest;
-    REQUIRE(SaleFrame::calculateRequiredBaseAssetForSoftCap(saleRequest, softCapInBaseAsset));
-    REQUIRE(baseAssetBeforeTx->getLockedIssuance() + softCapInBaseAsset == baseAssetAfterTx->getLockedIssuance());
+    REQUIRE(SaleFrame::convertToBaseAmount(saleRequest.price, saleRequest.hardCap, hardCapInBaseAsset));
+    REQUIRE(baseAssetBeforeTx->getPendingIssuance() + hardCapInBaseAsset == baseAssetAfterTx->getPendingIssuance());
 }
 
 ReviewSaleRequestHelper::ReviewSaleRequestHelper(

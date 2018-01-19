@@ -25,6 +25,9 @@ public:
 
 	  ReviewWithdrawalRequestOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);
+
+      bool doCheckValid(Application &app) override;
+
 protected:
     bool handlePermanentReject(Application& app, LedgerDelta& delta,
         LedgerManager& ledgerManager,

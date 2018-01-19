@@ -4,7 +4,6 @@
 #include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
 #include "test_helper/TestManager.h"
 #include "transactions/test/test_helper/ManageAssetTestHelper.h"
@@ -12,6 +11,7 @@
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ReviewPreIssuanceRequestHelper.h"
 #include "ledger/AssetHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace stellar::txtest;

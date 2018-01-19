@@ -12,6 +12,7 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
 #include "ReviewAssetRequestHelper.h"
+#include "test/test_marshaler.h"
 
 
 namespace stellar

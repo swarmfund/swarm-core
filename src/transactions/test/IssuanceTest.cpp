@@ -5,18 +5,16 @@
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include <ledger/FeeHelper.h>
 #include <ledger/AccountHelper.h>
-#include "main/Config.h"
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
-#include "test_helper/TestManager.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ReviewIssuanceRequestHelper.h"
 #include "test_helper/ReviewPreIssuanceRequestHelper.h"
+#include "test/test_marshaler.h"
 
 
 using namespace stellar;
@@ -32,7 +30,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 	// create new account with balance 
 	auto newAccountKP = SecretKey::random();
     CreateAccountTestHelper createAccountTestHelper(testManager);
-	createAccountTestHelper.applyCreateAccountTx(root, newAccountKP.getPublicKey(), AccountType::GENERAL);
+    createAccountTestHelper.applyCreateAccountTx(root, newAccountKP.getPublicKey(), AccountType::GENERAL);
 
 	auto balanceHelper = BalanceHelper::Instance();
 	auto newAccountBalance = balanceHelper->loadBalance(newAccountKP.getPublicKey(), assetCode, testManager->getDB(), nullptr);
@@ -341,6 +339,14 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
         BalanceID nonExistingReceiver = SecretKey::random().getPublicKey();
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, nonExistingReceiver, reference,
                                                          CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
+    }
+
+    SECTION("invalid external details")
+    {
+        std::string invalidDetails = "{\"key\"}";
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, receiverBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS,
+                                                         invalidDetails);
     }
 
 }

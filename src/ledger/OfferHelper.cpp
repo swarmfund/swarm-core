@@ -13,7 +13,7 @@ namespace stellar {
     using xdr::operator<;
 
     static const char* offerColumnSelector =
-            "SELECT owner_id, offer_id, base_asset_code, quote_asset_code, base_amount, quote_amount,"
+            "SELECT owner_id, offer_id, order_book_id, base_asset_code, quote_asset_code, base_amount, quote_amount,"
                     "price, fee, percent_fee, is_buy, base_balance_id, quote_balance_id, created_at, lastmodified, version "
                     "FROM offer";
 
@@ -23,6 +23,7 @@ namespace stellar {
                 "("
                 "owner_id          	VARCHAR(56)      NOT NULL,"
                 "offer_id           BIGINT           NOT NULL CHECK (offer_id >= 0),"
+                "order_book_id      BIGINT           NOT NULL CHECK (order_book_id >= 0),"
                 "base_asset_code    VARCHAR(16)      NOT NULL,"
                 "quote_asset_code   VARCHAR(16)      NOT NULL,"
                 "is_buy             BOOLEAN          NOT NULL,"
@@ -39,7 +40,7 @@ namespace stellar {
                 "PRIMARY KEY      (offer_id)"
                 ");";;
         db.getSession() << "CREATE INDEX base_quote_price ON offer"
-                " (base_asset_code, quote_asset_code, is_buy, price);";;
+                " (order_book_id, base_asset_code, quote_asset_code, is_buy, price);";;
     }
 
     void OfferHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
@@ -116,17 +117,17 @@ namespace stellar {
 
         if (insert)
         {
-            sql = "INSERT INTO offer (owner_id, offer_id,"
+            sql = "INSERT INTO offer (owner_id, offer_id, order_book_id,"
                     "base_asset_code, quote_asset_code, base_amount, quote_amount,"
                     "price, fee, percent_fee, is_buy, "
                     "base_balance_id, quote_balance_id, created_at, lastmodified, version) "
                     "VALUES "
-                    "(:sid, :oid, :sac, :bac, :ba, :qa, :p, :f, :pf, :ib, :sbi, :bbi, :ca, :l, :v)";
+                    "(:sid, :oid, :order_book_id, :sac, :bac, :ba, :qa, :p, :f, :pf, :ib, :sbi, :bbi, :ca, :l, :v)";
         }
         else
         {
             sql = "UPDATE offer "
-                    "SET 	  base_asset_code=:sac, quote_asset_code=:bac, base_amount=:ba, quote_amount=:qa,"
+                "SET order_book_id = :order_book_id, base_asset_code=:sac, quote_asset_code=:bac, base_amount=:ba, quote_amount=:qa,"
                     "price=:p, fee=:f, percent_fee=:pf, is_buy=:ib,"
                     "base_balance_id=:sbi, quote_balance_id=:bbi, created_at=:ca,"
                     "lastmodified=:l, version=:v "
@@ -136,20 +137,17 @@ namespace stellar {
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        std::string actIDStrKey = PubKeyUtils::toStrKey(offerEntry.ownerID);
-        std::string baseAssetCode = offerEntry.base;
-        std::string quoteAssetCode = offerEntry.quote;
-        std::string quoteBalanceID = BalanceKeyUtils::toStrKey(offerEntry.quoteBalance);
-        std::string baseBalanceID = BalanceKeyUtils::toStrKey(offerEntry.baseBalance);
         auto offerVersion = static_cast<int32_t >(offerEntry.ext.v());
 
+        auto ownerID = PubKeyUtils::toStrKey(offerEntry.ownerID);
         if (insert)
         {
-            st.exchange(use(actIDStrKey, "sid"));
+            st.exchange(use(ownerID, "sid"));
         }
         st.exchange(use(offerEntry.offerID, "oid"));
-        st.exchange(use(baseAssetCode, "sac"));
-        st.exchange(use(quoteAssetCode, "bac"));
+        st.exchange(use(offerEntry.orderBookID, "order_book_id"));
+        st.exchange(use(offerEntry.base, "sac"));
+        st.exchange(use(offerEntry.quote, "bac"));
         st.exchange(use(offerEntry.baseAmount, "ba"));
         st.exchange(use(offerEntry.quoteAmount, "qa"));
         st.exchange(use(offerEntry.price, "p"));
@@ -157,8 +155,10 @@ namespace stellar {
         st.exchange(use(offerEntry.percentFee, "pf"));
         int isBuy = offerEntry.isBuy ? 1 : 0;
         st.exchange(use(isBuy, "ib"));
-        st.exchange(use(baseBalanceID, "sbi"));
-        st.exchange(use(quoteBalanceID, "bbi"));
+        auto baseBalance = BalanceKeyUtils::toStrKey(offerEntry.baseBalance);
+        st.exchange(use(baseBalance, "sbi"));
+        auto quoteBalance = BalanceKeyUtils::toStrKey(offerEntry.quoteBalance);
+        st.exchange(use(quoteBalance, "bbi"));
         st.exchange(use(offerEntry.createdAt, "ca"));
         st.exchange(use(offerFrame->mEntry.lastModifiedLedgerSeq, "l"));
         st.exchange(use(offerVersion, "v"));
@@ -170,7 +170,7 @@ namespace stellar {
 
         if (st.get_affected_rows() != 1)
         {
-            throw std::runtime_error("could not update SQL");
+            throw runtime_error("could not update SQL");
         }
 
         if (insert)
@@ -184,7 +184,6 @@ namespace stellar {
     }
 
     void OfferHelper::loadOffers(StatementContext &prep, function<void(const LedgerEntry &)> offerProcessor) {
-        std::string actIDStrKey, baseAssetCode, quoteAssetCode, baseBalanceID, quoteBalanceID;
         int isBuy;
         int32_t offerVersion = 0;
 
@@ -193,18 +192,19 @@ namespace stellar {
         OfferEntry& oe = le.data.offer();
 
         statement& st = prep.statement();
-        st.exchange(into(actIDStrKey));
+        st.exchange(into(oe.ownerID));
         st.exchange(into(oe.offerID));
-        st.exchange(into(baseAssetCode));
-        st.exchange(into(quoteAssetCode));
+        st.exchange(into(oe.orderBookID));
+        st.exchange(into(oe.base));
+        st.exchange(into(oe.quote));
         st.exchange(into(oe.baseAmount));
         st.exchange(into(oe.quoteAmount));
         st.exchange(into(oe.price));
         st.exchange(into(oe.fee));
         st.exchange(into(oe.percentFee));
         st.exchange(into(isBuy));
-        st.exchange(into(baseBalanceID));
-        st.exchange(into(quoteBalanceID));
+        st.exchange(into(oe.baseBalance));
+        st.exchange(into(oe.quoteBalance));
         st.exchange(into(oe.createdAt));
         st.exchange(into(le.lastModifiedLedgerSeq));
         st.exchange(into(offerVersion));
@@ -212,19 +212,14 @@ namespace stellar {
         st.execute(true);
         while (st.got_data())
         {
-            oe.ownerID = PubKeyUtils::fromStrKey(actIDStrKey);
-            oe.base = baseAssetCode;
-            oe.quote = quoteAssetCode;
             oe.isBuy = isBuy > 0;
-            oe.baseBalance = BalanceKeyUtils::fromStrKey(baseBalanceID);
-            oe.quoteBalance = BalanceKeyUtils::fromStrKey(quoteBalanceID);
-            oe.ext.v((LedgerVersion)offerVersion);
+            oe.ext.v(static_cast<LedgerVersion>(offerVersion));
             if (!OfferFrame::isValid(oe))
             {
                 CLOG(ERROR, Logging::ENTRY_LOGGER)
                         << "Unexpected state - offer is invalid: "
                         << xdr::xdr_to_string(oe);
-                throw std::runtime_error("Unexpected state - offer is invalid");
+                throw runtime_error("Unexpected state - offer is invalid");
             }
 
             offerProcessor(le);
@@ -258,25 +253,52 @@ namespace stellar {
         return retOffer;
     }
 
-    void OfferHelper::loadOffersWithPriceLower(AssetCode const &base, AssetCode const &quote, int64_t price,
-                                               std::vector<OfferFrame::pointer> &retOffers, Database &db) {
-        std::string sql = offerColumnSelector;
-        sql += " WHERE base_asset_code=:s AND quote_asset_code = :b AND price < :p";
+vector<OfferFrame::pointer> OfferHelper::loadOffersWithFilters(
+        AssetCode const& base, AssetCode const& quote, uint64_t* orderBookIDPtr,
+        uint64_t* priceUpperBoundPtr, Database& db)
+    {
+        string sql = offerColumnSelector;
+        sql += " WHERE base_asset_code=:base_asset_code AND quote_asset_code = :quote_asset_code ";
+        // do not join declaration and use, will lead to issues as `use` receives reference
+        uint64_t orderBookID;
+        if (!!orderBookIDPtr)
+        {
+            sql += " AND order_book_id = :order_book_id";
+            orderBookID = *orderBookIDPtr;
+        }
+
+        uint64_t priceUpperBound;
+        if (!!priceUpperBoundPtr)
+        {
+            sql += " AND price < :p";
+            priceUpperBound = *priceUpperBoundPtr;
+        }
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        std::string baseAssetCode = base;
-        std::string quoteAssetCode = quote;
+        string baseAssetCode = base;
+        string quoteAssetCode = quote;
 
         st.exchange(use(baseAssetCode));
         st.exchange(use(quoteAssetCode));
-        st.exchange(use(price));
+        if (!!orderBookIDPtr)
+        {
+            st.exchange(use(orderBookID));
+        }
+
+        if (!!priceUpperBoundPtr)
+        {
+            st.exchange(use(priceUpperBound));
+        }
 
         auto timer = db.getSelectTimer("offer");
-        loadOffers(prep, [&retOffers](LedgerEntry const& of) {
-            retOffers.emplace_back(make_shared<OfferFrame>(of));
+        vector<OfferFrame::pointer> results;
+        loadOffers(prep, [&results](LedgerEntry const& of) {
+            results.emplace_back(make_shared<OfferFrame>(of));
         });
+
+        return results;
     }
 
     std::unordered_map<AccountID, std::vector<OfferFrame::pointer>> OfferHelper::loadAllOffers(Database &db) {
@@ -293,10 +315,10 @@ namespace stellar {
         return retOffers;
     }
 
-    void OfferHelper::loadBestOffers(size_t numOffers, size_t offset, AssetCode const &base, AssetCode const &quote,
+    void OfferHelper::loadBestOffers(size_t numOffers, size_t offset, AssetCode const &base, AssetCode const &quote, uint64_t orderBookID,
                                      bool isBuy, std::vector<OfferFrame::pointer> &retOffers, Database &db) {
         std::string sql = offerColumnSelector;
-        sql += " WHERE base_asset_code=:s AND quote_asset_code = :b AND is_buy=:ib";
+        sql += " WHERE base_asset_code=:s AND quote_asset_code = :b AND order_book_id = :order_book_id AND is_buy=:ib";
 
         sql += " ORDER BY price ";
         sql += isBuy ? "DESC" : "ASC";
@@ -306,13 +328,11 @@ namespace stellar {
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        std::string baseAssetCode = base;
-        std::string quoteAssetCode = quote;
-
         int isBuyRaw = isBuy ? 1 : 0;
 
-        st.exchange(use(baseAssetCode));
-        st.exchange(use(quoteAssetCode));
+        st.exchange(use(base));
+        st.exchange(use(quote));
+        st.exchange(use(orderBookID));
         st.exchange(use(isBuyRaw));
         st.exchange(use(numOffers));
         st.exchange(use(offset));

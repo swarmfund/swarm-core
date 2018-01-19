@@ -3,16 +3,13 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/IssuanceRequestHelper.h>
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
-#include "main/Config.h"
 #include "main/test.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
-#include "lib/catch.hpp"
 #include "TxTests.h"
-#include "test_helper/TestManager.h"
 #include "transactions/test/test_helper/ManageAssetTestHelper.h"
 #include "test_helper/ReviewAssetRequestHelper.h"
-#include "test_helper/IssuanceRequestHelper.h"
+#include "test/test_marshaler.h"
 
 using namespace stellar;
 using namespace txtest;
@@ -146,6 +143,17 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
                                                  ManageAssetResultCode::
                                                  ASSET_ALREADY_EXISTS);
         }
+        SECTION("Trying to create asset with invalid details")
+        {
+            const AssetCode assetCode = "USD";
+            // missed value
+            std::string invalidDetails = "{\"key\"}";
+
+            const auto request = manageAssetHelper.createAssetCreationRequest(assetCode, root.key.getPublicKey(),
+                                                                              invalidDetails, 100, 0);
+            manageAssetHelper.applyManageAssetTx(root, 0, request,
+                                                 ManageAssetResultCode::INVALID_DETAILS);
+        }
     }
     SECTION("Asset update request")
     {
@@ -185,6 +193,16 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  ASSET_NOT_FOUND);
+        }
+        SECTION("Trying to update asset's details to invalid")
+        {
+            const AssetCode assetCode = "USD";
+            manageAssetHelper.createAsset(root, root.key, assetCode, root, 0);
+
+            std::string invalidDetails = "{\"key\"}";
+            auto request = manageAssetHelper.createAssetUpdateRequest(assetCode, invalidDetails, 0);
+            manageAssetHelper.applyManageAssetTx(root, 0, request,
+                                                 ManageAssetResultCode::INVALID_DETAILS);
         }
     }
     SECTION("create base asset")

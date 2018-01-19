@@ -9,6 +9,7 @@
 #include "database/Database.h"
 #include "util/types.h"
 #include "AssetFrame.h"
+#include "xdrpp/printer.h"
 
 using namespace std;
 using namespace soci;
@@ -52,7 +53,12 @@ namespace stellar
 		return mOffer.offerID;
 	}
 
-	bool
+uint64_t OfferFrame::getOrderBookID() const
+{
+    return mOffer.orderBookID;
+}
+
+bool
 		OfferFrame::isValid(OfferEntry const& oe)
 	{
 		return AssetFrame::isAssetCodeValid(oe.base)
@@ -80,4 +86,26 @@ namespace stellar
 	OfferEntry &OfferFrame::getOffer() {
 		return mOffer;
 	}
+
+uint64_t OfferFrame::getLockedAmount() const
+{
+    if (!mOffer.isBuy)
+    {
+        return mOffer.baseAmount;
+    }
+    
+    uint64_t result;
+    if (!safeSum(mOffer.quoteAmount, mOffer.fee, result))
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Overflow during locked amount calculation: " << xdr::xdr_to_string(mOffer);
+        throw runtime_error("Overflow on locked amount canculation");
+    }
+
+    return result;
+}
+
+BalanceID const& OfferFrame::getLockedBalance() const
+{
+    return mOffer.isBuy ? mOffer.quoteBalance : mOffer.baseBalance;
+}
 }

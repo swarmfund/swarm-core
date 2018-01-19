@@ -99,13 +99,7 @@ namespace stellar {
 
         reviewableRequestFrame->touch(delta);
 
-        if (!reviewableRequestFrame->isValid())
-        {
-            CLOG(ERROR, Logging::ENTRY_LOGGER)
-                    << "Unexpected state - request is invalid: "
-                    << xdr::xdr_to_string(reviewableRequestEntry);
-            throw std::runtime_error("Unexpected state - reviewable request is invalid");
-        }
+        reviewableRequestFrame->ensureValid();
 
         auto key = reviewableRequestFrame->getKey();
         flushCachedEntry(key, db);
@@ -114,7 +108,6 @@ namespace stellar {
         std::string hash = binToHex(reviewableRequestFrame->getHash());
         auto bodyBytes = xdr::xdr_to_opaque(reviewableRequestFrame->getRequestEntry().body);
         std::string strBody = bn::encode_b64(bodyBytes);
-        std::string requestor = PubKeyUtils::toStrKey(reviewableRequestFrame->getRequestor());
         std::string rejectReason = reviewableRequestFrame->getRejectReason();
         auto version = static_cast<int32_t>(reviewableRequestFrame->getRequestEntry().ext.v());
 
@@ -135,8 +128,10 @@ namespace stellar {
         st.exchange(use(reviewableRequestEntry.requestID, "id"));
         st.exchange(use(hash, "hash"));
         st.exchange(use(strBody, "body"));
-        st.exchange(use(reviewableRequestEntry.requestor, "requestor"));
-        st.exchange(use(reviewableRequestEntry.reviewer, "reviewer"));
+        std::string requestor = PubKeyUtils::toStrKey(reviewableRequestFrame->getRequestor());
+        st.exchange(use(requestor, "requestor"));
+        auto reviewer = PubKeyUtils::toStrKey(reviewableRequestEntry.reviewer);
+        st.exchange(use(reviewer, "reviewer"));
         st.exchange(use(reviewableRequestEntry.reference, "reference"));
         st.exchange(use(rejectReason, "reject_reason"));
         st.exchange(use(reviewableRequestEntry.createdAt, "created"));
@@ -196,23 +191,20 @@ namespace stellar {
             unmarshaler.done();
 
             oe.rejectReason = rejectReason;
-            oe.ext.v((LedgerVersion)version);
-            if (!ReviewableRequestFrame::isValid(oe))
-            {
-                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: invalid reviewable request: " << xdr::xdr_to_string(oe);
-                throw std::runtime_error("Invalid reviewable request");
-            }
+            oe.ext.v(static_cast<LedgerVersion>(version));
+            ReviewableRequestFrame::ensureValid(oe);
 
             requestsProcessor(le);
             st.fetch();
         }
     }
 
-    bool ReviewableRequestHelper::exists(Database &db, AccountID const &requestor, stellar::string64 reference, uint64_t requestID) {
+    bool ReviewableRequestHelper::exists(Database &db, AccountID const &rawRequestor, stellar::string64 reference, uint64_t requestID) {
         auto timer = db.getSelectTimer("reviewable_request_exists_by_reference");
         auto prep =
                 db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM reviewable_request WHERE requestor=:requestor AND reference = :reference AND id <> :request_id)");
         auto& st = prep.statement();
+        auto requestor = PubKeyUtils::toStrKey(rawRequestor);
         st.exchange(use(requestor, "requestor"));
         st.exchange(use(reference, "reference"));
         st.exchange(use(requestID, "request_id"));
@@ -290,13 +282,14 @@ namespace stellar {
     }
 
 vector<ReviewableRequestFrame::pointer> ReviewableRequestHelper::
-loadRequests(AccountID const& requestor, ReviewableRequestType requestType,
+loadRequests(AccountID const& rawRequestor, ReviewableRequestType requestType,
     Database& db)
 {
     std::string sql = selectorReviewableRequest;
     sql += +" WHERE requestor = :requstor";
     auto prep = db.getPreparedStatement(sql);
     auto& st = prep.statement();
+    auto requestor = PubKeyUtils::toStrKey(rawRequestor);
     st.exchange(use(requestor));
 
     vector<ReviewableRequestFrame::pointer> result;

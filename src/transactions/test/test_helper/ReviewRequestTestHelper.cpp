@@ -7,6 +7,7 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include <functional>
+#include "test/test_marshaler.h"
 
 
 namespace stellar
@@ -72,6 +73,8 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
         return reviewResult;
     }
 
+    auto txOperation = txFrame->getOperations()[0]->getOperation();
+    reviewChecker.setOperation(txOperation);
     reviewChecker.checkApprove(requestBeforeTx);
     return reviewResult;
 }

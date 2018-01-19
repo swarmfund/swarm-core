@@ -50,6 +50,7 @@ listall() {
  #echo ASIO_CXX_FILES = asio/src/*.cpp
  echo ASIO_CXX_FILES = asio/src/asio.cpp
  echo JSON_FILES = $(listall json)
+ echo COIN_CORE_FILES = *.cpp $(listall coincore/src /coincore/src/hashfunc)
 
  echo MISC_H_FILES = *.hpp $(listall autocheck cereal)
 ) > lib/lib.mk

@@ -15,7 +15,7 @@ using xdr::operator<;
 
 static const char* assetColumnSelector =
     "SELECT code, owner, preissued_asset_signer, details, max_issuance_amount, available_for_issueance,"
-    " issued, locked_issuance, policies, lastmodified, version FROM asset";
+    " issued, pending_issuance, policies, lastmodified, version FROM asset";
 
 void AssetHelper::dropAll(Database& db)
 {
@@ -29,7 +29,7 @@ void AssetHelper::dropAll(Database& db)
         "max_issuance_amount     NUMERIC(20,0) NOT NULL CHECK (max_issuance_amount >= 0),"
         "available_for_issueance NUMERIC(20,0) NOT NULL CHECK (available_for_issueance >= 0),"
         "issued                  NUMERIC(20,0) NOT NULL CHECK (issued >= 0),"
-        "locked_issuance         NUMERIC(20,0) NOT NULL CHECK (issued >= 0),"
+        "pending_issuance         NUMERIC(20,0) NOT NULL CHECK (issued >= 0),"
         "policies                INT           NOT NULL, "
         "lastmodified            INT           NOT NULL, "
         "version                 INT           NOT NULL, "
@@ -45,13 +45,7 @@ void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
 
     assetFrame->touch(delta);
 
-    if (!assetFrame->isValid())
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) <<
-            "Unexpected state - asset is invalid: " << xdr::
-            xdr_to_string(assetEntry);
-        throw std::runtime_error("Unexpected state - asset is invalid");
-    }
+    assetFrame->ensureValid();
 
     const auto key = assetFrame->getKey();
     flushCachedEntry(key, db);
@@ -64,16 +58,16 @@ void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     {
         sql =
             "INSERT INTO asset (code, owner, preissued_asset_signer, details, max_issuance_amount,"
-            "available_for_issueance, issued, locked_issuance, policies, lastmodified, version) "
+            "available_for_issueance, issued, pending_issuance, policies, lastmodified, version) "
             "VALUES (:code, :owner, :preissued_asset_signer, :details, :max_issuance_amount, "
-            ":available_for_issueance, :issued, :locked_issuance, :policies, :lm, :v)";
+            ":available_for_issueance, :issued, :pending_issuance, :policies, :lm, :v)";
     }
     else
     {
         sql =
             "UPDATE asset SET owner = :owner, preissued_asset_signer = :preissued_asset_signer, details = :details,"
             " max_issuance_amount = :max_issuance_amount,"
-            "available_for_issueance = :available_for_issueance, issued = :issued, locked_issuance = :locked_issuance, policies = :policies, lastmodified = :lm, version = :v "
+            "available_for_issueance = :available_for_issueance, issued = :issued, pending_issuance = :pending_issuance, policies = :policies, lastmodified = :lm, version = :v "
             "WHERE code = :code";
     }
 
@@ -81,14 +75,16 @@ void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     auto& st = prep.statement();
 
     st.exchange(use(assetEntry.code, "code"));
-    st.exchange(use(assetEntry.owner, "owner"));
-    st.exchange(use(assetEntry.preissuedAssetSigner, "preissued_asset_signer"));
+    auto owner = PubKeyUtils::toStrKey(assetEntry.owner);
+    st.exchange(use(owner, "owner"));
+    auto preissuedAssetSigner = PubKeyUtils::toStrKey(assetEntry.preissuedAssetSigner);
+    st.exchange(use(preissuedAssetSigner, "preissued_asset_signer"));
     st.exchange(use(assetEntry.details, "details"));
     st.exchange(use(assetEntry.maxIssuanceAmount, "max_issuance_amount"));
     st.exchange(use(assetEntry.availableForIssueance,
                     "available_for_issueance"));
     st.exchange(use(assetEntry.issued, "issued"));
-    st.exchange(use(assetEntry.lockedIssuance, "locked_issuance"));
+    st.exchange(use(assetEntry.pendingIssuance, "pending_issuance"));
     st.exchange(use(assetEntry.policies, "policies"));
     st.exchange(use(assetFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     st.exchange(use(assetVersion, "v"));
@@ -197,7 +193,11 @@ AssetHelper::loadAsset(AssetCode code, Database& db,
     if (cachedEntryExists(key, db))
     {
         auto p = getCachedEntry(key, db);
-        return p ? std::make_shared<AssetFrame>(*p) : nullptr;
+        auto assetFrame = p ? std::make_shared<AssetFrame>(*p) : nullptr;
+        if (!!delta && !!assetFrame)
+        {
+            delta->recordEntry(*assetFrame);
+        }
     }
 
     AssetFrame::pointer retAsset;
@@ -326,7 +326,7 @@ void AssetHelper::loadAssets(StatementContext& prep,
     st.exchange(into(oe.maxIssuanceAmount));
     st.exchange(into(oe.availableForIssueance));
     st.exchange(into(oe.issued));
-    st.exchange(into(oe.lockedIssuance));
+    st.exchange(into(oe.pendingIssuance));
     st.exchange(into(oe.policies));
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.exchange(into(assetVersion));
@@ -336,13 +336,7 @@ void AssetHelper::loadAssets(StatementContext& prep,
     {
         oe.ext.v(static_cast<LedgerVersion>(assetVersion));
 
-        if (!AssetFrame::isValid(oe))
-        {
-            CLOG(ERROR, Logging::ENTRY_LOGGER) <<
-                "Unexpected state - asset is invalid: " << xdr::
-                xdr_to_string(oe);
-            throw runtime_error("Unexpected state - asset is invalid");
-        }
+        AssetFrame::ensureValid(oe);
 
         assetProcessor(le);
         st.fetch();

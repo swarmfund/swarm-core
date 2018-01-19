@@ -10,9 +10,9 @@
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/PaymentRequestFrame.h"
 #include "util/optional.h"
-#include "ledger/OfferFrame.h"
 #include "ledger/FeeFrame.h"
 #include "herder/LedgerCloseData.h"
+#include "test_helper/SetOptionsTestHelper.h"
 
 namespace stellar
 {
@@ -26,14 +26,6 @@ namespace txtest
 
 typedef std::vector<std::pair<TransactionResultPair, LedgerEntryChanges>>
     TxSetResultMeta;
-
-struct ThresholdSetter
-{
-    optional<uint8_t> masterWeight;
-    optional<uint8_t> lowThreshold;
-    optional<uint8_t> medThreshold;
-    optional<uint8_t> highThreshold;
-};
 
 FeeEntry createFeeEntry(FeeType type, int64_t fixed, int64_t percent,
     AssetCode asset, AccountID* accountID = nullptr, AccountType* accountType = nullptr,
@@ -102,19 +94,6 @@ applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
                      CreateAccountResultCode result = CreateAccountResultCode::SUCCESS, int32 policies = -1);
 
 
-TransactionFramePtr createManageOffer(Hash const& networkID,
-	SecretKey& source, Salt seq, uint64_t offerID, BalanceID const& baseBalance,
-	BalanceID const& quoteBalance, int64_t amount, int64_t price, bool isBuy, int64_t fee);
-
-ManageOfferResult
-applyManageOfferTx(Application& app, SecretKey& source, Salt seq, uint64_t offerID,
-    BalanceID const& baseBalance, BalanceID const& quoteBalance, int64_t amount, int64_t price, bool isBuy,
-    int64_t fee = 0, ManageOfferResultCode result = ManageOfferResultCode::SUCCESS);
-
-OfferFrame::pointer
-loadOffer(SecretKey const& k, uint64 offerID, Application& app, bool mustExist = true);
-
-
 
 TransactionFramePtr createManageBalanceTx(Hash const& networkID,
                                           SecretKey& from, SecretKey& account,
@@ -135,16 +114,6 @@ applyManageAssetTx(Application& app, SecretKey& source, Salt seq,
 				   AssetCode asset, int32 policies = 1,
 				   ManageAssetAction action  = ManageAssetAction::CREATE_ASSET_CREATION_REQUEST,
 				   ManageAssetResultCode result = ManageAssetResultCode::SUCCESS);
-
-TransactionFramePtr createManageAssetPairTx(Hash const& networkID, SecretKey& source,
-	Salt seq, AssetCode base, AssetCode quote,
-	int64_t physicalPrice, int64_t physicalPriceCorrection, int64_t maxPriceStep, int32 policies, ManageAssetPairAction action);
-
-void
-applyManageAssetPairTx(Application& app, SecretKey& source, Salt seq, AssetCode base, AssetCode quote,
-	int64_t physicalPrice, int64_t physicalPriceCorrection, int64_t maxPriceStep, int32 policies,
-	ManageAssetPairAction action = ManageAssetPairAction::CREATE,
-	ManageAssetPairResultCode result = ManageAssetPairResultCode::SUCCESS);
 
 TransactionFramePtr createDirectDebitTx(Hash const& networkID, SecretKey& source,
                                           Salt seq, AccountID from, PaymentOp paymentOp);
@@ -194,14 +163,6 @@ int32
 applyReviewPaymentRequestTx(Application& app, SecretKey& from, 
             Salt seq, int64 paymentID, 
             bool accept = true, ReviewPaymentRequestResultCode result = ReviewPaymentRequestResultCode::SUCCESS);
-
-
-TransactionFramePtr createRecover(Hash const& networkID, SecretKey& source,
-                                     Salt seq, AccountID account,
-                                     PublicKey oldSigner, PublicKey newSigner);
-
-void applyRecover(Application& app, SecretKey& source, Salt seq, AccountID account,
-                    PublicKey oldSigner, PublicKey newSigner, RecoverResultCode targetResult = RecoverResultCode::SUCCESS);
 
 
 TransactionFramePtr createSetOptions(Hash const& networkID, SecretKey& source, Salt seq,

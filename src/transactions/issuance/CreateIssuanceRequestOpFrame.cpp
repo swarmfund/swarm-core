@@ -32,6 +32,7 @@ CreateIssuanceRequestOpFrame::CreateIssuanceRequestOpFrame(Operation const& op,
     : OperationFrame(op, res, parentTx)
     , mCreateIssuanceRequest(mOperation.body.createIssuanceRequestOp())
 {
+    mIsFeeRequired = true;
 }
 
 bool
@@ -96,6 +97,13 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 	if (mCreateIssuanceRequest.reference.empty()) {
 		innerResult().code(CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
 		return false;
+	}
+
+	if (mCreateIssuanceRequest.request.externalDetails.size() > app.getIssuanceDetailsMaxLength()
+            || !isValidJson(mCreateIssuanceRequest.request.externalDetails))
+	{
+		innerResult().code(CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        return false;
 	}
 	
     return true;
@@ -175,6 +183,9 @@ bool CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db
     fee.percent = 0;
     fee.fixed = 0;
 
+    if (!mIsFeeRequired)
+        return true;
+
     auto receiverFrame = AccountHelper::Instance()->mustLoadAccount(receiver, db);
     if (isSystemAccountType(receiverFrame->getAccountType()))
         return true;
@@ -194,4 +205,20 @@ bool CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db
     return totalFee < mCreateIssuanceRequest.request.amount;
 }
 
+CreateIssuanceRequestOp CreateIssuanceRequestOpFrame::build(
+    AssetCode const& asset, const uint64_t amount, BalanceID const& receiver,
+    LedgerManager& lm)
+{
+    IssuanceRequest request;
+    request.amount = amount;
+    request.asset = asset;
+    request.externalDetails = "{}";
+    request.fee.percent = 0;
+    request.fee.fixed = 0;
+    request.receiver = receiver;
+    CreateIssuanceRequestOp issuanceRequestOp;
+    issuanceRequestOp.request = request;
+    issuanceRequestOp.reference = binToHex(sha256(xdr_to_opaque(receiver, asset, amount, lm.getCloseTime())));
+    return issuanceRequestOp;
+}
 }

@@ -45,8 +45,8 @@ namespace stellar
 			Database& db, LedgerDelta *delta = nullptr) {
 			auto result = loadAssetPair(base, quote, db, delta);
 			if (!result) {
-				CLOG(ERROR, "EntryFrame") << "Unexpected db state. Expected asset pair to exists. Base " << base
-					<< " Quote " << quote;
+				CLOG(ERROR, "EntryFrame") << "Unexpected db state. Expected asset pair to exists. Base " << std::string(base)
+					<< " Quote " << std::string(quote);
 				throw std::runtime_error("Unexpected db state. Expected asset pair to exist");
 			}
 			return result;

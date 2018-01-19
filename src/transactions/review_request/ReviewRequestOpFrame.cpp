@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AccountHelper.h>
 #include "util/asio.h"
 #include "ReviewRequestOpFrame.h"
 #include "ReviewAssetCreationRequestOpFrame.h"
@@ -102,12 +103,16 @@ bool
 ReviewRequestOpFrame::doApply(Application& app,
                             LedgerDelta& delta, LedgerManager& ledgerManager)
 {
-
 	Database& db = ledgerManager.getDatabase();
-	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-	auto request = reviewableRequestHelper->loadRequest(mReviewRequest.requestID, db, &delta);
+	auto request = ReviewableRequestHelper::Instance()->loadRequest(mReviewRequest.requestID, db, &delta);
 	if (!request || !(request->getReviewer() == getSourceID())) {
 		innerResult().code(ReviewRequestResultCode::NOT_FOUND);
+		return false;
+	}
+
+	auto requestorAccount = AccountHelper::Instance()->loadAccount(request->getRequestor(), db, &delta);
+	if (requestorAccount->getBlockReasons() != 0) {
+		innerResult().code(ReviewRequestResultCode::USER_IS_BLOCKED);
 		return false;
 	}
 

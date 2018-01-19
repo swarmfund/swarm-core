@@ -59,6 +59,7 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + currentCupBaseAsset);
     REQUIRE(baseAssetBeforeTx.availableForIssueance == baseAssetAfterTx->getAvailableForIssuance());
     REQUIRE(baseAssetAfterTx->getIssued() == baseAssetBeforeTx.issued + currentCupBaseAsset);
+    REQUIRE(baseAssetAfterTx->getMaxIssuanceAmount() == baseAssetBeforeTx.issued + currentCupBaseAsset);
 }
 
 void CheckSaleStateHelper::ensureNoOffersLeft(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const

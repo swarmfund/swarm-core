@@ -55,8 +55,20 @@ OfferEntry StateBeforeTxHelper::getOffer(uint64_t offerID, AccountID ownerID)
     return mState[key]->mEntry.data.offer();
 }
 
+std::vector<OfferEntry> StateBeforeTxHelper::getAllOffers()
+{
+    std::vector<OfferEntry> offers;
+    for (auto entryPair : mState)
+    {
+        const auto& ledgerEntry = entryPair.second->mEntry;
+        if (ledgerEntry.data.type() == LedgerEntryType::OFFER_ENTRY)
+            offers.push_back(ledgerEntry.data.offer());
+    }
+    return offers;
+}
+
 void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
-    StateBeforeTxHelper& stateBeforeTx) const
+                                        StateBeforeTxHelper& stateBeforeTx) const
 {
     // asset unlocked
     const auto sale = stateBeforeTx.getSale(result.saleID);
@@ -66,7 +78,16 @@ void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
     auto hardCapBaseAssetAmount = sale->getBaseAmountForHardCap();
     REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + hardCapBaseAssetAmount);
     REQUIRE(baseAssetBeforeTx.availableForIssueance + hardCapBaseAssetAmount == baseAssetAfterTx->getAvailableForIssuance());
+
     // balances unlocked
+    auto offers = stateBeforeTx.getAllOffers();
+    for (auto offer : offers)
+    {
+        auto balanceBefore = stateBeforeTx.getBalance(offer.quoteBalance);
+        REQUIRE(balanceBefore);
+        auto balanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer.quoteBalance, mTestManager->getDB());
+        REQUIRE(balanceBefore->getLocked() == balanceAfter->getLocked() + offer.quoteAmount + offer.fee);
+    }
 }
 
 void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,

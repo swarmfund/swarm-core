@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <ledger/OfferHelper.h>
 #include <ledger/AssetPairHelper.h>
+#include <transactions/FeesManager.h>
 #include "main/Application.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -37,7 +38,8 @@ void addNewParticipant(TestManager::pointer testManager, Account& root, const ui
     CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
     auto quoteBalance = BalanceHelper::Instance()->loadBalance(account.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
     REQUIRE(!!quoteBalance);
-    IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount, quoteBalance->getBalanceID(),
+    // issue 1 more to ensure that it is enough to cover rounded up base amount
+    IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + fee + 1, quoteBalance->getBalanceID(),
         SecretKey::random().getStrKeyPublic());
     auto accountID = account.key.getPublicKey();
     auto balanceCreationResult = ManageBalanceTestHelper(testManager).applyManageBalanceTx(account, accountID, baseAsset);
@@ -74,10 +76,6 @@ TEST_CASE("Sale", "[tx][sale]")
 
     auto syndicate = Account{ SecretKey::random(), 0 };
     auto syndicatePubKey = syndicate.key.getPublicKey();
-    auto offerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0,
-                                          int64_t(0.2 * ONE), quoteAsset,
-                                          &syndicatePubKey);
-    auto offerFee = offerFeeFrame->getFee();
 
     CreateAccountTestHelper(testManager).applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
     const AssetCode baseAsset = "BTC";
@@ -96,19 +94,33 @@ TEST_CASE("Sale", "[tx][sale]")
     
     SECTION("Happy path")
     {
+        //set offer fee for sale owner and participants
+        auto sellerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(2 * ONE), quoteAsset, &syndicatePubKey);
+        auto participantsFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(1 * ONE), quoteAsset, nullptr);
+        LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
+        EntryHelperProvider::storeAddEntry(delta, db, sellerFeeFrame->mEntry);
+        EntryHelperProvider::storeAddEntry(delta, db, participantsFeeFrame->mEntry);
+
+        uint64_t quotePreIssued(0);
+        participantsFeeFrame->calculatePercentFee(hardCap, quotePreIssued, ROUND_UP);
+        quotePreIssued += hardCap + ONE;
+        IssuanceRequestHelper(testManager).authorizePreIssuedAmount(root, root.key, quoteAsset, quotePreIssued, root);
+
         saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
         auto accountTestHelper = CreateAccountTestHelper(testManager);
-        IssuanceRequestHelper(testManager).authorizePreIssuedAmount(root, root.key, quoteAsset, hardCap, root);
         auto sales = SaleHelper::Instance()->loadSales(baseAsset, quoteAsset, testManager->getDB());
         REQUIRE(sales.size() == 1);
         const auto saleID = sales[0]->getID();
+
         SECTION("Reached hard cap")
         {
             const int numberOfParticipants = 10;
+            const auto quoteAssetAmount = hardCap / numberOfParticipants;
+            uint64_t feeToPay(0);
+            participantsFeeFrame->calculatePercentFee(quoteAssetAmount, feeToPay, ROUND_UP);
             for (auto i = 0; i < numberOfParticipants; i++)
             {
-                const auto quoteAssetAmount = hardCap / numberOfParticipants;
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0);
+                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
                 if (i < numberOfParticipants - 1)
                 {
                     CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, CheckSaleStateResultCode::NO_SALES_FOUND);
@@ -117,13 +129,36 @@ TEST_CASE("Sale", "[tx][sale]")
 
             CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root);
         }
+
+        SECTION("Reached soft cap")
+        {
+            const int numberOfParticipants = 10;
+            const uint64_t quoteAmount = softCap / numberOfParticipants;
+            uint64_t feeToPay(0);
+            participantsFeeFrame->calculatePercentFee(quoteAmount, feeToPay, ROUND_UP);
+            const int64_t timeStep = (endTime - currentTime) / numberOfParticipants;
+            for (int i = 0; i < numberOfParticipants - 1; i++)
+            {
+                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
+                testManager->advanceToTime(testManager->getLedgerManager().getCloseTime() + timeStep);
+                checkStateHelper.applyCheckSaleStateTx(root, CheckSaleStateResultCode::NO_SALES_FOUND);
+            }
+            // sale is still active
+            participantsFeeFrame->calculatePercentFee(2 * quoteAmount, feeToPay, ROUND_UP);
+            addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, 2 * quoteAmount, price, feeToPay);
+            testManager->advanceToTime(endTime + 1);
+            checkStateHelper.applyCheckSaleStateTx(root);
+        }
+
         SECTION("Canceled")
         {
             const int numberOfParticipants = 10;
+            const uint64_t quoteAmount = softCap / numberOfParticipants;
+            uint64_t feeToPay(0);
+            participantsFeeFrame->calculatePercentFee(quoteAmount, feeToPay, ROUND_UP);
             for (auto i = 0; i < numberOfParticipants - 1; i++)
             {
-
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, softCap / numberOfParticipants, price, 0);
+                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
                 checkStateHelper.applyCheckSaleStateTx(root, CheckSaleStateResultCode::NO_SALES_FOUND);
             }
             // softcap is not reached, so no sale to close
@@ -308,7 +343,6 @@ TEST_CASE("Sale", "[tx][sale]")
 
     SECTION("Participation")
     {
-        Database& db = testManager->getDB();
         ParticipateInSaleTestHelper participateHelper(testManager);
 
         // create sale owner
@@ -339,7 +373,6 @@ TEST_CASE("Sale", "[tx][sale]")
 
         SECTION("malformed manage offer")
         {
-            LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
             // create sale to participate in:
             uint64_t startTime = testManager->getLedgerManager().getCloseTime() + 100;
             uint64_t endTime = startTime + 1000;
@@ -398,7 +431,7 @@ TEST_CASE("Sale", "[tx][sale]")
             SECTION("overflow quote amount")
             {
                 manageOffer.amount = bigDivide(INT64_MAX, ONE, manageOffer.price, ROUND_UP) + 1;
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::INVALID_AMOUNT);
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::OFFER_OVERFLOW);
             }
             SECTION("negative fee")
             {
@@ -422,14 +455,11 @@ TEST_CASE("Sale", "[tx][sale]")
                 manageOffer.quoteBalance = nonExistingBalance;
                 participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::BALANCE_NOT_FOUND);
             }
-            SECTION("asset pair for base and quote doesn't exist")
+            SECTION("base and quote balances mixed up")
             {
-                // delete asset pair
-                auto assetPair = AssetPairHelper::Instance()->loadAssetPair(baseAsset, quoteAsset, db);
-                REQUIRE(assetPair);
-                EntryHelperProvider::storeDeleteEntry(delta, db, assetPair->getKey());
-
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
+                manageOffer.baseBalance = quoteBalance;
+                manageOffer.quoteBalance = baseBalance;
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXISTS);
             }
             SECTION("try participate in non-existing sale")
             {
@@ -457,8 +487,9 @@ TEST_CASE("Sale", "[tx][sale]")
                 // load balances for owner
                 auto quoteBalanceID = BalanceHelper::Instance()->loadBalance(owner.key.getPublicKey(), quoteAsset, db,
                                                                              nullptr)->getBalanceID();
-                auto baseBalanceID = AccountManager::loadOrCreateBalanceForAsset(owner.key.getPublicKey(), baseAsset, db, delta);
-
+                AccountID ownerID = owner.key.getPublicKey();
+                auto baseBalanceID = ManageBalanceTestHelper(testManager).applyManageBalanceTx(owner, ownerID, baseAsset)
+                                                                         .success().balanceID;
                 manageOffer.baseBalance = baseBalanceID;
                 manageOffer.quoteBalance = quoteBalanceID;
                 participateHelper.applyManageOffer(owner, manageOffer, ManageOfferResultCode::CANT_PARTICIPATE_OWN_SALE);

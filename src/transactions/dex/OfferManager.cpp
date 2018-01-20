@@ -57,6 +57,8 @@ OfferFrame::pointer OfferManager::buildOffer(AccountID const& sourceID, ManageOf
     o.price = op.price;
     o.quote = quote;
     o.quoteAmount = calculateQuoteAmount(op.amount, op.price);
+    if (o.quoteAmount == 0)
+        return nullptr;
 
     LedgerEntry le;
     le.data.type(LedgerEntryType::OFFER_ENTRY);

@@ -57,5 +57,7 @@ public:
     }
 
     std::string getInnerResultCodeAsStr() override;
+
+    void updateAvailableForIssuance(const SaleFrame::pointer sale, LedgerDelta &delta, Database &db) const;
 };
 }

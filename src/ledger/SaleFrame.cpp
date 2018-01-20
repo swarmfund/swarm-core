@@ -135,6 +135,18 @@ uint64_t SaleFrame::getBaseAmountForCurrentCap() const
     return baseAmount;
 }
 
+uint64_t SaleFrame::getBaseAmountForHardCap() const
+{
+    uint64_t baseAmount;
+    if (!convertToBaseAmount(mSale.price, mSale.hardCap, baseAmount))
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to convert to base amount hard cap: " << xdr::xdr_to_string(mSale);
+        throw runtime_error("Unexpected state: failed to convert to base amount current cap");
+    }
+
+    return baseAmount;
+}
+
 BalanceID const& SaleFrame::getBaseBalanceID() const
 {
     return mSale.baseBalance;

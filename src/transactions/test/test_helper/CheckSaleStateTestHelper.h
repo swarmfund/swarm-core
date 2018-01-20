@@ -16,6 +16,9 @@ namespace txtest
 
         SaleFrame::pointer getSale(uint64_t id);
         AssetEntry getAssetEntry(AssetCode assetCode);
+        OfferEntry getOffer(uint64_t offerID, AccountID ownerID);
+        BalanceFrame::pointer getBalance(BalanceID balanceID);
+        std::vector<OfferEntry> getAllOffers();
     };
 
     class CheckSaleStateHelper : public TxHelper
@@ -28,6 +31,7 @@ namespace txtest
 
         TransactionFramePtr createCheckSaleStateTx(Account& source);
         CheckSaleStateResult applyCheckSaleStateTx(Account& source, CheckSaleStateResultCode code = CheckSaleStateResultCode::SUCCESS);
+
     };
 }
 

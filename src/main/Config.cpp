@@ -75,7 +75,6 @@ operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     NTP_SERVER = "pool.ntp.org";
     INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE = true;
 
-	GENESIS_LEDGER_ASSET_POLICIES = 7;
 }
 
 void
@@ -219,17 +218,7 @@ Config::load(std::string const& filename)
                     throw std::invalid_argument("bad HTTP_MAX_CLIENT");
                 HTTP_MAX_CLIENT = static_cast<unsigned short>(maxHttpClient);
             }
-			else if (item.first == "GENESIS_LEDGER_ASSET_POLICIES")
-			{
-				if (!item.second->as<int64_t>())
-				{
-					throw std::invalid_argument("invalid GENESIS_LEDGER_ASSET_POLICIES");
-				}
-				int64_t genesisLedgerAssetPolicies = item.second->as<int64_t>()->value();
-				if (genesisLedgerAssetPolicies < 0 || genesisLedgerAssetPolicies > UINT16_MAX)
-					throw std::invalid_argument("bad genesisLedgerAssetPolicies");
-				GENESIS_LEDGER_ASSET_POLICIES = static_cast<int32_t>(genesisLedgerAssetPolicies);
-			}
+			
             else if (item.first == "PUBLIC_HTTP_PORT")
             {
                 if (!item.second->as<bool>())

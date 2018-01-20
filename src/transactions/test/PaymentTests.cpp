@@ -14,6 +14,7 @@
 #include "transactions/PaymentOpFrame.h"
 #include "crypto/SHA.h"
 #include "test/test_marshaler.h"
+#include "ledger/AssetHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -34,7 +35,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
     SecretKey root = getRoot();
     SecretKey issuance = getIssuanceKey();
 
-	int64 paymentAmount = 10 * app.getConfig().EMISSION_UNIT;
+	int64 paymentAmount = 10 * ONE;
 
     Salt rootSeq = 1;
     LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
@@ -50,6 +51,10 @@ TEST_CASE("payment", "[dep_tx][payment]")
     fundAccount(app, root, issuance, rootSeq, aWM.getPublicKey(), emissionAmount);
 
     auto secondAsset = "AETH";
+    std::vector<AssetFrame::pointer> baseAssets;
+    AssetHelper::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
+    REQUIRE(!baseAssets.empty());
+    auto asset = baseAssets[0];
 
 	auto balanceHelper = BalanceHelper::Instance();
 	auto paymentRequestHelper = PaymentRequestHelper::Instance();
@@ -67,7 +72,6 @@ TEST_CASE("payment", "[dep_tx][payment]")
 		REQUIRE(getBalance(account.getPublicKey(), app) == paymentAmount);
 		REQUIRE(getBalance(aWM.getPublicKey(), app) == (emissionAmount - paymentAmount));
         REQUIRE(paymentResult.paymentResponse().destination == account.getPublicKey());
-        REQUIRE(paymentResult.paymentResponse().asset == app.getBaseAsset());
 
 		// send back
 		auto accountSeq = 1;
@@ -75,7 +79,6 @@ TEST_CASE("payment", "[dep_tx][payment]")
 		REQUIRE(getBalance(account.getPublicKey(), app) == 0);
 		REQUIRE(getBalance(aWM.getPublicKey(), app) == emissionAmount);
         REQUIRE(paymentResult.paymentResponse().destination == aWM.getPublicKey());
-        REQUIRE(paymentResult.paymentResponse().asset == app.getBaseAsset());
 
         auto paymentID = paymentResult.paymentResponse().paymentID;
         soci::session& sess = app.getDatabase().getSession();
@@ -137,15 +140,15 @@ TEST_CASE("payment", "[dep_tx][payment]")
 		int64 feeAmount = 2 * ONE; // fee is 2%
 		int64_t fixedFee = 3;
         
-        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, fixedFee, feeAmount, app.getBaseAsset());
+        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, fixedFee, feeAmount, asset->getCode());
         auto fee = feeFrame->getFee();
         
 		applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 		auto account = SecretKey::random();
 		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
 		auto accountSeq = 1;
-		int64 balance = 60 * app.getConfig().EMISSION_UNIT;
-		paymentAmount = 6 * app.getConfig().EMISSION_UNIT;
+		int64 balance = 60 * ONE;
+		paymentAmount = 6 * ONE;
         PaymentFeeData paymentFee = getGeneralPaymentFee(fixedFee, paymentAmount * (feeAmount / ONE) / 100);
 		fundAccount(app, root, issuance, rootSeq, account.getPublicKey(), balance);
 		auto dest = SecretKey::random();
@@ -195,14 +198,14 @@ TEST_CASE("payment", "[dep_tx][payment]")
 	SECTION("Payment fee with minimum values")
     {
 		int64 feeAmount = 1; 
-        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 0, feeAmount, app.getBaseAsset());
+        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 0, feeAmount, asset->getCode());
         auto fee = feeFrame->getFee();
         
 		applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 		auto account = SecretKey::random();
 		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
 		auto accountSeq = 1;
-		int64 balance = 60 * app.getConfig().EMISSION_UNIT;
+		int64 balance = 60 * ONE;
 		paymentAmount = 1;
 		PaymentFeeData paymentFee = getNoPaymentFee();
         paymentFee.sourcePaysForDest = true;

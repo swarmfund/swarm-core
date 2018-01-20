@@ -48,7 +48,6 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
     SecretKey a1 = getAccount("A");
     Salt rootSeq = 1;
 
-    AssetCode asset = app.getBaseAsset();
     SECTION("outer envelope")
     {
         TransactionFramePtr txFrame;
@@ -130,7 +129,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 		{
 			auto account = SecretKey::random();
 			applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
-			int64_t amount = app.getConfig().EMISSION_UNIT;
+			int64_t amount = ONE;
 			Salt s = 0;
 			fundAccount(app, root, issuance, s, account.getPublicKey(), amount);
 			auto commission = getCommissionKP();
@@ -208,7 +207,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
         SECTION("success two signatures")
         {
 			// fund account account
-			int64_t paymentAmount = app.getConfig().EMISSION_UNIT;
+			int64_t paymentAmount = ONE;
 			auto emissionAmount = paymentAmount;
     
             fundAccount(app, root, issuance, rootSeq, a1.getPublicKey(), emissionAmount);
@@ -265,7 +264,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 				auto details = "some json data";
 				auto requestID = binToHex(sha256(details));
                 auto balanceID = SecretKey::random().getPublicKey();
-                auto amount = app.getConfig().EMISSION_UNIT;
+                auto amount = ONE;
                 fundAccount(app, root, issuance, rootSeq, a1.getPublicKey(), amount);
                 TransactionFramePtr tx = createPaymentTx(networkID, a1, b1, a1Seq++,
                     amount / 2, getNoPaymentFee() ,false, "subj", "ref");

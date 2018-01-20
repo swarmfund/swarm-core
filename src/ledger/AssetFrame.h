@@ -120,7 +120,7 @@ public:
 
     void setAvailableForIssuance(const uint64_t availableForIssuance)
     {
-        mAsset.availableForIssueance = 0;
+        mAsset.availableForIssueance = availableForIssuance;
     }
 
     bool checkPolicy(const AssetPolicy policy) const

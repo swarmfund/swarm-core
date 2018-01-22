@@ -17,6 +17,7 @@ namespace txtest
 ReviewRequestHelper::
 ReviewRequestHelper(TestManager::pointer testManager): TxHelper(testManager)
 {
+    requestMustBeDeletedAfterApproval = true;
 }
 
 ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
@@ -64,12 +65,20 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
         return reviewResult;
     }
 
-    // approval and permanent reject must delete request
-    REQUIRE(!requestAfterTx);
     if (action == ReviewRequestOpAction::PERMANENT_REJECT)
     {
+        REQUIRE(!requestAfterTx);
         reviewChecker.checkPermanentReject(requestBeforeTx);
         return reviewResult;
+    }
+
+    if (requestMustBeDeletedAfterApproval)
+    {
+        REQUIRE(!requestAfterTx);
+    }
+    else
+    {
+        REQUIRE(!!requestAfterTx);
     }
 
     reviewChecker.checkApprove(requestBeforeTx);

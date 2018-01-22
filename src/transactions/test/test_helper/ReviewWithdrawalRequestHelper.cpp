@@ -15,26 +15,8 @@ namespace stellar
 {
 namespace txtest
 {
-WithdrawReviewChecker::WithdrawReviewChecker(TestManager::pointer testManager, const uint64_t requestID) : ReviewChecker(testManager)
+WithdrawReviewChecker::WithdrawReviewChecker(TestManager::pointer testManager, const uint64_t requestID) : TwoStepWithdrawReviewChecker(testManager, requestID)
 {
-    auto request = ReviewableRequestHelper::Instance()->loadRequest(requestID, mTestManager->getDB());
-    if (!request || request->getType() != ReviewableRequestType::WITHDRAW)
-    {
-        return;
-    }
-
-    withdrawalRequest = std::make_shared<WithdrawalRequest>(request->getRequestEntry().body.withdrawalRequest());
-    balanceBeforeTx = BalanceHelper::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
-    if (!balanceBeforeTx)
-    {
-        return;
-    }
-    commissionBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
-        balanceBeforeTx->getAsset(), mTestManager->getDB(), nullptr);
-    assetBeforeTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
-
-    AccountID requestor = request->getRequestor();
-    statsBeforeTx = StatisticsHelper::Instance()->loadStatistics(requestor, mTestManager->getDB());
 }
 
 void WithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
@@ -65,26 +47,6 @@ void WithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(assetBeforeTx->getAvailableForIssuance() == assetAfterTx->getAvailableForIssuance());
 }
 
-void WithdrawReviewChecker::checkPermanentReject(
-    ReviewableRequestFrame::pointer request)
-{
-    auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
-    REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + withdrawalRequest->amount + withdrawalRequest->fee.fixed + withdrawalRequest->fee.percent);
-    REQUIRE(balanceBeforeTx->getLocked() == balanceAfterTx->getLocked() + withdrawalRequest->amount + withdrawalRequest->fee.fixed + withdrawalRequest->fee.percent);
-    
-    auto assetAfterTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
-    REQUIRE(assetAfterTx->getIssued() == assetBeforeTx->getIssued());
-
-    AccountID requestor = request->getRequestor();
-    auto statsAfterTx = StatisticsHelper::Instance()->mustLoadStatistics(requestor, mTestManager->getDB());
-
-    uint64_t universalAmount = withdrawalRequest->universalAmount;
-    REQUIRE(statsAfterTx->getDailyOutcome() == statsBeforeTx->getDailyOutcome() - universalAmount);
-    REQUIRE(statsAfterTx->getWeeklyOutcome() == statsBeforeTx->getWeeklyOutcome() - universalAmount);
-    REQUIRE(statsAfterTx->getMonthlyOutcome() == statsBeforeTx->getMonthlyOutcome() - universalAmount);
-    REQUIRE(statsAfterTx->getAnnualOutcome() == statsBeforeTx->getAnnualOutcome() - universalAmount);
-}
-
 TransactionFramePtr ReviewWithdrawRequestHelper::createReviewRequestTx(
     Account& source, uint64_t requestID, Hash requestHash,
     ReviewableRequestType requestType, ReviewRequestOpAction action,
@@ -105,6 +67,7 @@ TransactionFramePtr ReviewWithdrawRequestHelper::createReviewRequestTx(
 ReviewWithdrawRequestHelper::ReviewWithdrawRequestHelper(
     TestManager::pointer testManager) : ReviewRequestHelper(testManager)
 {
+    requestMustBeDeletedAfterApproval = true;
 }
 
 ReviewRequestResult ReviewWithdrawRequestHelper::applyReviewRequestTx(

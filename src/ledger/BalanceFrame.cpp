@@ -60,15 +60,21 @@ namespace stellar
     }
 
     bool
-        BalanceFrame::isValid(BalanceEntry const& oe)
+    BalanceFrame::ensureValid(BalanceEntry const &oe)
     {
+        uint64_t amountAndLocked;
+        if (!safeSum(oe.amount, oe.locked, amountAndLocked)) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+            << "Unexpected state: amount + locked of balance overflows UINT64_MAX, balance id: "
+            << BalanceKeyUtils::toStrKey(oe.balanceID);
+        }
         return AssetFrame::isAssetCodeValid(oe.asset) && oe.locked >= 0 && oe.amount >= 0;
     }
 
     bool
-        BalanceFrame::isValid() const
+    BalanceFrame::isValid() const
     {
-        return isValid(mBalance);
+        return ensureValid(mBalance);
     }
 
 

@@ -75,7 +75,7 @@ class BalanceFrame : public EntryFrame
         return mBalance.balanceID;
     }
         
-    static bool isValid(BalanceEntry const& oe);
+    static bool ensureValid(BalanceEntry const &oe);
     bool isValid() const;
 	[[deprecated]]
 	bool addBalance(int64_t delta);

@@ -42,6 +42,10 @@ namespace stellar
 			std::vector<BalanceFrame::pointer>& retBalances,
 			Database& db);
 
+		void loadAssetHolders(AssetCode assetCode,
+                              std::vector<BalanceFrame::pointer> &holders,
+                              Database &db);
+
 		BalanceFrame::pointer loadBalance(BalanceID balanceID,
 			Database& db, LedgerDelta *delta = nullptr);
 

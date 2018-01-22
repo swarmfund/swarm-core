@@ -25,28 +25,36 @@
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test_helper/ReviewSaleRequestHelper.h"
 #include "test/test_marshaler.h"
+#include "ledger/OfferHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-void addNewParticipant(TestManager::pointer testManager, Account& root, const uint64_t saleID, const AssetCode baseAsset,
-                       const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee)
+uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, Account& participant, const uint64_t saleID, const AssetCode baseAsset,
+    const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee)
 {
-    auto account = Account{ SecretKey::random(), 0 };
-    CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
-    auto quoteBalance = BalanceHelper::Instance()->loadBalance(account.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
+    auto quoteBalance = BalanceHelper::Instance()->loadBalance(participant.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
     REQUIRE(!!quoteBalance);
     // issue 1 more to ensure that it is enough to cover rounded up base amount
     IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + fee + 1, quoteBalance->getBalanceID(),
         SecretKey::random().getStrKeyPublic());
-    auto accountID = account.key.getPublicKey();
-    auto balanceCreationResult = ManageBalanceTestHelper(testManager).applyManageBalanceTx(account, accountID, baseAsset);
+    auto accountID = participant.key.getPublicKey();
+    auto balanceCreationResult = ManageBalanceTestHelper(testManager).applyManageBalanceTx(participant, accountID, baseAsset);
     const auto baseAssetAmount = bigDivide(quoteAssetAmount, ONE, price, ROUND_UP);
     auto manageOfferOp = OfferManager::buildManageOfferOp(balanceCreationResult.success().balanceID, quoteBalance->getBalanceID(),
         true, baseAssetAmount, price, fee, 0, saleID);
-    ParticipateInSaleTestHelper(testManager).applyManageOffer(account, manageOfferOp);
+    auto result = ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOfferOp);
+    return result.success().offer.offer().offerID;
+}
+
+uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, const uint64_t saleID, const AssetCode baseAsset,
+                       const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee)
+{
+    auto account = Account{ SecretKey::random(), 0 };
+    CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
+    return addNewParticipant(testManager, root, account, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, fee);
 }
 
 TEST_CASE("Sale", "[tx][sale]")
@@ -91,7 +99,6 @@ TEST_CASE("Sale", "[tx][sale]")
     const auto endTime = currentTime + 1000;
     auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
                                                            endTime, price, softCap, hardCap, "{}");
-    
     SECTION("Happy path")
     {
         //set offer fee for sale owner and participants
@@ -111,7 +118,24 @@ TEST_CASE("Sale", "[tx][sale]")
         auto sales = SaleHelper::Instance()->loadSales(baseAsset, quoteAsset, testManager->getDB());
         REQUIRE(sales.size() == 1);
         const auto saleID = sales[0]->getID();
+        SECTION("Try to cancel sale offer as regular one")
+        {
+            auto account = Account{ SecretKey::random(), 0 };
+            CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
+            uint64_t quoteAssetAmount = hardCap / 2;
+            uint64_t feeToPay(0);
+            participantsFeeFrame->calculatePercentFee(quoteAssetAmount, feeToPay, ROUND_UP);
+            const auto offerID = addNewParticipant(testManager, root, account, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+            auto offer = OfferHelper::Instance()->loadOffer(account.key.getPublicKey(), offerID, testManager->getDB());
+            REQUIRE(!!offer);
+            const auto offerEntry = offer->getOffer();
+            auto manageOfferOp = OfferManager::buildManageOfferOp(offerEntry.baseBalance, offerEntry.quoteBalance,
+                true, 0, price, 0, offerEntry.offerID, 0);
+            ParticipateInSaleTestHelper(testManager).applyManageOffer(account, manageOfferOp, ManageOfferResultCode::NOT_FOUND);
+            manageOfferOp.orderBookID = saleID;
+            ParticipateInSaleTestHelper(testManager).applyManageOffer(account, manageOfferOp);
 
+        }
         SECTION("Reached hard cap")
         {
             const int numberOfParticipants = 10;

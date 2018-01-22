@@ -67,6 +67,8 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
             return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
         case ReviewableRequestType::SALE:
             return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+            return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}

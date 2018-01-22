@@ -349,6 +349,7 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\test\AccountManagerTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CreateAccountTests.cpp" />
@@ -367,6 +368,7 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\WithdrawRequestHelper.cpp" />
@@ -615,6 +617,7 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\Account.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.h" />
@@ -630,6 +633,7 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPreIssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\TestManager.h" />

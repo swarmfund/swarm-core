@@ -888,6 +888,12 @@
     <ClCompile Include="..\..\src\transactions\dex\ManageOfferOpFrame.cpp">
       <Filter>transactions\dex</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1735,6 +1741,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\dex\ManageOfferOpFrame.h">
       <Filter>transactions\dex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

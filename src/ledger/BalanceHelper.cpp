@@ -285,7 +285,7 @@ namespace stellar {
         auto timer = db.getSelectTimer("balance");
         loadBalances(prep, [&holders](LedgerEntry const &of) {
             auto balanceFrame = make_shared<BalanceFrame>(of);
-            if (balanceFrame->getAmount() > 0)
+            if (balanceFrame->getAmount() + balanceFrame->getLocked() > 0)
                 holders.emplace_back(make_shared<BalanceFrame>(of));
         });
     }

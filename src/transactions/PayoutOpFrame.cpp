@@ -1,15 +1,9 @@
 #include "util/asio.h"
 #include "transactions/PayoutOpFrame.h"
-#include "ledger/ReferenceFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
-#include "ledger/FeeHelper.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/ReferenceHelper.h"
-#include "ledger/InvoiceHelper.h"
-#include "database/Database.h"
 #include "main/Application.h"
 
 namespace stellar {
@@ -58,7 +52,8 @@ namespace stellar {
     void PayoutOpFrame::addShareAmount(BalanceFrame::pointer const &holder) {
         uint64_t shareAmount = 0;
 
-        if (!bigDivide(shareAmount, static_cast<uint64_t>(holder->getAmount()), mPayout.maxPayoutAmount,
+        if (!bigDivide(shareAmount, static_cast<uint64_t>(holder->getAmount() + holder->getLocked()),
+                       mPayout.maxPayoutAmount,
                        mAsset->getIssued(),
                        ROUND_DOWN)) {
             CLOG(ERROR, Logging::OPERATION_LOGGER)
@@ -92,7 +87,7 @@ namespace stellar {
     bool PayoutOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
         Database &db = app.getDatabase();
 
-        innerResult().code(PayoutResultCode ::SUCCESS);
+        innerResult().code(PayoutResultCode::SUCCESS);
 
         mAsset = AssetHelper::Instance()->loadAsset(mPayout.asset, getSourceID(), db);
         if (!mAsset) {

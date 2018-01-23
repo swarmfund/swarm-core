@@ -299,6 +299,15 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
                                                              CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
         }
 
+        SECTION("Cannot review request from blocked user") {
+            /* TODO:
+             * 1. Create account
+             * 2. Block account
+             * 3. Try review
+             * 4. Check review result -> ReviewRequestResultCode::USER_IS_BLOCKED
+             */
+        }
+
     }
 
 }

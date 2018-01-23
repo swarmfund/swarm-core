@@ -14,7 +14,6 @@
 #include "ledger/AccountHelper.h"
 #include "xdrpp/printer.h"
 #include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
 #include "issuance/CreateIssuanceRequestOpFrame.h"
 #include "dex/CreateOfferOpFrame.h"
 
@@ -55,6 +54,8 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state; issuance request was not fulfilled on check sale state" << "saleID: " << sale->getID();
         throw runtime_error("Unexpected state; issuance request was not fulfilled on check sale state");
     }
+
+    updateAvailableForIssuance(sale, delta, db);
 
     updateMaxIssuance(sale, delta, db);
 }
@@ -112,7 +113,7 @@ void CheckSaleStateOpFrame::unlockPendingIssunace(const SaleFrame::pointer sale,
     LedgerDelta& delta, Database& db) const
 {
     auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
-    const auto baseAmount = sale->getBaseAmountForCurrentCap();
+    const auto baseAmount = sale->getBaseAmountForHardCap();
     baseAsset->mustUnlockIssuedAmount(baseAmount);
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
 }
@@ -146,15 +147,23 @@ void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
     LedgerDelta& delta, Database& db) const
 {
     auto baseAsset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db, &delta);
-    uint64_t updatedMaxIssuance;
-    if (!safeSum(baseAsset->getIssued(), baseAsset->getPendingIssuance(), updatedMaxIssuance))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate updated max issuance on sale check state; saleID: " << sale->getID();
-        throw std::runtime_error("Failed to calculate updated max issuance on sale check state");
-    }
+
+    // at this point issued amount is the sum of a previously issued amount and a total amount of the sale
+    uint64_t updatedMaxIssuance = baseAsset->getIssued();
 
     baseAsset->setMaxIssuance(updatedMaxIssuance);
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
+}
+
+void CheckSaleStateOpFrame::updateAvailableForIssuance(const SaleFrame::pointer sale, LedgerDelta &delta,
+                                                       Database &db) const
+{
+    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db);
+
+    // destroy remaining assets (difference between hardCap and currentCap)
+    baseAsset->setAvailableForIssuance(0);
+
+    EntryHelperProvider::storeChangeEntry(delta, db, baseAsset->mEntry);
 }
 
 ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
@@ -163,7 +172,7 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
 {
     auto& db = app.getDatabase();
     const auto baseAmount = sale->getBaseAmountForCurrentCap();
-    const auto quoteAmount = OfferManager::calcualteQuoteAmount(baseAmount, sale->getPrice());
+    const auto quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, sale->getPrice());
     const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, sale->getQuoteAsset(), quoteAmount, db);
     if (feeResult.isOverflow)
     {

@@ -97,7 +97,18 @@ void WithdrawRequestHelper::validateStatsChange(StatisticsFrame::pointer statsBe
                                                 StatisticsFrame::pointer statsAfter,
                                                 ReviewableRequestFrame::pointer withdrawRequest)
 {
-    uint64_t universalAmount = withdrawRequest->getRequestEntry().body.withdrawalRequest().universalAmount;
+    uint64_t universalAmount = 0;
+    switch (withdrawRequest->getRequestType())
+    {
+    case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+        universalAmount = withdrawRequest->getRequestEntry().body.twoStepWithdrawalRequest().universalAmount;
+        break;
+    case ReviewableRequestType::WITHDRAW:
+        universalAmount = withdrawRequest->getRequestEntry().body.withdrawalRequest().universalAmount;
+        break;
+    default:
+        throw std::runtime_error("Unexpected reviewable request type");
+    }
     REQUIRE(universalAmount != 0);
 
     REQUIRE(statsAfter->getUpdateAt() == withdrawRequest->getCreatedAt());

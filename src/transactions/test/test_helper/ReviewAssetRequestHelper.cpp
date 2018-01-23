@@ -15,10 +15,9 @@ namespace txtest
 void AssetReviewChecker::checkApproval(AssetCreationRequest const& request,
     AccountID const& requestor) const
 {
-    auto& delta = mTestManager->getLedgerDelta();
     auto assetHelper = AssetHelper::Instance();
     auto assetFrame = assetHelper->loadAsset(request.code,
-        mTestManager->getDB(), &delta);
+        mTestManager->getDB(), nullptr);
     REQUIRE(!!assetFrame);
     auto assetEntry = assetFrame->getAsset();
     REQUIRE(assetEntry.availableForIssueance == request.initialPreissuedAmount);
@@ -34,10 +33,9 @@ void AssetReviewChecker::checkApproval(AssetCreationRequest const& request,
 void AssetReviewChecker::checkApproval(AssetUpdateRequest const& request,
     AccountID const& requestor)
 {
-    auto& delta = mTestManager->getLedgerDelta();
     auto assetHelper = AssetHelper::Instance();
     auto assetFrame = assetHelper->loadAsset(request.code,
-        mTestManager->getDB(), &delta);
+        mTestManager->getDB(), nullptr);
     REQUIRE(!!assetFrame);
     auto assetEntry = assetFrame->getAsset();
     REQUIRE(assetEntry.code == request.code);

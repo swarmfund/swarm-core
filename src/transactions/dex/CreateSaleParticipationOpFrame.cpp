@@ -118,11 +118,11 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
     }
 
     const auto quoteAmount = OfferManager::
-        calcualteQuoteAmount(mManageOffer.amount, mManageOffer.price);
+    calculateQuoteAmount(mManageOffer.amount, mManageOffer.price);
     if (quoteAmount == 0)
     {
-        innerResult().code(ManageOfferResultCode::MALFORMED);
-        return false;
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: quote amount overflows";
+        throw runtime_error("Unexpected state: quote amount overflows");
     }
 
     if (!sale->tryAddCap(quoteAmount))

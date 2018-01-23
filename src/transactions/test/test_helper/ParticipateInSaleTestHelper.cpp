@@ -36,7 +36,9 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
     auto sale = stateBeforeTx.find(saleAfterTx->getKey());
     REQUIRE(sale != stateBeforeTx.end());
     auto saleBeforeTx = sale->second->mEntry.data.sale();
-    REQUIRE(saleBeforeTx.currentCap + success.offer.offer().quoteAmount == saleAfterTx->getCurrentCap());
+    if (saleAfterTx->getCurrentCap() != saleAfterTx->getHardCap())
+        REQUIRE(saleBeforeTx.currentCap + success.offer.offer().quoteAmount == saleAfterTx->getCurrentCap());
+
     return ManageOfferTestHelper::ensureCreateSuccess(source, op, success, stateBeforeTx);
 }
 }

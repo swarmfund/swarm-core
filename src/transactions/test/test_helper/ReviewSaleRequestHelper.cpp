@@ -2,10 +2,9 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AssetPairHelper.h>
 #include "ReviewSaleRequestHelper.h"
-#include "ledger/AssetFrame.h"
 #include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/SaleFrame.h"
 #include "test/test_marshaler.h"
@@ -38,6 +37,12 @@ void SaleReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
     const auto saleRequest = *saleCreationRequest;
     REQUIRE(SaleFrame::convertToBaseAmount(saleRequest.price, saleRequest.hardCap, hardCapInBaseAsset));
     REQUIRE(baseAssetBeforeTx->getPendingIssuance() + hardCapInBaseAsset == baseAssetAfterTx->getPendingIssuance());
+
+    // check if asset pair was created
+    auto assetPair = AssetPairHelper::Instance()->loadAssetPair(saleRequest.baseAsset, saleRequest.quoteAsset,
+                                                                mTestManager->getDB());
+    REQUIRE(!!assetPair);
+    REQUIRE(assetPair->getCurrentPrice() == saleRequest.price);
 }
 
 ReviewSaleRequestHelper::ReviewSaleRequestHelper(

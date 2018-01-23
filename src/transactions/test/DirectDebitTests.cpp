@@ -30,7 +30,7 @@ TEST_CASE("direct_debit", "[dep_tx][direct_debit]")
     SecretKey root = getRoot();
     SecretKey issuance = getIssuanceKey();
 
-	int64 paymentAmount = 10 * app.getConfig().EMISSION_UNIT;
+	int64 paymentAmount = 10 * ONE;
 
     Salt rootSeq = 1;
     LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
@@ -96,7 +96,6 @@ TEST_CASE("direct_debit", "[dep_tx][direct_debit]")
 			REQUIRE(getBalance(account.getPublicKey(), app) == paymentAmount);
 			REQUIRE(getBalance(aWM.getPublicKey(), app) == (emissionAmount - paymentAmount));
 			REQUIRE(paymentResult.success().paymentResponse.destination == account.getPublicKey());
-			REQUIRE(paymentResult.success().paymentResponse.asset == app.getBaseAsset());
 	   }
 	}
 }

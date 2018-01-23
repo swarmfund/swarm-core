@@ -45,6 +45,8 @@ public:
 class ReviewRequestHelper : public TxHelper
 {
 protected:
+
+    bool requestMustBeDeletedAfterApproval;
     ReviewRequestHelper(TestManager::pointer testManager);
 
 

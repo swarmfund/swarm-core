@@ -197,6 +197,9 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
             return;
         case ReviewableRequestType ::LIMITS_UPDATE:
             return;
+        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+            ensureWithdrawalValid(oe.body.twoStepWithdrawalRequest());
+            return;
         default:
             throw runtime_error("Unexpected reviewable request typw");
         }

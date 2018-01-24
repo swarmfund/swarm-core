@@ -65,21 +65,15 @@ namespace stellar {
             mShareAmounts.emplace(holder->getAccountID(), shareAmount);
             mActualPayoutAmount += shareAmount;
         }
-
-        innerResult().payoutSuccessResult().actualPayoutAmount = mActualPayoutAmount;
     }
 
     void PayoutOpFrame::addReceiver(AccountID const &shareholderID, Database &db, LedgerDelta &delta) {
         auto receiverBalance = BalanceHelper::Instance()->loadBalance(shareholderID,
                                                                       mSourceBalance->getAsset(),
                                                                       db, &delta);
-        if (!receiverBalance) {
-            BalanceID newBalanceID = BalanceKeyUtils::forAccount(shareholderID,
-                                                                 delta.getHeaderFrame().generateID(
-                                                                         LedgerEntryType::BALANCE));
-            receiverBalance = BalanceFrame::createNew(newBalanceID, shareholderID, mSourceBalance->getAsset());
-            EntryHelperProvider::storeAddEntry(delta, db, receiverBalance->mEntry);
-        }
+        if (!receiverBalance)
+            receiverBalance = BalanceHelper::Instance()->createNewBalance(shareholderID, mSourceBalance->getAsset(),
+                                                                          db, delta);
 
         mReceivers.emplace_back(receiverBalance);
     }
@@ -117,7 +111,9 @@ namespace stellar {
             return false;
         }
 
-        BalanceHelper::Instance()->loadAssetHolders(mPayout.asset, mHolders, db);
+
+        auto assetOwnerBalance = BalanceHelper::Instance()->loadBalance(getSourceID(), mAsset->getCode(), db, &delta);
+        BalanceHelper::Instance()->loadAssetHolders(mPayout.asset, assetOwnerBalance->getBalanceID(), mHolders, db);
         if (mHolders.empty()) {
             innerResult().code(PayoutResultCode::HOLDERS_NOT_FOUND);
             return false;
@@ -126,6 +122,8 @@ namespace stellar {
         for (auto const &holder : mHolders) {
             addShareAmount(holder);
         }
+
+        innerResult().payoutSuccessResult().actualPayoutAmount = mActualPayoutAmount;
 
         for (auto const &shareAmount : mShareAmounts) {
             addReceiver(shareAmount.first, db, delta);
@@ -147,6 +145,8 @@ namespace stellar {
                 return false;
             }
 
+            EntryHelperProvider::storeChangeEntry(delta, db, receiver->mEntry);
+
             PayoutResponse payoutResponse;
             payoutResponse.receiverID = receiverID;
             payoutResponse.receiverBalanceID = receiver->getBalanceID();
@@ -154,19 +154,22 @@ namespace stellar {
             innerResult().payoutSuccessResult().payoutResponses.emplace_back(payoutResponse);
         }
 
-        auto commissionBalanceFrame = BalanceHelper::Instance()->loadBalance(app.getCommissionID(),
-                                                                             mSourceBalance->getAsset(), db, &delta);
-        assert(commissionBalanceFrame);
+        if (totalFee > 0) {
+            auto commissionBalanceFrame = BalanceHelper::Instance()->loadBalance(app.getCommissionID(),
+                                                                                 mSourceBalance->getAsset(),
+                                                                                 db, &delta);
+            if (!commissionBalanceFrame)
+                commissionBalanceFrame = BalanceHelper::Instance()->createNewBalance(app.getCommissionID(),
+                                                                                     mSourceBalance->getAsset(),
+                                                                                     db, delta);
+            if (!commissionBalanceFrame->addBalance(totalFee)) {
+                innerResult().code(PayoutResultCode::LINE_FULL);
+                return false;
+            }
 
-        auto commissionAccount = AccountHelper::Instance()->loadAccount(delta, commissionBalanceFrame->getAccountID(),
-                                                                        db);
-
-        if (!commissionBalanceFrame->addBalance(totalFee)) {
-            innerResult().code(PayoutResultCode::LINE_FULL);
-            return false;
+            EntryHelperProvider::storeChangeEntry(delta, db, commissionBalanceFrame->mEntry);
         }
 
-        EntryHelperProvider::storeChangeEntry(delta, db, commissionBalanceFrame->mEntry);
         EntryHelperProvider::storeChangeEntry(delta, db, mSourceBalance->mEntry);
 
         return true;
@@ -179,11 +182,6 @@ namespace stellar {
         }
 
         if (!AssetFrame::isAssetCodeValid(mPayout.asset)) {
-            innerResult().code(PayoutResultCode::MALFORMED);
-            return false;
-        }
-
-        if (mPayout.fee.fixed == 0 || mPayout.fee.percent == 0) {
             innerResult().code(PayoutResultCode::MALFORMED);
             return false;
         }

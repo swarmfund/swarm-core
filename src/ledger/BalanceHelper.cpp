@@ -273,14 +273,16 @@ namespace stellar {
     }
 
     void
-    BalanceHelper::loadAssetHolders(AssetCode assetCode,
+    BalanceHelper::loadAssetHolders(AssetCode assetCode, BalanceID balanceID,
                                     std::vector<BalanceFrame::pointer> &holders,
                                     Database &db) {
+        std::string balanceIdStr = BalanceKeyUtils::toStrKey(balanceID);
         std::string sql = balanceColumnSelector;
-        sql += " WHERE asset = :asset";
+        sql += " WHERE asset = :asset AND balance_id != :asset_owner_balance_id";
         auto prep = db.getPreparedStatement(sql);
         auto &st = prep.statement();
         st.exchange(use(assetCode));
+        st.exchange(use(balanceIdStr));
 
         auto timer = db.getSelectTimer("balance");
         loadBalances(prep, [&holders](LedgerEntry const &of) {
@@ -288,6 +290,17 @@ namespace stellar {
             if (balanceFrame->getAmount() + balanceFrame->getLocked() > 0)
                 holders.emplace_back(make_shared<BalanceFrame>(of));
         });
+    }
+
+    BalanceFrame::pointer
+    BalanceHelper::createNewBalance(AccountID const &accountID, AssetCode asset, Database& db, LedgerDelta& delta) {
+        BalanceID newBalanceID = BalanceKeyUtils::forAccount(accountID,
+                                                             delta.getHeaderFrame().generateID(
+                                                                     LedgerEntryType::BALANCE));
+        BalanceFrame::pointer newBalanceFrame = BalanceFrame::createNew(newBalanceID, accountID, asset);
+        EntryHelperProvider::storeAddEntry(delta, db, newBalanceFrame->mEntry);
+
+        return newBalanceFrame;
     }
 
     std::unordered_map<string, BalanceFrame::pointer>

@@ -103,6 +103,19 @@ namespace stellar {
             return CreateAccountOpFrame::getInnerCode(opResult);
         }
 
+        TransactionFramePtr
+        CreateAccountTestHelper::createCreateAccountTx(Account &source, PublicKey to, AccountType accountType,
+                                                       uint32_t policies)
+        {
+            auto builder = CreateAccountTestBuilder()
+                    .setSource(source)
+                    .setToPublicKey(to)
+                    .setType(accountType)
+                    .setPolicies(policies);
+
+            return builder.buildTx(mTestManager);
+        }
+
         void
         CreateAccountChecker::doCheck(CreateAccountTestBuilder builder, TransactionFramePtr txFrame) {
 

@@ -2,12 +2,11 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/xdrpp/xdrpp/printer.h>
 #include "transactions/SetFeesOpFrame.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/AssetHelper.h"
-#include "database/Database.h"
 
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -222,6 +221,23 @@ namespace stellar
 		return true;
 	}
 
+	bool SetFeesOpFrame::isPayoutFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
+		if (fee.feeType != FeeType::PAYOUT_FEE) {
+			CLOG(ERROR, Logging::OPERATION_LOGGER)
+					<< "Unexpected state: expected fee type PAYOUT_FEE but was "
+					<< xdr::xdr_to_string(fee.feeType);
+			throw runtime_error("Unexpected state: invalid fee type");
+		}
+
+		if (!mustValidFeeAmounts(fee, metrics))
+			return false;
+
+		if (!mustDefaultSubtype(fee, metrics))
+			return false;
+
+		return true;
+	}
+
 
     std::unordered_map<AccountID, CounterpartyDetails> SetFeesOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 	{
@@ -290,6 +306,9 @@ namespace stellar
 			break;
 		case FeeType::ISSUANCE_FEE:
 			isValidFee = isEmissionFeeValid(*mSetFees.fee, app.getMetrics());
+			break;
+		case FeeType::PAYOUT_FEE:
+			isValidFee = isPayoutFeeValid(*mSetFees.fee, app.getMetrics());
 			break;
 		default:
 			innerResult().code(SetFeesResultCode::INVALID_FEE_TYPE);

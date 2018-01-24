@@ -23,19 +23,20 @@ namespace stellar
 		SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
 		bool mustEmptyFixed(FeeEntry const& fee, medida::MetricsRegistry& metrics);
-		bool mustValidFeeAmounts(FeeEntry const& fee, medida::MetricsRegistry& media);
-		bool mustFullRange(FeeEntry const& fee, medida::MetricsRegistry& media);
+		bool mustValidFeeAmounts(FeeEntry const& fee, medida::MetricsRegistry& metrics);
+		bool mustFullRange(FeeEntry const& fee, medida::MetricsRegistry& metrics);
 		bool mustDefaultSubtype(FeeEntry const& fee, medida::MetricsRegistry& metrics);
 		bool mustBaseAsset(FeeEntry const& fee, Application& app);
 
-		bool isPaymentFeeValid(FeeEntry const& fee, medida::MetricsRegistry& media);
-		bool isOfferFeeValid(FeeEntry const& fee, medida::MetricsRegistry& media);
-        bool isForfeitFeeValid(FeeEntry const& fee, medida::MetricsRegistry& media);
-        bool isEmissionFeeValid(FeeEntry const& fee, medida::MetricsRegistry& media);
+		bool isPaymentFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics);
+		bool isOfferFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics);
+        bool isForfeitFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics);
+        bool isEmissionFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics);
+		bool isPayoutFeeValid(FeeEntry const& fee, medida::MetricsRegistry& metrics);
 
-		bool trySetFee(medida::MetricsRegistry& media, Database& db, LedgerDelta& delta);
+		bool trySetFee(medida::MetricsRegistry& metrics, Database& db, LedgerDelta& delta);
 
-		bool doCheckForfeitFee(medida::MetricsRegistry& media, Database& db, LedgerDelta& delta);
+		bool doCheckForfeitFee(medida::MetricsRegistry& metrics, Database& db, LedgerDelta& delta);
 
     public:
 

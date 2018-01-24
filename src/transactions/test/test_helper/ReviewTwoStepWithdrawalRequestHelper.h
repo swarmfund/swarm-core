@@ -9,25 +9,33 @@
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/BalanceFrame.h"
-#include "ReviewTwoStepWithdrawalRequestHelper.h"
 
 namespace stellar
 {
 namespace txtest
 {
 
-class WithdrawReviewChecker : public TwoStepWithdrawReviewChecker
+class TwoStepWithdrawReviewChecker : public ReviewChecker
 {
+protected:
+    std::shared_ptr<WithdrawalRequest> withdrawalRequest;
+    BalanceFrame::pointer balanceBeforeTx;
+    BalanceFrame::pointer commissionBalanceBeforeTx;
+    AssetFrame::pointer assetBeforeTx;
+    StatisticsFrame::pointer statsBeforeTx;
 public:
-    WithdrawReviewChecker(TestManager::pointer testManager, uint64_t requestID);
+    TwoStepWithdrawReviewChecker(TestManager::pointer testManager, uint64_t requestID);
     void checkApprove(ReviewableRequestFrame::pointer) override;
+    void checkPermanentReject(ReviewableRequestFrame::pointer) override;
 };
 
-class ReviewWithdrawRequestHelper : public ReviewRequestHelper
+class ReviewTwoStepWithdrawRequestHelper : public ReviewRequestHelper
 {
 
 public:
-    explicit ReviewWithdrawRequestHelper(TestManager::pointer testManager);
+    ReviewTwoStepWithdrawRequestHelper(TestManager::pointer testManager);
+
+    static std::string externalDetails;
 
     using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source,
@@ -44,6 +52,7 @@ public:
     TransactionFramePtr createReviewRequestTx(Account& source,
         uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
         ReviewRequestOpAction action, std::string rejectReason) override;
+
 };
 }
 }

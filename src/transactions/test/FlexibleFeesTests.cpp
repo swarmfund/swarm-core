@@ -14,6 +14,7 @@
 #include "crypto/SHA.h"
 
 #include "test/test_marshaler.h"
+#include "ledger/AssetHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -46,22 +47,27 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 	auto balanceHelper = BalanceHelper::Instance();
 	auto feeHelper = FeeHelper::Instance();
 
+        std::vector<AssetFrame::pointer> baseAssets;
+        AssetHelper::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
+        REQUIRE(!baseAssets.empty());
+        auto asset = baseAssets[0];
+
 	SECTION("Set global, set for account check global")
 	{
-		auto globalFee = createFeeEntry(FeeType::OFFER_FEE, 0, 10 * ONE, app.getBaseAsset(), nullptr, nullptr);
+		auto globalFee = createFeeEntry(FeeType::OFFER_FEE, 0, 10 * ONE, asset->getCode(), nullptr, nullptr);
 		applySetFees(app, root, rootSeq++, &globalFee, false, nullptr);
 
 		auto a = SecretKey::random();
 		auto aPubKey = a.getPublicKey();
 		applyCreateAccountTx(app, root, a, rootSeq++, accountType);
-		auto accountFee = createFeeEntry(FeeType::OFFER_FEE, 0, 10 * ONE, app.getBaseAsset(), &aPubKey, nullptr);
+		auto accountFee = createFeeEntry(FeeType::OFFER_FEE, 0, 10 * ONE, asset->getCode(), &aPubKey, nullptr);
 		applySetFees(app, root, rootSeq++, &accountFee, false, nullptr);
 
-		auto globalFeeFrame = feeHelper->loadFee(FeeType::OFFER_FEE, app.getBaseAsset(), nullptr, nullptr, 0, 0, INT64_MAX, app.getDatabase());
+		auto globalFeeFrame = feeHelper->loadFee(FeeType::OFFER_FEE, asset->getCode(), nullptr, nullptr, 0, 0, INT64_MAX, app.getDatabase());
 		REQUIRE(globalFeeFrame);
 		REQUIRE(globalFeeFrame->getFee() == globalFee);
 
-		auto accountFeeFrame = feeHelper->loadFee(FeeType::OFFER_FEE, app.getBaseAsset(), &aPubKey, nullptr, 0, 0, INT64_MAX, app.getDatabase());
+		auto accountFeeFrame = feeHelper->loadFee(FeeType::OFFER_FEE, asset->getCode(), &aPubKey, nullptr, 0, 0, INT64_MAX, app.getDatabase());
 		REQUIRE(accountFeeFrame);
 		REQUIRE(accountFeeFrame->getFee() == accountFee);
 	}
@@ -75,18 +81,18 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
         auto destPubKey = dest.getPublicKey();
 		applyCreateAccountTx(app, root, dest, rootSeq++, AccountType::GENERAL);
 
-        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 1, 0, app.getBaseAsset());
+        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 1, 0, asset->getCode());
         auto fee = feeFrame->getFee();
 		applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 
 
-        auto specificFeeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 0, 10 * ONE, app.getBaseAsset(), &destPubKey);
+        auto specificFeeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 0, 10 * ONE, asset->getCode(), &destPubKey);
         auto specificFee = specificFeeFrame->getFee();
         applySetFees(app, root, rootSeq++, &specificFee, false, nullptr);
 
         
 		auto accountSeq = 1;
-		int64 balance = 60 * app.getConfig().EMISSION_UNIT;
+		int64 balance = 60 * ONE;
 		int64 paymentAmount = ONE;
 		PaymentFeeData paymentFee = getNoPaymentFee();
         paymentFee.sourcePaysForDest = true;

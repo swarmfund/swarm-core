@@ -47,7 +47,7 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         if (!AssetFrame::isAssetCodeValid(oe.baseAsset) || !AssetFrame::isAssetCodeValid(oe.quoteAsset))
             throw runtime_error("invalid asset code");
         if (oe.baseAsset == oe.quoteAsset)
-            throw runtime_error("base asset can not be equeal quote");
+            throw runtime_error("base asset cannot be equal to quote asset");
         if (oe.endTime <= oe.startTime)
             throw runtime_error("start time is after end time");
         if (oe.softCap > oe.hardCap)
@@ -134,6 +134,18 @@ uint64_t SaleFrame::getBaseAmountForCurrentCap() const
     {
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to conver to base amount current cap: " << xdr::xdr_to_string(mSale);
         throw runtime_error("Unexpected state: failed to conver to base amount current cap");
+    }
+
+    return baseAmount;
+}
+
+uint64_t SaleFrame::getBaseAmountForHardCap() const
+{
+    uint64_t baseAmount;
+    if (!convertToBaseAmount(mSale.price, mSale.hardCap, baseAmount))
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to convert to base amount hard cap: " << xdr::xdr_to_string(mSale);
+        throw runtime_error("Unexpected state: failed to convert to base amount current cap");
     }
 
     return baseAmount;

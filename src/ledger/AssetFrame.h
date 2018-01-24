@@ -118,6 +118,11 @@ public:
         mAsset.maxIssuanceAmount = amount;
     }
 
+    void setAvailableForIssuance(const uint64_t availableForIssuance)
+    {
+        mAsset.availableForIssueance = availableForIssuance;
+    }
+
     bool checkPolicy(const AssetPolicy policy) const
     {
         return isSetFlag(mAsset.policies, policy);

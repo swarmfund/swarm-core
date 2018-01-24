@@ -117,8 +117,6 @@ class Config : public std::enable_shared_from_this<Config>
 
     uint32_t LEDGER_PROTOCOL_VERSION;
 
-	int32_t GENESIS_LEDGER_ASSET_POLICIES;
-
     // note: all versions in the range
     // [OVERLAY_PROTOCOL_MIN_VERSION, OVERLAY_PROTOCOL_VERSION] must be handled
     uint32_t OVERLAY_PROTOCOL_MIN_VERSION; // min overlay version understood
@@ -134,10 +132,6 @@ class Config : public std::enable_shared_from_this<Config>
     bool PUBLIC_HTTP_PORT;          // if you accept commands from not localhost
     int HTTP_MAX_CLIENT;  // maximum number of http clients, i.e backlog
     std::string NETWORK_PASSPHRASE; // identifier for the network
-    [[deprecated]]
-    std::vector<AssetCode> BASE_ASSETS; // codes of base assets
-    [[deprecated]]
-	AssetCode STATS_QUOTE_ASSET;
 
 	PublicKey masterID; // account id of master account
 	PublicKey commissionID; // account id of commission account
@@ -172,11 +166,6 @@ class Config : public std::enable_shared_from_this<Config>
     // high and the system will be intolerant. By default it is 0, meaning
     // totally insensitive to overloading.
     uint32_t MINIMUM_IDLE_PERCENT;
-    
-	[[deprecated]]
-    uint32_t PREEMISSIONS_PER_OP = 100;
-	[[deprecated]]
-    uint32_t EMISSION_UNIT = 100 * ONE;
 
     // process-management config
     size_t MAX_CONCURRENT_SUBPROCESSES;

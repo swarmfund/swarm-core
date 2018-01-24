@@ -63,6 +63,7 @@ class SaleFrame : public EntryFrame
     uint64_t getPrice() const;
     uint64_t getID() const;
     uint64_t getBaseAmountForCurrentCap() const;
+    uint64_t getBaseAmountForHardCap() const;
     BalanceID const& getBaseBalanceID() const;
     BalanceID const& getQuoteBalanceID() const;
 

@@ -151,8 +151,8 @@ CreateOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
         mQuoteBalance->getAsset());
     if (!offerFrame)
     {
-        innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);
-        return false;
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: quote amount overflows";
+        throw std::runtime_error("Unexpected state: quote amount overflows");
     }
 
     auto& offer = offerFrame->getOffer();
@@ -283,10 +283,10 @@ bool CreateOfferOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    const bool isQuoteAmountFits = OfferManager::calcualteQuoteAmount(mManageOffer.amount, mManageOffer.price) > 0;
+    const bool isQuoteAmountFits = OfferManager::calculateQuoteAmount(mManageOffer.amount, mManageOffer.price) > 0;
     if (!isQuoteAmountFits)
     {
-        innerResult().code(ManageOfferResultCode::INVALID_AMOUNT);
+        innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);
         return false;
     }
     if (mManageOffer.fee < 0)

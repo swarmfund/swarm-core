@@ -132,15 +132,38 @@ TEST_CASE("payout", "[tx][payout]") {
                                                          holder2Balance->getBalanceID(), reference);
 
         SECTION("Pay with own asset") {
-            payoutTestHelper.applyPayoutTx(issuer, assetCode, issuerBalance->getBalanceID(), 100 * ONE, zeroFee);
+            SECTION("Zero fee") {
+                payoutTestHelper.applyPayoutTx(issuer, assetCode, issuerBalance->getBalanceID(), 100 * ONE, zeroFee);
 
-            issuerBalance = BalanceHelper::Instance()->loadBalance(issuerID, assetCode, db, nullptr);
-            holder1Balance = BalanceHelper::Instance()->loadBalance(holder1ID, assetCode, db, nullptr);
-            holder2Balance = BalanceHelper::Instance()->loadBalance(holder2ID, assetCode, db, nullptr);
+                issuerBalance = BalanceHelper::Instance()->loadBalance(issuerID, assetCode, db, nullptr);
+                holder1Balance = BalanceHelper::Instance()->loadBalance(holder1ID, assetCode, db, nullptr);
+                holder2Balance = BalanceHelper::Instance()->loadBalance(holder2ID, assetCode, db, nullptr);
 
-            REQUIRE(issuerBalance->getAmount() == 668 * ONE);
-            REQUIRE(holder1Balance->getAmount() == 220 * ONE);
-            REQUIRE(holder2Balance->getAmount() == 110 * ONE);
+                REQUIRE(issuerBalance->getAmount() == 668 * ONE);
+                REQUIRE(holder1Balance->getAmount() == 220 * ONE);
+                REQUIRE(holder2Balance->getAmount() == 110 * ONE);
+            }
+
+            SECTION("Non-zero fee") {
+                auto payoutFeeFrame = FeeFrame::create(FeeType::PAYOUT_FEE, 20 * ONE,
+                                                       int64_t(3 * ONE), assetCode,
+                                                       &issuerID);
+                auto payoutFee = payoutFeeFrame->getFee();
+                applySetFees(app, root.key, root.salt, &payoutFee, false, nullptr);
+
+                Fee fee;
+                fee.fixed = 20 * ONE;
+                fee.percent = 3 * ONE;
+
+
+                payoutTestHelper.applyPayoutTx(issuer, assetCode, issuerBalance->getBalanceID(), 100 * ONE, fee);
+
+                issuerBalance = BalanceHelper::Instance()->loadBalance(issuerID, assetCode, db, nullptr);
+                auto commissionBalance = BalanceHelper::Instance()->loadBalance(getCommissionKP().getPublicKey(),
+                                                                               assetCode, db, nullptr);
+                REQUIRE(issuerBalance->getAmount() == 645 * ONE);
+                REQUIRE(commissionBalance->getAmount() == 23 * ONE);
+            }
         }
 
         SECTION("Pay with any third-party asset") {
@@ -172,21 +195,43 @@ TEST_CASE("payout", "[tx][payout]") {
             reference = SecretKey::random().getStrKeyPublic();
             issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer, thirdPartyAssetCode, 200 * ONE,
                                                              issuerThirdPartyBalance->getBalanceID(), reference);
+            SECTION("Zero fee") {
+                payoutTestHelper.applyPayoutTx(issuer, assetCode, issuerThirdPartyBalance->getBalanceID(), 100 * ONE,
+                                               zeroFee);
 
-            // perform payout with third-party asset
-            payoutTestHelper.applyPayoutTx(issuer, assetCode, issuerThirdPartyBalance->getBalanceID(), 100 * ONE,
-                                           zeroFee);
+                issuerThirdPartyBalance = BalanceHelper::Instance()->loadBalance(issuerID, thirdPartyAssetCode, db,
+                                                                                 nullptr);
+                auto holder1ThirdPartyBalance = BalanceHelper::Instance()->loadBalance(holder1ID, thirdPartyAssetCode, db,
+                                                                                       nullptr);
+                auto holder2ThirdPartyBalance = BalanceHelper::Instance()->loadBalance(holder2ID, thirdPartyAssetCode, db,
+                                                                                       nullptr);
 
-            issuerThirdPartyBalance = BalanceHelper::Instance()->loadBalance(issuerID, thirdPartyAssetCode, db,
-                                                                             nullptr);
-            auto holder1ThirdPartyBalance = BalanceHelper::Instance()->loadBalance(holder1ID, thirdPartyAssetCode, db,
-                                                                                   nullptr);
-            auto holder2ThirdPartyBalance = BalanceHelper::Instance()->loadBalance(holder2ID, thirdPartyAssetCode, db,
-                                                                                   nullptr);
+                REQUIRE(issuerThirdPartyBalance->getAmount() == 170 * ONE);
+                REQUIRE(holder1ThirdPartyBalance->getAmount() == 20 * ONE);
+                REQUIRE(holder2ThirdPartyBalance->getAmount() == 10 * ONE);
+            }
 
-            REQUIRE(issuerThirdPartyBalance->getAmount() == 170 * ONE);
-            REQUIRE(holder1ThirdPartyBalance->getAmount() == 20 * ONE);
-            REQUIRE(holder2ThirdPartyBalance->getAmount() == 10 * ONE);
+            SECTION("Non-zero fee") {
+                auto payoutFeeFrame = FeeFrame::create(FeeType::PAYOUT_FEE, 10 * ONE,
+                                                       int64_t(5 * ONE), thirdPartyAssetCode,
+                                                       &issuerID);
+                auto payoutFee = payoutFeeFrame->getFee();
+                applySetFees(app, root.key, root.salt, &payoutFee, false, nullptr);
+
+                Fee fee;
+                fee.fixed = 10 * ONE;
+                fee.percent = 5 * ONE;
+
+                payoutTestHelper.applyPayoutTx(issuer, assetCode, issuerThirdPartyBalance->getBalanceID(), 100 * ONE,
+                                               fee);
+
+                issuerThirdPartyBalance = BalanceHelper::Instance()->loadBalance(issuerID, thirdPartyAssetCode, db,
+                                                                                 nullptr);
+                auto commissionBalance = BalanceHelper::Instance()->loadBalance(getCommissionKP().getPublicKey(),
+                                                                                thirdPartyAssetCode, db, nullptr);
+                REQUIRE(issuerThirdPartyBalance->getAmount() == 155 * ONE);
+                REQUIRE(commissionBalance->getAmount() == 15 * ONE);
+            }
         }
     }
 

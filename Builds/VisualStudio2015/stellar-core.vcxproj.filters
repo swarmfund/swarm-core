@@ -531,9 +531,6 @@
     <ClCompile Include="..\..\src\transactions\ManageBalanceOpFrame.cpp">
       <Filter>transactions</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\transactions\RecoverOpFrame.cpp">
-      <Filter>transactions</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\ledger\AccountTypeLimitsFrame.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
@@ -631,9 +628,6 @@
       <Filter>transactions\test</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\PaymentTests.cpp">
-      <Filter>transactions\test</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\transactions\test\RecoverTests.cpp">
       <Filter>transactions\test</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\SetFeesTests.cpp">
@@ -892,6 +886,15 @@
       <Filter>transactions\review_request</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewLimitsUpdateRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\SetLimitsTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1328,9 +1331,6 @@
     <ClInclude Include="..\..\src\transactions\ManageBalanceOpFrame.h">
       <Filter>transactions</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\transactions\RecoverOpFrame.h">
-      <Filter>transactions</Filter>
-    </ClInclude>
     <ClInclude Include="src\generated\xdr\Stellar-ledger-entries-account-type-limits.h">
       <Filter>xdr\generated</Filter>
     </ClInclude>
@@ -1748,6 +1748,15 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewLimitsUpdateRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\SetLimitsTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -1902,9 +1911,6 @@
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment.x">
       <Filter>xdr</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\..\src\xdr\Stellar-operation-recover.x">
-      <Filter>xdr</Filter>
-    </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-review-payment-request.x">
       <Filter>xdr</Filter>
     </CustomBuild>
@@ -1969,6 +1975,9 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-check-sale-state.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-limits-update.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

@@ -20,7 +20,6 @@
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
-#include "transactions/RecoverOpFrame.h"
 #include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/SetLimitsOpFrame.h"
@@ -748,60 +747,6 @@ applyReviewPaymentRequestTx(Application& app, SecretKey& from, Salt seq,
             REQUIRE(paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
         return -1;
     }
-}
-
-TransactionFramePtr createRecover(Hash const& networkID, SecretKey& source,
-                                     Salt seq, AccountID account,
-                                     PublicKey oldSigner, PublicKey newSigner)
-{
-    Operation op;
-    op.body.type(OperationType::RECOVER);
-    op.body.recoverOp().account = account;
-    op.body.recoverOp().oldSigner = oldSigner;
-    op.body.recoverOp().newSigner = newSigner;
-    
-
-    return transactionFromOperation(networkID, source, seq, op);
-
-}
-
-void applyRecover(Application& app, SecretKey& source, Salt seq, AccountID account,
-                    PublicKey oldSigner, PublicKey newSigner, RecoverResultCode targetResult)
-{
-    TransactionFramePtr txFrame;
-
-
-    txFrame = createRecover(app.getNetworkID(), source, seq, account, oldSigner, newSigner);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-
-    unsigned long signersSize = 0, signersSizeAfter = 0;
-    auto acc = accountHelper->loadAccount(account, app.getDatabase());
-    assert(acc);
-    signersSize = acc->getAccount().signers.size();
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    auto txResult = txFrame->getResult();
-    auto innerCode = RecoverOpFrame::getInnerCode(txResult.result.results()[0]);
-    REQUIRE(innerCode == targetResult);
-
-    REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
-    
-    auto accAfter = accountHelper->loadAccount(account, app.getDatabase());
-    signersSizeAfter = accAfter->getAccount().signers.size();
-
-    if (innerCode == RecoverResultCode::SUCCESS)
-    {
-		REQUIRE(signersSizeAfter == 1);
-		REQUIRE(accAfter->getMasterWeight() == 0);
-    }
-    else
-    {
-        REQUIRE(signersSizeAfter == signersSize);
-    }
-
 }
 
 TransactionFramePtr

@@ -22,6 +22,9 @@ class SetOptionsOpFrame : public OperationFrame
 
 	// returns false if error occurs
 	bool tryUpdateSigners(Application& app, LedgerManager& ledgerManager);
+    bool tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager);
+
+    std::string getLimitsUpdateRequestReference(Hash const& documentHash) const;
 
   public:
     SetOptionsOpFrame(Operation const& op, OperationResult& res,
@@ -36,5 +39,7 @@ class SetOptionsOpFrame : public OperationFrame
     {
         return res.tr().setOptionsResult().code();
     }
+
+    std::string getInnerResultCodeAsStr() override;
 };
 }

@@ -87,6 +87,11 @@ void ReviewableRequestFrame::ensureAssetUpdateValid(AssetUpdateRequest const& re
 	{
             throw runtime_error("Asset code is invalid");
 	}
+
+    if (!isValidJson(request.details))
+    {
+        throw runtime_error("invalid details");
+    }
 }
 
 void ReviewableRequestFrame::ensurePreIssuanceValid(PreIssuanceRequest const & request)
@@ -113,6 +118,11 @@ void ReviewableRequestFrame::ensureIssuanceValid(IssuanceRequest const & request
     {
         throw runtime_error("invalid amount");
     }
+
+    if (!isValidJson(request.externalDetails))
+    {
+        throw runtime_error("invalid external details");
+    }
 }
 
 void ReviewableRequestFrame::ensureWithdrawalValid(WithdrawalRequest const& request)
@@ -122,6 +132,10 @@ void ReviewableRequestFrame::ensureWithdrawalValid(WithdrawalRequest const& requ
         throw runtime_error("amount is invalid");
     }
 
+    if (!isValidJson(request.externalDetails))
+    {
+        throw runtime_error("external details is invalid");
+    }
 
     switch (request.details.withdrawalType())
     {
@@ -181,6 +195,8 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::SALE:
             ensureSaleCreationValid(oe.body.saleCreationRequest());
             return;
+        case ReviewableRequestType ::LIMITS_UPDATE:
+            return;
         case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
             ensureWithdrawalValid(oe.body.twoStepWithdrawalRequest());
             return;
@@ -200,4 +216,3 @@ ReviewableRequestFrame::ensureValid() const
     ensureValid(mRequest);
 }
 }
-

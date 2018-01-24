@@ -7,6 +7,7 @@
 #include "ReviewAssetCreationRequestOpFrame.h"
 #include "ReviewAssetUpdateRequestOpFrame.h"
 #include "ReviewIssuanceCreationRequestOpFrame.h"
+#include "ReviewLimitsUpdateRequestOpFrame.h"
 #include "ReviewPreIssuanceCreationRequestOpFrame.h"
 #include "ReviewWithdrawalRequestOpFrame.h"
 #include "util/Logging.h"
@@ -63,10 +64,12 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewIssuanceCreationRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::PRE_ISSUANCE_CREATE:
 		return new ReviewPreIssuanceCreationRequestOpFrame(op, res, parentTx);
-        case ReviewableRequestType::WITHDRAW:
-            return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
-        case ReviewableRequestType::SALE:
-            return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::WITHDRAW:
+		return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::SALE:
+		return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::LIMITS_UPDATE:
+		return new ReviewLimitsUpdateRequestOpFrame(op, res, parentTx);
         case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
             return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
 	default:

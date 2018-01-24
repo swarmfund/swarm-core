@@ -34,6 +34,9 @@ class SetLimitsOpFrame : public OperationFrame
     {
         return res.tr().setLimitsResult().code();
     }
+
+    std::string getInnerResultCodeAsStr() override;
+
     bool isValidLimits();
 };
 }

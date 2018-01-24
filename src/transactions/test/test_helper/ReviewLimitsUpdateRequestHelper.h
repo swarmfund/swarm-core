@@ -6,28 +6,29 @@
 
 #include "overlay/StellarXDR.h"
 #include "ReviewRequestTestHelper.h"
+#include "ledger/AccountLimitsFrame.h"
+#include "ledger/AccountLimitsHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
-#include "ledger/AssetFrame.h"
-#include "ledger/BalanceFrame.h"
-#include "ReviewTwoStepWithdrawalRequestHelper.h"
 
 namespace stellar
 {
 namespace txtest
 {
 
-class WithdrawReviewChecker : public TwoStepWithdrawReviewChecker
+class LimitsUpdateReviewChecker : public ReviewChecker
 {
+    std::shared_ptr<LimitsUpdateRequest> limitsUpdateRequest;
+    AccountLimitsFrame::pointer accountLimitsBeforeTx;
 public:
-    WithdrawReviewChecker(TestManager::pointer testManager, uint64_t requestID);
+    LimitsUpdateReviewChecker(TestManager::pointer testManager, uint64_t requestID);
     void checkApprove(ReviewableRequestFrame::pointer) override;
+    void checkPermanentReject(ReviewableRequestFrame::pointer) override;
 };
 
-class ReviewWithdrawRequestHelper : public ReviewRequestHelper
+class ReviewLimitsUpdateRequestHelper : public ReviewRequestHelper
 {
-
 public:
-    explicit ReviewWithdrawRequestHelper(TestManager::pointer testManager);
+    explicit ReviewLimitsUpdateRequestHelper(TestManager::pointer testManager);
 
     using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source,
@@ -38,12 +39,16 @@ public:
                                              std::string rejectReason,
                                              ReviewRequestResultCode
                                              expectedResult =
-                                                 ReviewRequestResultCode::
-                                                 SUCCESS) override;
+                                             ReviewRequestResultCode::
+                                             SUCCESS) override;
 
     TransactionFramePtr createReviewRequestTx(Account& source,
-        uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
-        ReviewRequestOpAction action, std::string rejectReason) override;
+          uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
+          ReviewRequestOpAction action, std::string rejectReason) override;
+
+    Limits createLimits(int64 dailyOut, int64 weeklyOut,
+                        int64 monthlyOut, int64 annualOut);
 };
+
 }
 }

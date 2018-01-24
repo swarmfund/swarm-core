@@ -217,6 +217,12 @@ bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
+    if (!isValidJson(request.details))
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::INVALID_DETAILS);
+        return false;
+    }
+
     return true;
 }
 }

@@ -120,11 +120,17 @@ bool CreateAssetOpFrame::doCheckValid(Application & app)
 		return false;
 	}
 
-        if (mAssetCreationRequest.maxIssuanceAmount < mAssetCreationRequest.initialPreissuedAmount)
-        {
-            innerResult().code(ManageAssetResultCode::INITIAL_PREISSUED_EXCEEDS_MAX_ISSUANCE);
-            return false;
-        }
+    if (mAssetCreationRequest.maxIssuanceAmount < mAssetCreationRequest.initialPreissuedAmount)
+    {
+        innerResult().code(ManageAssetResultCode::INITIAL_PREISSUED_EXCEEDS_MAX_ISSUANCE);
+        return false;
+    }
+
+    if (!isValidJson(mAssetCreationRequest.details))
+    {
+        innerResult().code(ManageAssetResultCode::INVALID_DETAILS);
+        return false;
+    }
 
 	return true;
 }

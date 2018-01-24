@@ -103,4 +103,16 @@ bool ReviewWithdrawalRequestOpFrame::handlePermanentReject(Application& app,
     auto& withdrawalRequest = request->getRequestEntry().body.withdrawalRequest();
     return rejectWithdrawalRequest(app, delta, ledgerManager, request, withdrawalRequest);
 }
+
+bool ReviewWithdrawalRequestOpFrame::doCheckValid(Application &app)
+{
+    std::string externalDetails = mReviewRequest.requestDetails.withdrawal().externalDetails;
+    if (externalDetails.size() > app.getWithdrawalDetailsMaxLength() || !isValidJson(externalDetails))
+    {
+        innerResult().code(ReviewRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        return false;
+    }
+
+    return ReviewRequestOpFrame::doCheckValid(app);
+}
 }

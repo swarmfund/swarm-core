@@ -341,6 +341,14 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
                                                          CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
     }
 
+    SECTION("invalid external details")
+    {
+        std::string invalidDetails = "{\"key\"}";
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, receiverBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS,
+                                                         invalidDetails);
+    }
+
 }
 
 TEST_CASE("Issuance", "[tx][issuance]")

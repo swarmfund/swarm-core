@@ -376,8 +376,9 @@ TEST_CASE("Sale", "[tx][sale]")
         // create base asset
         const AssetCode baseAsset = "ETH";
         uint64_t maxIssuanceAmount = 10 * ONE;
+        uint32 requiresKYCPolicy = static_cast<uint32>(AssetPolicy::REQUIRES_KYC);
         auto baseAssetRequest = assetTestHelper.createAssetCreationRequest(baseAsset, owner.key.getPublicKey(), "{}",
-                                                                           maxIssuanceAmount, 0, maxIssuanceAmount);
+                                                                           maxIssuanceAmount, requiresKYCPolicy, maxIssuanceAmount);
         assetTestHelper.createApproveRequest(root, owner, baseAssetRequest);
 
         // create participant
@@ -545,6 +546,26 @@ TEST_CASE("Sale", "[tx][sale]")
                 int64_t baseAssetAmount = bigDivide(quoteBalanceAmount + ONE/2, ONE, price, ROUND_DOWN);
                 manageOffer.amount = baseAssetAmount;
                 participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::UNDERFUNDED);
+            }
+            SECTION("try to buy asset which requires KYC being NOT_VERIFIED")
+            {
+                Account notVerified = Account{SecretKey::random(), Salt(0)};
+                AccountID notVerifiedID = notVerified.key.getPublicKey();
+                createAccountTestHelper.applyCreateAccountTx(root, notVerifiedID, AccountType::NOT_VERIFIED);
+
+                // create base balance
+                auto baseBalanceID = ManageBalanceTestHelper(testManager).applyManageBalanceTx(notVerified, notVerifiedID,
+                                                                                               baseAsset).success().balanceID;
+
+                // fund with quote asset
+                auto quoteBalanceID = BalanceHelper::Instance()->loadBalance(notVerifiedID, quoteAsset, db, nullptr)->getBalanceID();
+                issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalanceID,
+                                                          SecretKey::random().getStrKeyPublic());
+
+                manageOffer.baseBalance = baseBalanceID;
+                manageOffer.quoteBalance = quoteBalanceID;
+
+                participateHelper.applyManageOffer(notVerified, manageOffer, ManageOfferResultCode::REQUIRES_KYC);
             }
             SECTION("delete participation")
             {

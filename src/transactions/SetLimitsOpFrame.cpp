@@ -49,7 +49,9 @@ SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<Accou
 			threshold = mSourceAccount->getLowThreshold();
 		}
 	}
-	return SourceDetails({ AccountType::MASTER }, threshold, signerType);
+
+    //disallowed
+	return SourceDetails({}, threshold, signerType);
 }
 
 std::string

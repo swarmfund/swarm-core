@@ -63,6 +63,14 @@ bool CreateWithdrawalRequestOpFrame::isConvertedAmountMatches(
     BalanceFrame::pointer balance, Database& db)
 {
     const auto assetToConvertAmountInto = mCreateWithdrawalRequest.request.details.autoConversion().destAsset;
+
+    if(balance->getAsset() == assetToConvertAmountInto) {
+        if (mCreateWithdrawalRequest.request.amount ==
+                mCreateWithdrawalRequest.request.details.autoConversion().expectedAmount) {
+            return true;
+        }
+    }
+
     const auto assetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(balance->getAsset(), assetToConvertAmountInto, db);
     if (!assetPair)
     {

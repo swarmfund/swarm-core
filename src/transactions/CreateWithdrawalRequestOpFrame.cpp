@@ -65,10 +65,12 @@ bool CreateWithdrawalRequestOpFrame::isConvertedAmountMatches(
     const auto assetToConvertAmountInto = mCreateWithdrawalRequest.request.details.autoConversion().destAsset;
 
     if(balance->getAsset() == assetToConvertAmountInto) {
-        if (mCreateWithdrawalRequest.request.amount ==
+        if (mCreateWithdrawalRequest.request.amount !=
                 mCreateWithdrawalRequest.request.details.autoConversion().expectedAmount) {
-            return true;
+            innerResult().code(CreateWithdrawalRequestResultCode::CONVERTED_AMOUNT_MISMATCHED);
+            return false;
         }
+        return true;
     }
 
     const auto assetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(balance->getAsset(), assetToConvertAmountInto, db);

@@ -251,7 +251,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 	auto assetHelper = AssetHelper::Instance();
     auto assetFrame = assetHelper->loadAsset(mSourceBalance->getAsset(), db);
     assert(assetFrame);
-    if (!isAllowedToTransfer(db, assetFrame))
+    if (!isAllowedToTransfer(db, assetFrame) || !AccountManager::isAllowedToReceive(mPayment.destinationBalanceID, db))
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "not-allowed-by-asset-policy" }, "operation").Mark();
         innerResult().code(PaymentResultCode::NOT_ALLOWED_BY_ASSET_POLICY);

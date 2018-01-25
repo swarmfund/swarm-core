@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AccountHelper.h>
 #include "util/asio.h"
 #include "ReviewIssuanceCreationRequestOpFrame.h"
 #include "util/Logging.h"
@@ -75,6 +76,10 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
                                                << request->getRequestID();
         throw std::runtime_error("Unexpected state. totalFee exceeds amount");
     }
+
+    auto receiverAccount = AccountHelper::Instance()->mustLoadAccount(receiver->getAccountID(), db);
+    if (receiverAccount->getAccountType() == AccountType::NOT_VERIFIED && asset->requiresKYC())
+        throw std::runtime_error("Unexpeced state. Asset requires KYC but account is NOT_VERIFIED");
 
     //transfer fee
     AccountManager accountManager(app, db, delta, ledgerManager);

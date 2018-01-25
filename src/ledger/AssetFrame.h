@@ -128,6 +128,11 @@ public:
         return isSetFlag(mAsset.policies, policy);
     }
 
+    bool requiresKYC() const
+    {
+        return checkPolicy(AssetPolicy::REQUIRES_KYC);
+    }
+
     static bool isAssetCodeValid(AssetCode const& code);
     
     static void ensureValid(AssetEntry const& oe);

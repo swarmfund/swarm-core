@@ -4,6 +4,7 @@
 
 #include <ledger/AssetFrame.h>
 #include <ledger/BalanceHelper.h>
+#include <ledger/AccountHelper.h>
 #include "transactions/AccountManager.h"
 #include "main/Application.h"
 #include "ledger/AssetPairFrame.h"
@@ -299,5 +300,18 @@ BalanceFrame::pointer AccountManager::loadOrCreateBalanceFrameForAsset(
     balance = BalanceFrame::createNew(newBalanceID, account, asset);
     EntryHelperProvider::storeAddEntry(delta, db, balance->mEntry);
     return balance;
+}
+
+bool AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db)
+{
+    auto balanceFrame = BalanceHelper::Instance()->mustLoadBalance(receivingBalance, db);
+
+    auto receiver = AccountHelper::Instance()->mustLoadAccount(balanceFrame->getAccountID(), db);
+    auto receivingAsset = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
+
+    if (receiver->getAccountType() == AccountType::NOT_VERIFIED && receivingAsset->requiresKYC())
+        return false;
+
+    return true;
 }
 }

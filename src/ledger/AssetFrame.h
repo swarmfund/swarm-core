@@ -128,7 +128,7 @@ public:
         return isSetFlag(mAsset.policies, policy);
     }
 
-    bool requiresKYC() const
+    bool isRequireKYC() const
     {
         return checkPolicy(AssetPolicy::REQUIRES_KYC);
     }

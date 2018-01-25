@@ -78,8 +78,10 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
     }
 
     auto receiverAccount = AccountHelper::Instance()->mustLoadAccount(receiver->getAccountID(), db);
-    if (receiverAccount->getAccountType() == AccountType::NOT_VERIFIED && asset->requiresKYC())
+    if (!AccountManager::isAllowedToReceive(receiver->getBalanceID(), db)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Asset requires receiver account to have KYC" << request->getRequestID();
         throw std::runtime_error("Unexpeced state. Asset requires KYC but account is NOT_VERIFIED");
+    }
 
     //transfer fee
     AccountManager accountManager(app, db, delta, ledgerManager);

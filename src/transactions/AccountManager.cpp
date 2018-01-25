@@ -304,12 +304,14 @@ BalanceFrame::pointer AccountManager::loadOrCreateBalanceFrameForAsset(
 
 bool AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db)
 {
-    auto balanceFrame = BalanceHelper::Instance()->mustLoadBalance(receivingBalance, db);
+    auto balanceFrame = BalanceHelper::Instance()->loadBalance(receivingBalance, db);
+    if (!balanceFrame)
+        return false;
 
     auto receiver = AccountHelper::Instance()->mustLoadAccount(balanceFrame->getAccountID(), db);
     auto receivingAsset = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
 
-    if (receiver->getAccountType() == AccountType::NOT_VERIFIED && receivingAsset->requiresKYC())
+    if (receiver->getAccountType() == AccountType::NOT_VERIFIED && receivingAsset->isRequireKYC())
         return false;
 
     return true;

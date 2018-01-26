@@ -32,9 +32,10 @@ std::unordered_map<AccountID, CounterpartyDetails> DirectDebitOpFrame::getCounte
 
 SourceDetails DirectDebitOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION,
-                           AccountType::EXCHANGE},
-                         mSourceAccount->getMediumThreshold(),
+    vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
+                                                AccountType::COMMISSION, AccountType::EXCHANGE};
+    // disallowed
+	return SourceDetails({}, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t >(SignerType::DIRECT_DEBIT_OPERATOR));
 }
 

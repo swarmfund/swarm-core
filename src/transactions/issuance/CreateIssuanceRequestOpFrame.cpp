@@ -160,6 +160,11 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
+    if (!AccountManager::isAllowedToReceive(balance->getBalanceID(), db)) {
+        innerResult().code(CreateIssuanceRequestResultCode::REQUIRES_KYC);
+        return nullptr;
+    }
+
     Fee feeToPay;
     if (!calculateFee(balance->getAccountID(), db, feeToPay)) {
         innerResult().code(CreateIssuanceRequestResultCode::FEE_EXCEEDS_AMOUNT);

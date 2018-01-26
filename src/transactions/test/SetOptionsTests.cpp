@@ -291,7 +291,7 @@ TEST_CASE("set options", "[tx][set_options]")
             REQUIRE(a1Account->getAccount().signers.size() == 0);
         }
     }
-
+/*
     SECTION("Limits update request")
     {
         // create requestor
@@ -309,7 +309,7 @@ TEST_CASE("set options", "[tx][set_options]")
 
         setOptionsTestHelper.applySetOptionsTx(requestor, nullptr, nullptr, nullptr, &limitsUpdateRequestData);
     }
-
+*/
     // these are all tested by other tests
     // set transfer rate
     // set data

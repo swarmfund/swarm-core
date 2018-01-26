@@ -4,7 +4,6 @@
 
 #include <herder/LedgerCloseData.h>
 #include "TestManager.h"
-#include "herder/TxSetFrame.h"
 #include "invariant/Invariants.h"
 #include "test/test_marshaler.h"
 
@@ -12,7 +11,7 @@ namespace stellar {
 
     namespace txtest {
         TestManager::TestManager(Application &app, Database &db, LedgerManager &lm) :
-                mApp(app), mDB(db), mDelta(lm.getCurrentLedgerHeader(), db), mLm(lm) {
+                mApp(app), mDB(db), mLm(lm) {
         }
 
         TestManager::pointer TestManager::make(Application &app) {
@@ -37,7 +36,7 @@ namespace stellar {
             app.getLedgerManager().closeLedger(ledgerData);
         }
 
-        bool TestManager::apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp) {
+        bool TestManager::apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp, LedgerDelta &txDelta) {
             tx->clearCached();
             bool isTxValid = tx->checkValid(mApp);
             auto validationResult = tx->getResult();
@@ -52,7 +51,6 @@ namespace stellar {
                 tx->processSeqNum();
             }
 
-            LedgerDelta txDelta(mDelta);
             TransactionMeta txMeta;
             bool isApplied = tx->apply(txDelta, txMeta, mApp, stateBeforeOp);
             auto applyResult = tx->getResult();
@@ -99,13 +97,29 @@ namespace stellar {
         }
 
         bool TestManager::applyCheck(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp) {
-            const bool isApplied = apply(tx, stateBeforeOp);
+            LedgerDelta delta(mLm.getCurrentLedgerHeader(), mDB);
+            const bool isApplied = apply(tx, stateBeforeOp, delta);
             // validates db state
             mLm.checkDbState();
             auto txSet = std::make_shared<TxSetFrame>(mLm.getLastClosedLedgerHeader().hash);
             txSet->add(tx);
-            mApp.getInvariants().check(txSet, mDelta);
+            mApp.getInvariants().check(txSet, delta);
             return isApplied;
+        }
+
+        void TestManager::advanceToTime(uint64_t closeTime) {
+            // can't get to the past
+            REQUIRE(closeTime >= mLm.getCloseTime());
+
+            // create an empty txSet
+            auto txSet = std::make_shared<TxSetFrame>(mLm.getLastClosedLedgerHeader().hash);
+
+            // prepare data for ledger close
+            StellarValue sv(txSet->getContentsHash(), closeTime, emptyUpgradeSteps, StellarValue::_ext_t{});
+            LedgerCloseData ledgerCloseData(mLm.getLedgerNum() + 1, txSet, sv);
+
+            // close ledger
+            mLm.closeLedger(ledgerCloseData);
         }
     }
 

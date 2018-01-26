@@ -211,11 +211,6 @@ namespace stellar {
         return mConfig.BASE_EXCHANGE_NAME;
     }
 
-    AssetCode ApplicationImpl::getBaseAsset() const {
-        assert(mConfig.BASE_ASSETS.size() > 0);
-        return mConfig.BASE_ASSETS[0];
-    }
-
 
     uint64 ApplicationImpl::getTxExpirationPeriod() const {
         assert(mConfig.TX_EXPIRATION_PERIOD > 0);
@@ -235,11 +230,6 @@ namespace stellar {
 	uint64 ApplicationImpl::getIssuanceDetailsMaxLength() const {
 		return mConfig.ISSUANCE_DETAILS_MAX_LENGTH;
 	}
-
-    AssetCode ApplicationImpl::getStatsQuoteAsset() const {
-        assert(mConfig.STATS_QUOTE_ASSET.size() > 0);
-        return mConfig.STATS_QUOTE_ASSET;
-    }
 
 
     ApplicationImpl::~ApplicationImpl() {

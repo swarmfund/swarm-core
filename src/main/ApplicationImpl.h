@@ -138,8 +138,6 @@ namespace stellar {
 
         virtual std::vector<PublicKey> getSystemAccounts() const override;
 
-        virtual AssetCode getBaseAsset() const override;
-
         virtual std::string getBaseExchangeName() const override;
 
         virtual uint64 getTxExpirationPeriod() const override;
@@ -149,8 +147,6 @@ namespace stellar {
 		virtual uint64 getIssuanceDetailsMaxLength() const override;
 
         virtual int64 getMaxInvoicesForReceiverAccount() const override;
-
-        virtual AssetCode getStatsQuoteAsset() const override;
 
     private:
         VirtualClock &mVirtualClock;

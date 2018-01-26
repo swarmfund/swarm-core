@@ -1,5 +1,4 @@
 #include "ManageOfferTestHelper.h"
-#include "transactions/test/TxTests.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/OfferHelper.h"
 #include "ledger/BalanceHelper.h"
@@ -14,6 +13,26 @@ namespace txtest
 void ManageOfferTestHelper::ensureDeleteSuccess(Account& source, ManageOfferOp op,
                                                 const ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx)
 {
+    LedgerKey offerKey;
+    offerKey.type(LedgerEntryType::OFFER_ENTRY);
+    offerKey.offer().ownerID = source.key.getPublicKey();
+    offerKey.offer().offerID = op.offerID;
+
+    auto offer = std::make_shared<OfferFrame>(stateBeforeTx[offerKey]->mEntry);
+
+    // ensure offer was removed
+    auto removedOfferFrame = OfferHelper::Instance()->loadOffer(offer->getOffer().ownerID, offer->getOfferID(), mTestManager->getDB());
+    REQUIRE(!removedOfferFrame);
+
+    // check if balance unlocked
+    LedgerKey balanceKey;
+    balanceKey.type(LedgerEntryType::BALANCE);
+    balanceKey.balance().balanceID = offer->getLockedBalance();
+
+    auto sellingBalanceBefore = stateBeforeTx[balanceKey]->mEntry.data.balance();
+    auto sellingBalanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer->getLockedBalance(), mTestManager->getDB());
+
+    REQUIRE(sellingBalanceAfter->getLocked() == sellingBalanceBefore.locked - offer->getLockedAmount());
 }
 
 void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp op,
@@ -25,18 +44,28 @@ void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp o
     switch (offerResult.effect())
     {
     case ManageOfferEffect::CREATED:
+        {
+            REQUIRE(op.offerID == 0);
+            auto offer = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), offerResult.offer().offerID,
+                                                            mTestManager->getDB());
+            REQUIRE(!!offer);
+            auto &offerEntry = offer->getOffer();
+            REQUIRE(offerEntry == offerResult.offer());
+            REQUIRE(offerEntry.price == op.price);
+            REQUIRE(offerEntry.baseBalance == op.baseBalance);
+            REQUIRE(offerEntry.quoteBalance == op.quoteBalance);
+            //check balance was locked
+            LedgerKey balanceKey;
+            balanceKey.type(LedgerEntryType::BALANCE);
+            balanceKey.balance().balanceID = offer->getLockedBalance();
+            auto balanceBefore = stateBeforeTx[balanceKey]->mEntry.data.balance();
+            auto balanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer->getLockedBalance(), mTestManager->getDB());
+
+            REQUIRE(balanceAfter->getLocked() == balanceBefore.locked + offer->getLockedAmount());
+            break;
+        }
     case ManageOfferEffect::UPDATED:
-    {
-        REQUIRE(op.offerID == 0);
-        auto offer = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), offerResult.offer().offerID, mTestManager->getDB());
-        REQUIRE(!!offer);
-        auto& offerEntry = offer->getOffer();
-        REQUIRE(offerEntry == offerResult.offer());
-        REQUIRE(offerEntry.price == op.price);
-        REQUIRE(offerEntry.baseBalance == op.baseBalance);
-        REQUIRE(offerEntry.quoteBalance == op.quoteBalance);
-    }
-    break;
+        throw std::runtime_error("Update offer is not supported");
     case ManageOfferEffect::DELETED:
         {
         if (op.offerID == 0)

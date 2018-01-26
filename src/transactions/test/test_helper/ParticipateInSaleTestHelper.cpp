@@ -13,6 +13,14 @@ ParticipateInSaleTestHelper::ParticipateInSaleTestHelper(
 {
 }
 
+    BalanceEntry getBalance(LedgerDelta::KeyEntryMap& stateBeforeTx, BalanceID const& balanceID)
+{
+        LedgerKey key;
+        key.type(LedgerEntryType::BALANCE);
+        key.balance().balanceID = balanceID;
+        return stateBeforeTx[key]->mEntry.data.balance();
+}
+
 void ParticipateInSaleTestHelper::ensureDeleteSuccess(Account& source,
     ManageOfferOp op, const ManageOfferSuccessResult success,
     LedgerDelta::KeyEntryMap& stateBeforeTx)
@@ -23,8 +31,9 @@ void ParticipateInSaleTestHelper::ensureDeleteSuccess(Account& source,
     key.offer().ownerID = source.key.getPublicKey();
     auto offerBeforeTx = stateBeforeTx[key]->mEntry.data.offer();
     auto saleAfterTx = SaleHelper::Instance()->loadSale(op.orderBookID, mTestManager->getDB());
-    auto saleBeforeTx = stateBeforeTx[saleAfterTx->getKey()]->mEntry.data.sale();
-    REQUIRE(saleBeforeTx.currentCap == saleAfterTx->getCurrentCap() + offerBeforeTx.quoteAmount);
+    auto balanceBeforeTx = getBalance(stateBeforeTx, offerBeforeTx.quoteBalance);
+    SaleFrame saleBeforeTx(stateBeforeTx[saleAfterTx->getKey()]->mEntry);
+    REQUIRE(saleBeforeTx.getSaleQuoteAsset(balanceBeforeTx.asset).currentCap == saleAfterTx->getSaleQuoteAsset(balanceBeforeTx.asset).currentCap + offerBeforeTx.quoteAmount);
     ManageOfferTestHelper::ensureDeleteSuccess(source, op, success, stateBeforeTx);
 }
 
@@ -35,8 +44,11 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
     auto saleAfterTx = SaleHelper::Instance()->loadSale(op.orderBookID, mTestManager->getDB());
     auto sale = stateBeforeTx.find(saleAfterTx->getKey());
     REQUIRE(sale != stateBeforeTx.end());
-    auto saleBeforeTx = sale->second->mEntry.data.sale();
-    REQUIRE(saleBeforeTx.currentCap + success.offer.offer().quoteAmount == saleAfterTx->getCurrentCap());
+    SaleFrame saleBeforeTx(sale->second->mEntry);
+    auto balanceBeforeTx = getBalance(stateBeforeTx, success.offer.offer().quoteBalance);
+    REQUIRE(saleBeforeTx.getSaleQuoteAsset(balanceBeforeTx.asset).currentCap + 
+        success.offer.offer().quoteAmount == saleAfterTx->getSaleQuoteAsset(balanceBeforeTx.asset).currentCap);
+
     return ManageOfferTestHelper::ensureCreateSuccess(source, op, success, stateBeforeTx);
 }
 }

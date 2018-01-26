@@ -31,10 +31,11 @@ class CreateSaleCreationRequestOpFrame : public OperationFrame
 
     ReviewableRequestFrame::pointer createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, time_t closedAt) const;
 
-    // isBaseAssetHasSufficientIssuance - returns false, if base asset amount required for hard cap and soft cap does not exceed available amount to be issued.
+    // isBaseAssetHasSufficientIssuance - returns true, if base asset amount required for hard cap and soft cap does not exceed available amount to be issued.
     // sets corresponding result code
     bool isBaseAssetHasSufficientIssuance(AssetFrame::pointer assetFrame);
 
+    bool isPriceValid(SaleCreationRequestQuoteAsset const& quoteAsset) const;
 public:
 
     CreateSaleCreationRequestOpFrame(Operation const& op, OperationResult& res,
@@ -43,6 +44,8 @@ public:
                  LedgerManager& ledgerManager) override;
 
     bool doCheckValid(Application& app) override;
+
+    static bool areQuoteAssetsValid(Database& db, xdr::xvector<SaleCreationRequestQuoteAsset, 100> quoteAssets, AssetCode defaultQuoteAsset);
 
     static CreateSaleCreationRequestResultCode getInnerCode(
         OperationResult const& res)

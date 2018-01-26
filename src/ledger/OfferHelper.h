@@ -43,6 +43,9 @@ namespace stellar
         OfferFrame::pointer loadOffer(AccountID const& accountID, uint64_t offerID,
                           Database& db, LedgerDelta* delta = nullptr);
 
+        OfferFrame::pointer loadOffer(AccountID const& accountID, uint64_t offerID, uint64_t orderBookID,
+            Database& db, LedgerDelta* delta = nullptr);
+
         std::vector<OfferFrame::pointer> loadOffersWithFilters(AssetCode const& base, AssetCode const& quote, uint64_t* orderBookID,
             uint64_t* priceUpperBound, Database& db);
 

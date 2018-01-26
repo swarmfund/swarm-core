@@ -159,8 +159,13 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     SaleCreationRequest const& request)
 {
     const AccountID dummyAccountID;
+    map<AssetCode, BalanceID> dummyBalances;
     const BalanceID dummyBalanceID;
-    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalanceID, dummyBalanceID);
+    for (auto const& quoteAsset : request.quoteAssets)
+    {
+        dummyBalances[quoteAsset.quoteAsset] = dummyBalanceID;
+    }
+    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalances);
     saleFrame->ensureValid();
 }
 
@@ -196,6 +201,9 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
             ensureSaleCreationValid(oe.body.saleCreationRequest());
             return;
         case ReviewableRequestType ::LIMITS_UPDATE:
+            return;
+        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+            ensureWithdrawalValid(oe.body.twoStepWithdrawalRequest());
             return;
         default:
             throw runtime_error("Unexpected reviewable request typw");

@@ -9,7 +9,6 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
-#include "ledger/ReferenceFrame.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "main/Application.h"
@@ -48,7 +47,7 @@ bool ReviewWithdrawalRequestOpFrame::handleApprove(
     }
     EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
 
-    uint64_t totalFee = getTotalFee(request->getRequestID(), withdrawRequest);
+    const uint64_t totalFee = getTotalFee(request->getRequestID(), withdrawRequest);
     AccountManager accountManager(app, db, delta, ledgerManager);
     accountManager.transferFee(balance->getAsset(), totalFee);
 
@@ -79,44 +78,9 @@ bool ReviewWithdrawalRequestOpFrame::handleReject(
     return false;
 }
 
-SourceDetails ReviewWithdrawalRequestOpFrame::getSourceAccountDetails(
-    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
-const
-{
-    return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE},
-                         mSourceAccount->getHighThreshold(),
-                         static_cast<int32_t>(SignerType::ASSET_MANAGER));
-}
-
-uint64_t ReviewWithdrawalRequestOpFrame::getTotalFee(const uint64_t requestID, WithdrawalRequest& withdrawRequest)
-{
-    uint64_t totalFee;
-    if (!safeSum(withdrawRequest.fee.percent, withdrawRequest.fee.fixed, totalFee))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate total fee for withdrawal request: " << requestID;
-        throw runtime_error("Failed to calculate total fee for withdrawal request");
-    }
-
-    return totalFee;
-}
-
-uint64_t ReviewWithdrawalRequestOpFrame::getTotalAmountToCharge(
-    const uint64_t requestID, WithdrawalRequest& withdrawalRequest)
-{
-    const auto totalFee = getTotalFee(requestID, withdrawalRequest);
-    uint64_t totalAmountToCharge;
-    if (!safeSum(withdrawalRequest.amount, totalFee, totalAmountToCharge))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate total amount ot be charged for withdrawal request: " << requestID;
-        throw runtime_error("Failed to calculate total amount to be charged for withdrawal request");
-    }
-
-    return totalAmountToCharge;
-}
-
     ReviewWithdrawalRequestOpFrame::ReviewWithdrawalRequestOpFrame(
     Operation const& op, OperationResult& res, TransactionFrame& parentTx) :
-                                                                           ReviewRequestOpFrame(op,
+        ReviewTwoStepWithdrawalRequestOpFrame(op,
                                                                                                 res,
                                                                                                 parentTx)
 {
@@ -136,27 +100,8 @@ bool ReviewWithdrawalRequestOpFrame::handlePermanentReject(Application& app,
             invalid_argument("Unexpected request type for review withdraw request");
     }
 
-    auto& withdrawRequest = request->getRequestEntry().body.withdrawalRequest();
-    Database& db = app.getDatabase();
-    auto balance = BalanceHelper::Instance()->mustLoadBalance(withdrawRequest.balance, db, &delta);
-    const auto totalAmountToCharge = getTotalAmountToCharge(request->getRequestID(), withdrawRequest);
-    if (!balance->unlock(totalAmountToCharge))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state. Failed to unlock locked amount. requestID: " << request->getRequestID();
-        throw runtime_error("Unexected db state. Failed to unlock locked amount");
-    }
-
-    uint64_t universalAmount = request->getRequestEntry().body.withdrawalRequest().universalAmount;
-    if (universalAmount > 0)
-    {
-        AccountManager accountManager(app, ledgerManager.getDatabase(), delta, ledgerManager);
-        AccountID requestor = request->getRequestor();
-        time_t timePerformed = request->getCreatedAt();
-        accountManager.revertStats(requestor, universalAmount, timePerformed);
-    }
-
-    EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
-    return ReviewRequestOpFrame::handlePermanentReject(app, delta, ledgerManager, request);
+    auto& withdrawalRequest = request->getRequestEntry().body.withdrawalRequest();
+    return rejectWithdrawalRequest(app, delta, ledgerManager, request, withdrawalRequest);
 }
 
 bool ReviewWithdrawalRequestOpFrame::doCheckValid(Application &app)

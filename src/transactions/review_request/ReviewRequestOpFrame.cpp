@@ -71,6 +71,8 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::LIMITS_UPDATE:
 		return new ReviewLimitsUpdateRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+            return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}
@@ -112,7 +114,7 @@ ReviewRequestOpFrame::doApply(Application& app,
 
 	auto requestorAccount = AccountHelper::Instance()->loadAccount(request->getRequestor(), db, &delta);
 	if (requestorAccount->getBlockReasons() != 0) {
-		innerResult().code(ReviewRequestResultCode::USER_IS_BLOCKED);
+		innerResult().code(ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
 		return false;
 	}
 

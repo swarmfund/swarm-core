@@ -27,7 +27,9 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageInvoiceOpFrame::getCoun
 
 SourceDetails ManageInvoiceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE}, mSourceAccount->getMediumThreshold(),
+    std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE};
+    // disallowed
+	return SourceDetails({}, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t >(SignerType::INVOICE_MANAGER), static_cast<int32_t >(BlockReasons::KYC_UPDATE));
 }
 

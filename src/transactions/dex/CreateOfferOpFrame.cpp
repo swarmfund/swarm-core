@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AssetHelper.h>
 #include "util/asio.h"
 #include "CreateOfferOpFrame.h"
 #include "OfferExchange.h"
@@ -85,6 +86,18 @@ bool CreateOfferOpFrame::checkOfferValid(Database& db, LedgerDelta& delta)
         return false;
     }
 
+    BalanceID receivingBalance;
+    if (mManageOffer.isBuy)
+        receivingBalance = mManageOffer.baseBalance;
+    else
+        receivingBalance = mManageOffer.quoteBalance;
+
+    if (!AccountManager::isAllowedToReceive(receivingBalance, db))
+    {
+        innerResult().code(ManageOfferResultCode::REQUIRES_KYC);
+        return false;
+    }
+
     mAssetPair = loadTradableAssetPair(db, delta);
     if (!mAssetPair)
     {
@@ -151,8 +164,8 @@ CreateOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
         mQuoteBalance->getAsset());
     if (!offerFrame)
     {
-        innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);
-        return false;
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: quote amount overflows";
+        throw std::runtime_error("Unexpected state: quote amount overflows");
     }
 
     auto& offer = offerFrame->getOffer();
@@ -283,10 +296,10 @@ bool CreateOfferOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    const bool isQuoteAmountFits = OfferManager::calcualteQuoteAmount(mManageOffer.amount, mManageOffer.price) > 0;
+    const bool isQuoteAmountFits = OfferManager::calculateQuoteAmount(mManageOffer.amount, mManageOffer.price) > 0;
     if (!isQuoteAmountFits)
     {
-        innerResult().code(ManageOfferResultCode::INVALID_AMOUNT);
+        innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);
         return false;
     }
     if (mManageOffer.fee < 0)

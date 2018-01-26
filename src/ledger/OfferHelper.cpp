@@ -228,7 +228,7 @@ namespace stellar {
     }
 
     OfferFrame::pointer
-    OfferHelper::loadOffer(AccountID const &accountID, uint64_t offerID, Database &db, LedgerDelta *delta) {
+    OfferHelper::loadOffer(AccountID const &accountID, uint64_t offerID,  Database &db, LedgerDelta *delta) {
         OfferFrame::pointer retOffer;
 
         std::string actIDStrKey = PubKeyUtils::toStrKey(accountID);
@@ -252,6 +252,18 @@ namespace stellar {
 
         return retOffer;
     }
+
+OfferFrame::pointer OfferHelper::loadOffer(AccountID const& accountID,
+    uint64_t offerID, uint64_t orderBookID, Database& db, LedgerDelta* delta)
+{
+    auto offer = loadOffer(accountID, offerID, db, delta);
+    if (!!offer && offer->getOrderBookID() != orderBookID)
+    {
+        return nullptr;
+    }
+
+    return offer;
+}
 
 vector<OfferFrame::pointer> OfferHelper::loadOffersWithFilters(
         AssetCode const& base, AssetCode const& quote, uint64_t* orderBookIDPtr,

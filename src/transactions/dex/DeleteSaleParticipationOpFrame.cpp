@@ -8,6 +8,8 @@
 #include "ledger/SaleHelper.h"
 #include "main/Application.h"
 #include "ledger/OfferHelper.h"
+#include "CreateSaleParticipationOpFrame.h"
+#include "ledger/BalanceHelper.h"
 
 namespace stellar
 {
@@ -54,13 +56,14 @@ bool DeleteSaleParticipationOpFrame::doApply(Application& app,
         return false;
     }
 
-    if (sale->getState(ledgerManager.getCloseTime()) != SaleFrame::State::ACTIVE)
+    if (CreateSaleParticipationOpFrame::getSaleState(sale, db, ledgerManager.getCloseTime()) != SaleFrame::State::ACTIVE)
     {
         innerResult().code(ManageOfferResultCode::SALE_IS_NOT_ACTIVE);
         return false;
     }
 
-    sale->subCurrentCap(offer->getOffer().quoteAmount);
+    auto balance = BalanceHelper::Instance()->mustLoadBalance(mManageOffer.quoteBalance, db);
+    sale->subCurrentCap(balance->getAsset(), offer->getOffer().quoteAmount);
     SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);
     return DeleteOfferOpFrame::doApply(app, delta, ledgerManager);
 }

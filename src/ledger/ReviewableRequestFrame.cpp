@@ -165,7 +165,7 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     {
         dummyBalances[quoteAsset.quoteAsset] = dummyBalanceID;
     }
-    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalances);
+    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalances, 0);
     saleFrame->ensureValid();
 }
 

@@ -589,14 +589,6 @@ TEST_CASE("Sale", "[tx][sale]")
                 // fund account
                 issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, 2 * ONE, quoteBalance,
                                                           SecretKey::random().getStrKeyPublic());
-                SECTION("by less than ONE")
-                {
-                    int64_t baseAssetAmount = bigDivide(hardCap + ONE/2, ONE, price, ROUND_DOWN);
-                    manageOffer.amount = baseAssetAmount;
-                    participateHelper.applyManageOffer(participant, manageOffer);
-
-                    checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::SUCCESS);
-                }
                 SECTION("by more than ONE")
                 {
                     int64_t baseAssetAmount = bigDivide(hardCap + 2 * ONE, ONE, price, ROUND_DOWN);
@@ -604,13 +596,6 @@ TEST_CASE("Sale", "[tx][sale]")
                     participateHelper.applyManageOffer(participant, manageOffer,
                                                        ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);
                 }
-            }
-            SECTION("underfunded")
-            {
-                // participent has ONE/2 less quote amount than he want to exchange
-                int64_t baseAssetAmount = bigDivide(quoteBalanceAmount + ONE/2, ONE, price, ROUND_DOWN);
-                manageOffer.amount = baseAssetAmount;
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::UNDERFUNDED);
             }
             SECTION("try to buy asset which requires KYC being NOT_VERIFIED")
             {

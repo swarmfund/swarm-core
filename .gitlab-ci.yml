@@ -12,6 +12,7 @@ before_script:
 
 stages:
   - build
+  - test
   - delivery
   - deploy
 
@@ -30,6 +31,24 @@ build:
       expire_in: 1 week
       paths:
         - src/stellar-core
+  only:
+    - staging
+    - dev
+
+tx-test:
+  stage: test
+  image: shebgregor/ubuntu-autotools
+  services:
+    - postgres:9.5
+  variables:
+    POSTGRES_DB: core_test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: "password"
+    STELLAR_TX_TEST_DB: "postgresql://dbname=core_test user=postgres password=password host=postgres"
+  before_script:
+    - echo "replace default"
+  script:
+    - ./src/stellar-core --test [tx]
   only:
     - staging
     - dev

@@ -286,6 +286,7 @@
     <ClCompile Include="..\..\src\ledger\ReviewableRequestHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\SaleFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\SaleHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\SaleQuoteAssetHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\StatisticsFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\StatisticsHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\TrustFrame.cpp" />
@@ -516,6 +517,7 @@
     <ClInclude Include="..\..\src\ledger\ReviewableRequestHelper.h" />
     <ClInclude Include="..\..\src\ledger\SaleFrame.h" />
     <ClInclude Include="..\..\src\ledger\SaleHelper.h" />
+    <ClInclude Include="..\..\src\ledger\SaleQuoteAssetHelper.h" />
     <ClInclude Include="..\..\src\ledger\StatisticsFrame.h" />
     <ClInclude Include="..\..\src\ledger\StatisticsHelper.h" />
     <ClInclude Include="..\..\src\ledger\TrustFrame.h" />

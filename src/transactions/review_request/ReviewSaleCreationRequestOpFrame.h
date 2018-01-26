@@ -22,5 +22,7 @@ protected:
 	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
 
     void createAssetPair(SaleFrame::pointer sale, Application &app, LedgerManager &ledgerManager, LedgerDelta &delta) const;
+
+    std::map<AssetCode, BalanceID> loadBalances(AccountManager& accountManager, ReviewableRequestFrame::pointer request, SaleCreationRequest const& sale);
 };
 }

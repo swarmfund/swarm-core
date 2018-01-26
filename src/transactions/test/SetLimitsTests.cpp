@@ -28,7 +28,7 @@ typedef std::unique_ptr<Application> appPtr;
 // try setting high threshold ones without the correct sigs
 // make sure it doesn't allow us to add signers when we don't have the
 // minbalance
-TEST_CASE("set limits", "[tx][set_limits]")
+TEST_CASE("set limits", "[dep_tx][set_limits]")
 {
     using xdr::operator==;
 

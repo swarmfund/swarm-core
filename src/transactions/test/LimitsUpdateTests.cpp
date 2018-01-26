@@ -23,7 +23,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("limits update", "[tx][limits_update]")
+TEST_CASE("limits update", "[dep_tx][limits_update]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;

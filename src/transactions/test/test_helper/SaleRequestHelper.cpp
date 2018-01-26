@@ -24,6 +24,15 @@ ReviewRequestResult SaleRequestHelper::createApprovedSale(Account& root, Account
     return reviewer.applyReviewRequestTx(root, requestCreationResult.success().requestID, ReviewRequestOpAction::APPROVE, "");
 }
 
+SaleCreationRequestQuoteAsset SaleRequestHelper::createSaleQuoteAsset(AssetCode asset,
+                                                                      const uint64_t price)
+{
+    SaleCreationRequestQuoteAsset result;
+    result.quoteAsset = asset;
+    result.price = price;
+    return result;
+}
+
 CreateSaleCreationRequestResult SaleRequestHelper::applyCreateSaleRequest(
     Account& source, const uint64_t requestID, const SaleCreationRequest request,
     CreateSaleCreationRequestResultCode expectedResult)
@@ -58,15 +67,16 @@ CreateSaleCreationRequestResult SaleRequestHelper::applyCreateSaleRequest(
 }
 
 SaleCreationRequest SaleRequestHelper::createSaleRequest(AssetCode base,
-    AssetCode quote, const uint64_t startTime, const uint64_t endTime,
-    const uint64_t price, const uint64_t softCap, const uint64_t hardCap, std::string details)
+    AssetCode defaultQuoteAsset, const uint64_t startTime, const uint64_t endTime,
+    const uint64_t softCap, const uint64_t hardCap, std::string details, std::vector<SaleCreationRequestQuoteAsset> quoteAssets)
 {
     SaleCreationRequest request;
     request.baseAsset = base;
-    request.quoteAsset = quote;
+     request.defaultQuoteAsset = defaultQuoteAsset;
     request.startTime = startTime;
     request.endTime = endTime;
-    request.price = price;
+    request.quoteAssets.clear();
+    request.quoteAssets.append(&quoteAssets[0], quoteAssets.size());
     request.softCap = softCap;
     request.hardCap = hardCap;
     request.details = details;

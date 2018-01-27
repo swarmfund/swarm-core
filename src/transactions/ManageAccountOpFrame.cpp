@@ -20,8 +20,8 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> ManageAccountOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{ 
-		{ mManageAccount.account, CounterpartyDetails({ AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE},
-                                                      true, true) }
+		{ mManageAccount.account, CounterpartyDetails({ AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
+                                                        AccountType::SYNDICATE}, true, true) }
 	};
 }
 

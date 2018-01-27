@@ -241,15 +241,12 @@ void AccountManager::transferFee(AssetCode asset, uint64_t totalFee)
 {
     if (totalFee == 0)
         return;
-    // load commission balance and transfer fee
-    auto commissionBalance = BalanceHelper::Instance()->loadBalance(mApp.getCommissionID(), asset, mDb, nullptr);
-    if (!commissionBalance) {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. There is no commission balance for asset " << asset;
-        throw std::runtime_error("Unexpected state. Commission balance not found.");
-    }
 
-    std::string strBalanceID = PubKeyUtils::toStrKey(commissionBalance->getBalanceID());
+    // load commission balance and transfer fee
+    auto commissionBalance = loadOrCreateBalanceFrameForAsset(mApp.getCommissionID(), asset, mDb, mDelta);
+
     if (!commissionBalance->tryFundAccount(totalFee)) {
+        std::string strBalanceID = PubKeyUtils::toStrKey(commissionBalance->getBalanceID());
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to fund commission balance with fee - overflow. balanceID:"
                                                << strBalanceID;
         throw runtime_error("Failed to fund commission balance with fee");

@@ -17,7 +17,7 @@ using xdr::operator<;
 
 const char* selectorSale =
     "SELECT id, owner_id, base_asset, default_quote_asset, start_time, "
-    "end_time, soft_cap, hard_cap, details, base_balance, version, lastmodified FROM sale";
+    "end_time, soft_cap, hard_cap, details, base_balance, version, lastmodified, current_cap_in_base, hard_cap_in_base FROM sale";
 
 void SaleHelper::dropAll(Database& db)
 {
@@ -32,6 +32,8 @@ void SaleHelper::dropAll(Database& db)
         "end_time      BIGINT        NOT NULL CHECK (end_time >= 0),"
         "soft_cap      NUMERIC(20,0) NOT NULL CHECK (soft_cap >= 0),"
         "hard_cap      NUMERIC(20,0) NOT NULL CHECK (hard_cap >= 0),"
+        "hard_cap_in_base      NUMERIC(20,0) NOT NULL CHECK (hard_cap_in_base >= 0),"
+        "current_cap_in_base      NUMERIC(20,0) NOT NULL CHECK (current_cap_in_base >= 0),"
         "details       TEXT          NOT NULL,"
         "base_balance  VARCHAR(56)   NOT NULL,"
         "version       INT           NOT NULL,"
@@ -130,16 +132,16 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     {
         sql =
             "INSERT INTO sale (id, owner_id, base_asset, default_quote_asset, start_time,"
-            " end_time, soft_cap, hard_cap, details, version, lastmodified, base_balance)"
+            " end_time, soft_cap, hard_cap, details, version, lastmodified, base_balance, current_cap_in_base, hard_cap_in_base)"
             " VALUES (:id, :owner_id, :base_asset, :default_quote_asset, :start_time,"
-            " :end_time, :soft_cap, :hard_cap, :details, :v, :lm, :base_balance)";
+            " :end_time, :soft_cap, :hard_cap, :details, :v, :lm, :base_balance, :current_cap_in_base, :hard_cap_in_base)";
     }
     else
     {
         sql =
             "UPDATE sale SET owner_id=:owner_id, base_asset = :base_asset, default_quote_asset = :default_quote_asset, start_time = :start_time,"
             " end_time= :end_time, soft_cap = :soft_cap, hard_cap = :hard_cap, details = :details, version=:v, lastmodified=:lm, "
-            " base_balance = :base_balance "
+            " base_balance = :base_balance, current_cap_in_base = :current_cap_in_base, hard_cap_in_base = :hard_cap_in_base "
             " WHERE id = :id";
     }
 
@@ -160,6 +162,8 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     st.exchange(use(saleFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     auto baseBalance = BalanceKeyUtils::toStrKey(saleEntry.baseBalance);
     st.exchange(use(baseBalance, "base_balance"));
+    st.exchange(use(saleEntry.currentCapInBase, "current_cap_in_base"));
+    st.exchange(use(saleEntry.hardCapInBase, "hard_cap_in_base"));
     st.define_and_bind();
 
     auto timer = insert
@@ -207,6 +211,8 @@ void SaleHelper::loadSales(Database& db, StatementContext& prep,
     st.exchange(into(oe.baseBalance));
     st.exchange(into(version));
     st.exchange(into(le.lastModifiedLedgerSeq));
+    st.exchange(into(oe.currentCapInBase));
+    st.exchange(into(oe.hardCapInBase));
     st.define_and_bind();
     st.execute(true);
 

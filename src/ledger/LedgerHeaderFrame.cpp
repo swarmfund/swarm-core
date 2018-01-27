@@ -24,6 +24,7 @@ using namespace std;
 LedgerHeaderFrame::LedgerHeaderFrame(LedgerHeader const& lh) : mHeader(lh)
 {
     mHash.fill(0);
+    normalize();
 }
 
 LedgerHeaderFrame::LedgerHeaderFrame(LedgerHeaderHistoryEntry const& lastClosed)
@@ -36,6 +37,7 @@ LedgerHeaderFrame::LedgerHeaderFrame(LedgerHeaderHistoryEntry const& lastClosed)
     mHeader.ledgerSeq++;
     mHeader.previousLedgerHash = lastClosed.hash;
     mHash.fill(0);
+    normalize();
 }
 
 Hash const&
@@ -85,8 +87,9 @@ LedgerHeaderFrame::generateID(const LedgerEntryType ledgerEntryType)
 }
 
 void
-LedgerHeaderFrame::storeInsert(LedgerManager& ledgerManager) const
+LedgerHeaderFrame::storeInsert(LedgerManager& ledgerManager)
 {
+    normalize();
     getHash();
 
     string hash(binToHex(mHash)),
@@ -137,7 +140,9 @@ LedgerHeaderFrame::decodeFromData(std::string const& data)
     xdr::xdr_argpack_archive(g, lh);
     g.done();
 
-    return make_shared<LedgerHeaderFrame>(lh);
+    auto result = make_shared<LedgerHeaderFrame>(lh);
+    result->normalize();
+    return result;
 }
 
 LedgerHeaderFrame::pointer
@@ -242,6 +247,20 @@ LedgerHeaderFrame::deleteOldEntries(Database& db, uint32_t ledgerSeq)
 {
     db.getSession() << "DELETE FROM ledgerheaders WHERE ledgerseq <= "
                     << ledgerSeq;
+}
+
+void LedgerHeaderFrame::normalize()
+{
+    mHash.fill(0);
+    sort(mHeader.externalSystemIDGenerators.begin(), mHeader.externalSystemIDGenerators.end(), [](ExternalSystemIDGeneratorType const& a1, ExternalSystemIDGeneratorType const& a2)
+    {
+        return a1 < a2;
+    });
+
+    sort(mHeader.idGenerators.begin(), mHeader.idGenerators.end(), [](IdGenerator const& a1, IdGenerator const& a2)
+    {
+        return a1.entryType < a2.entryType;
+    });
 }
 
 void

@@ -41,7 +41,7 @@ class LedgerHeaderFrame
     // generates a new ID and returns it
     uint64_t generateID(const LedgerEntryType ledgerEntryType);
 
-    void storeInsert(LedgerManager& ledgerManager) const;
+    void storeInsert(LedgerManager& ledgerManager);
 
     static LedgerHeaderFrame::pointer loadByHash(Hash const& hash,
                                                  Database& db);
@@ -54,6 +54,8 @@ class LedgerHeaderFrame
                                             XDROutputFileStream& headersOut);
 
     static void deleteOldEntries(Database& db, uint32_t ledgerSeq);
+
+    void normalize();
 
     static void dropAll(Database& db);
     static const char* kSQLCreateStatement;

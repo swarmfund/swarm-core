@@ -44,6 +44,9 @@ SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
     case AccountType::EXCHANGE:
         allowedSignerClass = static_cast<int32_t>(SignerType::EXCHANGE_ACC_MANAGER);
         break;
+    case AccountType::SYNDICATE:
+        allowedSignerClass = static_cast<int32_t>(SignerType::SYNDICATE_ACC_MANAGER);
+        break;
 	default:
 		// it is not allowed to block/unblock any other account types
 		allowedSignerClass = 0;

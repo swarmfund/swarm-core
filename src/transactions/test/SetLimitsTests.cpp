@@ -9,12 +9,13 @@
 #include "util/make_unique.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/LedgerDelta.h"
 #include "ledger/AccountLimitsFrame.h"
 #include "ledger/AccountLimitsHelper.h"
 #include "ledger/AccountTypeLimitsHelper.h"
 #include "ledger/StatisticsHelper.h"
 #include "test/test_marshaler.h"
+#include "test_helper/CreateAccountTestHelper.h"
+#include "test_helper/SetLimitsTestHelper.h"
 
 
 using namespace stellar;
@@ -37,25 +38,23 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
     Application::pointer appPtr = Application::create(clock, cfg);
     Application& app = *appPtr;
     app.start();
+
+    auto testManager = TestManager::make(app);
+
 	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
 
 	upgradeToCurrentLedgerVersion(app);
 
     // set up world
-    SecretKey root = getRoot();
-    AccountID rootPK = root.getPublicKey();
-    SecretKey a1 = getAccount("A");
+    auto root = Account{ getRoot(), Salt(0) };
+    auto a1 = Account { getAccount("A"), Salt(0) };
 
-    Salt rootSeq = 1;
-
-    applyCreateAccountTx(app, root, a1, rootSeq++, AccountType::GENERAL);
-
-    Salt a1seq = 1;
-
+    CreateAccountTestHelper createAccountTestHelper(testManager);
+    createAccountTestHelper.applyCreateAccountTx(root, a1.key.getPublicKey(), AccountType::GENERAL);
 
     Limits limits;
-    AccountID account = a1.getPublicKey();
+    AccountID account = a1.key.getPublicKey();
     AccountType accountType = AccountType::GENERAL;
     limits.dailyOut = 100;
     limits.weeklyOut = 200;
@@ -66,16 +65,18 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
 	auto accountTypeLimitsHelper = AccountTypeLimitsHelper::Instance();
 	auto statisticsHelper = StatisticsHelper::Instance();
 
+    SetLimitsTestHelper setLimitsTestHelper(testManager);
+
     SECTION("malformed")
     {
-        applySetLimits(app, root, rootSeq++, nullptr, nullptr, limits, SetLimitsResultCode::MALFORMED);
-        applySetLimits(app, root, rootSeq++, &account, &accountType, limits, SetLimitsResultCode::MALFORMED);
+        setLimitsTestHelper.applySetLimitsTx(root, nullptr, nullptr, limits, SetLimitsResultCode::MALFORMED);
+        setLimitsTestHelper.applySetLimitsTx(root, &account, &accountType, limits, SetLimitsResultCode::MALFORMED);
         limits.annualOut = 0;
-        applySetLimits(app, root, rootSeq++, &account, nullptr, limits, SetLimitsResultCode::MALFORMED);
+        setLimitsTestHelper.applySetLimitsTx(root, &account, nullptr, limits, SetLimitsResultCode::MALFORMED);
     }
     SECTION("success account limits setting")
     {
-        applySetLimits(app, root, rootSeq++, &account, nullptr, limits);
+        setLimitsTestHelper.applySetLimitsTx(root, &account, nullptr, limits);
         auto limitsAfter = accountLimitsHelper->loadLimits(account,
             app.getDatabase());
         REQUIRE(limitsAfter);
@@ -84,7 +85,7 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
         SECTION("success update if already set")
         {
             limits.annualOut = INT64_MAX;
-            applySetLimits(app, root, rootSeq++, &account, nullptr, limits);
+            setLimitsTestHelper.applySetLimitsTx(root, &account, nullptr, limits);
             auto limitsAfter = accountLimitsHelper->loadLimits(account,
                 app.getDatabase());
             REQUIRE(limitsAfter);
@@ -98,21 +99,17 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
         auto limitsBefore = accountTypeLimitsHelper->loadLimits(accountType, app.getDatabase(), &delta);
         REQUIRE(!limitsBefore);
 
-        applySetLimits(app, root, rootSeq++, nullptr, &accountType, limits);
+        setLimitsTestHelper.applySetLimitsTx(root, nullptr, &accountType, limits);
         auto limitsAfterFrame = accountTypeLimitsHelper->loadLimits(accountType, app.getDatabase(), &delta);
         REQUIRE(limitsAfterFrame);
         auto limitsAfter = limitsAfterFrame->getLimits();
         REQUIRE(limitsAfter == limits);
         SECTION("it works for created accounts")
         {
-            auto a2 = SecretKey::random();
-			auto receiver = SecretKey::random();
-            applyCreateAccountTx(app, root, a2, rootSeq++, accountType);
-			applyCreateAccountTx(app, root, receiver, rootSeq++, accountType);
+            auto a2 = Account { SecretKey::random(), Salt(0)};
+            auto receiver = Account { SecretKey::random(), Salt(0)};
+            createAccountTestHelper.applyCreateAccountTx(root, a2.key.getPublicKey(), accountType);
+            createAccountTestHelper.applyCreateAccountTx(root, receiver.key.getPublicKey(), accountType);
         }
     }
-
-
-
 }
-

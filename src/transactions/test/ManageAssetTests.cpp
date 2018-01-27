@@ -143,6 +143,17 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
                                                  ManageAssetResultCode::
                                                  ASSET_ALREADY_EXISTS);
         }
+        SECTION("Trying to create asset with invalid details")
+        {
+            const AssetCode assetCode = "USD";
+            // missed value
+            std::string invalidDetails = "{\"key\"}";
+
+            const auto request = manageAssetHelper.createAssetCreationRequest(assetCode, root.key.getPublicKey(),
+                                                                              invalidDetails, 100, 0);
+            manageAssetHelper.applyManageAssetTx(root, 0, request,
+                                                 ManageAssetResultCode::INVALID_DETAILS);
+        }
     }
     SECTION("Asset update request")
     {
@@ -182,6 +193,16 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::
                                                  ASSET_NOT_FOUND);
+        }
+        SECTION("Trying to update asset's details to invalid")
+        {
+            const AssetCode assetCode = "USD";
+            manageAssetHelper.createAsset(root, root.key, assetCode, root, 0);
+
+            std::string invalidDetails = "{\"key\"}";
+            auto request = manageAssetHelper.createAssetUpdateRequest(assetCode, invalidDetails, 0);
+            manageAssetHelper.applyManageAssetTx(root, 0, request,
+                                                 ManageAssetResultCode::INVALID_DETAILS);
         }
     }
     SECTION("create base asset")
@@ -294,10 +315,9 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
         }
         SECTION("Given approved asset")
         {
-            auto& delta = testManager->getLedgerDelta();
             auto approvingRequest = reviewableRequestHelper->
 				loadRequest(creationResult.success().requestID,
-                            testManager->getDB(), &delta);
+                            testManager->getDB(), nullptr);
             REQUIRE(approvingRequest);
             auto reviewRequetHelper = ReviewAssetRequestHelper(testManager);
             reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->
@@ -315,7 +335,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
                     applyManageAssetTx(account, 0, updateRequestBody);
                 approvingRequest = reviewableRequestHelper->
                     loadRequest(updateResult.success().requestID,
-                                testManager->getDB(), &delta);
+                                testManager->getDB(), nullptr);
                 REQUIRE(approvingRequest);
                 reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->
                                                         getRequestID(),

@@ -14,6 +14,7 @@
 #include "crypto/SHA.h"
 
 #include "test/test_marshaler.h"
+#include "ledger/AssetHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -38,6 +39,10 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
     Salt rootSeq = 1;
 
 	auto feeHelper = FeeHelper::Instance();
+        std::vector<AssetFrame::pointer> baseAssets;
+        AssetHelper::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
+        REQUIRE(!baseAssets.empty());
+        auto asset = baseAssets[0];
 
     SECTION("Only Master account with admin signer can set fee")
     {
@@ -58,7 +63,7 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
 	}
 	SECTION("Invalid fee type")
 	{
-		auto fee = createFeeEntry(FeeType(123), 0, 0, app.getBaseAsset());
+		auto fee = createFeeEntry(FeeType(123), 0, 0, asset->getCode());
 		applySetFees(app, root, rootSeq++, &fee, false, nullptr, SetFeesResultCode::INVALID_FEE_TYPE);
 	}
 	SECTION("Asset not found")
@@ -72,14 +77,14 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
         auto aPubKey = a.getPublicKey();
         applyCreateAccountTx(app, root, a, rootSeq++, AccountType::GENERAL);
         auto accountFrame = loadAccount(a, app);
-        auto accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
+        auto accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, asset->getCode(), FeeFrame::SUBTYPE_ANY,
             accountFrame, 0, app.getDatabase());
 
         REQUIRE(!accountFee);
 
-        auto feeEntry = createFeeEntry(FeeType::PAYMENT_FEE, 1, 2, app.getBaseAsset(), &aPubKey);
+        auto feeEntry = createFeeEntry(FeeType::PAYMENT_FEE, 1, 2, asset->getCode(), &aPubKey);
 		applySetFees(app, root, rootSeq++, &feeEntry, false, nullptr);
-        accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
+        accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, asset->getCode(), FeeFrame::SUBTYPE_ANY,
             accountFrame, 0, app.getDatabase());
 
         REQUIRE(accountFee->getFee() == feeEntry);
@@ -90,14 +95,14 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
         auto a = SecretKey::random();
         applyCreateAccountTx(app, root, a, rootSeq++, AccountType::GENERAL);
         auto accountFrame = loadAccount(a, app);
-        auto accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
+        auto accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, asset->getCode(), FeeFrame::SUBTYPE_ANY,
             accountFrame, 0, app.getDatabase());
 
         REQUIRE(!accountFee);
 
-        auto feeEntry = createFeeEntry(FeeType::PAYMENT_FEE, 10, 20, app.getBaseAsset(), nullptr, &accountType);
+        auto feeEntry = createFeeEntry(FeeType::PAYMENT_FEE, 10, 20, asset->getCode(), nullptr, &accountType);
 		applySetFees(app, root, rootSeq++, &feeEntry, false, nullptr);
-        accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, app.getBaseAsset(), FeeFrame::SUBTYPE_ANY,
+        accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, asset->getCode(), FeeFrame::SUBTYPE_ANY,
             accountFrame, 0, app.getDatabase());
 
         REQUIRE(accountFee->getFee() == feeEntry);
@@ -109,7 +114,7 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
 		auto accountID = account.getPublicKey();
         auto accountType = AccountType::GENERAL;
 		applyCreateAccountTx(app, root, account, 0, AccountType::GENERAL);
-        auto feeEntry = createFeeEntry(FeeType::PAYMENT_FEE, 0, 0, app.getBaseAsset(), &accountID, &accountType);
+        auto feeEntry = createFeeEntry(FeeType::PAYMENT_FEE, 0, 0, asset->getCode(), &accountID, &accountType);
 		applySetFees(app, root, rootSeq++, &feeEntry, false, nullptr, SetFeesResultCode::MALFORMED);
 	}
 
@@ -118,17 +123,17 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
 	{
 		SECTION("Success")
 		{
-			auto fee = createFeeEntry(FeeType::PAYMENT_FEE, 2, 2 * ONE, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::PAYMENT_FEE, 2, 2 * ONE, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 		}
 		SECTION("Success zero")
 		{
-			auto fee = createFeeEntry(FeeType::PAYMENT_FEE, 0, 0, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::PAYMENT_FEE, 0, 0, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 		}
 		SECTION("Invalid percent fee fee")
 		{
-			auto fee = createFeeEntry(FeeType::PAYMENT_FEE, 0, 101 * ONE, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::PAYMENT_FEE, 0, 101 * ONE, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr, SetFeesResultCode::INVALID_AMOUNT);
 		}
 	}
@@ -136,22 +141,22 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
 	{
 		SECTION("Success")
 		{
-			auto fee = createFeeEntry(FeeType::OFFER_FEE, 0, 2 * ONE, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::OFFER_FEE, 0, 2 * ONE, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 		}
 		SECTION("Success zero")
 		{
-			auto fee = createFeeEntry(FeeType::OFFER_FEE, 0, 0, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::OFFER_FEE, 0, 0, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 		}
 		SECTION("Invalid fixed fee")
 		{
-			auto fee = createFeeEntry(FeeType::OFFER_FEE, 1, 2 * ONE, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::OFFER_FEE, 1, 2 * ONE, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr, SetFeesResultCode::INVALID_AMOUNT);
 		}
 		SECTION("Invalid percent fee")
 		{
-			auto fee = createFeeEntry(FeeType::OFFER_FEE, 0, 101 * ONE, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::OFFER_FEE, 0, 101 * ONE, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr, SetFeesResultCode::INVALID_AMOUNT);
 		}
 	}
@@ -159,28 +164,28 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
 	{
 		SECTION("Success")
 		{
-			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 1, 2 * ONE, app.getBaseAsset(), nullptr, nullptr, 1);
+			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 1, 2 * ONE, asset->getCode(), nullptr, nullptr, 1);
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr);
             SECTION("update existing")
             {
-				auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, app.getBaseAsset(), nullptr, nullptr, 1);
+				auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, asset->getCode(), nullptr, nullptr, 1);
                 applySetFees(app, root, rootSeq++, &fee, false, nullptr);
             }
 			SECTION("Can delete")
 			{
-				auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, app.getBaseAsset(), nullptr, nullptr, 1);
+				auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, asset->getCode(), nullptr, nullptr, 1);
 				applySetFees(app, root, rootSeq++, &fee, true, nullptr);
 			}
             
 		}
 		SECTION("Success zero")
 		{
-			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 0, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr);
 		}
 		SECTION("Invalid percent fee")
 		{
-			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 101 * ONE, app.getBaseAsset());
+			auto fee = createFeeEntry(FeeType::WITHDRAWAL_FEE, 0, 101 * ONE, asset->getCode());
 			applySetFees(app, root, rootSeq++, &fee, false, nullptr, SetFeesResultCode::INVALID_AMOUNT);
 		}
 	}

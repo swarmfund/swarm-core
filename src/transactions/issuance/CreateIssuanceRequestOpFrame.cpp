@@ -99,10 +99,11 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 		return false;
 	}
 
-	if (mCreateIssuanceRequest.request.externalDetails.size() > app.
-		getIssuanceDetailsMaxLength())
+	if (mCreateIssuanceRequest.request.externalDetails.size() > app.getIssuanceDetailsMaxLength()
+            || !isValidJson(mCreateIssuanceRequest.request.externalDetails))
 	{
 		innerResult().code(CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        return false;
 	}
 	
     return true;
@@ -158,6 +159,11 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
 		return nullptr;
 	}
+
+    if (!AccountManager::isAllowedToReceive(balance->getBalanceID(), db)) {
+        innerResult().code(CreateIssuanceRequestResultCode::REQUIRES_KYC);
+        return nullptr;
+    }
 
     Fee feeToPay;
     if (!calculateFee(balance->getAccountID(), db, feeToPay)) {

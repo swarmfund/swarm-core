@@ -31,6 +31,7 @@
 #include <set>
 #include <iomanip>
 #include <cmath>
+#include "ledger/AssetHelper.h"
 
 namespace stellar
 {
@@ -628,18 +629,28 @@ LoadGenerator::TxInfo::toTransactionFrames(
 	TimeBounds timeBounds;
 	timeBounds.minTime = 0;
 	timeBounds.maxTime = app.getLedgerManager().getCloseTime() + 60*60;
+
+        std::vector<AssetFrame::pointer> baseAssets;
+        AssetHelper::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
+        if (baseAssets.empty())
+        {
+            throw std::runtime_error("Expected base assets to exist in db");
+        }
+        auto asset = baseAssets[0];
+        const int maxOperationsPerTx = 100;
     switch (mType)
     {
     case TxInfo::TX_CREATE_ACCOUNT:
         txm.mAccountCreated.Mark();
         {
 
-			auto resultingEnvelope = txtest::createCreateAccountTx(app.getNetworkID(), mFrom->mKey, mTo->mKey, 1,
-                                                                   AccountType::GENERAL, nullptr, &timeBounds)->getEnvelope();
+            auto resultingEnvelope = txtest::createCreateAccountTx(app.getNetworkID(), mFrom->mKey, mTo->mKey, 1,
+                AccountType::GENERAL, nullptr, &timeBounds)->getEnvelope();
+
 			Salt seq = 1;
 			auto issuenceKey = mFrom->mKey;
 			auto fundAccountTx = txtest::createFundAccount(app.getNetworkID(), mFrom->mKey, issuenceKey, seq, mTo->mKey.getPublicKey(),
-				mAmount, app.getBaseAsset(), app.getConfig().PREEMISSIONS_PER_OP, app.getConfig().EMISSION_UNIT, &timeBounds);
+				mAmount, asset->getCode(), maxOperationsPerTx, 100 * ONE, &timeBounds);
 			auto ops = fundAccountTx->getEnvelope().tx.operations;
 			for (int i = 0; i < ops.size(); i++)
 			{
@@ -659,7 +670,7 @@ LoadGenerator::TxInfo::toTransactionFrames(
 		Salt seq = 1;
 		auto issuenceKey = mFrom->mKey;
 		auto fundAccountTx = txtest::createFundAccount(app.getNetworkID(), mFrom->mKey, issuenceKey, seq, mTo->mKey.getPublicKey(),
-			mAmount, app.getBaseAsset(), app.getConfig().PREEMISSIONS_PER_OP, app.getConfig().EMISSION_UNIT, &timeBounds);
+			mAmount, asset->getCode(), maxOperationsPerTx, 100 * ONE, &timeBounds);
 		txs.push_back(fundAccountTx);
 		break;
 	}

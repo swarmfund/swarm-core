@@ -49,7 +49,17 @@ SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<Accou
 			threshold = mSourceAccount->getLowThreshold();
 		}
 	}
-	return SourceDetails({ AccountType::MASTER }, threshold, signerType);
+
+    //disallowed
+	return SourceDetails({}, threshold, signerType);
+}
+
+std::string
+SetLimitsOpFrame::getInnerResultCodeAsStr()
+{
+    const auto result = getResult();
+    const auto code = getInnerCode(result);
+    return xdr::xdr_traits<SetLimitsResultCode>::enum_name(code);
 }
 
 bool

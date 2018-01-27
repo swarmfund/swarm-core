@@ -15,6 +15,7 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "bucket/BucketApplicator.h"
 #include "ledger/SaleFrame.h"
+#include "ledger/AssetPairHelper.h"
 
 namespace stellar
 {
@@ -95,26 +96,66 @@ createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, const
 bool CreateSaleCreationRequestOpFrame::isBaseAssetHasSufficientIssuance(
     const AssetFrame::pointer assetFrame)
 {
-    uint64_t hardCapInBase;
-    if (!SaleFrame::convertToBaseAmount(mCreateSaleCreationRequest.request.price, mCreateSaleCreationRequest.request.hardCap, hardCapInBase))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Did not expected overflow on soft cap conversion to base asset";
-        throw std::runtime_error("Did not expected overflow on soft cap conversion to base asset");
-    }
-
-    if (assetFrame->willExceedMaxIssuanceAmount(hardCapInBase))
-    {
-        innerResult().code(CreateSaleCreationRequestResultCode::INSUFFICIENT_MAX_ISSUANCE);
-        return false;
-    }
-
-    if (!assetFrame->isAvailableForIssuanceAmountSufficient(hardCapInBase))
+    // TODO: fixme
+    if (!assetFrame->isAvailableForIssuanceAmountSufficient(ONE))
     {
         innerResult().code(CreateSaleCreationRequestResultCode::INSUFFICIENT_PREISSUED);
         return false;
     }
 
     return true;    
+}
+
+bool CreateSaleCreationRequestOpFrame::areQuoteAssetsValid(Database& db, xdr::xvector<SaleCreationRequestQuoteAsset, 100> quoteAssets, AssetCode defaultQuoteAsset)
+{
+    if (!AssetHelper::Instance()->exists(db, defaultQuoteAsset))
+    {
+        return false;
+    }
+
+    for (auto const& quoteAsset : quoteAssets)
+    {
+        if (!AssetHelper::Instance()->exists(db, quoteAsset.quoteAsset))
+        {
+            return false;
+        }
+
+        if (defaultQuoteAsset == quoteAsset.quoteAsset)
+            continue;
+
+        const auto assetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(defaultQuoteAsset,
+            quoteAsset.quoteAsset,
+            db);
+        if (!assetPair)
+        {
+            return false;
+        }
+
+    }
+
+    return true;
+}
+
+bool CreateSaleCreationRequestOpFrame::isPriceValid(
+    SaleCreationRequestQuoteAsset const& quoteAsset) const
+{
+    if (quoteAsset.price == 0)
+    {
+        return false;
+    }
+
+    uint64_t requiredBaseAsset;
+    if (!SaleFrame::convertToBaseAmount(quoteAsset.price, mCreateSaleCreationRequest.request.hardCap, requiredBaseAsset))
+    {
+        return false;
+    }
+
+    if (!SaleFrame::convertToBaseAmount(quoteAsset.price, mCreateSaleCreationRequest.request.softCap, requiredBaseAsset))
+    {
+        return false;
+    }
+
+    return true;
 }
 
 CreateSaleCreationRequestOpFrame::CreateSaleCreationRequestOpFrame(
@@ -151,7 +192,7 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    if (!AssetHelper::Instance()->exists(db, sale.quoteAsset))
+    if (!areQuoteAssetsValid(db, mCreateSaleCreationRequest.request.quoteAssets, mCreateSaleCreationRequest.request.defaultQuoteAsset))
     {
         innerResult().code(CreateSaleCreationRequestResultCode::QUOTE_ASSET_NOT_FOUND);
         return false;
@@ -186,10 +227,34 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)
 {
     const auto& request = mCreateSaleCreationRequest.request;
-    if (!AssetFrame::isAssetCodeValid(request.baseAsset) || !AssetFrame::isAssetCodeValid(request.quoteAsset) || request.baseAsset == request.quoteAsset)
+    if (!AssetFrame::isAssetCodeValid(request.baseAsset) || !AssetFrame::isAssetCodeValid(request.defaultQuoteAsset) 
+        || request.defaultQuoteAsset == request.baseAsset || mCreateSaleCreationRequest.request.quoteAssets.empty())
     {
         innerResult().code(CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR);
         return false;
+    }
+
+    std::set<AssetCode> quoteAssets;
+    for (auto const& quoteAsset : mCreateSaleCreationRequest.request.quoteAssets)
+    {
+        if (!AssetFrame::isAssetCodeValid(quoteAsset.quoteAsset) || quoteAsset.quoteAsset == request.baseAsset)
+        {
+            innerResult().code(CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR);
+            return false;
+        }
+
+        if (quoteAssets.find(quoteAsset.quoteAsset) != quoteAssets.end())
+        {
+            innerResult().code(CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR);
+            return false;
+        }
+        quoteAssets.insert(quoteAsset.quoteAsset);
+
+        if (!isPriceValid(quoteAsset))
+        {
+            innerResult().code(CreateSaleCreationRequestResultCode::INVALID_PRICE);
+            return false;
+        }
     }
 
     if (request.endTime <= request.startTime)
@@ -198,22 +263,15 @@ bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    if (request.price == 0)
-    {
-        innerResult().code(CreateSaleCreationRequestResultCode::INVALID_PRICE);
-        return false;
-    }
-
-    uint64_t requiredBaseAsset;
-    if (!SaleFrame::convertToBaseAmount(request.price, request.hardCap, requiredBaseAsset))
-    {
-        innerResult().code(CreateSaleCreationRequestResultCode::INVALID_PRICE);
-        return false;
-    }
-
     if (request.hardCap < request.softCap)
     {
         innerResult().code(CreateSaleCreationRequestResultCode::INVALID_CAP);
+        return false;
+    }
+
+    if (!isValidJson(request.details))
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::INVALID_DETAILS);
         return false;
     }
 

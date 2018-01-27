@@ -9,6 +9,8 @@
 #include "main/Application.h"
 #include "ledger/OfferHelper.h"
 #include "OfferManager.h"
+#include "ledger/AssetPairHelper.h"
+#include "ledger/BalanceHelper.h"
 
 namespace stellar
 {
@@ -43,7 +45,7 @@ SaleFrame::pointer CreateSaleParticipationOpFrame::loadSaleForOffer(
         return nullptr;
     }
 
-    if (sale->getPrice() != mManageOffer.price)
+    if (sale->getPrice(quoteBalance->getAsset()) != mManageOffer.price)
     {
         innerResult().code(ManageOfferResultCode::PRICE_DOES_NOT_MATCH);
         return nullptr;
@@ -69,9 +71,9 @@ bool CreateSaleParticipationOpFrame::doCheckValid(Application& app)
     return CreateOfferOpFrame::doCheckValid(app);
 }
 
-bool CreateSaleParticipationOpFrame::isSaleActive(LedgerManager& ledgerManager, const SaleFrame::pointer sale)
+bool CreateSaleParticipationOpFrame::isSaleActive(Database& db, LedgerManager& ledgerManager, const SaleFrame::pointer sale) const
 {
-    const auto saleState = sale->getState(ledgerManager.getCloseTime());
+    const auto saleState = getSaleState(sale, db, ledgerManager.getCloseTime());
     switch (saleState)
     {
     case SaleFrame::State::ACTIVE:
@@ -112,20 +114,27 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
         return false;
     }
 
-    if (!isSaleActive(ledgerManager, sale))
+    if (!isSaleActive(db, ledgerManager, sale))
     {
+        return false;
+    }
+
+    if (!sale->tryLockBaseAsset(mManageOffer.amount))
+    {
+        innerResult().code(ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);
         return false;
     }
 
     const auto quoteAmount = OfferManager::
-        calcualteQuoteAmount(mManageOffer.amount, mManageOffer.price);
+    calculateQuoteAmount(mManageOffer.amount, mManageOffer.price);
     if (quoteAmount == 0)
     {
-        innerResult().code(ManageOfferResultCode::MALFORMED);
-        return false;
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: quote amount overflows";
+        throw runtime_error("Unexpected state: quote amount overflows");
     }
 
-    if (!sale->tryAddCap(quoteAmount))
+    auto quoteBalance = BalanceHelper::Instance()->mustLoadBalance(mManageOffer.quoteBalance, db);
+    if (!tryAddSaleCap(db, quoteAmount, quoteBalance->getAsset(), sale))
     {
         innerResult().code(ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);
         return false;
@@ -158,5 +167,94 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
     SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);
 
     return true;
+}
+
+bool CreateSaleParticipationOpFrame::getSaleCurrentCap(const SaleFrame::pointer sale,
+    Database& db, uint64_t& totalCurrentCapInDefaultQuote)
+{
+    
+    totalCurrentCapInDefaultQuote = 0;
+    auto const& saleEntry = sale->getSaleEntry();
+    for (auto const& quoteAsset : saleEntry.quoteAssets)
+    {
+        if (quoteAsset.currentCap == 0)
+            continue;
+
+        if (quoteAsset.quoteAsset == saleEntry.defaultQuoteAsset)
+        {
+            if (!safeSum(totalCurrentCapInDefaultQuote, quoteAsset.currentCap, totalCurrentCapInDefaultQuote))
+                return false;
+
+            continue;
+        }
+
+        const auto assetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(quoteAsset.quoteAsset, saleEntry.defaultQuoteAsset, db);
+        if (!assetPair)
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to load asset pair for sale: " << saleEntry.saleID
+                << " assets: " << quoteAsset.quoteAsset << " & " << saleEntry.defaultQuoteAsset;
+            throw runtime_error("Failed to load asset pair for sale");
+        }
+
+        uint64_t currentCapInDefaultQuote = 0;
+        if (!assetPair->convertAmount(saleEntry.defaultQuoteAsset, quoteAsset.currentCap, ROUND_UP, currentCapInDefaultQuote))
+        {
+            return false;
+        }
+
+        if (!safeSum(totalCurrentCapInDefaultQuote, currentCapInDefaultQuote, totalCurrentCapInDefaultQuote))
+            return false;
+    }
+
+    return true;
+}
+
+
+SaleFrame::State CreateSaleParticipationOpFrame::getSaleState(const SaleFrame::pointer sale, Database& db, const uint64_t currentTime)
+{
+    uint64_t currentCap = 0;
+    if (!getSaleCurrentCap(sale, db, currentCap))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate current cap for sale: " << sale->getID();
+        throw runtime_error("Failed to calculate current cap for sale");
+    }
+
+    if (currentCap >= sale->getHardCap() || sale->getEndTime() <= currentTime)
+    {
+        return SaleFrame::State::ENDED;
+    }
+
+    if (sale->getStartTime() > currentTime)
+    {
+        return SaleFrame::State::NOT_STARTED_YET;
+    }
+
+    return SaleFrame::State::ACTIVE;
+}
+
+bool CreateSaleParticipationOpFrame::tryAddSaleCap(Database& db, uint64_t const& amount,
+    AssetCode const& asset, SaleFrame::pointer sale)
+{
+    auto& saleQuoteAsset = sale->getSaleQuoteAsset(asset);
+    if (!safeSum(amount, saleQuoteAsset.currentCap, saleQuoteAsset.currentCap))
+    {
+        return false;
+    }
+
+    uint64_t currentCap = 0;
+    if (!getSaleCurrentCap(sale, db, currentCap))
+    {
+        return false;
+    }
+
+    if (sale->getHardCap() < currentCap)
+    {
+        const auto isViolationTolerable = currentCap - sale->getHardCap() < ONE;
+        if (!isViolationTolerable)
+            return false;
+    }
+
+    return true;
+
 }
 }

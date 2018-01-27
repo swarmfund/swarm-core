@@ -306,4 +306,17 @@ iequals(std::string const& a, std::string const& b)
             return false;
     return true;
 }
+
+bool isValidJson(std::string strJson)
+{
+    // get parser with strict configuration
+    Json::Features features = Json::Features::strictMode();
+    Json::Reader reader(features);
+
+    Json::Value root;
+    if (!reader.parse(strJson, root, false))
+        return false;
+
+    return root.isObject();
+}
 }

@@ -54,7 +54,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 
 SourceDetails ReviewPaymentRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
 {
-	return SourceDetails({AccountType::MASTER}, mSourceAccount->getMediumThreshold(), static_cast<int32_t>(SignerType::PAYMENT_OPERATOR));
+    // disallowed
+	return SourceDetails({}, mSourceAccount->getMediumThreshold(), static_cast<int32_t>(SignerType::PAYMENT_OPERATOR));
 }
 
 ReviewPaymentRequestOpFrame::ReviewPaymentRequestOpFrame(Operation const& op, OperationResult& res,

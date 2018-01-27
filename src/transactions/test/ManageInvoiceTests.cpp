@@ -49,7 +49,6 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
 
 	auto invoiceHelper = InvoiceHelper::Instance();
 
-    auto asset = app.getBaseAsset();
 	SECTION("Malformed")
 	{
         applyManageInvoice(app, a1, a2.getPublicKey(),

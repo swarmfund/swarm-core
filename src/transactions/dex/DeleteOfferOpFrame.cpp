@@ -27,7 +27,7 @@ DeleteOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
                             LedgerManager& ledgerManager)
 {
     auto& db = app.getDatabase();
-    const auto offer = OfferHelper::Instance()->loadOffer(getSourceID(), mManageOffer.offerID, db, &delta);
+    const auto offer = OfferHelper::Instance()->loadOffer(getSourceID(), mManageOffer.offerID, mManageOffer.orderBookID, db, &delta);
     if (!offer)
     {
         innerResult().code(ManageOfferResultCode::NOT_FOUND);

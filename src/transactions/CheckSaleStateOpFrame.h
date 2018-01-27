@@ -26,7 +26,7 @@ class CheckSaleStateOpFrame : public OperationFrame
         counterpartiesDetails) const override;
 
     void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app, LedgerDelta& delta, Database& db, LedgerManager& lm) const;
-    static void cancelAllOffersInOrderBook(const SaleFrame::pointer sale,
+    static void cancelAllOffersForQuoteAsset(const SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset,
                                     LedgerDelta& delta, Database& db);
 
     bool handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta, Database& db);
@@ -39,7 +39,7 @@ class CheckSaleStateOpFrame : public OperationFrame
 
     void updateMaxIssuance(SaleFrame::pointer sale, LedgerDelta& delta, Database& db) const;
 
-    ManageOfferSuccessResult applySaleOffer(AccountFrame::pointer saleOwner, SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta);
+    ManageOfferSuccessResult applySaleOffer(AccountFrame::pointer saleOwner, SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, Application& app, LedgerManager& lm, LedgerDelta& delta);
 
 
 public:
@@ -57,5 +57,7 @@ public:
     }
 
     std::string getInnerResultCodeAsStr() override;
+
+    void updateAvailableForIssuance(const SaleFrame::pointer sale, LedgerDelta &delta, Database &db) const;
 };
 }

@@ -119,6 +119,10 @@ namespace stellar {
         auto &db = app.getDatabase();
         auto destAccountFrame = make_shared<AccountFrame>(mCreateAccount.destination);
         buildAccount(app, delta, destAccountFrame);
+
+        //save recovery accountID
+        destAccountFrame->setRecoveryID(mCreateAccount.recoveryKey);
+
         EntryHelperProvider::storeAddEntry(delta, db, destAccountFrame->mEntry);
         AccountManager accountManager(app, db, delta, ledgerManager);
         accountManager.createStats(destAccountFrame);
@@ -168,6 +172,11 @@ namespace stellar {
 
     bool CreateAccountOpFrame::doCheckValid(Application &app) {
         if (mCreateAccount.destination == getSourceID()) {
+            innerResult().code(CreateAccountResultCode::MALFORMED);
+            return false;
+        }
+
+        if (mCreateAccount.recoveryKey == mCreateAccount.destination) {
             innerResult().code(CreateAccountResultCode::MALFORMED);
             return false;
         }

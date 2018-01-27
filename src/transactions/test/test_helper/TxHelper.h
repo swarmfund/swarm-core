@@ -8,7 +8,6 @@
 #include "TestManager.h"
 #include "Account.h"
 #include "transactions/TransactionFrame.h"
-#include "transactions/test/TxTests.h"
 
 namespace stellar
 {

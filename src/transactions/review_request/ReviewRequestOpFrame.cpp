@@ -113,7 +113,7 @@ ReviewRequestOpFrame::doApply(Application& app,
 	}
 
 	auto requestorAccount = AccountHelper::Instance()->loadAccount(request->getRequestor(), db, &delta);
-	if (requestorAccount->getBlockReasons() != 0) {
+	if (isSetFlag(requestorAccount->getBlockReasons(), BlockReasons::SUSPICIOUS_BEHAVIOR)) {
 		innerResult().code(ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
 		return false;
 	}

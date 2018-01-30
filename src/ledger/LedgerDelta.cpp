@@ -114,6 +114,9 @@ LedgerDelta::addEntry(EntryFrame::pointer entry)
         assert(mMod.find(k) == mMod.end()); // mod + new is invalid
         mNew[k] = entry;
     }
+
+    // update/create entry in detailed changes
+    mAllNew[k] = entry;
 }
 
 void
@@ -142,6 +145,12 @@ LedgerDelta::deleteEntry(LedgerKey const& k)
 
         mMod.erase(k);
     }
+
+    // add key to detailed changes
+    if (mAllDelete.find(k) == mAllDelete.end())
+    {
+        mAllDelete.insert(k);
+    }
 }
 
 void
@@ -169,6 +178,9 @@ LedgerDelta::modEntry(EntryFrame::pointer entry)
             mMod[k] = entry;
         }
     }
+
+    // update/create entry in detailed changes
+    mAllMod[k] = entry;
 }
 
 void
@@ -289,6 +301,30 @@ LedgerDelta::getChanges() const
     for (auto const& k : mDelete)
     {
         addCurrentMeta(changes, k);
+        changes.emplace_back(LedgerEntryChangeType::REMOVED);
+        changes.back().removed() = k;
+    }
+
+    return changes;
+}
+
+LedgerEntryChanges
+LedgerDelta::getAllChanges() const
+{
+    LedgerEntryChanges changes;
+
+    for (auto const& k : mAllNew)
+    {
+        changes.emplace_back(LedgerEntryChangeType::CREATED);
+        changes.back().created() = k.second->mEntry;
+    }
+    for (auto const& k: mAllMod)
+    {
+        changes.emplace_back(LedgerEntryChangeType::UPDATED);
+        changes.back().updated() = k.second->mEntry;
+    }
+    for (auto const& k: mAllDelete)
+    {
         changes.emplace_back(LedgerEntryChangeType::REMOVED);
         changes.back().removed() = k;
     }

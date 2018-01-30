@@ -35,6 +35,7 @@ class CreateSaleCreationRequestOpFrame : public OperationFrame
     // sets corresponding result code
     bool isBaseAssetHasSufficientIssuance(AssetFrame::pointer assetFrame);
 
+    bool isPriceValid(SaleCreationRequestQuoteAsset const& quoteAsset) const;
 public:
 
     CreateSaleCreationRequestOpFrame(Operation const& op, OperationResult& res,
@@ -43,6 +44,8 @@ public:
                  LedgerManager& ledgerManager) override;
 
     bool doCheckValid(Application& app) override;
+
+    static bool areQuoteAssetsValid(Database& db, xdr::xvector<SaleCreationRequestQuoteAsset, 100> quoteAssets, AssetCode defaultQuoteAsset);
 
     static CreateSaleCreationRequestResultCode getInnerCode(
         OperationResult const& res)

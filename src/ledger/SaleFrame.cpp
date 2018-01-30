@@ -28,6 +28,22 @@ SaleFrame::SaleFrame(SaleFrame const& from) : SaleFrame(from.mEntry)
 {
 }
 
+void SaleFrame::ensureSaleQuoteAsset(SaleEntry const& oe,
+    SaleQuoteAsset const& saleQuoteAsset)
+{
+    if (saleQuoteAsset.price == 0)
+        throw runtime_error("Invalid price");
+
+    if (saleQuoteAsset.quoteAsset == oe.baseAsset)
+        throw runtime_error("Invalid quote-base asset pair");
+}
+
+bool SaleFrame::quoteAssetCompare(SaleQuoteAsset const& l,
+    SaleQuoteAsset const& r)
+{
+    return l.quoteAsset < r.quoteAsset;
+}
+
 SaleFrame& SaleFrame::operator=(SaleFrame const& other)
 {
     if (&other != this)
@@ -44,10 +60,10 @@ SaleFrame::ensureValid(SaleEntry const& oe)
 {
     try
     {
-        if (!AssetFrame::isAssetCodeValid(oe.baseAsset) || !AssetFrame::isAssetCodeValid(oe.quoteAsset))
+        if (!AssetFrame::isAssetCodeValid(oe.baseAsset) || !AssetFrame::isAssetCodeValid(oe.defaultQuoteAsset))
             throw runtime_error("invalid asset code");
-        if (oe.baseAsset == oe.quoteAsset)
-            throw runtime_error("base asset cannot be equal to quote asset");
+        if (oe.baseAsset == oe.defaultQuoteAsset)
+            throw runtime_error("base asset cannot be equal to defaultQuoteAsset");
         if (oe.endTime <= oe.startTime)
             throw runtime_error("start time is after end time");
         if (oe.softCap > oe.hardCap)
@@ -58,6 +74,22 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         {
             throw runtime_error("details is invalid");
         }
+
+        if (oe.currentCapInBase > oe.hardCapInBase)
+        {
+            throw runtime_error("current cap in base exceeds had cap in base");
+        }
+
+        if (oe.quoteAssets.empty())
+        {
+            throw runtime_error("Quote assets is empty");
+        }
+
+        for (auto const& saleQuoteAsset : oe.quoteAssets)
+        {
+            ensureSaleQuoteAsset(oe, saleQuoteAsset);
+        }
+
     } catch (...)
     {
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state sale entry is invalid: " << xdr::xdr_to_string(oe);
@@ -76,21 +108,6 @@ SaleEntry& SaleFrame::getSaleEntry()
     return mSale;
 }
 
-SaleFrame::State SaleFrame::getState(const uint64_t currentTime) const
-{
-    if (getCurrentCap() >= getHardCap() || getEndTime() <= currentTime)
-    {
-        return State::ENDED;
-    }
-
-    if (getStartTime() > currentTime)
-    {
-        return State::NOT_STARTED_YET;
-    }
-
-    return State::ACTIVE;
-}
-
 uint64_t SaleFrame::getStartTime() const
 {
     return mSale.startTime;
@@ -100,11 +117,6 @@ uint64_t SaleFrame::getStartTime() const
 uint64_t SaleFrame::getSoftCap() const
 {
     return mSale.softCap;
-}
-
-uint64_t SaleFrame::getCurrentCap() const
-{
-    return mSale.currentCap;
 }
 
 uint64_t SaleFrame::getHardCap() const
@@ -117,38 +129,14 @@ uint64_t SaleFrame::getEndTime() const
     return mSale.endTime;
 }
 
-uint64_t SaleFrame::getPrice() const
-{
-    return mSale.price;
-}
-
 uint64_t SaleFrame::getID() const
 {
     return mSale.saleID;
 }
 
-uint64_t SaleFrame::getBaseAmountForCurrentCap() const
+uint64_t SaleFrame::getPrice(AssetCode const& code)
 {
-    uint64_t baseAmount;
-    if (!convertToBaseAmount(mSale.price, mSale.currentCap, baseAmount))
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to conver to base amount current cap: " << xdr::xdr_to_string(mSale);
-        throw runtime_error("Unexpected state: failed to conver to base amount current cap");
-    }
-
-    return baseAmount;
-}
-
-uint64_t SaleFrame::getBaseAmountForHardCap() const
-{
-    uint64_t baseAmount;
-    if (!convertToBaseAmount(mSale.price, mSale.hardCap, baseAmount))
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to convert to base amount hard cap: " << xdr::xdr_to_string(mSale);
-        throw runtime_error("Unexpected state: failed to convert to base amount current cap");
-    }
-
-    return baseAmount;
+    return getSaleQuoteAsset(code).price;
 }
 
 BalanceID const& SaleFrame::getBaseBalanceID() const
@@ -156,9 +144,30 @@ BalanceID const& SaleFrame::getBaseBalanceID() const
     return mSale.baseBalance;
 }
 
-BalanceID const& SaleFrame::getQuoteBalanceID() const
+void SaleFrame::subCurrentCap(AssetCode const& asset, uint64_t const amount)
 {
-    return mSale.quoteBalance;
+    auto& saleQuoteAsset = getSaleQuoteAsset(asset);
+    if (saleQuoteAsset.currentCap < amount)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: tring to substract from current cap amount exceeding it: " << xdr::xdr_to_string(mSale) << " amount: " << amount;
+        throw runtime_error("Unexpected state: tring to substract from current cap amount exceeding it");
+    }
+
+
+    saleQuoteAsset.currentCap -= amount;
+}
+
+SaleQuoteAsset& SaleFrame::getSaleQuoteAsset(AssetCode const& asset)
+{
+    for (auto i =0; i < mSale.quoteAssets.size(); i++)
+    {
+        if (mSale.quoteAssets[i].quoteAsset == asset)
+        {
+            return mSale.quoteAssets[i];
+        }
+    }
+
+    throw runtime_error("Failed to find quote asset of the sale for specified asset");
 }
 
 AccountID const& SaleFrame::getOwnerID() const
@@ -171,45 +180,6 @@ AssetCode const& SaleFrame::getBaseAsset() const
     return mSale.baseAsset;
 }
 
-AssetCode const& SaleFrame::getQuoteAsset() const
-{
-    return mSale.quoteAsset;
-}
-
-bool SaleFrame::tryAddCap(const uint64_t amount)
-{
-    uint64_t updatedCap;
-    if (!safeSum(mSale.currentCap, amount, updatedCap))
-    {
-        return false;
-    }
-
-    if (mSale.hardCap < updatedCap)
-    {
-        const auto isViolationTolerable = updatedCap - mSale.hardCap < ONE;
-        if (!isViolationTolerable)
-        {
-            return false;
-        }
-
-        updatedCap = mSale.hardCap;
-    }
-
-    mSale.currentCap = updatedCap;
-    return true;
-}
-
-void SaleFrame::subCurrentCap(const uint64_t amount)
-{
-    if (mSale.currentCap < amount)
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: tring to substract from current cap amount exceeding it: " << xdr::xdr_to_string(mSale) << " amount: " << amount;
-        throw runtime_error("Unexpected state: tring to substract from current cap amount exceeding it");
-    }
-
-    mSale.currentCap -= amount;
-}
-
 bool SaleFrame::convertToBaseAmount(uint64_t const& price,
     uint64_t const& quoteAssetAmount, uint64_t& result)
 {
@@ -217,26 +187,98 @@ bool SaleFrame::convertToBaseAmount(uint64_t const& price,
 }
 
 SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &ownerID, SaleCreationRequest const& request,
-    BalanceID const& baseBalance, BalanceID const& quoteBalance)
+    map<AssetCode, BalanceID> balances, uint64_t hardCapInBase)
 {
-    LedgerEntry entry;
-    entry.data.type(LedgerEntryType::SALE);
-    auto& sale = entry.data.sale();
-    sale.saleID = id;
-    sale.ownerID = ownerID;
-    sale.baseAsset = request.baseAsset;
-    sale.quoteAsset = request.quoteAsset;
-    sale.startTime = request.startTime;
-    sale.endTime = request.endTime;
-    sale.price = request.price;
-    sale.softCap = request.softCap;
-    sale.hardCap = request.hardCap;
-    sale.details = request.details;
-    sale.currentCap = 0;
-    sale.baseBalance = baseBalance;
-    sale.quoteBalance = quoteBalance;
+    try
+    {
+        LedgerEntry entry;
+        entry.data.type(LedgerEntryType::SALE);
+        auto& sale = entry.data.sale();
+        sale.saleID = id;
+        sale.ownerID = ownerID;
+        sale.baseAsset = request.baseAsset;
+        sale.defaultQuoteAsset = request.defaultQuoteAsset;
+        sale.startTime = request.startTime;
+        sale.endTime = request.endTime;
+        sale.softCap = request.softCap;
+        sale.hardCap = request.hardCap;
+        sale.details = request.details;
+        sale.hardCapInBase = hardCapInBase;
+        sale.currentCapInBase = 0;
+        sale.quoteAssets.clear();
+        for (auto const& quoteAsset : request.quoteAssets)
+        {
+            SaleQuoteAsset saleQuoteAsset;
+            saleQuoteAsset.quoteAsset = quoteAsset.quoteAsset;
+            saleQuoteAsset.currentCap = 0;
+            saleQuoteAsset.price = quoteAsset.price;
+            saleQuoteAsset.quoteBalance = balances[quoteAsset.quoteAsset];
+            sale.quoteAssets.push_back(saleQuoteAsset);
+        }
+        sale.baseBalance = balances[request.baseAsset];
 
-    return std::make_shared<SaleFrame>(entry);
+
+        return std::make_shared<SaleFrame>(entry);
+    } catch (...)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Failed to create sale from request";
+        throw_with_nested(runtime_error("Failed to create sale from request"));
+    }
+}
+
+uint64_t SaleFrame::getBaseAmountForCurrentCap(AssetCode const& asset)
+{
+    auto& quoteAsset = getSaleQuoteAsset(asset);
+    uint64_t baseAmount;
+    if (!convertToBaseAmount(quoteAsset.price, quoteAsset.currentCap, baseAmount))
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to conver to base amount current cap: " << xdr::xdr_to_string(mSale);
+        throw runtime_error("Unexpected state: failed to conver to base amount current cap");
+    }
+
+    return baseAmount;
+
+}
+
+uint64_t SaleFrame::getBaseAmountForCurrentCap()
+{
+    uint64_t amountToIssue = 0;
+    for (auto const& quoteAsset : mSale.quoteAssets)
+    {
+        const uint64_t baseAmountForCurrentCap = getBaseAmountForCurrentCap(quoteAsset.quoteAsset);
+        if (!safeSum(amountToIssue, baseAmountForCurrentCap, amountToIssue))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate amount to issue for sale: " << getID();
+            throw std::runtime_error("Failed to calculate amount to issue for sale");
+        }
+    }
+
+    return amountToIssue;
+}
+
+bool SaleFrame::tryLockBaseAsset(uint64_t amount)
+{
+    if (!safeSum(mSale.currentCapInBase, amount, mSale.currentCapInBase))
+    {
+        return false;
+    }
+
+    return mSale.currentCapInBase <= mSale.hardCapInBase;
+}
+
+void SaleFrame::unlockBaseAsset(uint64_t amount)
+{
+    if (mSale.currentCapInBase < amount)
+    {
+        throw runtime_error("Unexpected state: tring to unlock more then we have in current cap in base asset");
+    }
+
+    mSale.currentCapInBase -= amount;
+}
+
+void SaleFrame::normalize()
+{
+    sort(mSale.quoteAssets.begin(), mSale.quoteAssets.end(), &quoteAssetCompare);
 }
 }
 

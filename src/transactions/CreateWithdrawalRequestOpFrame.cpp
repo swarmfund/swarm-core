@@ -35,7 +35,7 @@ const
 {
     return SourceDetails({
                              AccountType::GENERAL, AccountType::SYNDICATE,
-                             AccountType::OPERATIONAL, AccountType::EXCHANGE
+                             AccountType::OPERATIONAL, AccountType::EXCHANGE, AccountType::NOT_VERIFIED
                          }, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER));
 }
@@ -63,6 +63,16 @@ bool CreateWithdrawalRequestOpFrame::isConvertedAmountMatches(
     BalanceFrame::pointer balance, Database& db)
 {
     const auto assetToConvertAmountInto = mCreateWithdrawalRequest.request.details.autoConversion().destAsset;
+
+    if(balance->getAsset() == assetToConvertAmountInto) {
+        if (mCreateWithdrawalRequest.request.amount !=
+                mCreateWithdrawalRequest.request.details.autoConversion().expectedAmount) {
+            innerResult().code(CreateWithdrawalRequestResultCode::CONVERTED_AMOUNT_MISMATCHED);
+            return false;
+        }
+        return true;
+    }
+
     const auto assetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(balance->getAsset(), assetToConvertAmountInto, db);
     if (!assetPair)
     {

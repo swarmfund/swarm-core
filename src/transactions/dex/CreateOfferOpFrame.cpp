@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AssetHelper.h>
 #include "util/asio.h"
 #include "CreateOfferOpFrame.h"
 #include "OfferExchange.h"
@@ -82,6 +83,18 @@ bool CreateOfferOpFrame::checkOfferValid(Database& db, LedgerDelta& delta)
     if (mBaseBalance->getAsset() == mQuoteBalance->getAsset())
     {
         innerResult().code(ManageOfferResultCode::ASSET_PAIR_NOT_TRADABLE);
+        return false;
+    }
+
+    BalanceID receivingBalance;
+    if (mManageOffer.isBuy)
+        receivingBalance = mManageOffer.baseBalance;
+    else
+        receivingBalance = mManageOffer.quoteBalance;
+
+    if (!AccountManager::isAllowedToReceive(receivingBalance, db))
+    {
+        innerResult().code(ManageOfferResultCode::REQUIRES_KYC);
         return false;
     }
 

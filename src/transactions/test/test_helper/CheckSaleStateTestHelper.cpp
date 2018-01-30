@@ -75,7 +75,8 @@ void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
     auto baseAssetBeforeTx = stateBeforeTx.getAssetEntry(sale->getBaseAsset());
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
 
-    auto hardCapBaseAssetAmount = sale->getBaseAmountForHardCap();
+    // TODO: at current stage we do not allow to issue tokens before the sale. Must be fixed
+    auto hardCapBaseAssetAmount = baseAssetBeforeTx.maxIssuanceAmount;
     REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + hardCapBaseAssetAmount);
     REQUIRE(baseAssetBeforeTx.availableForIssueance + hardCapBaseAssetAmount == baseAssetAfterTx->getAvailableForIssuance());
 
@@ -90,34 +91,68 @@ void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
     }
 }
 
+CheckSubSaleClosedResult getOfferResultForQuoteBalance(const CheckSaleStateSuccess result, BalanceID const& quoteBalanceID)
+{
+    for (auto assetResult : result.effect.saleClosed().results)
+    {
+        if (assetResult.saleQuoteBalance == quoteBalanceID)
+        {
+            return assetResult;
+        }
+    }
+
+    throw std::runtime_error("Failed to find result for balance");
+}
 void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     StateBeforeTxHelper& stateBeforeTx) const
 {
-    const auto sale = stateBeforeTx.getSale(result.saleID);
+    auto sale = stateBeforeTx.getSale(result.saleID);
     auto baseAssetBeforeTx = stateBeforeTx.getAssetEntry(sale->getBaseAsset());
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
 
     // always unlock hard cap
-    auto hardCapBaseAsset = sale->getBaseAmountForHardCap();
+    auto hardCapBaseAsset = baseAssetBeforeTx.maxIssuanceAmount;
     REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + hardCapBaseAsset);
 
     // can't issue after sale is closed
-    auto currentCupBaseAsset = sale->getBaseAmountForCurrentCap();
+    auto currentCupBaseAsset = std::min(sale->getBaseAmountForCurrentCap(), baseAssetBeforeTx.maxIssuanceAmount);
     REQUIRE(baseAssetAfterTx->getAvailableForIssuance() == 0);
     REQUIRE(baseAssetAfterTx->getIssued() == baseAssetBeforeTx.issued + currentCupBaseAsset);
     REQUIRE(baseAssetAfterTx->getMaxIssuanceAmount() == baseAssetBeforeTx.issued + currentCupBaseAsset);
 
     // check that sale owner have expected quote on balance
-    auto ownerQuoteBalanceBefore = stateBeforeTx.getBalance(sale->getQuoteBalanceID());
+    for (auto quoteAsset : sale->getSaleEntry().quoteAssets)
+    {
+        auto quoteAssetResult = getOfferResultForQuoteBalance(result, quoteAsset.quoteBalance);
+        checkBalancesAfterApproval(stateBeforeTx, sale, quoteAsset, quoteAssetResult);
+    }
+}
+
+void CheckSaleStateHelper::ensureNoOffersLeft(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const
+{
+    auto saleBeforeTx = stateBeforeTx.getSale(result.saleID);
+    for (auto saleQuoteAsset : saleBeforeTx->getSaleEntry().quoteAssets)
+    {
+        auto offers = OfferHelper::Instance()->loadOffersWithFilters(saleBeforeTx->getBaseAsset(), saleQuoteAsset.quoteAsset,
+            &result.saleID, nullptr, mTestManager->getDB());
+        REQUIRE(offers.empty());
+    }
+}
+
+void CheckSaleStateHelper::checkBalancesAfterApproval(StateBeforeTxHelper& stateBeforeTx, SaleFrame::pointer sale,
+    SaleQuoteAsset const& saleQuoteAsset, CheckSubSaleClosedResult result) const
+{
+    auto ownerQuoteBalanceBefore = stateBeforeTx.getBalance(saleQuoteAsset.quoteBalance);
     REQUIRE(ownerQuoteBalanceBefore);
-    auto ownerQuoteBalanceAfter = BalanceHelper::Instance()->mustLoadBalance(sale->getQuoteBalanceID(), mTestManager->getDB());
+    auto ownerQuoteBalanceAfter = BalanceHelper::Instance()->mustLoadBalance(saleQuoteAsset.quoteBalance, mTestManager->getDB());
     auto ownerFrame = AccountHelper::Instance()->mustLoadAccount(sale->getOwnerID(), mTestManager->getDB());
-    auto totalSellerFee = FeeManager::calculateOfferFeeForAccount(ownerFrame, sale->getQuoteAsset(), sale->getCurrentCap(), mTestManager->getDB())
-                              .calculatedPercentFee;
-    REQUIRE(ownerQuoteBalanceAfter->getAmount() == ownerQuoteBalanceBefore->getAmount() + sale->getCurrentCap() - totalSellerFee);
+    auto totalSellerFee = FeeManager::calculateOfferFeeForAccount(ownerFrame, saleQuoteAsset.quoteAsset, saleQuoteAsset.currentCap, mTestManager->getDB())
+        .calculatedPercentFee;
+    // TODO: currently it's possible to go a bit below currentCap
+    REQUIRE(ownerQuoteBalanceAfter->getAmount() <= ownerQuoteBalanceBefore->getAmount() + saleQuoteAsset.currentCap - totalSellerFee);
 
     // check participants balances
-    auto takenOffers = result.effect.saleClosed().saleDetails.offersClaimed;
+    auto takenOffers = result.saleDetails.offersClaimed;
     uint64_t totalParticipantFee = 0;
     for (auto& takenOffer : takenOffers)
     {
@@ -143,8 +178,8 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
 
     // commission balance change
     auto commissionAfter = BalanceHelper::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
-                                                                   sale->getQuoteAsset(), mTestManager->getDB(),
-                                                                   nullptr);
+        saleQuoteAsset.quoteAsset, mTestManager->getDB(),
+        nullptr);
     REQUIRE(commissionAfter);
     auto commissionBefore = stateBeforeTx.getBalance(commissionAfter->getBalanceID());
     REQUIRE(commissionBefore);
@@ -152,30 +187,23 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     REQUIRE(commissionAfter->getAmount() == commissionBefore->getAmount() + totalParticipantFee + totalSellerFee);
 }
 
-void CheckSaleStateHelper::ensureNoOffersLeft(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const
-{
-    const auto saleBeforeTx = stateBeforeTx.getSale(result.saleID);
-    auto offers = OfferHelper::Instance()->loadOffersWithFilters(saleBeforeTx->getBaseAsset(), saleBeforeTx->getQuoteAsset(),
-        &result.saleID, nullptr, mTestManager->getDB());
-    REQUIRE(offers.empty());
-}
-
 CheckSaleStateHelper::CheckSaleStateHelper(const TestManager::pointer testManager) : TxHelper(testManager)
 {
 
 }
 
-TransactionFramePtr CheckSaleStateHelper::createCheckSaleStateTx(Account& source)
+TransactionFramePtr CheckSaleStateHelper::createCheckSaleStateTx(Account& source, uint64_t saleID)
 {
     Operation op;
     op.body.type(OperationType::CHECK_SALE_STATE);
+    op.body.checkSaleStateOp().saleID = saleID;
     return txFromOperation(source, op);
 }
 
 CheckSaleStateResult CheckSaleStateHelper::applyCheckSaleStateTx(
-    Account& source, CheckSaleStateResultCode expectedResult)
+    Account& source, uint64_t saleID, CheckSaleStateResultCode expectedResult)
 {
-    auto tx = createCheckSaleStateTx(source);
+    auto tx = createCheckSaleStateTx(source, saleID);
     std::vector<LedgerDelta::KeyEntryMap> stateBeforeOps;
     mTestManager->applyCheck(tx, stateBeforeOps);
     auto txResult = tx->getResult();

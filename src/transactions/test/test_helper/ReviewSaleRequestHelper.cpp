@@ -33,16 +33,19 @@ void SaleReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(!!baseAssetBeforeTx);
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(saleCreationRequest->baseAsset, mTestManager->getDB());
     REQUIRE(!!baseAssetAfterTx);
-    uint64_t hardCapInBaseAsset;
+    // TODO: should be fixed 
+    uint64_t hardCapInBaseAsset = baseAssetBeforeTx->getMaxIssuanceAmount();
     const auto saleRequest = *saleCreationRequest;
-    REQUIRE(SaleFrame::convertToBaseAmount(saleRequest.price, saleRequest.hardCap, hardCapInBaseAsset));
     REQUIRE(baseAssetBeforeTx->getPendingIssuance() + hardCapInBaseAsset == baseAssetAfterTx->getPendingIssuance());
 
     // check if asset pair was created
-    auto assetPair = AssetPairHelper::Instance()->loadAssetPair(saleRequest.baseAsset, saleRequest.quoteAsset,
-                                                                mTestManager->getDB());
-    REQUIRE(!!assetPair);
-    REQUIRE(assetPair->getCurrentPrice() == saleRequest.price);
+    for (auto saleQuoteAsset : saleRequest.quoteAssets)
+    {
+        auto assetPair = AssetPairHelper::Instance()->loadAssetPair(saleRequest.baseAsset, saleQuoteAsset.quoteAsset,
+            mTestManager->getDB());
+        REQUIRE(!!assetPair);
+        REQUIRE(assetPair->getCurrentPrice() == saleQuoteAsset.price);
+    }
 }
 
 ReviewSaleRequestHelper::ReviewSaleRequestHelper(

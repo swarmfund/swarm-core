@@ -79,6 +79,8 @@ namespace stellar {
 
             explicit CreateAccountTestHelper(TestManager::pointer testManager);
 
+            TransactionFramePtr createCreateAccountTx(Account& source, PublicKey to, AccountType accountType, uint32_t policies = 0);
+
             CreateAccountResultCode applyTx(CreateAccountTestBuilder builder);
 
             [[deprecated]]

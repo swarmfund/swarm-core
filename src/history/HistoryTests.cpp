@@ -13,6 +13,14 @@
 #include "transactions/test/TxTests.h"
 #include "process/ProcessManager.h"
 #include <xdrpp/autocheck.h>
+#include <transactions/test/test_helper/TestManager.h>
+#include <transactions/test/test_helper/CreateAccountTestHelper.h>
+#include <transactions/test/test_helper/ManageAssetTestHelper.h>
+#include <transactions/test/test_helper/IssuanceRequestHelper.h>
+#include <ledger/AssetHelper.h>
+#include <ledger/BalanceHelper.h>
+#include <transactions/manage_asset/ManageAssetOpFrame.h>
+#include <transactions/CreateAccountOpFrame.h>
 #include "test/test_marshaler.h"
 
 using namespace stellar;
@@ -74,10 +82,18 @@ class HistoryTests
     Application::pointer appPtr;
     Application& app;
 
-    SecretKey mRoot;
-    SecretKey mAlice;
-    SecretKey mBob;
-    SecretKey mCarol;
+    // test helpers for generating random tx
+    txtest::TestManager::pointer mTestManger;
+    txtest::CreateAccountTestHelper mAccountHelper;
+    txtest::ManageAssetTestHelper mAssetHelper;
+    txtest::IssuanceRequestHelper mIssuanceHelper;
+
+    AssetCode mBaseAsset = "USD";
+    std::vector<AccountID> mRandomAccounts;
+    // amount on each step corresponding to given random account.
+    std::map<AccountID, std::vector<int64_t>> mRandAccountBalances;
+
+    txtest::Account mRoot;
 
     std::default_random_engine mGenerator;
     std::bernoulli_distribution mFlip{0.5};
@@ -89,24 +105,19 @@ class HistoryTests
     std::vector<uint256> mBucketListHashes;
     std::vector<uint256> mBucket0Hashes;
     std::vector<uint256> mBucket1Hashes;
-
-    std::vector<int64_t> mRootBalances;
-    std::vector<int64_t> mAliceBalances;
-    std::vector<int64_t> mBobBalances;
-    std::vector<int64_t> mCarolBalances;
-
   public:
     HistoryTests(std::shared_ptr<Configurator> cg =
                      std::make_shared<TmpDirConfigurator>())
         : mConfigurator(cg)
-        , cfg(getTestConfig())
+        , cfg(getTestConfig(0, Config::TESTDB_POSTGRESQL))
         , appPtr(
               Application::create(clock, mConfigurator->configure(cfg, true)))
         , app(*appPtr)
-        , mRoot(txtest::getRoot())
-        , mAlice(txtest::getAccount("alice"))
-        , mBob(txtest::getAccount("bob"))
-        , mCarol(txtest::getAccount("carol"))
+        , mTestManger(txtest::TestManager::make(app))
+        , mAssetHelper(mTestManger)
+        , mAccountHelper(mTestManger)
+        , mIssuanceHelper(mTestManger)
+        , mRoot(txtest::Account{txtest::getRoot(), Salt(0)})
     {
         CHECK(HistoryManager::initializeHistoryArchive(app, "test"));
     }
@@ -131,6 +142,14 @@ class HistoryTests
     {
         return mFlip(mGenerator);
     }
+
+    void createBaseAsset(TxSetFramePtr txSet);
+
+    void createAccounts(TxSetFramePtr txSet);
+
+    void fundAccounts(TxSetFramePtr txSet);
+
+    void generateAccounts();
 };
 
 void
@@ -236,53 +255,18 @@ HistoryTests::generateRandomLedger()
     TxSetFramePtr txSet =
         std::make_shared<TxSetFrame>(lm.getLastClosedLedgerHeader().hash);
 
-    uint32_t ledgerSeq = lm.getLedgerNum();
-    uint64_t minBalance = lm.getMinBalance(5);
-    uint64_t big = minBalance + ledgerSeq;
-    uint64_t small = 100 + ledgerSeq;
-    uint64_t closeTime = 60 * 5 * ledgerSeq;
+    createBaseAsset(txSet);
 
-    Hash const& networkID = app.getNetworkID();
+    if (mRandomAccounts.empty()) {
+        generateAccounts();
+    }
 
-    // Root sends to alice every tx, bob every other tx, carol every 4rd tx.
-	TimeBounds tm;
-	tm.minTime = 0;
-	tm.maxTime = closeTime + rand();
-    txSet->add(
-        txtest::createCreateAccountTx(networkID, mRoot, mAlice, rand(), AccountType::GENERAL, nullptr, &tm));
-    txSet->add(
-        txtest::createCreateAccountTx(networkID, mRoot, mBob, rand(), AccountType::GENERAL, nullptr, &tm));
-    txSet->add(
-        txtest::createCreateAccountTx(networkID, mRoot, mCarol, rand(), AccountType::GENERAL, nullptr, &tm));
-	Salt salt = rand();
-    txSet->add(txtest::createFundAccount(networkID, mRoot, mRoot, salt, mAlice.getPublicKey(), big, "XAAU", 1, big));
-    txSet->add(txtest::createFundAccount(networkID, mRoot, mRoot, salt, mBob.getPublicKey(), big, "XAAU", 1, big));
-    txSet->add(txtest::createFundAccount(networkID, mRoot, mRoot, salt, mCarol.getPublicKey(), big, "XAAU", 1, big));
+    createAccounts(txSet);
 
-    // They all randomly send a little to one another every ledger after #4
-    if (ledgerSeq > 4)
-    {
-
-        if (flip())
-            txSet->add(txtest::createPaymentTx(networkID, mAlice, mBob, rand(),
-                                               small, stellar::txtest::getNoPaymentFee()));
-        if (flip())
-            txSet->add(txtest::createPaymentTx(networkID, mAlice, mCarol,
-				rand(), small, stellar::txtest::getNoPaymentFee()));
-
-        if (flip())
-            txSet->add(txtest::createPaymentTx(networkID, mBob, mAlice, rand(),
-                                               small, stellar::txtest::getNoPaymentFee()));
-        if (flip())
-            txSet->add(txtest::createPaymentTx(networkID, mBob, mCarol, rand(),
-                                               small, stellar::txtest::getNoPaymentFee()));
-
-        if (flip())
-            txSet->add(txtest::createPaymentTx(networkID, mCarol, mAlice,
-				rand(), small, stellar::txtest::getNoPaymentFee()));
-        if (flip())
-            txSet->add(txtest::createPaymentTx(networkID, mCarol, mBob, rand(),
-                                               small, stellar::txtest::getNoPaymentFee()));
+    // can fund if accounts were created which will happen after genesis ledger closed
+    auto ledgerSeq = lm.getLedgerNum();
+    if (ledgerSeq > 2) {
+        fundAccounts(txSet);
     }
 
     // Provoke sortForHash and hash-caching:
@@ -292,6 +276,7 @@ HistoryTests::generateRandomLedger()
                            << " with " << txSet->size() << " txs (txhash:"
                            << hexAbbrev(txSet->getContentsHash()) << ")";
 
+    auto closeTime = lm.getCloseTime();
     StellarValue sv(txSet->getContentsHash(), closeTime, emptyUpgradeSteps, StellarValue::_ext_t(LedgerVersion::EMPTY_VERSION));
     mLedgerCloseDatas.emplace_back(ledgerSeq, txSet, sv);
     lm.closeLedger(mLedgerCloseDatas.back());
@@ -311,11 +296,13 @@ HistoryTests::generateRandomLedger()
                                  .getCurr()
                                  ->getHash());
 
-    mRootBalances.push_back(txtest::getAccountBalance(mRoot, app));
-    mAliceBalances.push_back(txtest::getAccountBalance(mAlice, app));
-    mBobBalances.push_back(txtest::getAccountBalance(mBob, app));
-    mCarolBalances.push_back(txtest::getAccountBalance(mCarol, app));
-
+    for (const auto& accountID : mRandomAccounts)
+    {
+        auto balanceFrame = BalanceHelper::Instance()->loadBalance(accountID, mBaseAsset, app.getDatabase(),
+                                                                   nullptr);
+        REQUIRE(balanceFrame);
+        mRandAccountBalances[accountID].push_back(balanceFrame->getAmount());
+    }
 }
 
 void
@@ -539,25 +526,64 @@ HistoryTests::catchupApplication(uint32_t initLedger,
     CHECK(wantBucket0Hash == haveBucket0Hash);
     CHECK(wantBucket1Hash == haveBucket1Hash);
 
-    auto haveRootBalance = mRootBalances.at(i);
-    auto haveAliceBalance = mAliceBalances.at(i);
-    auto haveBobBalance = mBobBalances.at(i);
-    auto haveCarolBalance = mCarolBalances.at(i);
-
-
-    auto wantRootBalance = txtest::getAccountBalance(mRoot, *app2);
-    auto wantAliceBalance = txtest::getAccountBalance(mAlice, *app2);
-    auto wantBobBalance = txtest::getAccountBalance(mBob, *app2);
-    auto wantCarolBalance = txtest::getAccountBalance(mCarol, *app2);
-
-
-    CHECK(haveRootBalance == wantRootBalance);
-    CHECK(haveAliceBalance == wantAliceBalance);
-    CHECK(haveBobBalance == wantBobBalance);
-    CHECK(haveCarolBalance == wantCarolBalance);
+    for (auto accountID : mRandomAccounts)
+    {
+        auto wantBalance = mRandAccountBalances[accountID].at(i);
+        auto haveBalanceFrame = BalanceHelper::Instance()->loadBalance(accountID, mBaseAsset, app2->getDatabase(),
+                                                                  nullptr);
+        REQUIRE(haveBalanceFrame);
+        CHECK(wantBalance == haveBalanceFrame->getAmount());
+    }
 
     app.getLedgerManager().checkDbState();
     return true;
+}
+
+void HistoryTests::createBaseAsset(TxSetFramePtr txSet)
+{
+    auto basePolicy = static_cast<uint32_t>(AssetPolicy::BASE_ASSET);
+    auto assetCreationRequest = mAssetHelper.createAssetCreationRequest(mBaseAsset, mRoot.key.getPublicKey(), "{}",
+                                                                        UINT64_MAX, basePolicy, UINT64_MAX - 1);
+    txSet->add(mAssetHelper.createManageAssetTx(mRoot, 0, assetCreationRequest));
+}
+
+void HistoryTests::createAccounts(TxSetFramePtr txSet)
+{
+    for (auto randAccount : mRandomAccounts)
+    {
+        txSet->add(mAccountHelper.createCreateAccountTx(mRoot, randAccount, AccountType::GENERAL));
+    }
+}
+
+void HistoryTests::fundAccounts(TxSetFramePtr txSet)
+{
+    auto numberOfAccounts = mRandomAccounts.size();
+    int64_t numberOfReceivers = rand() % numberOfAccounts + 1;
+    for (int64_t i = 0; i < numberOfReceivers; i++)
+    {
+        // pick random account and fund it
+        auto accountID = mRandomAccounts[rand() % numberOfAccounts];
+        auto balanceFrame = BalanceHelper::Instance()->loadBalance(accountID, mBaseAsset, app.getDatabase(),
+                                                                   nullptr);
+        REQUIRE(balanceFrame);
+
+        int64_t amount = rand() % ONE + 1;
+        auto issuanceRequest = mIssuanceHelper.createIssuanceRequest(mBaseAsset, amount,
+                                                                     balanceFrame->getBalanceID());
+        std::string reference = SecretKey::random().getStrKeyPublic();
+        txSet->add(mIssuanceHelper.createIssuanceRequestTx(mRoot, issuanceRequest, reference));
+    }
+
+}
+
+void HistoryTests::generateAccounts()
+{
+    int64_t numberOfAccounts = 10;
+    for (int i = 0; i < numberOfAccounts; i++)
+    {
+        auto randAccount = SecretKey::random().getPublicKey();
+        mRandomAccounts.push_back(randAccount);
+    }
 }
 
 TEST_CASE_METHOD(HistoryTests, "History publish", "[history][publish]")
@@ -613,22 +639,13 @@ TEST_CASE_METHOD(HistoryTests, "Full history catchup",
         HistoryManager::CATCHUP_RECENT,
     };
 
-    std::vector<Config::TestDbMode> dbModes = {Config::TESTDB_IN_MEMORY_SQLITE,
-                                               Config::TESTDB_ON_DISK_SQLITE};
-#ifdef USE_POSTGRES
-    if (!force_sqlite)
-        dbModes.push_back(Config::TESTDB_POSTGRESQL);
-#endif
-
-    for (auto dbMode : dbModes)
+    auto dbMode = Config::TESTDB_POSTGRESQL;
+    for (auto resumeMode : resumeModes)
     {
-        for (auto resumeMode : resumeModes)
-        {
-            apps.push_back(catchupNewApplication(
-                initLedger, dbMode, resumeMode, std::string("full, ") +
-                                                    resumeModeName(resumeMode) +
-                                                    ", " + dbModeName(dbMode)));
-        }
+        apps.push_back(catchupNewApplication(
+            initLedger, dbMode, resumeMode, std::string("full, ") +
+                                                resumeModeName(resumeMode) +
+                                                ", " + dbModeName(dbMode)));
     }
 }
 
@@ -654,7 +671,7 @@ TEST_CASE_METHOD(HistoryTests, "History publish queueing",
 
     auto initLedger = app.getLedgerManager().getLastClosedLedgerNum();
     auto app2 =
-        catchupNewApplication(initLedger, Config::TESTDB_IN_MEMORY_SQLITE,
+        catchupNewApplication(initLedger, Config::TESTDB_POSTGRESQL,
                               HistoryManager::CATCHUP_COMPLETE,
                               std::string("Catchup to delayed history"));
     CHECK(app2->getLedgerManager().getLedgerNum() ==
@@ -670,7 +687,7 @@ TEST_CASE_METHOD(HistoryTests, "History prefix catchup",
     // First attempt catchup to 10, prefix of 64. Should round up to 64.
     // Should replay the 64th (since it gets externalized) and land on 65.
     apps.push_back(catchupNewApplication(
-        10, Config::TESTDB_IN_MEMORY_SQLITE, HistoryManager::CATCHUP_COMPLETE,
+        10, Config::TESTDB_POSTGRESQL, HistoryManager::CATCHUP_COMPLETE,
         std::string("Catchup to prefix of published history")));
     uint32_t freq = apps.back()->getHistoryManager().getCheckpointFrequency();
     CHECK(apps.back()->getLedgerManager().getLedgerNum() == freq + 1);
@@ -678,7 +695,7 @@ TEST_CASE_METHOD(HistoryTests, "History prefix catchup",
     // Then attempt catchup to 74, prefix of 128. Should round up to 128.
     // Should replay the 64th (since it gets externalized) and land on 129.
     apps.push_back(catchupNewApplication(
-        freq + 10, Config::TESTDB_IN_MEMORY_SQLITE,
+        freq + 10, Config::TESTDB_POSTGRESQL,
         HistoryManager::CATCHUP_COMPLETE,
         std::string("Catchup to second prefix of published history")));
     CHECK(apps.back()->getLedgerManager().getLedgerNum() == 2 * freq + 1);
@@ -697,11 +714,11 @@ TEST_CASE_METHOD(HistoryTests, "Publish/catchup alternation, with stall",
 
     uint32_t initLedger = lm.getLastClosedLedgerNum();
 
-    app2 = catchupNewApplication(initLedger, Config::TESTDB_IN_MEMORY_SQLITE,
+    app2 = catchupNewApplication(initLedger, Config::TESTDB_POSTGRESQL,
                                  HistoryManager::CATCHUP_COMPLETE,
                                  std::string("app2"));
 
-    app3 = catchupNewApplication(initLedger, Config::TESTDB_IN_MEMORY_SQLITE,
+    app3 = catchupNewApplication(initLedger, Config::TESTDB_POSTGRESQL,
                                  HistoryManager::CATCHUP_MINIMAL,
                                  std::string("app3"));
 
@@ -865,7 +882,7 @@ TEST_CASE_METHOD(S3HistoryTests, "Publish/catchup via s3", "[hide][s3]")
     generateAndPublishInitialHistory(3);
     auto app2 = catchupNewApplication(
         app.getLedgerManager().getCurrentLedgerHeader().ledgerSeq,
-        Config::TESTDB_IN_MEMORY_SQLITE, HistoryManager::CATCHUP_COMPLETE,
+        Config::TESTDB_POSTGRESQL, HistoryManager::CATCHUP_COMPLETE,
         "s3");
 }
 
@@ -953,7 +970,7 @@ TEST_CASE_METHOD(HistoryTests, "too far behind / catchup restart",
     // Catch up successfully the first time
     auto app2 = catchupNewApplication(
         app.getLedgerManager().getCurrentLedgerHeader().ledgerSeq,
-        Config::TESTDB_IN_MEMORY_SQLITE, HistoryManager::CATCHUP_COMPLETE,
+        Config::TESTDB_POSTGRESQL, HistoryManager::CATCHUP_COMPLETE,
         "app2");
 
     // Now generate a little more history
@@ -987,7 +1004,7 @@ TEST_CASE_METHOD(HistoryTests, "too far behind / catchup restart",
 TEST_CASE_METHOD(HistoryTests, "Catchup recent",
                  "[history][catchuprecent]")
 {
-    auto dbMode = Config::TESTDB_IN_MEMORY_SQLITE;
+    auto dbMode = Config::TESTDB_POSTGRESQL;
     auto catchupMode = HistoryManager::CATCHUP_RECENT;
     std::vector<Application::pointer> apps;
 
@@ -1041,7 +1058,7 @@ TEST_CASE_METHOD(HistoryTests, "Catchup recent",
 
 TEST_CASE("initialize existing history store fails", "[history]")
 {
-    Config cfg(getTestConfig(0, Config::TESTDB_ON_DISK_SQLITE));
+    Config cfg(getTestConfig(0, Config::TESTDB_POSTGRESQL));
     TmpDirConfigurator tcfg;
     cfg = tcfg.configure(cfg, true);
 

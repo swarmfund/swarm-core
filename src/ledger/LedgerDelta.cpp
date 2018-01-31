@@ -115,8 +115,9 @@ LedgerDelta::addEntry(EntryFrame::pointer entry)
         mNew[k] = entry;
     }
 
-    // update/create entry in detailed changes
-    mAllNew[k] = entry;
+    // add to detailed changes
+    mAllChanges.emplace_back(LedgerEntryChangeType::CREATED);
+    mAllChanges.back().created() = entry->mEntry;
 }
 
 void
@@ -147,10 +148,8 @@ LedgerDelta::deleteEntry(LedgerKey const& k)
     }
 
     // add key to detailed changes
-    if (mAllDelete.find(k) == mAllDelete.end())
-    {
-        mAllDelete.insert(k);
-    }
+    mAllChanges.emplace_back(LedgerEntryChangeType::REMOVED);
+    mAllChanges.back().removed() = k;
 }
 
 void
@@ -179,8 +178,9 @@ LedgerDelta::modEntry(EntryFrame::pointer entry)
         }
     }
 
-    // update/create entry in detailed changes
-    mAllMod[k] = entry;
+    // add to detailed changes
+    mAllChanges.emplace_back(LedgerEntryChangeType::UPDATED);
+    mAllChanges.back().updated() = entry->mEntry;
 }
 
 void
@@ -311,25 +311,7 @@ LedgerDelta::getChanges() const
 LedgerEntryChanges
 LedgerDelta::getAllChanges() const
 {
-    LedgerEntryChanges changes;
-
-    for (auto const& k : mAllNew)
-    {
-        changes.emplace_back(LedgerEntryChangeType::CREATED);
-        changes.back().created() = k.second->mEntry;
-    }
-    for (auto const& k: mAllMod)
-    {
-        changes.emplace_back(LedgerEntryChangeType::UPDATED);
-        changes.back().updated() = k.second->mEntry;
-    }
-    for (auto const& k: mAllDelete)
-    {
-        changes.emplace_back(LedgerEntryChangeType::REMOVED);
-        changes.back().removed() = k;
-    }
-
-    return changes;
+    return mAllChanges;
 }
 
 std::vector<LedgerEntry>

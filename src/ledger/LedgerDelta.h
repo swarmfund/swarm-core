@@ -36,9 +36,7 @@ private:
     std::set<LedgerKey, LedgerEntryIdCmp> mDelete;
 
     // all created/changed ledger entries:
-    KeyEntryMap mAllNew;
-    KeyEntryMap mAllMod;
-    std::set<LedgerKey, LedgerEntryIdCmp> mAllDelete;
+    LedgerEntryChanges mAllChanges;
 
     KeyEntryMap mPrevious;
 

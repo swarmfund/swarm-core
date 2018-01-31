@@ -50,10 +50,18 @@ bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerD
 	return true;
 }
 
-SourceDetails ReviewAssetCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ReviewAssetCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                         int32_t ledgerVersion) const
 {
-	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
-						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
+    auto allowedSigners = static_cast<int32_t>(SignerType::ASSET_MANAGER);
+
+    auto newSingersVersion = static_cast<int32_t>(LedgerVersion::NEW_SIGNER_TYPES);
+    if (ledgerVersion >= newSingersVersion)
+    {
+        allowedSigners = static_cast<int32_t>(SignerType::USER_ASSET_MANAGER);
+    }
+
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(), allowedSigners);
 }
 
 ReviewAssetCreationRequestOpFrame::ReviewAssetCreationRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :

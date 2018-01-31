@@ -44,7 +44,7 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
 			auto op = tx->getOperations()[0];
 			op->checkValid(app, &delta);
 			// Master is only source
-			auto sourceDetails = op->getSourceAccountDetails({});
+			auto sourceDetails = op->getSourceAccountDetails({}, 0);
 			auto allowedSources = sourceDetails.mAllowedSourceAccountTypes;
 			REQUIRE(allowedSources.size() == 1);
 			REQUIRE(allowedSources[0] == AccountType::MASTER);
@@ -66,7 +66,7 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
 			auto op = tx->getOperations()[0];
 			op->checkValid(app, &delta);
 			// Master is only source
-			auto sourceDetails = op->getSourceAccountDetails({});
+			auto sourceDetails = op->getSourceAccountDetails({}, 0);
 			auto allowedSources = sourceDetails.mAllowedSourceAccountTypes;
 			REQUIRE(sourceDetails.mNeededSignedClass == 0);
 		}

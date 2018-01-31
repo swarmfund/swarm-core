@@ -22,7 +22,8 @@ protected:
     ReviewRequestOp const& mReviewRequest;
 
 	virtual std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override
+	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                      int32_t ledgerVersion) const override
 	{
 		// no one is allowed to run default implementation of ReviewRequestOp
 		return SourceDetails({}, mSourceAccount->getHighThreshold(), 0);

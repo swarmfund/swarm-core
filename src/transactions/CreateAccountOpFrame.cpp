@@ -32,8 +32,8 @@ namespace stellar {
         };
     }
 
-    SourceDetails CreateAccountOpFrame::getSourceAccountDetails(
-            std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
+    SourceDetails CreateAccountOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                    int32_t ledgerVersion)
     const {
         const auto threshold = mSourceAccount->getMediumThreshold();
         uint32_t allowedSignerClass = 0;

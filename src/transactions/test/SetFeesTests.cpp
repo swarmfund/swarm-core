@@ -50,7 +50,7 @@ TEST_CASE("Set fee", "[dep_tx][setfee]")
 		tx->checkValid(app);
 		auto op = tx->getOperations()[0];
 		op->checkValid(app, &delta);
-		auto sourceAccountDetials = op->getSourceAccountDetails({});
+		auto sourceAccountDetials = op->getSourceAccountDetails({}, 0);
 		REQUIRE(sourceAccountDetials.mNeededSignedClass == static_cast<int32_t>(SignerType::ASSET_MANAGER));
 		auto allowedSource = sourceAccountDetials.mAllowedSourceAccountTypes;
 		REQUIRE(allowedSource.size() == 1);

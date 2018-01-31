@@ -68,8 +68,8 @@ getCounterpartyDetails(Database& db, LedgerDelta* delta) const
     return {};
 }
 
-SourceDetails ManageOfferOpFrame::getSourceAccountDetails(
-    unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
+SourceDetails ManageOfferOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                          int32_t ledgerVersion)
 const
 {
     uint32_t allowedBlockedReasons = 0;

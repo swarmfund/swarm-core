@@ -21,9 +21,8 @@ class CheckSaleStateOpFrame : public OperationFrame
     std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(
         Database& db, LedgerDelta* delta) const override;
 
-    SourceDetails getSourceAccountDetails(
-        std::unordered_map<AccountID, CounterpartyDetails>
-        counterpartiesDetails) const override;
+    SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                              int32_t ledgerVersion) const override;
 
     void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app, LedgerDelta& delta, Database& db, LedgerManager& lm) const;
     static void cancelAllOffersForQuoteAsset(const SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset,

@@ -84,7 +84,8 @@ std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpar
 	};
 }
 
-SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                      int32_t ledgerVersion) const
 {
 	int32_t signerType = static_cast<int32_t >(SignerType::BALANCE_MANAGER);
 	switch (mSourceAccount->getAccountType())

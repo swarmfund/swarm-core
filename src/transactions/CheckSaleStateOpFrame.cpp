@@ -32,7 +32,7 @@ getCounterpartyDetails(Database& db, LedgerDelta* delta) const
     return {};
 }
 
-SourceDetails CheckSaleStateOpFrame::getSourceAccountDetails(unordered_map<AccountID, CounterpartyDetails>)
+SourceDetails CheckSaleStateOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails>, int32_t ledgerVersion)
 const
 {
     return SourceDetails({ AccountType::MASTER }, mSourceAccount->getLowThreshold(), int32_t(SignerType::EVENTS_CHECKER));

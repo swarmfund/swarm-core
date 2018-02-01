@@ -24,7 +24,8 @@ std::unordered_map<AccountID, CounterpartyDetails> SetOptionsOpFrame::getCounter
 	return{};
 }
 
-SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                         int32_t ledgerVersion) const
 {
     std::vector<AccountType> allowedAccountTypes;
     if (!mSetOptions.limitsUpdateRequestData)

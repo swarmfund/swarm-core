@@ -28,7 +28,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageBalanceOpFrame::getCoun
 	};
 }
 
-SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                            int32_t ledgerVersion) const
 {
 	std::vector<AccountType> allowedSourceAccounts;
 	if (getSourceID() == mManageBalance.destination)

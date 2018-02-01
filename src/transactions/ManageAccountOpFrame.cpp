@@ -25,7 +25,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageAccountOpFrame::getCoun
 	};
 }
 
-SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                            int32_t ledgerVersion) const
 {
 	int32_t threshold = mSourceAccount->getMediumThreshold();
 

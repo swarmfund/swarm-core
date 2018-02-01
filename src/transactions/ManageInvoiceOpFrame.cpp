@@ -25,7 +25,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageInvoiceOpFrame::getCoun
 	};
 }
 
-SourceDetails ManageInvoiceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ManageInvoiceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                            int32_t ledgerVersion) const
 {
     std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE};
     // disallowed

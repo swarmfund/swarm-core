@@ -30,8 +30,8 @@ CreateSaleCreationRequestOpFrame::getCounterpartyDetails(
     return {};
 }
 
-SourceDetails CreateSaleCreationRequestOpFrame::getSourceAccountDetails(
-    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
+SourceDetails CreateSaleCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                        int32_t ledgerVersion)
 const
 {
     return SourceDetails({

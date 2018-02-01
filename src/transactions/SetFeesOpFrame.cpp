@@ -232,9 +232,18 @@ namespace stellar
 		};
 	}
 
-	SourceDetails SetFeesOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+	SourceDetails SetFeesOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                              int32_t ledgerVersion) const
 	{
-		return SourceDetails({ AccountType::MASTER }, mSourceAccount->getHighThreshold(), static_cast<int32_t>(SignerType::ASSET_MANAGER));
+        auto allowedSigners = static_cast<int32_t>(SignerType::ASSET_MANAGER);
+
+        auto newSignersVersion = static_cast<int32_t>(LedgerVersion::NEW_SIGNER_TYPES);
+        if (ledgerVersion >= newSignersVersion)
+        {
+            allowedSigners = static_cast<int32_t>(SignerType::FEES_MANAGER);
+        }
+
+		return SourceDetails({ AccountType::MASTER }, mSourceAccount->getHighThreshold(), allowedSigners);
 	}
 
 	bool SetFeesOpFrame::mustEmptyFixed(FeeEntry const& fee, medida::MetricsRegistry& metrics)

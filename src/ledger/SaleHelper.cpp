@@ -17,7 +17,7 @@ using xdr::operator<;
 
 const char* selectorSale =
     "SELECT id, owner_id, base_asset, default_quote_asset, start_time, "
-    "end_time, soft_cap, hard_cap, details, base_balance, version, lastmodified FROM sale";
+    "end_time, soft_cap, hard_cap, details, base_balance, state, version, lastmodified FROM sale";
 
 void SaleHelper::dropAll(Database& db)
 {
@@ -125,21 +125,26 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     string sql;
 
     auto version = static_cast<int32_t>(saleEntry.ext.v());
+    auto state = static_cast<int32_t>(SaleState::ACTIVE);
+    if (saleEntry.ext.v() == LedgerVersion::ALLOW_TO_MANAGE_SALE)
+    {
+        state = static_cast<int32_t>(saleEntry.ext.state());
+    }
 
     if (insert)
     {
         sql =
             "INSERT INTO sale (id, owner_id, base_asset, default_quote_asset, start_time,"
-            " end_time, soft_cap, hard_cap, details, version, lastmodified, base_balance)"
+            " end_time, soft_cap, hard_cap, details, version, lastmodified, base_balance, state)"
             " VALUES (:id, :owner_id, :base_asset, :default_quote_asset, :start_time,"
-            " :end_time, :soft_cap, :hard_cap, :details, :v, :lm, :base_balance)";
+            " :end_time, :soft_cap, :hard_cap, :details, :v, :lm, :base_balance, :state)";
     }
     else
     {
         sql =
             "UPDATE sale SET owner_id=:owner_id, base_asset = :base_asset, default_quote_asset = :default_quote_asset, start_time = :start_time,"
             " end_time= :end_time, soft_cap = :soft_cap, hard_cap = :hard_cap, details = :details, version=:v, lastmodified=:lm, "
-            " base_balance = :base_balance "
+            " base_balance = :base_balance, state = :state "
             " WHERE id = :id";
     }
 
@@ -160,6 +165,7 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     st.exchange(use(saleFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     auto baseBalance = BalanceKeyUtils::toStrKey(saleEntry.baseBalance);
     st.exchange(use(baseBalance, "base_balance"));
+    st.exchange(use(state, "state"));
     st.define_and_bind();
 
     auto timer = insert
@@ -193,6 +199,7 @@ void SaleHelper::loadSales(Database& db, StatementContext& prep,
     le.data.type(LedgerEntryType::SALE);
     auto& oe = le.data.sale();
     int version;
+    int32_t state;
 
     statement& st = prep.statement();
     st.exchange(into(oe.saleID));
@@ -205,6 +212,7 @@ void SaleHelper::loadSales(Database& db, StatementContext& prep,
     st.exchange(into(oe.hardCap));
     st.exchange(into(oe.details));
     st.exchange(into(oe.baseBalance));
+    st.exchange(into(state));
     st.exchange(into(version));
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.define_and_bind();
@@ -213,6 +221,11 @@ void SaleHelper::loadSales(Database& db, StatementContext& prep,
     while (st.got_data())
     {
         oe.ext.v(static_cast<LedgerVersion>(version));
+        if (oe.ext.v() == LedgerVersion::ALLOW_TO_MANAGE_SALE)
+        {
+            oe.ext.state() = static_cast<SaleState>(state);
+        }
+
         oe.quoteAssets = SaleQuoteAssetHelper::loadQuoteAssets(db, oe.saleID);
         SaleFrame::ensureValid(oe);
 
@@ -316,5 +329,12 @@ std::vector<SaleFrame::pointer> SaleHelper::loadSalesForOwner(AccountID owner,
 EntryFrame::pointer SaleHelper::storeLoad(LedgerKey const& key, Database& db)
 {
     return loadSale(key.sale().saleID, db);
+}
+
+void SaleHelper::addSaleState(Database &db)
+{
+    db.getSession() << "ALTER TABLE sale "
+                       "ADD state INT NOT NULL DEFAULT 1;";
+
 }
 }

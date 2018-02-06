@@ -253,5 +253,19 @@ void SaleFrame::normalize()
 {
     sort(mSale.quoteAssets.begin(), mSale.quoteAssets.end(), &quoteAssetCompare);
 }
+
+SaleState SaleFrame::getSaleState() const
+{
+    if (mSale.ext.v() != LedgerVersion::ALLOW_TO_MANAGE_SALE)
+        return SaleState::ACTIVE;
+
+    return mSale.ext.state();
+}
+
+void SaleFrame::setSaleState(SaleState state)
+{
+    mSale.ext.v(LedgerVersion::ALLOW_TO_MANAGE_SALE);
+    mSale.ext.state() = state;
+}
 }
 

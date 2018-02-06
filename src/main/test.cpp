@@ -136,6 +136,7 @@ getTestConfig(int instanceNumber, Config::TestDbMode mode)
         }
         thisConfig.DATABASE = dbname.str();
         thisConfig.REPORT_METRICS = gTestMetrics;
+        thisConfig.LEDGER_PROTOCOL_VERSION = static_cast<uint32_t>(LedgerVersion::ALLOW_TO_MANAGE_SALE);
 
 		thisConfig.validateConfig();
     }

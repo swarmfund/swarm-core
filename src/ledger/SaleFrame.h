@@ -34,7 +34,8 @@ class SaleFrame : public EntryFrame
     {
         ACTIVE = 1,
         NOT_STARTED_YET = 2,
-        ENDED = 3
+        ENDED = 3,
+        BLOCKED = 4
     };
 
 
@@ -71,6 +72,10 @@ class SaleFrame : public EntryFrame
     AccountID const& getOwnerID() const;
 
     AssetCode const& getBaseAsset() const;
+
+    SaleState getSaleState() const;
+
+    void setSaleState(SaleState state);
 
     static bool convertToBaseAmount(uint64_t const& price, uint64_t const& quoteAssetAmount, uint64_t& result);
 

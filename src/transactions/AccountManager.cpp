@@ -316,4 +316,13 @@ bool AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db
 
     return true;
 }
+
+void AccountManager::unlockPendingIssuance(AssetCode asset, LedgerDelta &delta, Database &db)
+{
+    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(asset, db, &delta);
+    // TODO: should be fixed
+    const auto baseAmount = baseAsset->getPendingIssuance();
+    baseAsset->mustUnlockIssuedAmount(baseAmount);
+    AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
+}
 }

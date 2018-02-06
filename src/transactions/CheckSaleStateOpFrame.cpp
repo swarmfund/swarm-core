@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/dex/ManageSaleHelper.h>
 #include "CheckSaleStateOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
@@ -41,7 +42,7 @@ const
 void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
     LedgerDelta& delta, Database& db, LedgerManager& lm) const
 {
-    unlockPendingIssunace(sale, delta, db);
+    AccountManager::unlockPendingIssuance(sale->getBaseAsset(), delta, db);
 
     auto result = applyCreateIssuanceRequest(sale, saleOwnerAccount, app, delta, lm);
     if (result.code() != CreateIssuanceRequestResultCode::SUCCESS)
@@ -62,25 +63,11 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
     updateMaxIssuance(sale, delta, db);
 }
 
-void CheckSaleStateOpFrame::cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, LedgerDelta& delta, Database& db)
-{
-    auto orderBookID = sale->getID();
-    const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), saleQuoteAsset.quoteAsset, &orderBookID, nullptr, db);
-    OfferManager::deleteOffers(offersToCancel, db, delta);
-}
-
 bool CheckSaleStateOpFrame::handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
     Database& db)
 {
-    for (auto& saleQuoteAsset : sale->getSaleEntry().quoteAssets)
-    {
-        cancelAllOffersForQuoteAsset(sale, saleQuoteAsset, delta, db);
-    }
+    ManageSaleHelper::cancelSale(sale, delta, db);
 
-    unlockPendingIssunace(sale, delta, db);
-
-    const auto key = sale->getKey();
-    SaleHelper::Instance()->storeDelete(delta, db, key);
     innerResult().code(CheckSaleStateResultCode::SUCCESS);
     auto& success = innerResult().success();
     success.saleID = sale->getID();
@@ -115,7 +102,7 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
         result.saleBaseBalance = sale->getBaseBalanceID();
         result.saleQuoteBalance = quoteAsset.quoteBalance;
         success.effect.saleClosed().results.push_back(result);
-        cancelAllOffersForQuoteAsset(sale, quoteAsset, delta, db);
+        ManageSaleHelper::cancelAllOffersForQuoteAsset(sale, quoteAsset, delta, db);
     }
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
 
@@ -129,17 +116,7 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
     return true;
 }
 
-void CheckSaleStateOpFrame::unlockPendingIssunace(const SaleFrame::pointer sale,
-    LedgerDelta& delta, Database& db) const
-{
-    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
-    // TODO: should be fixed
-    const auto baseAmount = baseAsset->getPendingIssuance();
-    baseAsset->mustUnlockIssuedAmount(baseAmount);
-    AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
-}
-
-CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
+    CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount,
     Application& app, LedgerDelta& delta, LedgerManager& lm) const
 {

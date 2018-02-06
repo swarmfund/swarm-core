@@ -88,6 +88,15 @@ bool CreateSaleParticipationOpFrame::isSaleActive(Database& db, LedgerManager& l
         innerResult().code(ManageOfferResultCode::SALE_ALREADY_ENDED);
         return false;
     }
+    case SaleFrame::State::BLOCKED:
+        if (!ledgerManager.shouldUse(LedgerVersion::ALLOW_TO_MANAGE_SALE))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected ledger version: " << ledgerManager.getCurrentLedgerHeader().ledgerVersion;
+            throw std::runtime_error("Unexpected ledger version");
+        }
+
+        innerResult().code(ManageOfferResultCode::SALE_IS_BLOCKED);
+        return false;
     default:
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) <<
@@ -221,6 +230,11 @@ SaleFrame::State CreateSaleParticipationOpFrame::getSaleState(const SaleFrame::p
     if (sale->getStartTime() > currentTime)
     {
         return SaleFrame::State::NOT_STARTED_YET;
+    }
+
+    if (sale->getSaleState() == SaleState::BLOCKED)
+    {
+        return SaleFrame::State::BLOCKED;
     }
 
     return SaleFrame::State::ACTIVE;

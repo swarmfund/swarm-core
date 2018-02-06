@@ -7,6 +7,7 @@
 #include "main/Application.h"
 #include "xdrpp/marshal.h"
 #include <string>
+#include <transactions/dex/ManageSaleOpFrame.h>
 #include "util/Logging.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
@@ -90,6 +91,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::CHECK_SALE_STATE:
         return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
+    case OperationType::MANAGE_SALE:
+        return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

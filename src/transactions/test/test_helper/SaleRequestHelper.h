@@ -31,6 +31,12 @@ public:
 
     TransactionFramePtr createSaleRequestTx(
         Account& source, uint64_t requestID, SaleCreationRequest request);
+
+    ManageSaleResult applyManageSale(Account &source, uint64_t saleID, ManageSaleAction action,
+                                     ManageSaleResultCode expectedResult = ManageSaleResultCode::SUCCESS);
+
+    TransactionFramePtr createManageSaleTx(Account &source, uint64_t saleID, ManageSaleAction action);
+
 };
 }
 }

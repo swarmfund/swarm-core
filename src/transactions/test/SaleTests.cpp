@@ -269,6 +269,24 @@ TEST_CASE("Sale", "[tx][sale]")
             auto checkRes = checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::SUCCESS);
             REQUIRE(checkRes.success().effect.effect() == CheckSaleStateEffect::CANCELED);
         }
+
+        SECTION("delete sale")
+        {
+            const int numberOfParticipants = 10;
+            const uint64_t quoteAmount = softCap / numberOfParticipants;
+            uint64_t feeToPay(0);
+            participantsFeeFrame->calculatePercentFee(quoteAmount, feeToPay, ROUND_UP);
+            for (auto i = 0; i < numberOfParticipants - 1; i++)
+            {
+                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
+                checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
+            }
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
+
+            testManager->upgradeToCurrentLedgerVersion(app);
+
+            saleRequestHelper.applyManageSale(syndicate, saleID, ManageSaleAction::DELETE);
+        }
     }
 
     SECTION("Create SaleCreationRequest")

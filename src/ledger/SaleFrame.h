@@ -75,10 +75,13 @@ class SaleFrame : public EntryFrame
     static bool convertToBaseAmount(uint64_t const& price, uint64_t const& quoteAssetAmount, uint64_t& result);
 
     static pointer createNew(uint64_t const& id, AccountID const &ownerID, SaleCreationRequest const& request,
-        std::map<AssetCode, BalanceID> balances);
+        std::map<AssetCode, BalanceID> balances, uint64_t hardCapInBase);
 
     uint64_t getBaseAmountForCurrentCap(AssetCode const& asset);
     uint64_t getBaseAmountForCurrentCap();
+
+    bool tryLockBaseAsset(uint64_t amount);
+    void unlockBaseAsset(uint64_t amount);
 
     void normalize();
 

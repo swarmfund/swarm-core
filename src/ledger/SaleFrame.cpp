@@ -75,6 +75,11 @@ SaleFrame::ensureValid(SaleEntry const& oe)
             throw runtime_error("details is invalid");
         }
 
+        if (oe.currentCapInBase > oe.hardCapInBase)
+        {
+            throw runtime_error("current cap in base exceeds had cap in base");
+        }
+
         if (oe.quoteAssets.empty())
         {
             throw runtime_error("Quote assets is empty");
@@ -182,7 +187,7 @@ bool SaleFrame::convertToBaseAmount(uint64_t const& price,
 }
 
 SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &ownerID, SaleCreationRequest const& request,
-    map<AssetCode, BalanceID> balances)
+    map<AssetCode, BalanceID> balances, uint64_t hardCapInBase)
 {
     try
     {
@@ -198,6 +203,8 @@ SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &own
         sale.softCap = request.softCap;
         sale.hardCap = request.hardCap;
         sale.details = request.details;
+        sale.hardCapInBase = hardCapInBase;
+        sale.currentCapInBase = 0;
         sale.quoteAssets.clear();
         for (auto const& quoteAsset : request.quoteAssets)
         {
@@ -247,6 +254,26 @@ uint64_t SaleFrame::getBaseAmountForCurrentCap()
     }
 
     return amountToIssue;
+}
+
+bool SaleFrame::tryLockBaseAsset(uint64_t amount)
+{
+    if (!safeSum(mSale.currentCapInBase, amount, mSale.currentCapInBase))
+    {
+        return false;
+    }
+
+    return mSale.currentCapInBase <= mSale.hardCapInBase;
+}
+
+void SaleFrame::unlockBaseAsset(uint64_t amount)
+{
+    if (mSale.currentCapInBase < amount)
+    {
+        throw runtime_error("Unexpected state: tring to unlock more then we have in current cap in base asset");
+    }
+
+    mSale.currentCapInBase -= amount;
 }
 
 void SaleFrame::normalize()

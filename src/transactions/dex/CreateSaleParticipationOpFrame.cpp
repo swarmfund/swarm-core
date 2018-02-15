@@ -119,6 +119,12 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
         return false;
     }
 
+    if (!sale->tryLockBaseAsset(mManageOffer.amount))
+    {
+        innerResult().code(ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);
+        return false;
+    }
+
     const auto quoteAmount = OfferManager::
     calculateQuoteAmount(mManageOffer.amount, mManageOffer.price);
     if (quoteAmount == 0)

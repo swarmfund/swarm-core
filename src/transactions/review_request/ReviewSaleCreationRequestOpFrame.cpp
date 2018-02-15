@@ -63,7 +63,7 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     AccountManager accountManager(app, db, delta, ledgerManager);
     const auto balances = loadBalances(accountManager, request, saleCreationRequest);
     const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest,
-        balances);
+        balances, requiredBaseAssetForHardCap);
     SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
     createAssetPair(saleFrame, app, ledgerManager, delta);
     innerResult().code(ReviewRequestResultCode::SUCCESS);

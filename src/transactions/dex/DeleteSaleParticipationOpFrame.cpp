@@ -64,6 +64,7 @@ bool DeleteSaleParticipationOpFrame::doApply(Application& app,
 
     auto balance = BalanceHelper::Instance()->mustLoadBalance(mManageOffer.quoteBalance, db);
     sale->subCurrentCap(balance->getAsset(), offer->getOffer().quoteAmount);
+    sale->unlockBaseAsset(offer->getOffer().baseAmount);
     SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);
     return DeleteOfferOpFrame::doApply(app, delta, ledgerManager);
 }

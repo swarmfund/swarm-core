@@ -67,7 +67,19 @@ std::vector<OfferEntry> StateBeforeTxHelper::getAllOffers()
     return offers;
 }
 
-void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
+AccountFrame::pointer StateBeforeTxHelper::getAccount(AccountID accountID)
+{
+    LedgerKey key;
+    key.type(LedgerEntryType::ACCOUNT);
+    key.account().accountID = accountID;
+
+    if (mState.find(key) == mState.end())
+        return nullptr;
+
+    return std::make_shared<AccountFrame>(mState[key]->mEntry);
+}
+
+    void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
                                         StateBeforeTxHelper& stateBeforeTx) const
 {
     // asset unlocked

@@ -14,6 +14,7 @@ namespace txtest
     public:
         explicit StateBeforeTxHelper(LedgerDelta::KeyEntryMap state);
 
+        AccountFrame::pointer getAccount(AccountID accountID);
         SaleFrame::pointer getSale(uint64_t id);
         AssetEntry getAssetEntry(AssetCode assetCode);
         OfferEntry getOffer(uint64_t offerID, AccountID ownerID);

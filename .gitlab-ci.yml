@@ -32,6 +32,7 @@ build:
       paths:
         - src/stellar-core
   only:
+    - prod
     - staging
     - dev
 
@@ -60,9 +61,17 @@ delivery:
   script:
     - rsync src/stellar-core ubuntu@$HOST_DEV:artifacts/core/${CI_COMMIT_SHA:0:8}/
   only:
-    - prod
     - staging
     - dev
+
+delivery:prod:
+  image: shebgregor/alpine-rsync-git
+  stage: delivery
+  script:
+    - rsync src/stellar-core ubuntu@$HOST_DEV:artifacts/core/${CI_COMMIT_SHA:0:8}/
+    - ssh ubuntu@$HOST_DEV "artifacts/update.sh core prod ${CI_COMMIT_SHA:0:8}"
+  only:
+    - prod
 
 deploy-dev:
   image: shebgregor/alpine-rsync-git

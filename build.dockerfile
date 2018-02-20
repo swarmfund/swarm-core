@@ -36,8 +36,7 @@ RUN true \
  && ./configure \
  && make -j 4 \
  && mkdir /vs \
- && mkdir /buckets \
- && mkdir /tmp
+ && mkdir /buckets
 
 VOLUME /vs
 

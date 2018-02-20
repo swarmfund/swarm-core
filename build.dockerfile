@@ -35,5 +35,10 @@ RUN true \
  && ./autogen.sh \
  && ./configure \
  && make -j 4
+ && mkdir /vs
+ && mkdir /buckets
+ && mkdir /tmp
+
+VOLUME /vs
 
 ENTRYPOINT ["./src/stellar-core"]

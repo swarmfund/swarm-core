@@ -29,7 +29,7 @@ RUN true \
  && chmod 600 ~/.ssh/id_rsa \
  && echo "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config \
  && echo "Host gitlab\n\tHostName gitlab.com\n\tIdentityFile ~/.ssh/id_rsa\n\tUser git\n" >> ~/.ssh/config \
- && git config --global url.ssh://git@gilab.com/.insteadOf https://gilab.com/ \
+ && git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/ \
  && git submodule init \
  && git submodule update \
  && ./autogen.sh \

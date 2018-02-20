@@ -27,7 +27,7 @@ build:
   script:
     # login to docker registry
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-    - docker build --pull -t $IMAGE_BUILD_NAME -f $BUILD_DOCKERFILE .
+    - docker build --pull --build-arg RSA_KEY="$SSH_PRIVATE_KEY" -t $IMAGE_BUILD_NAME -f $BUILD_DOCKERFILE .
     - docker push $IMAGE_BUILD_NAME
 
 # build testing image and run tests

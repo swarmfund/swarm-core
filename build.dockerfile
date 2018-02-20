@@ -34,9 +34,9 @@ RUN true \
  && git submodule update \
  && ./autogen.sh \
  && ./configure \
- && make -j 4
- && mkdir /vs
- && mkdir /buckets
+ && make -j 4 \
+ && mkdir /vs \
+ && mkdir /buckets \
  && mkdir /tmp
 
 VOLUME /vs

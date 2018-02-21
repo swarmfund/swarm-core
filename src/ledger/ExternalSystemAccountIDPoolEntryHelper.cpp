@@ -3,7 +3,7 @@
 #include "database/Database.h"
 #include "LedgerDelta.h"
 #include "ledger/LedgerManager.h"
-#include "ledger/ExternalSystemAccountIDProviderHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "lib/util/format.h"
 #include "xdrpp/printer.h"
 
@@ -14,24 +14,17 @@ namespace stellar
 {
 using xdr::operator<;
 
-    const char* ExternalSystemAccountIDProviderHelper::select = "SELECT * FROM external_system_account_id_pool";
+    const char* ExternalSystemAccountIDPoolEntryHelper::select = "SELECT * FROM external_system_account_id_pool";
 
-    void ExternalSystemAccountIDProviderHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
+    void ExternalSystemAccountIDPoolEntryHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
                                                                   LedgerEntry const &entry)
     {
-        auto providerFrame = make_shared<ExternalSystemAccountIDProviderFrame>(entry);
-        auto providerEntry = providerFrame->getExternalSystemAccountIDProvider();
+        auto poolEntryFrame = make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
+        auto poolEntry = poolEntryFrame->getExternalSystemAccountIDPoolEntry();
 
-        providerFrame->touch(delta);
+        poolEntryFrame->touch(delta);
 
-        bool isValid = providerFrame->isValid();
-        if (!isValid)
-        {
-            CLOG(ERROR, Logging::ENTRY_LOGGER)
-                    << "Unexpected state: trying to insert/update invalid external system account id provider: "
-                    << xdr::xdr_to_string(providerEntry);
-            throw runtime_error("Unexpected state: invalid external system account id provider");
-        }
+        poolEntryFrame->ensureValid();
 
         string sql;
 
@@ -52,21 +45,21 @@ using xdr::operator<;
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        st.exchange(use(providerEntry.providerID, "id"));
-        st.exchange(use(providerEntry.externalSystemType, "ex_sys_type"));
-        st.exchange(use(providerEntry.data, "data"));
+        st.exchange(use(poolEntry.poolEntryID, "id"));
+        st.exchange(use(poolEntry.externalSystemType, "ex_sys_type"));
+        st.exchange(use(poolEntry.data, "data"));
 
         std::string actIDStrKey;
-        if(providerEntry.accountID)
+        if(poolEntry.accountID)
         {
-            actIDStrKey = PubKeyUtils::toStrKey(*providerEntry.accountID);
+            actIDStrKey = PubKeyUtils::toStrKey(*poolEntry.accountID);
         }
         st.exchange(use(actIDStrKey, "acc_id"));
 
-        st.exchange(use(providerEntry.expiresAt, "exp_at"));
-        st.exchange(use(providerFrame->mEntry.lastModifiedLedgerSeq, "lm"));
+        st.exchange(use(poolEntry.expiresAt, "exp_at"));
+        st.exchange(use(poolEntryFrame->mEntry.lastModifiedLedgerSeq, "lm"));
 
-        const auto version = static_cast<int32_t>(providerEntry.ext.v());
+        const auto version = static_cast<int32_t>(poolEntry.ext.v());
         st.exchange(use(version, "v"));
         st.define_and_bind();
 
@@ -81,38 +74,38 @@ using xdr::operator<;
 
         if (insert)
         {
-            delta.addEntry(*providerFrame);
+            delta.addEntry(*poolEntryFrame);
         }
         else
         {
-            delta.modEntry(*providerFrame);
+            delta.modEntry(*poolEntryFrame);
         }
     }
 
-    void ExternalSystemAccountIDProviderHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
+    void ExternalSystemAccountIDPoolEntryHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
     {
         return storeUpdateHelper(delta, db, true, entry);
     }
 
-    void ExternalSystemAccountIDProviderHelper::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
+    void ExternalSystemAccountIDPoolEntryHelper::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
     {
         return storeUpdateHelper(delta, db, false, entry);
     }
 
-    void ExternalSystemAccountIDProviderHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key)
+    void ExternalSystemAccountIDPoolEntryHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key)
     {
         auto timer = db.getDeleteTimer("external_system_account_id_pool");
         auto prep = db.getPreparedStatement("DELETE FROM external_system_account_id_pool WHERE id = :id");
         auto& st = prep.statement();
-        const auto &provider = key.externalSystemAccountIDProvider();
-        st.exchange(use(provider.providerID, "id"));
+        const auto &poolEntry = key.externalSystemAccountIDPoolEntry();
+        st.exchange(use(poolEntry.poolEntryID, "id"));
         st.define_and_bind();
         st.execute(true);
         delta.deleteEntry(key);
     }
 
     void
-    ExternalSystemAccountIDProviderHelper::dropAll(Database &db)
+    ExternalSystemAccountIDPoolEntryHelper::dropAll(Database &db)
     {
         db.getSession() << "DROP TABLE IF EXISTS external_system_account_id_pool;";
         db.getSession() << "CREATE TABLE external_system_account_id_pool"
@@ -120,7 +113,7 @@ using xdr::operator<;
             "id                   BIGINT      NOT NULL CHECK (id >= 0),"
             "external_system_type INT         NOT NULL,"
             "data                 TEXT        NOT NULL,"
-            "account_id           VARCHAR(56),"
+            "account_id           VARCHAR(56) NOT NULL,"
             "expires_at           BIGINT      NOT NULL,"
             "lastmodified         INT         NOT NULL, "
             "version              INT         NOT NULL DEFAULT 0,"
@@ -128,20 +121,20 @@ using xdr::operator<;
             ");";
     }
 
-    bool ExternalSystemAccountIDProviderHelper::exists(Database &db, LedgerKey const &key)
+    bool ExternalSystemAccountIDPoolEntryHelper::exists(Database &db, LedgerKey const &key)
     {
-        auto const &provider = key.externalSystemAccountIDProvider();
-        return exists(db, provider.providerID);
+        auto const &poolEntry = key.externalSystemAccountIDPoolEntry();
+        return exists(db, poolEntry.poolEntryID);
     }
 
-    bool ExternalSystemAccountIDProviderHelper::exists(Database &db, uint64_t providerID)
+    bool ExternalSystemAccountIDPoolEntryHelper::exists(Database &db, uint64_t poolEntryID)
     {
         int exists = 0;
         auto timer = db.getSelectTimer("external_system_account_id_pool-exists");
         auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM external_system_account_id_pool WHERE "
                                             "id = :id)");
         auto& st = prep.statement();
-        st.exchange(use(providerID, "id"));
+        st.exchange(use(poolEntryID, "id"));
         st.exchange(into(exists));
         st.define_and_bind();
         st.execute(true);
@@ -150,48 +143,48 @@ using xdr::operator<;
     }
 
     LedgerKey
-    ExternalSystemAccountIDProviderHelper::getLedgerKey(LedgerEntry const &from)
+    ExternalSystemAccountIDPoolEntryHelper::getLedgerKey(LedgerEntry const &from)
     {
         LedgerKey ledgerKey;
         ledgerKey.type(from.data.type());
-        ledgerKey.externalSystemAccountIDProvider().providerID = from.data.externalSystemAccountIDProvider().providerID;
+        ledgerKey.externalSystemAccountIDPoolEntry().poolEntryID = from.data.externalSystemAccountIDPoolEntry().poolEntryID;
         return ledgerKey;
     }
 
     EntryFrame::pointer
-    ExternalSystemAccountIDProviderHelper::storeLoad(LedgerKey const &key, Database &db)
+    ExternalSystemAccountIDPoolEntryHelper::storeLoad(LedgerKey const &key, Database &db)
     {
-        auto const &provider = key.externalSystemAccountIDProvider();
-        return load(provider.providerID, db);
+        auto const &poolEntry = key.externalSystemAccountIDPoolEntry();
+        return load(poolEntry.poolEntryID, db);
     }
 
     EntryFrame::pointer
-    ExternalSystemAccountIDProviderHelper::fromXDR(LedgerEntry const &from)
+    ExternalSystemAccountIDPoolEntryHelper::fromXDR(LedgerEntry const &from)
     {
-        return std::make_shared<ExternalSystemAccountIDProviderFrame>(from);
+        return std::make_shared<ExternalSystemAccountIDPoolEntryFrame>(from);
     }
 
-    uint64_t ExternalSystemAccountIDProviderHelper::countObjects(soci::session &sess)
+    uint64_t ExternalSystemAccountIDPoolEntryHelper::countObjects(soci::session &sess)
     {
         uint64_t count = 0;
         sess << "SELECT COUNT(*) FROM external_system_account_id_pool;", into(count);
         return count;
     }
 
-    ExternalSystemAccountIDProviderFrame::pointer
-    ExternalSystemAccountIDProviderHelper::load(uint64_t providerID, Database &db, LedgerDelta *delta)
+    ExternalSystemAccountIDPoolEntryFrame::pointer
+    ExternalSystemAccountIDPoolEntryHelper::load(uint64_t poolEntryID, Database &db, LedgerDelta *delta)
     {
         string sql = select;
         sql += +" WHERE id = :id";
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
-        st.exchange(use(providerID, "id"));
+        st.exchange(use(poolEntryID, "id"));
 
-        ExternalSystemAccountIDProviderFrame::pointer result;
+        ExternalSystemAccountIDPoolEntryFrame::pointer result;
         auto timer = db.getSelectTimer("external_system_account_id_pool");
         load(prep, [&result](LedgerEntry const& entry)
         {
-            result = make_shared<ExternalSystemAccountIDProviderFrame>(entry);
+            result = make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
         });
 
         if (!result)
@@ -207,8 +200,8 @@ using xdr::operator<;
         return result;
     }
 
-    ExternalSystemAccountIDProviderFrame::pointer
-    ExternalSystemAccountIDProviderHelper::load(ExternalSystemType type, std::string const data, Database &db,
+    ExternalSystemAccountIDPoolEntryFrame::pointer
+    ExternalSystemAccountIDPoolEntryHelper::load(ExternalSystemType type, std::string const data, Database &db,
                                                 LedgerDelta *delta)
     {
         string sql = select;
@@ -218,11 +211,11 @@ using xdr::operator<;
         st.exchange(use(type, "ex_sys_type"));
         st.exchange(use(data, "data"));
 
-        ExternalSystemAccountIDProviderFrame::pointer result;
+        ExternalSystemAccountIDPoolEntryFrame::pointer result;
         auto timer = db.getSelectTimer("external_system_account_id_pool");
         load(prep, [&result](LedgerEntry const& entry)
         {
-            result = make_shared<ExternalSystemAccountIDProviderFrame>(entry);
+            result = make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
         });
 
         if (!result)
@@ -238,17 +231,17 @@ using xdr::operator<;
         return result;
     }
 
-    void ExternalSystemAccountIDProviderHelper::load(StatementContext &prep,
+    void ExternalSystemAccountIDPoolEntryHelper::load(StatementContext &prep,
                                                      std::function<void(LedgerEntry const &)> processor)
     {
         LedgerEntry le;
-        le.data.type(LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_PROVIDER);
-        auto& p = le.data.externalSystemAccountIDProvider();
+        le.data.type(LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY);
+        auto& p = le.data.externalSystemAccountIDPoolEntry();
         int version;
         std::string actIDStrKey;
 
         statement& st = prep.statement();
-        st.exchange(into(p.providerID));
+        st.exchange(into(p.poolEntryID));
         st.exchange(into(p.externalSystemType));
         st.exchange(into(p.data));
         st.exchange(into(actIDStrKey));
@@ -267,31 +260,23 @@ using xdr::operator<;
                 p.accountID.activate() = PubKeyUtils::fromStrKey(actIDStrKey);
             }
 
-            bool isValid = ExternalSystemAccountIDProviderFrame::isValid(p);
-            if (!isValid)
-            {
-                CLOG(ERROR, Logging::ENTRY_LOGGER)
-                        << "Unexpected state: loaded invalid external system account id provider: "
-                        << xdr::xdr_to_string(p);
-                throw runtime_error("Loaded invalid external system account id provider");
-            }
-
+            ExternalSystemAccountIDPoolEntryFrame::ensureValid(p);
             processor(le);
             st.fetch();
         }
     }
 
-    std::vector<ExternalSystemAccountIDProviderFrame::pointer>
-    ExternalSystemAccountIDProviderHelper::loadPool(Database &db)
+    std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer>
+    ExternalSystemAccountIDPoolEntryHelper::loadPool(Database &db)
     {
-        std::vector<ExternalSystemAccountIDProviderFrame::pointer> retPool;
+        std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> retPool;
         std::string sql = select;
         auto prep = db.getPreparedStatement(sql);
 
         auto timer = db.getSelectTimer("external system account id pool");
         load(prep, [&retPool](LedgerEntry const& of)
         {
-            retPool.emplace_back(make_shared<ExternalSystemAccountIDProviderFrame>(of));
+            retPool.emplace_back(make_shared<ExternalSystemAccountIDPoolEntryFrame>(of));
         });
         return retPool;
     }

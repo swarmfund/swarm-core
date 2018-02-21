@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ledger/EntryHelper.h"
-#include "ledger/ExternalSystemAccountIDProvider.h"
+#include "ledger/ExternalSystemAccountIDPoolEntry.h"
 
 namespace soci
 {
@@ -12,13 +12,13 @@ namespace stellar
 {
     class StatementContext;
 
-    class ExternalSystemAccountIDProviderHelper : public EntryHelper {
+    class ExternalSystemAccountIDPoolEntryHelper : public EntryHelper {
     public:
-        ExternalSystemAccountIDProviderHelper(ExternalSystemAccountIDProviderHelper const&) = delete;
-        ExternalSystemAccountIDProviderHelper& operator=(ExternalSystemAccountIDProviderHelper const&) = delete;
+        ExternalSystemAccountIDPoolEntryHelper(ExternalSystemAccountIDPoolEntryHelper const&) = delete;
+        ExternalSystemAccountIDPoolEntryHelper& operator=(ExternalSystemAccountIDPoolEntryHelper const&) = delete;
 
-        static ExternalSystemAccountIDProviderHelper * Instance() {
-            static ExternalSystemAccountIDProviderHelper singleton;
+        static ExternalSystemAccountIDPoolEntryHelper * Instance() {
+            static ExternalSystemAccountIDPoolEntryHelper singleton;
             return &singleton;
         }
 
@@ -32,19 +32,19 @@ namespace stellar
         EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
         uint64_t countObjects(soci::session& sess) override;
 
-        bool exists(Database& db, uint64_t providerID);
+        bool exists(Database& db, uint64_t poolEntryID);
 
-        ExternalSystemAccountIDProviderFrame::pointer load(uint64_t providerID, Database& db,
+        ExternalSystemAccountIDPoolEntryFrame::pointer load(uint64_t poolEntryID, Database& db,
                                                            LedgerDelta* delta = nullptr);
 
-        ExternalSystemAccountIDProviderFrame::pointer load(ExternalSystemType type, std::string data,
+        ExternalSystemAccountIDPoolEntryFrame::pointer load(ExternalSystemType type, std::string data,
                                                            Database& db, LedgerDelta* delta = nullptr);
 
-        std::vector<ExternalSystemAccountIDProviderFrame::pointer> loadPool(Database& db);
+        std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> loadPool(Database& db);
 
     private:
-        ExternalSystemAccountIDProviderHelper() { ; }
-        ~ExternalSystemAccountIDProviderHelper() { ; }
+        ExternalSystemAccountIDPoolEntryHelper() { ; }
+        ~ExternalSystemAccountIDPoolEntryHelper() { ; }
 
         static const char* select;
 

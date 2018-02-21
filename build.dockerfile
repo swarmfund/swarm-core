@@ -35,9 +35,9 @@ RUN true \
  && ./autogen.sh \
  && ./configure \
  && make -j 4 \
- && mkdir /vs \
- && mkdir /buckets
+ && mkdir /data \
+ && chmod +x ./run.docker
 
-VOLUME /vs
+VOLUME /data
 
 ENTRYPOINT ["./run.docker"]

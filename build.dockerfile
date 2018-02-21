@@ -40,4 +40,4 @@ RUN true \
 
 VOLUME /vs
 
-ENTRYPOINT ["./src/stellar-core"]
+ENTRYPOINT ["./run.docker"]

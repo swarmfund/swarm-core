@@ -242,4 +242,18 @@ namespace stellar
 		}
 	}
 
+	std::vector<ExternalSystemAccountIDFrame::pointer>
+	ExternalSystemAccountIDHelper::loadAll(Database &db)
+	{
+		std::vector<ExternalSystemAccountIDFrame::pointer> retExternalSystemAccountIDs;
+		std::string sql = select;
+		auto prep = db.getPreparedStatement(sql);
+
+		auto timer = db.getSelectTimer("external system account id");
+		load(prep, [&retExternalSystemAccountIDs](LedgerEntry const& of)
+		{
+			retExternalSystemAccountIDs.emplace_back(make_shared<ExternalSystemAccountIDFrame>(of));
+		});
+		return retExternalSystemAccountIDs;
+	}
 }

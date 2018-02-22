@@ -36,6 +36,8 @@ namespace stellar
 
 		bool exists(Database& db, AccountID accountID, ExternalSystemType externalSystemType);
 
+        std::vector<ExternalSystemAccountIDFrame::pointer> loadAll(Database& db);
+
 		// load - loads external system account ID by accountID and externalSystemType. If not found returns nullptr.
 		ExternalSystemAccountIDFrame::pointer
 			load(const AccountID accountID, const ExternalSystemType externalSystemType, Database& db, LedgerDelta* delta = nullptr);

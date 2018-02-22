@@ -33,12 +33,16 @@ namespace stellar
         uint64_t countObjects(soci::session& sess) override;
 
         bool exists(Database& db, uint64_t poolEntryID);
+        bool existsForAccount(Database& db, ExternalSystemType externalSystemType, AccountID accountID);
 
         ExternalSystemAccountIDPoolEntryFrame::pointer load(uint64_t poolEntryID, Database& db,
                                                            LedgerDelta* delta = nullptr);
 
         ExternalSystemAccountIDPoolEntryFrame::pointer load(ExternalSystemType type, std::string data,
                                                            Database& db, LedgerDelta* delta = nullptr);
+
+        std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> loadAvailablePoolEntries(Database &db,
+                                                                                             ExternalSystemType externalSystemType);
 
         std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> loadPool(Database& db);
 

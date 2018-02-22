@@ -39,6 +39,11 @@ public:
         return mExternalSystemAccountIDPoolEntry;
     }
 
+    ExternalSystemAccountIDPoolEntry& getExternalSystemAccountIDPoolEntry()
+    {
+        return mExternalSystemAccountIDPoolEntry;
+    }
+
     static void ensureValid(ExternalSystemAccountIDPoolEntry const& p);
     void ensureValid() const;
 };

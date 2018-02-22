@@ -130,11 +130,30 @@ using xdr::operator<;
     bool ExternalSystemAccountIDPoolEntryHelper::exists(Database &db, uint64_t poolEntryID)
     {
         int exists = 0;
-        auto timer = db.getSelectTimer("external_system_account_id_pool-exists");
+        auto timer = db.getSelectTimer("external_system_account_id_pool_exists");
         auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM external_system_account_id_pool WHERE "
                                             "id = :id)");
         auto& st = prep.statement();
         st.exchange(use(poolEntryID, "id"));
+        st.exchange(into(exists));
+        st.define_and_bind();
+        st.execute(true);
+
+        return exists != 0;
+    }
+
+    bool ExternalSystemAccountIDPoolEntryHelper::existsForAccount(Database &db, ExternalSystemType externalSystemType,
+                                                        AccountID accountID) {
+        int exists = 0;
+        auto timer = db.getSelectTimer("external_system_account_id_pool_exists");
+        auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM external_system_account_id_pool WHERE "
+                                                    "external_system_type = :ex_sys_type AND account_id = :aid)");
+        auto& st = prep.statement();
+        st.exchange(use(externalSystemType, "ex_sys_type"));
+
+        string actIDStrKey = PubKeyUtils::toStrKey(accountID);
+        st.exchange(use(actIDStrKey, "aid"));
+
         st.exchange(into(exists));
         st.define_and_bind();
         st.execute(true);
@@ -264,6 +283,24 @@ using xdr::operator<;
             processor(le);
             st.fetch();
         }
+    }
+
+    std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer>
+    ExternalSystemAccountIDPoolEntryHelper::loadAvailablePoolEntries(Database &db, ExternalSystemType externalSystemType)
+    {
+        string sql = select;
+        sql += " WHERE external_system_type = :ex_sys_type AND account_id = '' ORDER BY id";
+        auto prep = db.getPreparedStatement(sql);
+        auto& st = prep.statement();
+        st.exchange(use(externalSystemType, "ex_sys_type"));
+
+        std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> retPoolEntries;
+        auto timer = db.getSelectTimer("external system account id pool");
+        load(prep, [&retPoolEntries](LedgerEntry const& of)
+        {
+           retPoolEntries.emplace_back(make_shared<ExternalSystemAccountIDPoolEntryFrame>(of));
+        });
+        return retPoolEntries;
     }
 
     std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer>

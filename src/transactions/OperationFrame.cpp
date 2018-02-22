@@ -33,6 +33,7 @@
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
+#include "transactions/BindExternalSystemAccountIdOpFrame.h"
 
 #include "database/Database.h"
 
@@ -91,8 +92,10 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::CHECK_SALE_STATE:
         return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
-    case OperationType ::MANAGE_EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
+    case OperationType::MANAGE_EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
         return shared_ptr<OperationFrame>(ManageExternalSystemAccountIdPoolEntryOpFrame::makeHelper(op, res, tx));
+    case OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID:
+        return shared_ptr<OperationFrame>(new BindExternalSystemAccountIdOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

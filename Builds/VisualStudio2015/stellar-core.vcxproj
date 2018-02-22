@@ -355,6 +355,7 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\test\AccountManagerTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CreateAccountTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\CrowdfundTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\DirectDebitTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\FlexibleFeesTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\ManageAccountTests.cpp" />

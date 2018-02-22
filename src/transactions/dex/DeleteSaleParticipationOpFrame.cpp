@@ -10,6 +10,7 @@
 #include "ledger/OfferHelper.h"
 #include "CreateSaleParticipationOpFrame.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/AccountHelper.h"
 
 namespace stellar
 {
@@ -19,6 +20,7 @@ using xdr::operator==;
 DeleteSaleParticipationOpFrame::DeleteSaleParticipationOpFrame(
     Operation const& op, OperationResult& res, TransactionFrame& parentTx) : DeleteOfferOpFrame(op, res, parentTx)
 {
+    mCheckSaleState = true;
 }
 
 bool DeleteSaleParticipationOpFrame::doCheckValid(Application& app)
@@ -56,7 +58,7 @@ bool DeleteSaleParticipationOpFrame::doApply(Application& app,
         return false;
     }
 
-    if (CreateSaleParticipationOpFrame::getSaleState(sale, db, ledgerManager.getCloseTime()) != SaleFrame::State::ACTIVE)
+    if (mCheckSaleState && CreateSaleParticipationOpFrame::getSaleState(sale, db, ledgerManager.getCloseTime()) != SaleFrame::State::ACTIVE)
     {
         innerResult().code(ManageOfferResultCode::SALE_IS_NOT_ACTIVE);
         return false;
@@ -69,4 +71,41 @@ bool DeleteSaleParticipationOpFrame::doApply(Application& app,
     return DeleteOfferOpFrame::doApply(app, delta, ledgerManager);
 }
 
+void DeleteSaleParticipationOpFrame::deleteSaleParticipation(
+    Application& app, LedgerDelta& delta, LedgerManager& ledgerManager,
+    OfferFrame::pointer offer, TransactionFrame& parentTx)
+{
+    Database& db = app.getDatabase();
+    Operation op;
+    auto& offerEntry = offer->getOffer();
+    op.sourceAccount.activate() = offerEntry.ownerID;
+    op.body.type(OperationType::MANAGE_OFFER);
+    auto& manageOfferOp = op.body.manageOfferOp();
+    manageOfferOp.quoteBalance = offerEntry.quoteBalance;
+    manageOfferOp.amount = 0;
+    manageOfferOp.baseBalance = offerEntry.baseBalance;
+    manageOfferOp.fee = offerEntry.fee;
+    manageOfferOp.isBuy = offerEntry.isBuy;
+    manageOfferOp.offerID = offerEntry.offerID;
+    manageOfferOp.orderBookID = offerEntry.orderBookID;
+    manageOfferOp.price = offerEntry.price;
+
+    OperationResult opRes;
+    opRes.code(OperationResultCode::opINNER);
+    opRes.tr().type(OperationType::MANAGE_OFFER);
+    DeleteSaleParticipationOpFrame opFrame(op, opRes, parentTx);
+    opFrame.doNotCheckSaleState();
+    const auto offerOwner = AccountHelper::Instance()->mustLoadAccount(offerEntry.ownerID, db);
+    opFrame.setSourceAccountPtr(offerOwner);
+    if (!opFrame.doCheckValid(app) || !opFrame.doApply(app, delta, ledgerManager))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to apply delete sale participation: offerID" << offer->getOfferID();
+        throw runtime_error("Unexpected state: failed to apply delete sale participation");
+    }
+}
+
+void DeleteSaleParticipationOpFrame::doNotCheckSaleState()
+{
+    mCheckSaleState = false;
+}
 }

@@ -50,6 +50,7 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     }
 
     // TODO: at current stage we do not allow to issue tokens before the sale. Must be fixed
+    // If you are fixing this make sure to apply fix to check sale state when we are unlocking pendingIssuance amount
     const uint64_t requiredBaseAssetForHardCap = baseAsset->getMaxIssuanceAmount();
     if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
     {

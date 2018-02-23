@@ -19,7 +19,6 @@ namespace stellar {
                 "sender       VARCHAR(64) NOT NULL,"
                 "reference    VARCHAR(64) NOT NULL,"
                 "lastmodified INT         NOT NULL,"
-                "version	  INT 		  NOT NULL	DEFAULT 0,"
                 "PRIMARY KEY (sender, reference)"
                 ");";
     }
@@ -193,4 +192,9 @@ namespace stellar {
 
         return retReference;
     }
+
+void ReferenceHelper::addVersion(Database& db)
+{
+    db.getSession() << "ALTER TABLE reference ADD COLUMN version INT NOT NULL DEFAULT 0";
+}
 }

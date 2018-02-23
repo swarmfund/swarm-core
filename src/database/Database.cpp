@@ -46,6 +46,7 @@
 #include <vector>
 #include <sstream>
 #include <thread>
+#include "ledger/SaleHelper.h"
 
 extern "C" void register_factory_sqlite3();
 
@@ -68,9 +69,10 @@ enum databaseSchemaVersion : unsigned long {
 	DROP_SCP = 2,
 	INITIAL = 3,
 	DROP_BAN = 4,
+        ADD_SALE_TYPE = 5
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::DROP_BAN;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_SALE_TYPE;
 
 static void
 setSerializable(soci::session& sess)
@@ -135,6 +137,9 @@ Database::applySchemaUpgrade(unsigned long vers)
 	case databaseSchemaVersion::DROP_BAN:
         BanManager::dropAll(*this);
         break;
+        case ADD_SALE_TYPE:
+            SaleHelper::Instance()->addType(*this);
+            break;
     default:
         throw std::runtime_error("Unknown DB schema version");
         break;

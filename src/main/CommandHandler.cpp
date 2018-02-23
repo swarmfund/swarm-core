@@ -432,6 +432,7 @@ CommandHandler::info(std::string const& params, std::string& retStr)
         info["UNSAFE_QUORUM"] = "UNSAFE QUORUM ALLOWED";
     info["build"] = STELLAR_CORE_VERSION;
     info["protocol_version"] = mApp.getConfig().LEDGER_PROTOCOL_VERSION;
+    info["ledger_version"] = lm.getLastClosedLedgerHeader().header.ledgerVersion;
     info["tx_expiration_period"] = Json::UInt64(lm.getTxExpirationPeriod()
         - mApp.getConfig().TX_EXPIRATION_PERIOD_WINDOW);
     info["withdrawal_details_max_length"] = Json::Int64(mApp.getWithdrawalDetailsMaxLength());

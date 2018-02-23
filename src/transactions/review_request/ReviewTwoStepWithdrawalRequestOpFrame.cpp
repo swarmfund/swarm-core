@@ -57,12 +57,19 @@ bool ReviewTwoStepWithdrawalRequestOpFrame::handleReject(
 }
 
 SourceDetails ReviewTwoStepWithdrawalRequestOpFrame::getSourceAccountDetails(
-    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
+    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion)
 const
 {
+    auto allowedSigners = static_cast<int32_t>(SignerType::ASSET_MANAGER);
+
+    auto newSingersVersion = static_cast<int32_t>(LedgerVersion::NEW_SIGNER_TYPES);
+    if (ledgerVersion >= newSingersVersion)
+    {
+        allowedSigners = static_cast<int32_t>(SignerType::WITHDRAW_MANAGER);
+    }
+
     return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE},
-                         mSourceAccount->getHighThreshold(),
-                         static_cast<int32_t>(SignerType::ASSET_MANAGER));
+                         mSourceAccount->getHighThreshold(), allowedSigners);
 }
 
 uint64_t ReviewTwoStepWithdrawalRequestOpFrame::getTotalFee(const uint64_t requestID, WithdrawalRequest& withdrawRequest)

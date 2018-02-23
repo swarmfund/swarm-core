@@ -900,6 +900,12 @@
     <ClCompile Include="..\..\src\ledger\SaleQuoteAssetHelper.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\CrowdfundTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1762,6 +1768,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\ledger\SaleQuoteAssetHelper.h">
       <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

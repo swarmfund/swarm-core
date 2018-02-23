@@ -34,6 +34,10 @@ private:
     KeyEntryMap mNew;
     KeyEntryMap mMod;
     std::set<LedgerKey, LedgerEntryIdCmp> mDelete;
+
+    // all created/changed ledger entries:
+    LedgerEntryChanges mAllChanges;
+
     KeyEntryMap mPrevious;
 
     Database& mDb; // Used strictly for rollback of db entry cache.
@@ -92,6 +96,7 @@ private:
     std::vector<LedgerKey> getDeadEntries() const;
 
     LedgerEntryChanges getChanges() const;
+    LedgerEntryChanges getAllChanges() const;
 
     // performs sanity checks against the local state
     void checkAgainstDatabase(Application& app) const;

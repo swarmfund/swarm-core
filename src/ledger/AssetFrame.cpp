@@ -107,7 +107,7 @@ bool AssetFrame::canAddAvailableForIssuance(uint64_t amount)
                  maxAmountCanBeIssuedAfterUpdate))
         return false;
 
-    return maxAmountCanBeIssuedAfterUpdate < mAsset.maxIssuanceAmount;
+    return maxAmountCanBeIssuedAfterUpdate <= mAsset.maxIssuanceAmount;
 }
 
 bool AssetFrame::tryAddAvailableForIssuance(uint64_t amount)

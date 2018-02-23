@@ -34,7 +34,7 @@ namespace stellar
 			static AccountHelper singleton;
 			return &singleton;
 		}
-
+		void addKYCLevel(Database& db);
 		void dropAll(Database& db) override;
 
 		void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;

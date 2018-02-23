@@ -11,6 +11,7 @@
 #include "xdrpp/printer.h"
 #include "crypto/SHA.h"
 #include "SaleFrame.h"
+#include "util/types.h"
 
 using namespace soci;
 using namespace std;
@@ -151,13 +152,17 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     saleFrame->ensureValid();
 }
 
-void ReviewableRequestFrame::ensureUpdateKYCValid(UpdateKYCRequest const &request)
-{
-    Json::Value root;
-    Json::Reader reader;
+void ReviewableRequestFrame::ensureChangeKYCValid(ChangeKYCRequest const& request) {
+	Json::Value root;
+	Json::Reader reader;
 
-    if (!reader.parse(request.dataKYC, root, false))
-        throw std::runtime_error("dataKYC is invalid");
+	if (!reader.parse(request.kycData, root, false)) {
+		throw std::runtime_error("KYC data is invalid");
+	}
+	bool res = isValidEnumValue(request.accountTypeToSet);
+	if (!res) {
+		throw runtime_error("invalid account type");
+	}
 }
 
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
@@ -191,11 +196,11 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::SALE:
             ensureSaleCreationValid(oe.body.saleCreationRequest());
             return;
-        case ReviewableRequestType::UPDATE_KYC:
-            ensureUpdateKYCValid(oe.body.updateKYCRequest());
-            return;
+		case ReviewableRequestType::CHANGE_KYC:
+			ensureChangeKYCValid(oe.body.changeKYCRequest());
+			return;
         default:
-            throw runtime_error("Unexpected reviewable request typw");
+            throw runtime_error("Unexpected reviewable request type");
         }
     } catch(exception ex)
     {

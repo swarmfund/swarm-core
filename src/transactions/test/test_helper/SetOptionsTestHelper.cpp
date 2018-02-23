@@ -21,8 +21,7 @@ namespace txtest
     }
 
     TransactionFramePtr
-    SetOptionsTestHelper::createSetOptionsTx(Account &source, ThresholdSetter *thresholds, Signer *signer, TrustData *trustData,
-                                                 UpdateKYCData *updateKYCData)
+    SetOptionsTestHelper::createSetOptionsTx(Account &source, ThresholdSetter *thresholds, Signer *signer, TrustData *trustData)
     {
         Operation op;
         op.body.type(OperationType::SET_OPTIONS);
@@ -54,18 +53,16 @@ namespace txtest
         if (trustData)
             setOptions.trustData.activate() = *trustData;
 
-        if (updateKYCData)
-            setOptions.updateKYCData.activate() = *updateKYCData;
 
         return txFromOperation(source, op);
     }
 
     SetOptionsResult
     SetOptionsTestHelper::applySetOptionsTx(Account &source, ThresholdSetter *thresholds, Signer *signer,
-                                            TrustData *trustData, UpdateKYCData* updateKYCData,
+                                            TrustData *trustData,
                                             SetOptionsResultCode expectedResult)
     {
-        TransactionFramePtr txFrame = createSetOptionsTx(source, thresholds, signer, trustData, updateKYCData);
+        TransactionFramePtr txFrame = createSetOptionsTx(source, thresholds, signer, trustData);
 
         mTestManager->applyCheck(txFrame);
 

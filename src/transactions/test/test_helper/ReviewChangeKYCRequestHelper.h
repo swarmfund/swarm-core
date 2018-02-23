@@ -15,7 +15,6 @@ namespace txtest
     class ReviewKYCRequestChecker : public ReviewChecker
     {
     private:
-        std::shared_ptr<UpdateKYCRequest> updateKYCRequest;
         AccountFrame::pointer accountBeforeTx;
     public:
         explicit ReviewKYCRequestChecker(TestManager::pointer, uint64_t requestID);

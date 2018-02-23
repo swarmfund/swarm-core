@@ -29,9 +29,10 @@ class ReviewableRequestFrame : public EntryFrame
 	static void ensureAssetUpdateValid(AssetUpdateRequest const& request);
 	static void ensurePreIssuanceValid(PreIssuanceRequest const& request);
 	static void ensureIssuanceValid(IssuanceRequest const& request);
-        static void ensureWithdrawalValid(WithdrawalRequest const& request);
-        static void ensureSaleCreationValid(SaleCreationRequest const& request);
-    static void ensureUpdateKYCValid(UpdateKYCRequest const& request);
+    static void ensureWithdrawalValid(WithdrawalRequest const& request);
+    static void ensureSaleCreationValid(SaleCreationRequest const& request);
+	static void ensureChangeKYCValid(ChangeKYCRequest const& request);
+ 
 
   public:
     typedef std::shared_ptr<ReviewableRequestFrame> pointer;

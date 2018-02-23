@@ -25,11 +25,10 @@ namespace txtest
 
         explicit SetOptionsTestHelper(TestManager::pointer testManager);
 
-        TransactionFramePtr createSetOptionsTx(Account &source, ThresholdSetter *thresholds, Signer *signer, TrustData *trustData,
-                                                       UpdateKYCData *updateKYCData);
+        TransactionFramePtr createSetOptionsTx(Account &source, ThresholdSetter *thresholds, Signer *signer, TrustData *trustData);
 
         SetOptionsResult applySetOptionsTx(Account &source, ThresholdSetter *thresholds, Signer *signer,
-                                               TrustData *trustData, UpdateKYCData* updateKYCData,
+                                               TrustData *trustData,
                                                SetOptionsResultCode expectedResult = SetOptionsResultCode::SUCCESS);
     };
 

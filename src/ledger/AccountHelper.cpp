@@ -39,22 +39,23 @@ namespace stellar
 
 		int32_t newAccountVersion = static_cast<int32_t>(accountFrame->getAccount().ext.v());
 		int32_t newAccountPolicies = accountFrame->getPolicies();
-
+		//set kyc level
+		uint32 kycLevel = accountFrame->getKYCLevel();
 		std::string sql;
-
+		
 		if (insert)
 		{
 			sql = std::string(
 				"INSERT INTO accounts (accountid, thresholds, lastmodified, account_type, block_reasons,"
-				"referrer, policies, version) "
-				"VALUES (:id, :th, :lm, :type, :br, :ref, :p, :v)");
+				"referrer, policies, kyc_level, version) "
+				"VALUES (:id, :th, :lm, :type, :br, :ref, :p, :kyc, :v)");
 		}
 		else
 		{
 			sql = std::string(
 				"UPDATE accounts "
 				"SET    thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
-				"       referrer=:ref, policies=:p, version=:v "
+				"       referrer=:ref, policies=:p, kyc_level=:kyc, version=:v "
 				"WHERE  accountid=:id");
 		}
 
@@ -73,6 +74,7 @@ namespace stellar
 			st.exchange(use(accountEntry.blockReasons, "br"));
 			st.exchange(use(refIDStrKey, "ref"));
 			st.exchange(use(newAccountPolicies, "p"));
+			st.exchange(use(kycLevel, "lvl"));
 			st.exchange(use(newAccountVersion, "v"));
 
 			st.define_and_bind();
@@ -270,7 +272,10 @@ namespace stellar
 			throw std::runtime_error("Could not update data in SQL");
 		}
 	}
-
+	void 
+		AccountHelper::addKYCLevel(Database & db) {
+		db.getSession() << "ALTER TABLE accounts ADD kyc_level INT DEFAULT 0";
+	}
 	void
 	AccountHelper::dropAll(Database& db)
 	{
@@ -404,10 +409,11 @@ namespace stellar
 
 		int32 accountType;
 		uint32 accountPolicies;
+		uint32 kycLevel;
 		int32_t accountVersion;
 		auto prep =
 			db.getPreparedStatement("SELECT thresholds, lastmodified, account_type, block_reasons,"
-				"referrer, policies, version "
+				"referrer, policies, kyc_level, version "
 				"FROM   accounts "
 				"WHERE  accountid=:v1");
 		auto& st = prep.statement();
@@ -417,6 +423,7 @@ namespace stellar
 		st.exchange(into(account.blockReasons));
 		st.exchange(into(referrer));
 		st.exchange(into(accountPolicies));
+		st.exchange(into(kycLevel));
 		st.exchange(into(accountVersion));
 		st.exchange(use(actIDStrKey));
 		st.define_and_bind();
@@ -433,7 +440,7 @@ namespace stellar
 		account.accountType = AccountType(accountType);
 		account.ext.v((LedgerVersion)accountVersion);
 		account.policies = accountPolicies;
-
+		res->setKYCLevel(kycLevel);
 		if (referrer != "")
 			account.referrer.activate() = PubKeyUtils::fromStrKey(referrer);
 		bn::decode_b64(thresholds.begin(), thresholds.end(),

@@ -10,7 +10,6 @@
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
 #include <transactions/test/test_helper/ManageBalanceTestHelper.h>
 #include <lib/json/json.h>
-#include <transactions/test/test_helper/ReviewKYCRequestTestHelper.h>
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
 #include "main/test.h"
@@ -47,7 +46,7 @@ TEST_CASE("set options", "[tx][setoptions]")
     CreateAccountTestHelper createAccountTestHelper(testManager);
     ManageAssetTestHelper manageAssetTestHelper(testManager);
     ManageBalanceTestHelper manageBalanceTestHelper(testManager);
-    ReviewKYCRequestTestHelper reviewKYCRequestTestHelper(testManager);
+ 
 
     //create account if user
     Account user = Account{SecretKey::random(), Salt(0)};
@@ -69,7 +68,7 @@ TEST_CASE("set options", "[tx][setoptions]")
         SECTION("Can't use non account manager signer for master weight OR threshold or signer")
 		{
             //update thresholds
-            setOptionsTestHelper.applySetOptionsTx(user, &th, nullptr, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, &th, nullptr, nullptr);
 
             auto userAccount = AccountHelper::Instance()->mustLoadAccount(user.key.getPublicKey(), testManager->getDB());
             REQUIRE(userAccount->getHighThreshold() == *th.highThreshold);
@@ -80,14 +79,14 @@ TEST_CASE("set options", "[tx][setoptions]")
 
             Signer regularSigner(regularKP.getPublicKey(), userAccount->getHighThreshold(), signerType, 2, "", Signer::_ext_t{});
 
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regularSigner, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regularSigner, nullptr);
 
 			SECTION("Can't add new signer")
 			{
 				SecretKey newSignerKP = SecretKey::random();
                 Signer newSigner(newSignerKP.getPublicKey(), userAccount->getHighThreshold(), signerType, 2, "", Signer::_ext_t{});
 
-                auto tx = setOptionsTestHelper.createSetOptionsTx(user, nullptr, &newSigner, nullptr, nullptr);
+                auto tx = setOptionsTestHelper.createSetOptionsTx(user, nullptr, &newSigner, nullptr);
 
                 //signed only by regularSigner:
                 tx->getEnvelope().signatures.clear();
@@ -99,7 +98,7 @@ TEST_CASE("set options", "[tx][setoptions]")
 			}
 			SECTION("Can't change threshold")
 			{
-                auto tx = setOptionsTestHelper.createSetOptionsTx(user, &th, nullptr, nullptr, nullptr);
+                auto tx = setOptionsTestHelper.createSetOptionsTx(user, &th, nullptr, nullptr);
                 //signed only by regularSigner:
                 tx->getEnvelope().signatures.clear();
                 tx->addSignature(regularKP);
@@ -115,7 +114,7 @@ TEST_CASE("set options", "[tx][setoptions]")
         {
             Signer self(user.key.getPublicKey(), 100, signerType, 0, "", Signer::_ext_t{});
 
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &self, nullptr, nullptr, SetOptionsResultCode::BAD_SIGNER);
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &self, nullptr, SetOptionsResultCode::BAD_SIGNER);
         }
 
         SECTION("Can set and update signer name")
@@ -126,12 +125,12 @@ TEST_CASE("set options", "[tx][setoptions]")
 
 			std::string name = "Test signer name";
 			regular.name = name;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regular, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regular, nullptr);
 
 			//update signer name
 			name += "New";
 			regular.name = name;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regular, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regular, nullptr);
 		}
 
         SECTION("can not add Trust with same accountID")
@@ -141,7 +140,7 @@ TEST_CASE("set options", "[tx][setoptions]")
             trust.allowedAccount = user.key.getPublicKey();
             trust.balanceToUse = user.key.getPublicKey();
             trustData.trust = trust;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData, nullptr,
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData,
                                                    SetOptionsResultCode::TRUST_MALFORMED);
         }
 
@@ -156,7 +155,7 @@ TEST_CASE("set options", "[tx][setoptions]")
             trust.balanceToUse = SecretKey::random().getPublicKey();
             trustData.trust = trust;
 
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData, nullptr,
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData,
                                                    SetOptionsResultCode::BALANCE_NOT_FOUND);
         }
 
@@ -171,7 +170,7 @@ TEST_CASE("set options", "[tx][setoptions]")
             trust.balanceToUse = root.key.getPublicKey();
             trustData.trust = trust;
 
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData, nullptr,
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData,
                                                    SetOptionsResultCode::BALANCE_NOT_FOUND);
         }
 
@@ -197,7 +196,7 @@ TEST_CASE("set options", "[tx][setoptions]")
             trustData.trust = trust;
             trustData.action = ManageTrustAction::TRUST_ADD;
 
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData);
 
             REQUIRE(trustHelper->exists(app.getDatabase(),
                 trustAccount.getPublicKey(), balanceID));
@@ -205,7 +204,7 @@ TEST_CASE("set options", "[tx][setoptions]")
             SECTION("can delete")
             {
                 trustData.action = ManageTrustAction::TRUST_REMOVE;
-                setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData, nullptr);
+                setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData);
 
                 REQUIRE(!trustHelper->exists(app.getDatabase(),
                     trustAccount.getPublicKey(), balanceID));
@@ -239,108 +238,48 @@ TEST_CASE("set options", "[tx][setoptions]")
 
 
             // add signer
-            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr);
 			checkSigner(app, testSigner, 1, user.key);
 
 			// update weight
             testSigner.weight++;
-            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr);
 			checkSigner(app, testSigner, 1, user.key);
 
 			// update type
 			testSigner.signerType = static_cast<int32_t>(SignerType::ACCOUNT_MANAGER);
-            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr);
 			checkSigner(app, testSigner, 1, user.key);
 
 			// update identity
 			testSigner.identity++;
-            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr);
 			checkSigner(app, testSigner, 1, user.key);
 
             // add new signer
             SecretKey testSigner2KP = SecretKey::random();
             Signer testSigner2 = Signer(testSigner2KP.getPublicKey(), 100, getAnySignerType(), 2, "", Signer::_ext_t{});
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner2, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner2, nullptr);
 
 			checkSigner(app, testSigner, 2, user.key);
 			checkSigner(app, testSigner2, 2, user.key);
 
 			// remove signer 1
             testSigner.weight = 0;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner, nullptr);
 			checkSigner(app, testSigner2, 1, user.key);
 
             // remove signer 2
             testSigner2.weight = 0;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner2, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner2, nullptr);
 
             auto userAccount = accountHelper->mustLoadAccount(user.key.getPublicKey(), testManager->getDB());
             REQUIRE(userAccount->getAccount().signers.size() == 0);
         }
     }
 
-    SECTION("update KYC")
-    {
-        UpdateKYCData updateKYC("{\n\"hash\": \"b11a4cff677bd778084ac04522730f0b7a72323c\"\n}", 0, UpdateKYCData::_ext_t{});
-        SECTION("successfully create updateKYC request")
-        {
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC);
-        }
-
-        SECTION("malformed json")
-        {
-            //missed colon
-            updateKYC.dataKYC = "{\n\"hash\" \"b11a4cff677bd778084ac04522730f0b7a72323c\"\n}";
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC,
-                                                   SetOptionsResultCode::UPDATE_KYC_MALFORMED);
-        }
-
-        SECTION("try to recreate request")
-        {
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC);
-
-            //try to create new request:
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC,
-                                                   SetOptionsResultCode::UPDATE_KYC_REQUEST_NOT_FOUND);
-        }
-
-        SECTION("try to update non-existing request")
-        {
-            updateKYC.requestID = 1;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC,
-                                                   SetOptionsResultCode::UPDATE_KYC_REQUEST_NOT_FOUND);
-        }
-
-        SECTION("successful review")
-        {
-            auto opResult = setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC);
-            uint64_t requestID = opResult.success().requestID;
-            reviewKYCRequestTestHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "");
-        }
-
-        SECTION("reject, update then approve")
-        {
-            auto opResult = setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC);
-            uint64_t requestID = opResult.success().requestID;
-
-            reviewKYCRequestTestHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::REJECT, "invalid KYC data");
-
-            updateKYC.requestID = requestID;
-            updateKYC.dataKYC = "{\n\"hash\" : \"74736131aad9bf49ad7224c70f6a7cda5832641b\"\n}";
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC);
-
-            reviewKYCRequestTestHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "");
-        }
-
-        SECTION("try to reject permanently")
-        {
-            auto opRes = setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, nullptr, &updateKYC);
-            uint64_t requestID = opRes.success().requestID;
-
-            reviewKYCRequestTestHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::PERMANENT_REJECT, "invalid KYC data",
-                                                            ReviewRequestResultCode::PERMANENT_REJECT_NOT_ALLOWED);
-        }
-    }
+   
+   
 
     // these are all tested by other tests
     // set transfer rate

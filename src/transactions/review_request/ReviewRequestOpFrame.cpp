@@ -19,7 +19,7 @@
 #include "ledger/ReferenceHelper.h"
 #include "main/Application.h"
 #include "ReviewSaleCreationRequestOpFrame.h"
-#include "ReviewUpdateKYCRequestOpFrame.h"
+#include "ReviewChangeKYCRequestOpFrame.h"
 
 namespace stellar
 {
@@ -68,8 +68,8 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
         return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
     case ReviewableRequestType::SALE:
         return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
-    case ReviewableRequestType::UPDATE_KYC:
-        return new ReviewUpdateKYCRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::CHANGE_KYC:
+		return new ReviewChangeKYCRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}

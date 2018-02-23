@@ -291,7 +291,7 @@ using xdr::operator<;
     {
         string sql = select;
         sql += " WHERE external_system_type = :ex_sys_type AND expires_at < :time "
-                "ORDER BY LENGTH(account_id), expires_at, id LIMIT 1";
+                "ORDER BY account_id = '' DESC, expires_at, id LIMIT 1";
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
         st.exchange(use(externalSystemType, "ex_sys_type"));

@@ -37,6 +37,8 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
     auto account = Account { SecretKey::random(), Salt(0) };
     createAccountTestHelper.applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::GENERAL);
 
+    testManager->advanceToTime(12*60*60);
+
     SECTION("Happy path")
     {
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
@@ -92,5 +94,20 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
 
         bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::BITCOIN,
                                                              BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
+    }
+    SECTION("Bind expired external system account id")
+    {
+        auto binder = Account {SecretKey::random(), Salt(0)};
+        createAccountTestHelper.applyCreateAccountTx(root, binder.key.getPublicKey(), AccountType::GENERAL);
+
+        manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
+                                                                                                ExternalSystemType::BITCOIN,
+                                                                                                "Some data");
+
+        bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(binder, ExternalSystemType::BITCOIN);
+
+        testManager->advanceToTime(48 * 60 * 60);
+
+        bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::BITCOIN);
     }
 }

@@ -53,15 +53,14 @@ BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta
         return false;
     }
 
-    auto availablePoolEntries = externalSystemAccountIDPoolEntryHelper->loadAvailablePoolEntries(db,
-                                                                     mBindExternalSystemAccountId.externalSystemType);
-    if (availablePoolEntries.empty())
+    auto poolEntryToBindFrame = externalSystemAccountIDPoolEntryHelper->loadAvailablePoolEntry(db, ledgerManager,
+                                                                                               mBindExternalSystemAccountId.externalSystemType);
+    if (!poolEntryToBindFrame)
     {
         innerResult().code(BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
         return false;
     }
 
-    auto poolEntryToBindFrame = availablePoolEntries.front();
     ExternalSystemAccountIDPoolEntry& poolEntryToBind = poolEntryToBindFrame->getExternalSystemAccountIDPoolEntry();
     poolEntryToBind.accountID.activate() = mSourceAccount->getID();
     poolEntryToBind.expiresAt = ledgerManager.getCloseTime() + (24 * 60 * 60);

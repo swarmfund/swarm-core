@@ -72,7 +72,7 @@ enum databaseSchemaVersion : unsigned long {
         REFERENCE_VERSION = 5,
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::DROP_BAN;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::REFERENCE_VERSION;
 
 static void
 setSerializable(soci::session& sess)

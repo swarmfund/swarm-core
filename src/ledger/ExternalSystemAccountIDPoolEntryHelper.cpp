@@ -250,6 +250,39 @@ using xdr::operator<;
         return result;
     }
 
+    ExternalSystemAccountIDPoolEntryFrame::pointer
+    ExternalSystemAccountIDPoolEntryHelper::load(ExternalSystemType externalSystemType, AccountID accountID,
+                                                 Database &db, LedgerDelta *delta)
+    {
+        string sql = select;
+        sql += +" WHERE external_system_type = :ex_sys_type AND account_id = :aid";
+        auto prep = db.getPreparedStatement(sql);
+        auto& st = prep.statement();
+        st.exchange(use(externalSystemType, "ex_sys_type"));
+
+        string actIDStrKey = PubKeyUtils::toStrKey(accountID);
+        st.exchange(use(actIDStrKey, "aid"));
+
+        ExternalSystemAccountIDPoolEntryFrame::pointer result;
+        auto timer = db.getSelectTimer("external_system_account_id_pool");
+        load(prep, [&result](LedgerEntry const& entry)
+        {
+            result = make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
+        });
+
+        if (!result)
+        {
+            return nullptr;
+        }
+
+        if (delta)
+        {
+            delta->recordEntry(*result);
+        }
+
+        return result;
+    }
+
     void ExternalSystemAccountIDPoolEntryHelper::load(StatementContext &prep,
                                                      std::function<void(LedgerEntry const &)> processor)
     {
@@ -290,20 +323,28 @@ using xdr::operator<;
                                                                    ExternalSystemType externalSystemType)
     {
         string sql = select;
-        sql += " WHERE external_system_type = :ex_sys_type AND expires_at < :time "
+        sql += +" WHERE external_system_type = :ex_sys_type AND expires_at < :time "
                 "ORDER BY account_id = '' DESC, expires_at, id LIMIT 1";
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
         st.exchange(use(externalSystemType, "ex_sys_type"));
-        st.exchange(use(ledgerManager.getCloseTime(), "time"));
-        auto timer = db.getSelectTimer("external system account id pool");
 
-        ExternalSystemAccountIDPoolEntryFrame::pointer retPoolEntry;
-        load(prep, [&retPoolEntry](LedgerEntry const& of)
+        uint64_t time = ledgerManager.getCloseTime();
+        st.exchange(use(time, "time"));
+
+        ExternalSystemAccountIDPoolEntryFrame::pointer result;
+        auto timer = db.getSelectTimer("external system account id pool");
+        load(prep, [&result](LedgerEntry const& entry)
         {
-            retPoolEntry = make_shared<ExternalSystemAccountIDPoolEntryFrame>(of);
+            result = make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
         });
-        return retPoolEntry;
+
+        if (!result)
+        {
+            return nullptr;
+        }
+
+        return result;
     }
 
     std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer>

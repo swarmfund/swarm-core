@@ -40,6 +40,8 @@ namespace stellar
 
         ExternalSystemAccountIDPoolEntryFrame::pointer load(ExternalSystemType type, std::string data,
                                                            Database& db, LedgerDelta* delta = nullptr);
+        ExternalSystemAccountIDPoolEntryFrame::pointer load(ExternalSystemType externalSystemType, AccountID accountID,
+                                                            Database& db, LedgerDelta* delta = nullptr);
 
         ExternalSystemAccountIDPoolEntryFrame::pointer loadAvailablePoolEntry(Database &db,
                                                                               LedgerManager &ledgerManager,

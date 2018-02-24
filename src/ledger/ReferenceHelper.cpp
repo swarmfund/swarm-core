@@ -19,14 +19,22 @@ namespace stellar {
                 "sender       VARCHAR(64) NOT NULL,"
                 "reference    VARCHAR(64) NOT NULL,"
                 "lastmodified INT         NOT NULL,"
+                "version	  INT 		  NOT NULL	DEFAULT 0,"
                 "PRIMARY KEY (sender, reference)"
                 ");";
     }
 
     void ReferenceHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
+        storeUpdateHelper(delta, db, true, entry);
+    }
 
+    void ReferenceHelper::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
+        storeUpdateHelper(delta, db, false, entry);
+    }
+
+    void ReferenceHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, const LedgerEntry &entry) {
         auto referenceFrame = make_shared<ReferenceFrame>(entry);
-		auto referenceEntry = referenceFrame->getReference();
+        auto referenceEntry = referenceFrame->getReference();
 
         referenceFrame->touch(delta);
 
@@ -36,29 +44,43 @@ namespace stellar {
             throw std::runtime_error("Invalid reference");
         }
 
-        string sql = "INSERT INTO reference (reference, sender, lastmodified) VALUES (:r, :se, :lm)";
+        auto reference = referenceFrame->getReferenceString();
+        auto sender = PubKeyUtils::toStrKey(referenceFrame->getSender());
+        auto version = static_cast<uint32_t>(referenceEntry.ext.v());
+
+        std::string sql;
+        if (insert)
+        {
+            sql = "INSERT INTO reference (reference, sender, lastmodified, version) "
+                  "VALUES (:r, :se, :lm, :v)";
+        } else {
+            sql = "UPDATE reference "
+                  "SET    lastmodified=:lm, version=:v "
+                  "WHERE  reference=:r AND sender=:se ";
+        }
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
-        st.exchange(use(referenceEntry.reference, "r"));
-        auto sender = PubKeyUtils::toStrKey(referenceEntry.sender);
-        st.exchange(use(sender, "se"));
-        st.exchange(use(referenceFrame->mEntry.lastModifiedLedgerSeq, "lm"));
+        st.exchange(soci::use(reference, "r"));
+        st.exchange(soci::use(sender, "se"));
+        st.exchange(soci::use(referenceFrame->mEntry.lastModifiedLedgerSeq, "lm"));
+        st.exchange(soci::use(version, "v"));
         st.define_and_bind();
 
-        auto timer = db.getInsertTimer("reference");
+        auto timer =
+                insert ? db.getInsertTimer("reference") : db.getUpdateTimer("reference");
         st.execute(true);
-        if (st.get_affected_rows() != 1)
-        {
+
+        if (st.get_affected_rows() != 1) {
             throw std::runtime_error("could not update SQL");
         }
 
-        delta.addEntry(*referenceFrame);
-    }
-
-    void ReferenceHelper::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
-        throw std::runtime_error("Update for reference is not supported");
+        if (insert) {
+            delta.addEntry(*referenceFrame);
+        } else {
+            delta.modEntry(*referenceFrame);
+        }
     }
 
     void ReferenceHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key) {
@@ -109,10 +131,15 @@ namespace stellar {
         st.exchange(into(oe.sender));
         st.exchange(into(oe.reference));
         st.exchange(into(le.lastModifiedLedgerSeq));
+
+        uint32_t referenceVersion = 0;
+        st.exchange(into(referenceVersion));
+
         st.define_and_bind();
         st.execute(true);
         while (st.got_data())
         {
+            oe.ext.v(LedgerVersion(referenceVersion));
             if (!ReferenceFrame::isValid(oe))
             {
                 CLOG(ERROR, Logging::ENTRY_LOGGER)
@@ -144,7 +171,7 @@ namespace stellar {
 
     ReferenceFrame::pointer
     ReferenceHelper::loadReference(AccountID rawSender, std::string reference, Database &db, LedgerDelta *delta) {
-        std::string sql = "SELECT sender, reference, lastmodified FROM reference";
+        std::string sql = "SELECT sender, reference, lastmodified, version FROM reference";
         sql += " WHERE reference = :ref AND sender = :sender";
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();

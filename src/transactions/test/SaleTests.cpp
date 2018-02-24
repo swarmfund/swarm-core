@@ -33,6 +33,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
+
 uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, Account& participant, const uint64_t saleID, const AssetCode baseAsset,
     const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee)
 {
@@ -51,7 +52,7 @@ uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, Acco
 }
 
 uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, const uint64_t saleID, const AssetCode baseAsset,
-                       const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee)
+    const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee)
 {
     auto account = Account{ SecretKey::random(), 0 };
     CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
@@ -66,6 +67,7 @@ TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
     Application& app = *appPtr;
     app.start();
     auto testManager = TestManager::make(app);
+    TestManager::upgradeToCurrentLedgerVersion(app);
 
     Database& db = testManager->getDB();
 
@@ -140,6 +142,7 @@ TEST_CASE("Sale", "[tx][sale]")
     Application& app = *appPtr;
     app.start();
     auto testManager = TestManager::make(app);
+    TestManager::upgradeToCurrentLedgerVersion(app);
 
     Database& db = testManager->getDB();
 

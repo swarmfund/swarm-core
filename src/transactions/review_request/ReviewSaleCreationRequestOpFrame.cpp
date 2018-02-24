@@ -50,6 +50,7 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     }
 
     // TODO: at current stage we do not allow to issue tokens before the sale. Must be fixed
+    // If you are fixing this make sure to apply fix to check sale state when we are unlocking pendingIssuance amount
     const uint64_t requiredBaseAssetForHardCap = baseAsset->getMaxIssuanceAmount();
     if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
     {
@@ -71,12 +72,19 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
 }
 
 SourceDetails ReviewSaleCreationRequestOpFrame::getSourceAccountDetails(
-    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
+    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion)
 const
 {
+    auto allowedSigners = static_cast<int32_t>(SignerType::ASSET_MANAGER);
+
+    auto newSignersVersion = static_cast<int32_t>(LedgerVersion::NEW_SIGNER_TYPES);
+    if (ledgerVersion >= newSignersVersion)
+    {
+        allowedSigners = static_cast<int32_t>(SignerType::USER_ASSET_MANAGER);
+    }
+
     return SourceDetails({AccountType::MASTER},
-                         mSourceAccount->getHighThreshold(),
-                         static_cast<int32_t>(SignerType::ASSET_MANAGER));
+                         mSourceAccount->getHighThreshold(), allowedSigners);
 }
 
 void ReviewSaleCreationRequestOpFrame::createAssetPair(SaleFrame::pointer sale, Application &app,

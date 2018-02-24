@@ -115,7 +115,8 @@ std::unordered_map<AccountID, CounterpartyDetails> CreateIssuanceRequestOpFrame:
 	return{};
 }
 
-SourceDetails CreateIssuanceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails CreateIssuanceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                    int32_t ledgerVersion) const
 {
 	return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::ISSUANCE_MANAGER));

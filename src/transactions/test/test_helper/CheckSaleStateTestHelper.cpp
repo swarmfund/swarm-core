@@ -5,6 +5,7 @@
 #include "ledger/OfferHelper.h"
 #include "ledger/AssetHelper.h"
 #include "test/test_marshaler.h"
+#include "ledger/SaleHelper.h"
 
 namespace stellar
 {
@@ -67,7 +68,19 @@ std::vector<OfferEntry> StateBeforeTxHelper::getAllOffers()
     return offers;
 }
 
-void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
+AccountFrame::pointer StateBeforeTxHelper::getAccount(AccountID accountID)
+{
+    LedgerKey key;
+    key.type(LedgerEntryType::ACCOUNT);
+    key.account().accountID = accountID;
+
+    if (mState.find(key) == mState.end())
+        return nullptr;
+
+    return std::make_shared<AccountFrame>(mState[key]->mEntry);
+}
+
+    void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
                                         StateBeforeTxHelper& stateBeforeTx) const
 {
     // asset unlocked
@@ -121,11 +134,33 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     REQUIRE(baseAssetAfterTx->getMaxIssuanceAmount() == baseAssetBeforeTx.issued + currentCupBaseAsset);
 
     // check that sale owner have expected quote on balance
-    for (auto quoteAsset : sale->getSaleEntry().quoteAssets)
+    for (const auto quoteAsset : sale->getSaleEntry().quoteAssets)
     {
-        auto quoteAssetResult = getOfferResultForQuoteBalance(result, quoteAsset.quoteBalance);
+        const auto quoteAssetResult = getOfferResultForQuoteBalance(result, quoteAsset.quoteBalance);
         checkBalancesAfterApproval(stateBeforeTx, sale, quoteAsset, quoteAssetResult);
     }
+}
+
+void CheckSaleStateHelper::ensureUpdated(const CheckSaleStateSuccess result,
+    StateBeforeTxHelper& stateBeforeTx) const
+{
+    auto saleBeforeTx = stateBeforeTx.getSale(result.saleID);
+    auto saleAfterTx = SaleHelper::Instance()->loadSale(result.saleID, mTestManager->getDB());
+    REQUIRE(!!saleAfterTx);
+    auto isUpdated = false;
+    for (auto i = 0; i < saleBeforeTx->getSaleEntry().quoteAssets.size(); i++)
+    {
+        auto quoteAssetBeforeTx = saleBeforeTx->getSaleEntry().quoteAssets[i];
+        auto quoteAssetAfterTx = saleAfterTx->getSaleEntry().quoteAssets[i];
+        REQUIRE(quoteAssetBeforeTx.quoteAsset == quoteAssetAfterTx.quoteAsset);
+        REQUIRE(quoteAssetBeforeTx.currentCap >= quoteAssetAfterTx.currentCap);
+        if (quoteAssetBeforeTx.currentCap > quoteAssetAfterTx.currentCap)
+        {
+            isUpdated = true;
+        }
+    }
+
+    REQUIRE(isUpdated);
 }
 
 void CheckSaleStateHelper::ensureNoOffersLeft(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const
@@ -220,15 +255,19 @@ CheckSaleStateResult CheckSaleStateHelper::applyCheckSaleStateTx(
     REQUIRE(stateBeforeOps.size() == 1);
     const auto stateBeforeOp = stateBeforeOps[0];
     auto stateHelper = StateBeforeTxHelper(stateBeforeOp);
-    ensureNoOffersLeft(checkSaleStateResult.success(), stateHelper);
-
-    switch(checkSaleStateResult.success().effect.effect())
+    const auto effect = checkSaleStateResult.success().effect.effect();
+    switch(effect)
     {
     case CheckSaleStateEffect::CANCELED:
         ensureCancel(checkSaleStateResult.success(), stateHelper);
+        ensureNoOffersLeft(checkSaleStateResult.success(), stateHelper);
         break;
     case CheckSaleStateEffect::CLOSED:
         ensureClose(checkSaleStateResult.success(), stateHelper);
+        ensureNoOffersLeft(checkSaleStateResult.success(), stateHelper);
+        break;
+    case CheckSaleStateEffect::UPDATED:
+        ensureUpdated(checkSaleStateResult.success(), stateHelper);
         break;
     default:
         throw std::runtime_error("Unexpected effect for check sale state");

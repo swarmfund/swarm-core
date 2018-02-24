@@ -35,5 +35,12 @@ class ManageBalanceOpFrame : public OperationFrame
     {
         return res.tr().manageBalanceResult().code();
     }
+
+    std::string getInnerResultCodeAsStr() override
+    {
+        const auto result = getResult();
+        const auto code = getInnerCode(result);
+        return xdr::xdr_traits<ManageBalanceResultCode>::enum_name(code);
+    }
 };
 }

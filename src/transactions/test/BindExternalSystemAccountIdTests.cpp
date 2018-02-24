@@ -37,7 +37,7 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
     auto account = Account { SecretKey::random(), Salt(0) };
     createAccountTestHelper.applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::GENERAL);
 
-    testManager->advanceToTime(12*60*60);
+    testManager->advanceToTime(12 * 60 * 60);
 
     SECTION("Happy path")
     {
@@ -50,14 +50,11 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
 
         bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::BITCOIN);
 
-        SECTION("Account already has external system account id of this type")
+        SECTION("Prolongation of external system account id")
         {
-            manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                                            ExternalSystemType::BITCOIN,
-                                                                                            "Some another data");
-            bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account,
-                                                                 ExternalSystemType::BITCOIN,
-                                                                 BindExternalSystemAccountIdResultCode::ALREADY_HAS);
+            testManager->advanceToTime(24 * 60 * 60);
+
+            bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::BITCOIN);
         }
         SECTION("Account binds system account id of another type")
         {

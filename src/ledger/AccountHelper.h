@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 
 // Copyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root

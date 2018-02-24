@@ -12,6 +12,9 @@ namespace stellar
 class CreateSaleParticipationOpFrame : public CreateOfferOpFrame
 {
     SaleFrame::pointer loadSaleForOffer(Database& db, LedgerDelta& delta);
+
+    bool isPriceValid(SaleFrame::pointer sale, BalanceFrame::pointer balance, Database& db) const;
+
 public:
 
     CreateSaleParticipationOpFrame(Operation const& op, OperationResult& res,

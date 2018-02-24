@@ -313,7 +313,34 @@ vector<OfferFrame::pointer> OfferHelper::loadOffersWithFilters(
         return results;
     }
 
-    std::unordered_map<AccountID, std::vector<OfferFrame::pointer>> OfferHelper::loadAllOffers(Database &db) {
+std::vector<OfferFrame::pointer> OfferHelper::loadOffers(AssetCode const& base,
+    AssetCode const& quote, uint64_t const orderBookID,
+    int64_t quoteamountUpperBound, Database& db)
+{
+    string sql = offerColumnSelector;
+    sql += " WHERE base_asset_code=:base_asset_code AND quote_asset_code = :quote_asset_code AND order_book_id = :order_book_id AND quote_amount < :quote_amount";
+
+    auto prep = db.getPreparedStatement(sql);
+    auto& st = prep.statement();
+
+    string baseAssetCode = base;
+    string quoteAssetCode = quote;
+
+    st.exchange(use(baseAssetCode));
+    st.exchange(use(quoteAssetCode));
+    st.exchange(use(orderBookID));
+    st.exchange(use(quoteamountUpperBound));
+
+    auto timer = db.getSelectTimer("offer");
+    vector<OfferFrame::pointer> results;
+    loadOffers(prep, [&results](LedgerEntry const& of) {
+        results.emplace_back(make_shared<OfferFrame>(of));
+    });
+
+    return results;
+}
+
+std::unordered_map<AccountID, std::vector<OfferFrame::pointer>> OfferHelper::loadAllOffers(Database &db) {
         std::unordered_map<AccountID, std::vector<OfferFrame::pointer>> retOffers;
         std::string sql = offerColumnSelector;
         sql += " ORDER BY owner_id";

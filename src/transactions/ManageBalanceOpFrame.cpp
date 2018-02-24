@@ -35,7 +35,7 @@ SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(std::unordered_map<A
 	if (getSourceID() == mManageBalance.destination)
 		allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE, AccountType::EXCHANGE};
 	else
-		allowedSourceAccounts = {};
+		allowedSourceAccounts = { AccountType::MASTER};
 	return SourceDetails(allowedSourceAccounts, mSourceAccount->getLowThreshold(), static_cast<int32_t >(SignerType::BALANCE_MANAGER));
 }
 

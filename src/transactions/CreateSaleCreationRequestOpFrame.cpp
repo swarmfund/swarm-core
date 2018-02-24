@@ -144,6 +144,12 @@ bool CreateSaleCreationRequestOpFrame::isPriceValid(
         return false;
     }
 
+    if (mCreateSaleCreationRequest.request.ext.v() == LedgerVersion::TYPED_SALE && 
+        mCreateSaleCreationRequest.request.ext.saleTypeExt().typedSale.saleType() == SaleType::CROWD_FUNDING)
+    {
+        return quoteAsset.price == ONE;
+    }
+
     uint64_t requiredBaseAsset;
     if (!SaleFrame::convertToBaseAmount(quoteAsset.price, mCreateSaleCreationRequest.request.hardCap, requiredBaseAsset))
     {
@@ -172,6 +178,13 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
                                         LedgerManager& ledgerManager)
 {
     auto const& sale = mCreateSaleCreationRequest.request;
+    auto saleVersion = static_cast<int32>(sale.ext.v());
+    if (saleVersion > app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion)
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::VERSION_IS_NOT_SUPPORTED_YET);
+        return false;
+    }
+
     if (sale.endTime <= ledgerManager.getCloseTime())
     {
         innerResult().code(CreateSaleCreationRequestResultCode::INVALID_END);

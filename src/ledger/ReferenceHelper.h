@@ -46,6 +46,8 @@ namespace stellar {
         ReferenceFrame::pointer loadReference(AccountID exchange, std::string reference,
                                               Database &db, LedgerDelta *delta = nullptr);
 
+        static void addVersion(Database& db);
+
     private:
         ReferenceHelper() { ; }
         ~ReferenceHelper() { ; }

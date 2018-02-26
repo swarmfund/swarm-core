@@ -13,7 +13,7 @@ namespace stellar {
 
     class ETHIDGenerator : public Secp256k1IDGenerator {
     private:
-        std::string encodePublicKey(const uchar_vector rawPublicKey) override;
+        std::string encodePublicKey(HDKeychain keychain) override;
     public:
         ETHIDGenerator(Application& app, Database& db, std::string extendedPublicKey)
         : Secp256k1IDGenerator(app, db, extendedPublicKey)

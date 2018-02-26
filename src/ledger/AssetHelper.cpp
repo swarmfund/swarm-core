@@ -75,8 +75,10 @@ void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     auto& st = prep.statement();
 
     st.exchange(use(assetEntry.code, "code"));
-    st.exchange(use(assetEntry.owner, "owner"));
-    st.exchange(use(assetEntry.preissuedAssetSigner, "preissued_asset_signer"));
+    auto owner = PubKeyUtils::toStrKey(assetEntry.owner);
+    st.exchange(use(owner, "owner"));
+    auto preissuedAssetSigner = PubKeyUtils::toStrKey(assetEntry.preissuedAssetSigner);
+    st.exchange(use(preissuedAssetSigner, "preissued_asset_signer"));
     st.exchange(use(assetEntry.details, "details"));
     st.exchange(use(assetEntry.maxIssuanceAmount, "max_issuance_amount"));
     st.exchange(use(assetEntry.availableForIssueance,

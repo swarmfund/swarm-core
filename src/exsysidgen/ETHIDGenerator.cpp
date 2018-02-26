@@ -7,10 +7,7 @@
 #include "main/Application.h"
 
 namespace stellar {
-    std::string ETHIDGenerator::encodePublicKey(const uchar_vector rawPublicKey) {
-        CoinKey keyPair;
-        keyPair.setPublicKey(rawPublicKey);
-
-        return  keyPair.getEthereumAddress();
+    std::string ETHIDGenerator::encodePublicKey(HDKeychain keychain) {
+        return keychain.getEthereumAddress();
     }
 }

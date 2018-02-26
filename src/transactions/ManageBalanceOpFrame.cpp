@@ -28,13 +28,14 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageBalanceOpFrame::getCoun
 	};
 }
 
-SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                            int32_t ledgerVersion) const
 {
 	std::vector<AccountType> allowedSourceAccounts;
 	if (getSourceID() == mManageBalance.destination)
 		allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE, AccountType::EXCHANGE};
 	else
-		allowedSourceAccounts = {};
+		allowedSourceAccounts = { AccountType::MASTER};
 	return SourceDetails(allowedSourceAccounts, mSourceAccount->getLowThreshold(), static_cast<int32_t >(SignerType::BALANCE_MANAGER));
 }
 

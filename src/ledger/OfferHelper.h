@@ -43,8 +43,14 @@ namespace stellar
         OfferFrame::pointer loadOffer(AccountID const& accountID, uint64_t offerID,
                           Database& db, LedgerDelta* delta = nullptr);
 
+        OfferFrame::pointer loadOffer(AccountID const& accountID, uint64_t offerID, uint64_t orderBookID,
+            Database& db, LedgerDelta* delta = nullptr);
+
         std::vector<OfferFrame::pointer> loadOffersWithFilters(AssetCode const& base, AssetCode const& quote, uint64_t* orderBookID,
             uint64_t* priceUpperBound, Database& db);
+
+        std::vector<OfferFrame::pointer> loadOffers(AssetCode const& base, AssetCode const& quote, uint64_t const orderBookID,
+            int64_t quoteamountUpperBound, Database& db);
 
         std::unordered_map<AccountID, std::vector<OfferFrame::pointer>> loadAllOffers(Database& db);
 

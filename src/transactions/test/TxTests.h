@@ -12,6 +12,7 @@
 #include "util/optional.h"
 #include "ledger/FeeFrame.h"
 #include "herder/LedgerCloseData.h"
+#include "test_helper/SetOptionsTestHelper.h"
 
 namespace stellar
 {
@@ -25,14 +26,6 @@ namespace txtest
 
 typedef std::vector<std::pair<TransactionResultPair, LedgerEntryChanges>>
     TxSetResultMeta;
-
-struct ThresholdSetter
-{
-    optional<uint8_t> masterWeight;
-    optional<uint8_t> lowThreshold;
-    optional<uint8_t> medThreshold;
-    optional<uint8_t> highThreshold;
-};
 
 FeeEntry createFeeEntry(FeeType type, int64_t fixed, int64_t percent,
     AssetCode asset, AccountID* accountID = nullptr, AccountType* accountType = nullptr,
@@ -170,14 +163,6 @@ int32
 applyReviewPaymentRequestTx(Application& app, SecretKey& from, 
             Salt seq, int64 paymentID, 
             bool accept = true, ReviewPaymentRequestResultCode result = ReviewPaymentRequestResultCode::SUCCESS);
-
-
-TransactionFramePtr createRecover(Hash const& networkID, SecretKey& source,
-                                     Salt seq, AccountID account,
-                                     PublicKey oldSigner, PublicKey newSigner);
-
-void applyRecover(Application& app, SecretKey& source, Salt seq, AccountID account,
-                    PublicKey oldSigner, PublicKey newSigner, RecoverResultCode targetResult = RecoverResultCode::SUCCESS);
 
 
 TransactionFramePtr createSetOptions(Hash const& networkID, SecretKey& source, Salt seq,

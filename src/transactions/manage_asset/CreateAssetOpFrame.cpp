@@ -25,7 +25,8 @@ CreateAssetOpFrame::CreateAssetOpFrame(Operation const& op,
 
 }
 
-SourceDetails CreateAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails CreateAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                          int32_t ledgerVersion) const
 {
     vector<AccountType> allowedAccountTypes = {AccountType::MASTER};
 
@@ -120,11 +121,17 @@ bool CreateAssetOpFrame::doCheckValid(Application & app)
 		return false;
 	}
 
-        if (mAssetCreationRequest.maxIssuanceAmount < mAssetCreationRequest.initialPreissuedAmount)
-        {
-            innerResult().code(ManageAssetResultCode::INITIAL_PREISSUED_EXCEEDS_MAX_ISSUANCE);
-            return false;
-        }
+    if (mAssetCreationRequest.maxIssuanceAmount < mAssetCreationRequest.initialPreissuedAmount)
+    {
+        innerResult().code(ManageAssetResultCode::INITIAL_PREISSUED_EXCEEDS_MAX_ISSUANCE);
+        return false;
+    }
+
+    if (!isValidJson(mAssetCreationRequest.details))
+    {
+        innerResult().code(ManageAssetResultCode::INVALID_DETAILS);
+        return false;
+    }
 
 	return true;
 }

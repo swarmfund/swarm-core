@@ -19,12 +19,15 @@ public:
 
     ReviewRequestResult createApprovedSale(Account& root, Account & source, SaleCreationRequest request);
 
+    SaleCreationRequestQuoteAsset createSaleQuoteAsset(AssetCode asset, uint64_t price);
+
     CreateSaleCreationRequestResult applyCreateSaleRequest(
         Account& source, uint64_t requestID, SaleCreationRequest request,
         CreateSaleCreationRequestResultCode expectedResult =
         CreateSaleCreationRequestResultCode::SUCCESS);
-    static SaleCreationRequest createSaleRequest(AssetCode base, AssetCode quote, uint64_t startTime, uint64_t endTime,
-        uint64_t price, uint64_t softCap, uint64_t hardCap, std::string details);
+    static SaleCreationRequest createSaleRequest(AssetCode base,
+        AssetCode defaultQuoteAsset, const uint64_t startTime, const uint64_t endTime,
+        const uint64_t softCap, const uint64_t hardCap, std::string details, std::vector<SaleCreationRequestQuoteAsset> quoteAssets, SaleType* saleType = nullptr);
 
     TransactionFramePtr createSaleRequestTx(
         Account& source, uint64_t requestID, SaleCreationRequest request);

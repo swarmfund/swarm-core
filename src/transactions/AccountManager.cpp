@@ -4,6 +4,7 @@
 
 #include <ledger/AssetFrame.h>
 #include <ledger/BalanceHelper.h>
+#include <ledger/AccountHelper.h>
 #include "transactions/AccountManager.h"
 #include "main/Application.h"
 #include "ledger/AssetPairFrame.h"
@@ -240,15 +241,12 @@ void AccountManager::transferFee(AssetCode asset, uint64_t totalFee)
 {
     if (totalFee == 0)
         return;
-    // load commission balance and transfer fee
-    auto commissionBalance = BalanceHelper::Instance()->loadBalance(mApp.getCommissionID(), asset, mDb, nullptr);
-    if (!commissionBalance) {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. There is no commission balance for asset " << asset;
-        throw std::runtime_error("Unexpected state. Commission balance not found.");
-    }
 
-    std::string strBalanceID = PubKeyUtils::toStrKey(commissionBalance->getBalanceID());
+    // load commission balance and transfer fee
+    auto commissionBalance = loadOrCreateBalanceFrameForAsset(mApp.getCommissionID(), asset, mDb, mDelta);
+
     if (!commissionBalance->tryFundAccount(totalFee)) {
+        std::string strBalanceID = PubKeyUtils::toStrKey(commissionBalance->getBalanceID());
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to fund commission balance with fee - overflow. balanceID:"
                                                << strBalanceID;
         throw runtime_error("Failed to fund commission balance with fee");
@@ -299,5 +297,20 @@ BalanceFrame::pointer AccountManager::loadOrCreateBalanceFrameForAsset(
     balance = BalanceFrame::createNew(newBalanceID, account, asset);
     EntryHelperProvider::storeAddEntry(delta, db, balance->mEntry);
     return balance;
+}
+
+bool AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db)
+{
+    auto balanceFrame = BalanceHelper::Instance()->loadBalance(receivingBalance, db);
+    if (!balanceFrame)
+        return false;
+
+    auto receiver = AccountHelper::Instance()->mustLoadAccount(balanceFrame->getAccountID(), db);
+    auto receivingAsset = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
+
+    if (receiver->getAccountType() == AccountType::NOT_VERIFIED && receivingAsset->isRequireKYC())
+        return false;
+
+    return true;
 }
 }

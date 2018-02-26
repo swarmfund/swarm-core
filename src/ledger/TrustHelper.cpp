@@ -168,6 +168,7 @@ namespace stellar {
 	void TrustHelper::storeUpdateHelper(LedgerDelta & delta, Database & db, bool insert, LedgerEntry const & entry)
 	{
 		auto trustFrame = std::make_shared<TrustFrame>(entry);
+        auto trustEntry = trustFrame->getTrust();
 
 		bool isValid = trustFrame->isValid();
 		assert(isValid);
@@ -179,7 +180,7 @@ namespace stellar {
 
 		std::string actIDStrKey = PubKeyUtils::toStrKey(trustFrame->getAllowedAccount());
 		std::string balIDStrKey = BalanceKeyUtils::toStrKey(trustFrame->getBalanceToUse());
-        int32_t trustVersion = static_cast<int32_t>(trustFrame->getTrust().ext.v());
+        int32_t newTrustVersion = static_cast<int32_t>(trustEntry.ext.v());
 		std::string sql;
 
 		if (insert)
@@ -204,8 +205,8 @@ namespace stellar {
 			st.exchange(use(actIDStrKey, "id"));
 			st.exchange(use(balIDStrKey, "v2"));
 			st.exchange(use(trustFrame->mEntry.lastModifiedLedgerSeq, "v3"));
-            st.exchange(use(trustVersion, "v4"));
-			st.define_and_bind();
+            st.exchange(use(newTrustVersion, "v4"));
+            st.define_and_bind();
 			{
 				auto timer = insert ? db.getInsertTimer("trusts")
 					: db.getUpdateTimer("trusts");

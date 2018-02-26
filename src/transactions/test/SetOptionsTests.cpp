@@ -2,20 +2,22 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include <transactions/test/test_helper/TestManager.h>
-#include <transactions/test/test_helper/Account.h>
-#include <transactions/test/test_helper/CreateAccountTestHelper.h>
-#include <transactions/test/test_helper/SetOptionsTestHelper.h>
-#include <ledger/BalanceHelper.h>
-#include <transactions/test/test_helper/ManageAssetTestHelper.h>
-#include <transactions/test/test_helper/ManageBalanceTestHelper.h>
-#include <lib/json/json.h>
+#include "main/Application.h"
+#include "main/Config.h"
+#include "util/Timer.h"
 #include "overlay/LoopbackPeer.h"
 #include "util/make_unique.h"
 #include "main/test.h"
+#include "TxTests.h"
+#include "crypto/SHA.h"
+#include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
+#include "test_helper/CreateAccountTestHelper.h"
+#include "test_helper/ManageAssetTestHelper.h"
+#include "test_helper/ManageBalanceTestHelper.h"
+#include "test_helper/SetOptionsTestHelper.h"
 #include "test/test_marshaler.h"
 
 using namespace stellar;
@@ -28,7 +30,7 @@ typedef std::unique_ptr<Application> appPtr;
 // try setting high threshold ones without the correct sigs
 // make sure it doesn't allow us to add signers when we don't have the
 // minbalance
-TEST_CASE("set options", "[tx][setoptions]")
+TEST_CASE("set options", "[tx][set_options]")
 {
     using xdr::operator==;
 
@@ -38,176 +40,191 @@ TEST_CASE("set options", "[tx][setoptions]")
     Application::pointer appPtr = Application::create(clock, cfg);
     Application& app = *appPtr;
     app.start();
+    closeLedgerOn(app, 2, 1, 7, 2014);
+
+    auto testManager = TestManager::make(app);
+
+	upgradeToCurrentLedgerVersion(app);
 
     // set up world
-    Account root = Account{getRoot(), Salt(0)};
-    auto testManager = TestManager::make(app);
-    SetOptionsTestHelper setOptionsTestHelper(testManager);
-    CreateAccountTestHelper createAccountTestHelper(testManager);
-    ManageAssetTestHelper manageAssetTestHelper(testManager);
-    ManageBalanceTestHelper manageBalanceTestHelper(testManager);
- 
+    auto root = Account{ getRoot(), Salt(0) };
+    auto a1 = Account { getAccount("A"), Salt(0) };
 
-    //create account if user
-    Account user = Account{SecretKey::random(), Salt(0)};
-    createAccountTestHelper.applyCreateAccountTx(root, user.key.getPublicKey(), AccountType::GENERAL);
+    CreateAccountTestHelper createAccountTestHelper(testManager);
+    createAccountTestHelper.applyCreateAccountTx(root, a1.key.getPublicKey(), AccountType::GENERAL);
 
 	auto accountHelper = AccountHelper::Instance();
 	auto trustHelper = TrustHelper::Instance();
 
+    SetOptionsTestHelper setOptionsTestHelper(testManager);
+
     SECTION("Signers")
     {
+        SecretKey s1 = getAccount("S1");
+        Signer sk1(s1.getPublicKey(), 1, getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER),
+				   1, "", Signer::_ext_t{}); // low right account
+
         ThresholdSetter th;
+
         th.masterWeight = make_optional<uint8_t>(100);
         th.lowThreshold = make_optional<uint8_t>(1);
         th.medThreshold = make_optional<uint8_t>(10);
         th.highThreshold = make_optional<uint8_t>(100);
 
-        auto signerType = getAnySignerType()^static_cast<uint32_t>(SignerType::ACCOUNT_MANAGER);
-
-        SECTION("Can't use non account manager signer for master weight OR threshold or signer")
+		SECTION("Can't use non account manager signer for master weight OR threshold or signer")
 		{
-            //update thresholds
-            setOptionsTestHelper.applySetOptionsTx(user, &th, nullptr, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(a1, &th, nullptr);
 
-            auto userAccount = AccountHelper::Instance()->mustLoadAccount(user.key.getPublicKey(), testManager->getDB());
-            REQUIRE(userAccount->getHighThreshold() == *th.highThreshold);
+			SecretKey regularKP = getAccount("regular");
+			auto a1Account = loadAccount(a1.key, app);
+			Signer regular(regularKP.getPublicKey(), a1Account->getHighThreshold(),
+						   getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), 2, "", Signer::_ext_t{}); // high right regular account
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &regular);
 
-            //add new signer
-            SecretKey regularKP = SecretKey::random();
-            Account regularAccount = Account{regularKP, Salt(0)};
-
-            Signer regularSigner(regularKP.getPublicKey(), userAccount->getHighThreshold(), signerType, 2, "", Signer::_ext_t{});
-
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regularSigner, nullptr);
+			LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+				app.getDatabase());
 
 			SECTION("Can't add new signer")
 			{
-				SecretKey newSignerKP = SecretKey::random();
-                Signer newSigner(newSignerKP.getPublicKey(), userAccount->getHighThreshold(), signerType, 2, "", Signer::_ext_t{});
-
-                auto tx = setOptionsTestHelper.createSetOptionsTx(user, nullptr, &newSigner, nullptr);
-
-                //signed only by regularSigner:
-                tx->getEnvelope().signatures.clear();
-                tx->addSignature(regularKP);
+				SecretKey s2KP = getAccount("s2");
+				Signer s2(s2KP.getPublicKey(), a1Account->getHighThreshold(),
+						  getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), 2, "", Signer::_ext_t{}); // high right regular account
+				auto tx = setOptionsTestHelper.createSetOptionsTx(a1, nullptr, &s2);
+				tx->getEnvelope().signatures.clear();
+				tx->addSignature(regularKP);
                 testManager->applyCheck(tx);
-
-                auto opRes = tx->getResult().result.results()[0];
-				REQUIRE(opRes.code() == OperationResultCode::opNOT_ALLOWED);
+				REQUIRE(getFirstResult(*tx).code() == OperationResultCode::opNOT_ALLOWED);
 			}
 			SECTION("Can't change threshold")
 			{
-                auto tx = setOptionsTestHelper.createSetOptionsTx(user, &th, nullptr, nullptr);
-                //signed only by regularSigner:
-                tx->getEnvelope().signatures.clear();
-                tx->addSignature(regularKP);
-                testManager->applyCheck(tx);
-
-                auto opRes = tx->getResult().result.results()[0];
-				REQUIRE(opRes.code() == OperationResultCode::opNOT_ALLOWED);
+				auto tx = setOptionsTestHelper.createSetOptionsTx(a1, &th, nullptr);
+				tx->getEnvelope().signatures.clear();
+				tx->addSignature(regularKP);
+				testManager->applyCheck(tx);
+				REQUIRE(getFirstResult(*tx).code() == OperationResultCode::opNOT_ALLOWED);
 			}
 
 		}
-
         SECTION("can't use master key as alternate signer")
         {
-            Signer self(user.key.getPublicKey(), 100, signerType, 0, "", Signer::_ext_t{});
-
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &self, nullptr, SetOptionsResultCode::BAD_SIGNER);
+            Signer sk(a1.key.getPublicKey(), 100, getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER),
+					  0, "", Signer::_ext_t{});
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &sk, nullptr, nullptr, SetOptionsResultCode::BAD_SIGNER);
         }
 
-        SECTION("Can set and update signer name")
+		LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+			app.getDatabase());
+		auto checkSignerName = [&app, &delta](AccountID accountID, Signer expectedSigner) {
+			auto accountHelper = AccountHelper::Instance();
+			auto account = accountHelper->loadAccount(accountID, app.getDatabase(), &delta);
+			for (auto signer : account->getAccount().signers)
+			{
+				if (signer.pubKey == expectedSigner.pubKey)
+				{
+					REQUIRE(signer == expectedSigner);
+					return;
+				}
+			}
+
+			// failed to find signer
+			REQUIRE(false);
+		};
+
+		SECTION("Can set and update signer name")
 		{
 			SecretKey regularKP = getAccount("regular");
-
+			auto a1Account = loadAccount(a1.key, app);
 			Signer regular(regularKP.getPublicKey(), 10, getAnySignerType(), 2, "", Signer::_ext_t{}); // high right regular account
 
 			std::string name = "Test signer name";
 			regular.name = name;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regular, nullptr);
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &regular);
+			checkSignerName(a1.key.getPublicKey(), regular);
 
 			//update signer name
 			name += "New";
 			regular.name = name;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &regular, nullptr);
-		}
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &regular);
+			checkSignerName(a1.key.getPublicKey(), regular);
 
+		}
         SECTION("can not add Trust with same accountID")
         {
             TrustData trustData;
             TrustEntry trust;
-            trust.allowedAccount = user.key.getPublicKey();
-            trust.balanceToUse = user.key.getPublicKey();
+            trust.allowedAccount = a1.key.getPublicKey();
+            trust.balanceToUse = a1.key.getPublicKey();
             trustData.trust = trust;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData,
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, nullptr, &trustData, nullptr,
                                                    SetOptionsResultCode::TRUST_MALFORMED);
         }
 
         SECTION("can not add Trust if no balance")
         {
-            auto newAccount = SecretKey::random();
-            createAccountTestHelper.applyCreateAccountTx(root, newAccount.getPublicKey(), AccountType::GENERAL);
+            auto newAccount = Account{ SecretKey::random(), Salt(0) };
+            AccountID newAccountID = newAccount.key.getPublicKey();
+            createAccountTestHelper.applyCreateAccountTx(root, newAccountID, AccountType::GENERAL);
 
             TrustData trustData;
             TrustEntry trust;
-            trust.allowedAccount = newAccount.getPublicKey();
+            trust.allowedAccount = newAccountID;
             trust.balanceToUse = SecretKey::random().getPublicKey();
             trustData.trust = trust;
 
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData,
-                                                   SetOptionsResultCode::BALANCE_NOT_FOUND);
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, nullptr, &trustData, nullptr,
+            SetOptionsResultCode::BALANCE_NOT_FOUND);
         }
-
         SECTION("can not add Trust if balance from wrong account")
         {
-            auto newAccount = SecretKey::random();
-            createAccountTestHelper.applyCreateAccountTx(root, newAccount.getPublicKey(), AccountType::GENERAL);
+            auto newAccount = Account{ SecretKey::random(), Salt(0) };
+            AccountID newAccountID = newAccount.key.getPublicKey();
+            createAccountTestHelper.applyCreateAccountTx(root, newAccountID, AccountType::GENERAL);
 
             TrustData trustData;
             TrustEntry trust;
-            trust.allowedAccount = newAccount.getPublicKey();
+            trust.allowedAccount = newAccountID;
             trust.balanceToUse = root.key.getPublicKey();
             trustData.trust = trust;
 
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData,
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, nullptr, &trustData, nullptr,
                                                    SetOptionsResultCode::BALANCE_NOT_FOUND);
         }
-
-
         SECTION("can add Trust")
         {
-            auto trustAccount = SecretKey::random();
-            createAccountTestHelper.applyCreateAccountTx(root, trustAccount.getPublicKey(), AccountType::GENERAL);
+            auto trustAccount = Account{ SecretKey::random(), Salt(0) };
+            REQUIRE(!trustHelper->exists(testManager->getDB(),
+                trustAccount.key.getPublicKey(), a1.key.getPublicKey()));
+
+            createAccountTestHelper.applyCreateAccountTx(root, trustAccount.key.getPublicKey(),
+                                                         AccountType::GENERAL);
+
+            AssetCode asset = "EUR";
+            auto manageAssetHelper = ManageAssetTestHelper(testManager);
+            auto preissuedSigner = SecretKey::random();
+            manageAssetHelper.createAsset(root, preissuedSigner, asset, root, 1);
+
+            ManageBalanceTestHelper manageBalanceTestHelper(testManager);
+            AccountID a1ID = a1.key.getPublicKey();
+            auto manageBalanceResult = manageBalanceTestHelper.applyManageBalanceTx(a1, a1ID, asset);
 
             TrustData trustData;
             TrustEntry trust;
-            trust.allowedAccount = trustAccount.getPublicKey();
-
-            // create a balance for user
-            AssetCode testAsset = "USD";
-            manageAssetTestHelper.createAsset(root, root.key, testAsset, root, 0);
-            auto userAccountID = user.key.getPublicKey();
-            auto manageBalanceRes = manageBalanceTestHelper.applyManageBalanceTx(user, userAccountID, testAsset);
-            auto balanceID = manageBalanceRes.success().balanceID;
-
-            trust.balanceToUse = balanceID;
-
+            trust.allowedAccount = trustAccount.key.getPublicKey();
+            trust.balanceToUse = manageBalanceResult.success().balanceID;
             trustData.trust = trust;
             trustData.action = ManageTrustAction::TRUST_ADD;
-
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData);
-
-            REQUIRE(trustHelper->exists(app.getDatabase(),
-                trustAccount.getPublicKey(), balanceID));
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, nullptr, &trustData);
+            
+            REQUIRE(trustHelper->exists(testManager->getDB(),
+                trustAccount.key.getPublicKey(), manageBalanceResult.success().balanceID));
 
             SECTION("can delete")
             {
                 trustData.action = ManageTrustAction::TRUST_REMOVE;
-                setOptionsTestHelper.applySetOptionsTx(user, nullptr, nullptr, &trustData);
+                setOptionsTestHelper.applySetOptionsTx(a1, nullptr, nullptr, &trustData);
 
-                REQUIRE(!trustHelper->exists(app.getDatabase(),
-                    trustAccount.getPublicKey(), balanceID));
+                REQUIRE(!trustHelper->exists(testManager->getDB(),
+                    trustAccount.key.getPublicKey(), manageBalanceResult.success().balanceID));
             }
         }
 
@@ -233,54 +250,66 @@ TEST_CASE("set options", "[tx][setoptions]")
 				REQUIRE(found);
 			};
 
-            SecretKey testSignerKP = SecretKey::random();
-            Signer testSigner(testSignerKP.getPublicKey(), 1, signerType, 1, "", Signer::_ext_t{});
-
-
-            // add signer
-            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr);
-			checkSigner(app, testSigner, 1, user.key);
+            setOptionsTestHelper.applySetOptionsTx(a1, &th, &sk1);
+			// add signer
+			checkSigner(app, sk1, 1, a1.key);
 
 			// update weight
-            testSigner.weight++;
-            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr);
-			checkSigner(app, testSigner, 1, user.key);
+			sk1.weight = sk1.weight + 1;
+            setOptionsTestHelper.applySetOptionsTx(a1, &th, &sk1);
+			checkSigner(app, sk1, 1, a1.key);
 
 			// update type
-			testSigner.signerType = static_cast<int32_t>(SignerType::ACCOUNT_MANAGER);
-            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr);
-			checkSigner(app, testSigner, 1, user.key);
+			sk1.signerType = static_cast<int32_t>(SignerType::ACCOUNT_MANAGER);
+            setOptionsTestHelper.applySetOptionsTx(a1, &th, &sk1);
+			checkSigner(app, sk1, 1, a1.key);
 
 			// update identity
-			testSigner.identity++;
-            setOptionsTestHelper.applySetOptionsTx(user, &th, &testSigner, nullptr);
-			checkSigner(app, testSigner, 1, user.key);
+			sk1.identity = sk1.identity + 1;
+            setOptionsTestHelper.applySetOptionsTx(a1, &th, &sk1);
+			checkSigner(app, sk1, 1, a1.key);
 
-            // add new signer
-            SecretKey testSigner2KP = SecretKey::random();
-            Signer testSigner2 = Signer(testSigner2KP.getPublicKey(), 100, getAnySignerType(), 2, "", Signer::_ext_t{});
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner2, nullptr);
 
-			checkSigner(app, testSigner, 2, user.key);
-			checkSigner(app, testSigner2, 2, user.key);
+            // add signer 2
+            auto s2 = Account{ getAccount("S2"), Salt(0) };
+            Signer sk2(s2.key.getPublicKey(), 100, getAnySignerType(), 2, "", Signer::_ext_t{});
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &sk2);
+
+			checkSigner(app, sk1, 2, a1.key);
+			checkSigner(app, sk2, 2, a1.key);
 
 			// remove signer 1
-            testSigner.weight = 0;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner, nullptr);
-			checkSigner(app, testSigner2, 1, user.key);
+            sk1.weight = 0;
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &sk1);
+			checkSigner(app, sk2, 1, a1.key);
 
             // remove signer 2
-            testSigner2.weight = 0;
-            setOptionsTestHelper.applySetOptionsTx(user, nullptr, &testSigner2, nullptr);
+            sk2.weight = 0;
+            setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &sk2);
 
-            auto userAccount = accountHelper->mustLoadAccount(user.key.getPublicKey(), testManager->getDB());
-            REQUIRE(userAccount->getAccount().signers.size() == 0);
+            auto a1Account = loadAccount(a1.key, app);
+            REQUIRE(a1Account->getAccount().signers.size() == 0);
         }
     }
+/*
+    SECTION("Limits update request")
+    {
+        // create requestor
+        auto requestor = Account{ SecretKey::random(), Salt(0) };
+        AccountID requestorID = requestor.key.getPublicKey();
+        createAccountTestHelper.applyCreateAccountTx(root, requestorID,
+                                                     AccountType::GENERAL);
 
-   
-   
+        // prepare data for request
+        std::string documentData = "Some document data";
+        stellar::Hash documentHash = Hash(sha256(documentData));
 
+        LimitsUpdateRequestData limitsUpdateRequestData;
+        limitsUpdateRequestData.documentHash = documentHash;
+
+        setOptionsTestHelper.applySetOptionsTx(requestor, nullptr, nullptr, nullptr, &limitsUpdateRequestData);
+    }
+*/
     // these are all tested by other tests
     // set transfer rate
     // set data

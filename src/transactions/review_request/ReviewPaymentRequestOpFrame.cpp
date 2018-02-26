@@ -52,9 +52,11 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 	return result;
 }
 
-SourceDetails ReviewPaymentRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ReviewPaymentRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                   int32_t ledgerVersion) const
 {
-	return SourceDetails({AccountType::MASTER}, mSourceAccount->getMediumThreshold(), static_cast<int32_t>(SignerType::PAYMENT_OPERATOR));
+    // disallowed
+	return SourceDetails({}, mSourceAccount->getMediumThreshold(), static_cast<int32_t>(SignerType::PAYMENT_OPERATOR));
 }
 
 ReviewPaymentRequestOpFrame::ReviewPaymentRequestOpFrame(Operation const& op, OperationResult& res,

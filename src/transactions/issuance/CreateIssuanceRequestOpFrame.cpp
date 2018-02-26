@@ -99,10 +99,11 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 		return false;
 	}
 
-	if (mCreateIssuanceRequest.request.externalDetails.size() > app.
-		getIssuanceDetailsMaxLength())
+	if (mCreateIssuanceRequest.request.externalDetails.size() > app.getIssuanceDetailsMaxLength()
+            || !isValidJson(mCreateIssuanceRequest.request.externalDetails))
 	{
 		innerResult().code(CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        return false;
 	}
 	
     return true;
@@ -114,7 +115,8 @@ std::unordered_map<AccountID, CounterpartyDetails> CreateIssuanceRequestOpFrame:
 	return{};
 }
 
-SourceDetails CreateIssuanceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails CreateIssuanceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                    int32_t ledgerVersion) const
 {
 	return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::ISSUANCE_MANAGER));
@@ -158,6 +160,11 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
 		return nullptr;
 	}
+
+    if (!AccountManager::isAllowedToReceive(balance->getBalanceID(), db)) {
+        innerResult().code(CreateIssuanceRequestResultCode::REQUIRES_KYC);
+        return nullptr;
+    }
 
     Fee feeToPay;
     if (!calculateFee(balance->getAccountID(), db, feeToPay)) {

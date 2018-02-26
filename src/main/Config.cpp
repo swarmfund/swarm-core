@@ -3,16 +3,18 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <hdkeys.h>
 #include "main/Config.h"
 #include "history/HistoryArchive.h"
 #include "StellarCoreVersion.h"
 #include "util/Logging.h"
 #include "util/types.h"
 #include "crypto/Hex.h"
-#include "crypto/HdKeychain.h"
 #include "scp/LocalNode.h"
 #include <sstream>
 #include "ledger/AssetFrame.h"
+
+using namespace Coin;
 
 namespace stellar
 {
@@ -73,7 +75,6 @@ operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     NTP_SERVER = "pool.ntp.org";
     INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE = true;
 
-	GENESIS_LEDGER_ASSET_POLICIES = 7;
 }
 
 void
@@ -217,17 +218,7 @@ Config::load(std::string const& filename)
                     throw std::invalid_argument("bad HTTP_MAX_CLIENT");
                 HTTP_MAX_CLIENT = static_cast<unsigned short>(maxHttpClient);
             }
-			else if (item.first == "GENESIS_LEDGER_ASSET_POLICIES")
-			{
-				if (!item.second->as<int64_t>())
-				{
-					throw std::invalid_argument("invalid GENESIS_LEDGER_ASSET_POLICIES");
-				}
-				int64_t genesisLedgerAssetPolicies = item.second->as<int64_t>()->value();
-				if (genesisLedgerAssetPolicies < 0 || genesisLedgerAssetPolicies > UINT16_MAX)
-					throw std::invalid_argument("bad genesisLedgerAssetPolicies");
-				GENESIS_LEDGER_ASSET_POLICIES = static_cast<int32_t>(genesisLedgerAssetPolicies);
-			}
+
             else if (item.first == "PUBLIC_HTTP_PORT")
             {
                 if (!item.second->as<bool>())
@@ -620,7 +611,7 @@ Config::load(std::string const& filename)
             }
             else if (item.first == "BTC_ADDRESS_ROOT")
             {
-                if (!item.second->as<std::string>() || !HdKeychain::isValidExtendedPublicKey(item.second->as<std::string>()->value())) {
+                if (!item.second->as<std::string>() || !HDKeychain::validateExtendedPublicKey(item.second->as<std::string>()->value())) {
                     throw std::invalid_argument("invalid BTC_ADDRESS_ROOT");
                 }
 
@@ -628,7 +619,7 @@ Config::load(std::string const& filename)
             }
             else if (item.first == "ETH_ADDRESS_ROOT")
             {
-                if (!item.second->as<std::string>() || !HdKeychain::isValidExtendedPublicKey(item.second->as<std::string>()->value())) {
+                if (!item.second->as<std::string>() || !HDKeychain::validateExtendedPublicKey(item.second->as<std::string>()->value())) {
                     throw std::invalid_argument("invalid ETH_ADDRESS_ROOT");
                 }
 

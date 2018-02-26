@@ -29,10 +29,10 @@ class ReviewableRequestFrame : public EntryFrame
 	static void ensureAssetUpdateValid(AssetUpdateRequest const& request);
 	static void ensurePreIssuanceValid(PreIssuanceRequest const& request);
 	static void ensureIssuanceValid(IssuanceRequest const& request);
-    static void ensureWithdrawalValid(WithdrawalRequest const& request);
-    static void ensureSaleCreationValid(SaleCreationRequest const& request);
+	static void ensureWithdrawalValid(WithdrawalRequest const& request);
+	static void ensureSaleCreationValid(SaleCreationRequest const& request);
 	static void ensureChangeKYCValid(ChangeKYCRequest const& request);
- 
+
 
   public:
     typedef std::shared_ptr<ReviewableRequestFrame> pointer;
@@ -45,7 +45,7 @@ class ReviewableRequestFrame : public EntryFrame
     static pointer createNew(uint64_t requestID, AccountID requestor, AccountID reviewer,
         xdr::pointer<stellar::string64> reference, time_t createdAt);
 	static pointer createNew(LedgerDelta &delta, AccountID requestor, AccountID reviewer, xdr::pointer<stellar::string64> reference,
-                                 time_t createdAt);
+						     time_t createdAt);
 	// creates new reviewable request and calculates hash for it
 	static pointer createNewWithHash(LedgerDelta &delta, AccountID requestor, AccountID reviewer,
                                      xdr::pointer<stellar::string64> reference, ReviewableRequestEntry::_body_t body,
@@ -71,9 +71,9 @@ class ReviewableRequestFrame : public EntryFrame
 		return mRequest.requestID;
 	}
 
-        void setRequestID(uint64_t requestID)
+	void setRequestID(uint64_t requestID)
 	{
-            mRequest.requestID = requestID;
+		mRequest.requestID = requestID;
 	}
 
 	stellar::string256 const& getRejectReason() const {

@@ -9,30 +9,25 @@
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/BalanceFrame.h"
+#include "ReviewTwoStepWithdrawalRequestHelper.h"
 
 namespace stellar
 {
 namespace txtest
 {
 
-class WithdrawReviewChecker : public ReviewChecker
+class WithdrawReviewChecker : public TwoStepWithdrawReviewChecker
 {
-    std::shared_ptr<WithdrawalRequest> withdrawalRequest;
-    BalanceFrame::pointer balanceBeforeTx;
-    BalanceFrame::pointer commissionBalanceBeforeTx;
-    AssetFrame::pointer assetBeforeTx;
-    StatisticsFrame::pointer statsBeforeTx;
 public:
     WithdrawReviewChecker(TestManager::pointer testManager, uint64_t requestID);
     void checkApprove(ReviewableRequestFrame::pointer) override;
-    void checkPermanentReject(ReviewableRequestFrame::pointer) override;
 };
 
 class ReviewWithdrawRequestHelper : public ReviewRequestHelper
 {
 
 public:
-    ReviewWithdrawRequestHelper(TestManager::pointer testManager);
+    explicit ReviewWithdrawRequestHelper(TestManager::pointer testManager);
 
     using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source,

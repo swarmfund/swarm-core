@@ -1,9 +1,4 @@
 #pragma once
-
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-
 #include "overlay/StellarXDR.h"
 #include "main/Application.h"
 #include "ledger/LedgerDelta.h"
@@ -21,10 +16,9 @@ namespace stellar {
         protected:
             Application &mApp;
             Database &mDB;
-            LedgerDelta mDelta;
             LedgerManager &mLm;
 
-            bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp);
+            bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp, LedgerDelta &txDelta);
 
             void checkResult(TransactionResult result, bool mustSuccess);
 
@@ -53,10 +47,6 @@ namespace stellar {
                 return mApp;
             }
 
-            LedgerDelta &getLedgerDelta() {
-                return mDelta;
-            }
-
             LedgerManager &getLedgerManager() {
                 return mLm;
             }
@@ -64,6 +54,9 @@ namespace stellar {
             bool applyCheck(TransactionFramePtr tx);
 
             bool applyCheck(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp);
+
+            // closes an empty ledger on given time
+            void advanceToTime(uint64_t closeTime);
         };
     }
 }

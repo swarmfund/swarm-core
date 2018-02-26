@@ -2,11 +2,13 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AccountHelper.h>
 #include "util/asio.h"
 #include "ReviewRequestOpFrame.h"
 #include "ReviewAssetCreationRequestOpFrame.h"
 #include "ReviewAssetUpdateRequestOpFrame.h"
 #include "ReviewIssuanceCreationRequestOpFrame.h"
+#include "ReviewLimitsUpdateRequestOpFrame.h"
 #include "ReviewPreIssuanceCreationRequestOpFrame.h"
 #include "ReviewWithdrawalRequestOpFrame.h"
 #include "util/Logging.h"
@@ -56,23 +58,28 @@ ReviewRequestOpFrame::ReviewRequestOpFrame(Operation const& op,
 ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, OperationResult & res, TransactionFrame & parentTx)
 {
 	switch (op.body.reviewRequestOp().requestDetails.requestType()) {
-	case ReviewableRequestType::ASSET_CREATE:
-		return new ReviewAssetCreationRequestOpFrame(op, res, parentTx);
-	case ReviewableRequestType::ASSET_UPDATE:
-		return new ReviewAssetUpdateRequestOpFrame(op, res, parentTx);
-	case ReviewableRequestType::ISSUANCE_CREATE:
-		return new ReviewIssuanceCreationRequestOpFrame(op, res, parentTx);
-	case ReviewableRequestType::PRE_ISSUANCE_CREATE:
-		return new ReviewPreIssuanceCreationRequestOpFrame(op, res, parentTx);
-    case ReviewableRequestType::WITHDRAW:
-        return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
-    case ReviewableRequestType::SALE:
-        return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
-	case ReviewableRequestType::CHANGE_KYC:
-		return new ReviewChangeKYCRequestOpFrame(op, res, parentTx);
-	default:
-		throw std::runtime_error("Unexpceted request type for review request op");
-	}
+        case ReviewableRequestType::ASSET_CREATE:
+            return new ReviewAssetCreationRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::ASSET_UPDATE:
+            return new ReviewAssetUpdateRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::ISSUANCE_CREATE:
+            return new ReviewIssuanceCreationRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::PRE_ISSUANCE_CREATE:
+            return new ReviewPreIssuanceCreationRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::WITHDRAW:
+            return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::SALE:
+            return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::LIMITS_UPDATE:
+            return new ReviewLimitsUpdateRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+            return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
+        case ReviewableRequestType::CHANGE_KYC:
+            return new ReviewChangeKYCRequestOpFrame(op, res, parentTx);
+
+        default:
+            throw std::runtime_error("Unexpceted request type for review request op");
+    }
 }
 
 std::unordered_map<AccountID, CounterpartyDetails> ReviewRequestOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
@@ -102,12 +109,16 @@ bool
 ReviewRequestOpFrame::doApply(Application& app,
                             LedgerDelta& delta, LedgerManager& ledgerManager)
 {
-
 	Database& db = ledgerManager.getDatabase();
-	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-	auto request = reviewableRequestHelper->loadRequest(mReviewRequest.requestID, db, &delta);
+	auto request = ReviewableRequestHelper::Instance()->loadRequest(mReviewRequest.requestID, db, &delta);
 	if (!request || !(request->getReviewer() == getSourceID())) {
 		innerResult().code(ReviewRequestResultCode::NOT_FOUND);
+		return false;
+	}
+
+	auto requestorAccount = AccountHelper::Instance()->loadAccount(request->getRequestor(), db, &delta);
+	if (isSetFlag(requestorAccount->getBlockReasons(), BlockReasons::SUSPICIOUS_BEHAVIOR)) {
+		innerResult().code(ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
 		return false;
 	}
 

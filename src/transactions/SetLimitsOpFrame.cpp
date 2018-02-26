@@ -33,7 +33,8 @@ std::unordered_map<AccountID, CounterpartyDetails> SetLimitsOpFrame::getCounterp
 	};
 }
 
-SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                        int32_t ledgerVersion) const
 {
 	int32_t signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
 	int32_t threshold = mSourceAccount->getHighThreshold();
@@ -49,7 +50,23 @@ SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<Accou
 			threshold = mSourceAccount->getLowThreshold();
 		}
 	}
-	return SourceDetails({ AccountType::MASTER }, threshold, signerType);
+
+    auto newSignersVersion = static_cast<int32_t>(LedgerVersion::NEW_SIGNER_TYPES);
+    if (ledgerVersion >= newSignersVersion)
+    {
+        signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
+    }
+
+    //disallowed
+	return SourceDetails({}, threshold, signerType);
+}
+
+std::string
+SetLimitsOpFrame::getInnerResultCodeAsStr()
+{
+    const auto result = getResult();
+    const auto code = getInnerCode(result);
+    return xdr::xdr_traits<SetLimitsResultCode>::enum_name(code);
 }
 
 bool

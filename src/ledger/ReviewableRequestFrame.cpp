@@ -89,6 +89,11 @@ void ReviewableRequestFrame::ensureAssetUpdateValid(AssetUpdateRequest const& re
 	{
             throw runtime_error("Asset code is invalid");
 	}
+
+    if (!isValidJson(request.details))
+    {
+        throw runtime_error("invalid details");
+    }
 }
 
 void ReviewableRequestFrame::ensurePreIssuanceValid(PreIssuanceRequest const & request)
@@ -115,6 +120,11 @@ void ReviewableRequestFrame::ensureIssuanceValid(IssuanceRequest const & request
     {
         throw runtime_error("invalid amount");
     }
+
+    if (!isValidJson(request.externalDetails))
+    {
+        throw runtime_error("invalid external details");
+    }
 }
 
 void ReviewableRequestFrame::ensureWithdrawalValid(WithdrawalRequest const& request)
@@ -124,6 +134,10 @@ void ReviewableRequestFrame::ensureWithdrawalValid(WithdrawalRequest const& requ
         throw runtime_error("amount is invalid");
     }
 
+    if (!isValidJson(request.externalDetails))
+    {
+        throw runtime_error("external details is invalid");
+    }
 
     switch (request.details.withdrawalType())
     {
@@ -147,8 +161,13 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     SaleCreationRequest const& request)
 {
     const AccountID dummyAccountID;
+    map<AssetCode, BalanceID> dummyBalances;
     const BalanceID dummyBalanceID;
-    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalanceID, dummyBalanceID);
+    for (auto const& quoteAsset : request.quoteAssets)
+    {
+        dummyBalances[quoteAsset.quoteAsset] = dummyBalanceID;
+    }
+    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalances, 0);
     saleFrame->ensureValid();
 }
 
@@ -196,6 +215,11 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::SALE:
             ensureSaleCreationValid(oe.body.saleCreationRequest());
             return;
+        case ReviewableRequestType ::LIMITS_UPDATE:
+            return;
+        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+            ensureWithdrawalValid(oe.body.twoStepWithdrawalRequest());
+            return;
 		case ReviewableRequestType::CHANGE_KYC:
 			ensureChangeKYCValid(oe.body.changeKYCRequest());
 			return;
@@ -205,7 +229,7 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
     } catch(exception ex)
     {
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Reviewable request is invalid: " << xdr::xdr_to_string(oe) << " reason:" << ex.what();
-        throw_with_nested(runtime_error("Reviewable request is invalid"));
+        throw_with_nested(runtime_error("Reviewable request is invalid")); 
     }
 }
 
@@ -214,6 +238,5 @@ ReviewableRequestFrame::ensureValid() const
 {
     ensureValid(mRequest);
 }
-
 }
 

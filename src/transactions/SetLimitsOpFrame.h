@@ -12,7 +12,8 @@ class SetLimitsOpFrame : public OperationFrame
 {
 
 	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                              int32_t ledgerVersion) const override;
 
     SetLimitsResult&
     innerResult()
@@ -34,6 +35,9 @@ class SetLimitsOpFrame : public OperationFrame
     {
         return res.tr().setLimitsResult().code();
     }
+
+    std::string getInnerResultCodeAsStr() override;
+
     bool isValidLimits();
 };
 }

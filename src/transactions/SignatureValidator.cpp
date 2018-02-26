@@ -67,6 +67,13 @@ vector<Signer> SignatureValidator::getSigners(Application& app, Database& db, Ac
 		signers.push_back(
 			Signer(account.getID(), account.getAccount().thresholds[0], getAnySignerType(), 0, "", Signer::_ext_t{}));
 
+    // create signer for recovery
+    if (account.getAccountType() != AccountType::MASTER)
+    {
+        uint8_t recoveryWeight = 255;
+        signers.push_back(Signer(account.getRecoveryID(), recoveryWeight, getAnySignerType(), 0, "", Signer::_ext_t{}));
+    }
+
 	auto accountSigners = account.getAccount().signers;
 	signers.insert(signers.end(), accountSigners.begin(), accountSigners.end());
 	return signers;

@@ -29,6 +29,7 @@ namespace stellar
         }
 
         void dropAll(Database& db) override;
+        void addType(Database& db);
         void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
         void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
         void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key) override;
@@ -40,15 +41,14 @@ namespace stellar
 
         SaleFrame::pointer loadSale(uint64_t saleID, Database& db, LedgerDelta* delta = nullptr);
         SaleFrame::pointer loadSale(uint64_t saleID, AssetCode const& base, AssetCode const& quote, Database& db, LedgerDelta* delta = nullptr);
-        std::vector<SaleFrame::pointer> loadSales(AssetCode const& base, AssetCode const& quote, Database& db);
 
-        SaleFrame::pointer loadRequireStateChange(uint64_t const currentTime, Database& db, LedgerDelta& delta) const;
+        std::vector<SaleFrame::pointer> loadSalesForOwner(AccountID owner, Database& db);
 
     private:
         SaleHelper() { ; }
         ~SaleHelper() { ; }
 
         void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
-        void loadSales(StatementContext & prep, std::function<void(LedgerEntry const&)> requestsProcessor) const;
+        void loadSales(Database& db, StatementContext & prep, std::function<void(LedgerEntry const&)> requestsProcessor) const;
     };
 }

@@ -18,7 +18,8 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
-SourceDetails UpdateAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails UpdateAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                          int32_t ledgerVersion) const
 {
     vector<AccountType> allowedAccountTypes = {AccountType::MASTER};
 
@@ -113,6 +114,11 @@ bool UpdateAssetOpFrame::doCheckValid(Application & app)
 		innerResult().code(ManageAssetResultCode::INVALID_POLICIES);
 		return false;
 	}
+
+    if (!isValidJson(mAssetUpdateRequest.details)) {
+        innerResult().code(ManageAssetResultCode::INVALID_DETAILS);
+        return false;
+    }
 
 	return true;
 }

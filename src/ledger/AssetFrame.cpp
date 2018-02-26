@@ -107,7 +107,7 @@ bool AssetFrame::canAddAvailableForIssuance(uint64_t amount)
                  maxAmountCanBeIssuedAfterUpdate))
         return false;
 
-    return maxAmountCanBeIssuedAfterUpdate < mAsset.maxIssuanceAmount;
+    return maxAmountCanBeIssuedAfterUpdate <= mAsset.maxIssuanceAmount;
 }
 
 bool AssetFrame::tryAddAvailableForIssuance(uint64_t amount)
@@ -210,6 +210,11 @@ void AssetFrame::ensureValid(AssetEntry const& oe)
        {
            throw runtime_error("asset code is invalid");
        }
+
+        if (!isValidJson(oe.details))
+        {
+            throw runtime_error("details is invalid");
+        }
     }
     catch (...)
     {

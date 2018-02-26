@@ -5,6 +5,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/OperationFrame.h"
+#include "ledger/ReviewableRequestFrame.h"
 
 namespace stellar
 {
@@ -19,9 +20,8 @@ class CreateWithdrawalRequestOpFrame : public OperationFrame
 
     std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(
         Database& db, LedgerDelta* delta) const override;
-    SourceDetails getSourceAccountDetails(
-        std::unordered_map<AccountID, CounterpartyDetails>
-        counterpartiesDetails) const override;
+    SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                              int32_t ledgerVersion) const override;
 
     BalanceFrame::pointer tryLoadBalance(Database& db, LedgerDelta& delta) const;
 
@@ -33,6 +33,10 @@ class CreateWithdrawalRequestOpFrame : public OperationFrame
 
     bool tryAddStats(AccountManager& accountManager, BalanceFrame::pointer balance, uint64_t amountToAdd,
                          uint64_t& universalAmount);
+
+    ReviewableRequestFrame::pointer createRequest(LedgerDelta& delta, LedgerManager& ledgerManager,
+        Database& db, const AssetFrame::pointer assetFrame,
+        uint64_t universalAmount);
 
 public:
 

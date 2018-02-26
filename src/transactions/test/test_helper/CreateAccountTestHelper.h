@@ -2,6 +2,7 @@
 #define STELLAR_CREATEACCOUNTTESTHELPER_H
 
 #include "TxHelper.h"
+#include "transactions/test/TxTests.h"
 
 namespace stellar {
     namespace txtest {
@@ -17,6 +18,8 @@ namespace stellar {
 
             CreateAccountTestBuilder setToPublicKey(PublicKey to);
 
+            CreateAccountTestBuilder setRecovery(const PublicKey& recovery);
+
             CreateAccountTestBuilder setType(AccountType accountType);
 
             CreateAccountTestBuilder setType(int32_t accountType);
@@ -30,6 +33,7 @@ namespace stellar {
             CreateAccountTestBuilder setResultCode(CreateAccountResultCode expectedResult);
 
             PublicKey to;
+            PublicKey recovery;
             AccountType accountType;
             AccountID *referrer = nullptr;
             int32 policies = -1;
@@ -75,6 +79,8 @@ namespace stellar {
 
             explicit CreateAccountTestHelper(TestManager::pointer testManager);
 
+            TransactionFramePtr createCreateAccountTx(Account& source, PublicKey to, AccountType accountType, uint32_t policies = 0);
+
             CreateAccountResultCode applyTx(CreateAccountTestBuilder builder);
 
             [[deprecated]]
@@ -86,6 +92,7 @@ namespace stellar {
         private:
             Account from;
             PublicKey to;
+            PublicKey recovery;
             AccountType accountType;
             Account *signer = nullptr;
             AccountID *referrer = nullptr;

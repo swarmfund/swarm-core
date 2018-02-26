@@ -17,6 +17,7 @@ namespace txtest
 ReviewRequestHelper::
 ReviewRequestHelper(TestManager::pointer testManager): TxHelper(testManager)
 {
+    requestMustBeDeletedAfterApproval = true;
 }
 
 ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
@@ -28,11 +29,10 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto reviewableRequestCountBeforeTx = reviewableRequestHelper->
         countObjects(mTestManager->getDB().getSession());
-    LedgerDelta& delta = mTestManager->getLedgerDelta();
     auto requestBeforeTx = reviewableRequestHelper->loadRequest(requestID,
                                                                 mTestManager->
                                                                 getDB(),
-                                                                &delta);
+                                                                nullptr);
     auto txFrame = createReviewRequestTx(source, requestID, requestHash,
                                          requestType, action, rejectReason);
 
@@ -56,7 +56,7 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
 
     auto requestAfterTx = reviewableRequestHelper->loadRequest(requestID,
                                                                mTestManager->
-                                                               getDB(), &delta);
+                                                               getDB(), nullptr);
     if (action == ReviewRequestOpAction::REJECT)
     {
         REQUIRE(!!requestAfterTx);
@@ -65,14 +65,24 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
         return reviewResult;
     }
 
-    // approval and permanent reject must delete request
-    REQUIRE(!requestAfterTx);
     if (action == ReviewRequestOpAction::PERMANENT_REJECT)
     {
+        REQUIRE(!requestAfterTx);
         reviewChecker.checkPermanentReject(requestBeforeTx);
         return reviewResult;
     }
 
+    if (requestMustBeDeletedAfterApproval)
+    {
+        REQUIRE(!requestAfterTx);
+    }
+    else
+    {
+        REQUIRE(!!requestAfterTx);
+    }
+
+    auto txOperation = txFrame->getOperations()[0]->getOperation();
+    reviewChecker.setOperation(txOperation);
     reviewChecker.checkApprove(requestBeforeTx);
     return reviewResult;
 }

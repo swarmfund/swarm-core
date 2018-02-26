@@ -14,20 +14,28 @@ namespace txtest
     public:
         explicit StateBeforeTxHelper(LedgerDelta::KeyEntryMap state);
 
+        AccountFrame::pointer getAccount(AccountID accountID);
         SaleFrame::pointer getSale(uint64_t id);
         AssetEntry getAssetEntry(AssetCode assetCode);
+        OfferEntry getOffer(uint64_t offerID, AccountID ownerID);
+        BalanceFrame::pointer getBalance(BalanceID balanceID);
+        std::vector<OfferEntry> getAllOffers();
     };
 
     class CheckSaleStateHelper : public TxHelper
     {
         void ensureCancel(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
         void ensureClose(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
+        void ensureUpdated(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
         void ensureNoOffersLeft(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
+        void checkBalancesAfterApproval(StateBeforeTxHelper& stateBeforeTx, SaleFrame::pointer sale,
+            SaleQuoteAsset const& saleQuoteAsset, CheckSubSaleClosedResult result) const;
     public:
         explicit CheckSaleStateHelper(TestManager::pointer testManager);
 
-        TransactionFramePtr createCheckSaleStateTx(Account& source);
-        CheckSaleStateResult applyCheckSaleStateTx(Account& source, CheckSaleStateResultCode code = CheckSaleStateResultCode::SUCCESS);
+        TransactionFramePtr createCheckSaleStateTx(Account& source, uint64_t saleID);
+        CheckSaleStateResult applyCheckSaleStateTx(Account& source, uint64_t saleID, CheckSaleStateResultCode code = CheckSaleStateResultCode::SUCCESS);
+
     };
 }
 

@@ -37,7 +37,7 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     auto actualResultCode = CreateWithdrawalRequestOpFrame::getInnerCode(opResult);
     REQUIRE(actualResultCode == expectedResult);
 
-    uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
+    uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(db.getSession());
     if (expectedResult != CreateWithdrawalRequestResultCode::SUCCESS)
     {
         REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
@@ -51,7 +51,7 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     REQUIRE(!!balanceBeforeRequest);
     REQUIRE(reviewableRequestCountBeforeTx + 1 == reviewableRequestCountAfterTx);
 
-    auto balanceAfterRequest = BalanceHelper::Instance()->loadBalance(request.balance, mTestManager->getDB());
+    auto balanceAfterRequest = BalanceHelper::Instance()->loadBalance(request.balance, db);
     REQUIRE(!!balanceAfterRequest);
     REQUIRE(balanceBeforeRequest->getAmount() == balanceAfterRequest->getAmount() + request.amount + request.fee.fixed + request.fee.percent);
     REQUIRE(balanceAfterRequest->getLocked() == balanceBeforeRequest->getLocked() + request.amount + request.fee.fixed + request.fee.percent);
@@ -97,7 +97,18 @@ void WithdrawRequestHelper::validateStatsChange(StatisticsFrame::pointer statsBe
                                                 StatisticsFrame::pointer statsAfter,
                                                 ReviewableRequestFrame::pointer withdrawRequest)
 {
-    uint64_t universalAmount = withdrawRequest->getRequestEntry().body.withdrawalRequest().universalAmount;
+    uint64_t universalAmount = 0;
+    switch (withdrawRequest->getRequestType())
+    {
+    case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+        universalAmount = withdrawRequest->getRequestEntry().body.twoStepWithdrawalRequest().universalAmount;
+        break;
+    case ReviewableRequestType::WITHDRAW:
+        universalAmount = withdrawRequest->getRequestEntry().body.withdrawalRequest().universalAmount;
+        break;
+    default:
+        throw std::runtime_error("Unexpected reviewable request type");
+    }
     REQUIRE(universalAmount != 0);
 
     REQUIRE(statsAfter->getUpdateAt() == withdrawRequest->getCreatedAt());

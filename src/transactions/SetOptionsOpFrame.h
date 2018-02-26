@@ -14,7 +14,8 @@ class SetOptionsOpFrame : public OperationFrame
     const std::string updateKYCReference = "updateKYC";
 
 	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                              int32_t ledgerVersion) const override;
 
     SetOptionsResult&
     innerResult()
@@ -25,6 +26,9 @@ class SetOptionsOpFrame : public OperationFrame
 
 	// returns false if error occurs
 	bool tryUpdateSigners(Application& app, LedgerManager& ledgerManager);
+    bool tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager);
+
+    std::string getLimitsUpdateRequestReference(Hash const& documentHash) const;
 
     bool processTrustData(Application &app, LedgerDelta &delta);
 
@@ -51,5 +55,7 @@ class SetOptionsOpFrame : public OperationFrame
     {
         return res.tr().setOptionsResult().code();
     }
+
+    std::string getInnerResultCodeAsStr() override;
 };
 }

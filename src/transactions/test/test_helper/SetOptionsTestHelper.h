@@ -1,42 +1,39 @@
-//
-// Created by volodymyr on 04.01.18.
-//
+#pragma once
 
-#ifndef STELLAR_SETOPTIONSTESTHELPER_H
-#define STELLAR_SETOPTIONSTESTHELPER_H
+// Copyright 2014 Stellar Development Foundation and contributors. Licensed
+// under the Apache License, Version 2.0. See the COPYING file at the root
+// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include <transactions/test/TxTests.h>
+#include "overlay/StellarXDR.h"
+#include "util/optional.h"
 #include "TxHelper.h"
 
 namespace stellar
 {
-
 namespace txtest
 {
+    struct ThresholdSetter
+    {
+        optional<uint8_t> masterWeight;
+        optional<uint8_t> lowThreshold;
+        optional<uint8_t> medThreshold;
+        optional<uint8_t> highThreshold;
+    };
 
     class SetOptionsTestHelper : TxHelper
     {
-    private:
-        void checkUpdateThresholds(ThresholdSetter *thresholds, AccountFrame::pointer accountAfterTx);
-
-        bool checkUpdateSigner(Signer *expectedSigner, AccountFrame::pointer accountAfterTx);
-
     public:
-
         explicit SetOptionsTestHelper(TestManager::pointer testManager);
 
-        TransactionFramePtr createSetOptionsTx(Account &source, ThresholdSetter *thresholds, Signer *signer, TrustData *trustData);
+        TransactionFramePtr createSetOptionsTx(Account &source, ThresholdSetter *thresholdSetter,
+                                               Signer *signer, TrustData *trustData = nullptr,
+                                               LimitsUpdateRequestData *limitsUpdateRequestData = nullptr);
 
-        SetOptionsResult applySetOptionsTx(Account &source, ThresholdSetter *thresholds, Signer *signer,
-                                               TrustData *trustData,
-                                               SetOptionsResultCode expectedResult = SetOptionsResultCode::SUCCESS);
+        void applySetOptionsTx(Account &source, ThresholdSetter *thresholdSetter,
+                               Signer *signer, TrustData *trustData = nullptr,
+                               LimitsUpdateRequestData *limitsUpdateRequestData = nullptr,
+                               SetOptionsResultCode expectedResult = SetOptionsResultCode::SUCCESS,
+                               SecretKey *txSigner = nullptr);
     };
-
 }
-
 }
-
-
-
-
-#endif //STELLAR_SETOPTIONSTESTHELPER_H

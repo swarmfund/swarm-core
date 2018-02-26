@@ -66,15 +66,15 @@ AssetPairFrame::pointer AssetPairFrame::create(AssetCode base, AssetCode quote, 
 	return make_shared<AssetPairFrame>(le);
 }
 
-bool AssetPairFrame::convertAmount(const AssetCode code, const uint64_t amount, const Rounding rounding, uint64_t& result) const
+bool AssetPairFrame::convertAmount(const AssetCode destCode, const uint64_t amount, const Rounding rounding, uint64_t& result) const
 {
     if (mAssetPair.currentPrice <= 0)
     {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state. Current price is <= 0: " << code;
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state. Current price is <= 0: " << destCode;
     }
 
     const uint64_t currentPrice = mAssetPair.currentPrice;
-    if (mAssetPair.quote == code)
+    if (mAssetPair.quote == destCode)
     {
         return bigDivide(result, amount, currentPrice, ONE, rounding);
     }

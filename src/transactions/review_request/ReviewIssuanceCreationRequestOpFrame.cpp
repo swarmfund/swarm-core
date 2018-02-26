@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AccountHelper.h>
 #include "util/asio.h"
 #include "ReviewIssuanceCreationRequestOpFrame.h"
 #include "util/Logging.h"
@@ -76,6 +77,12 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApprove(Application & app, Ledg
         throw std::runtime_error("Unexpected state. totalFee exceeds amount");
     }
 
+    auto receiverAccount = AccountHelper::Instance()->mustLoadAccount(receiver->getAccountID(), db);
+    if (!AccountManager::isAllowedToReceive(receiver->getBalanceID(), db)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Asset requires receiver account to have KYC" << request->getRequestID();
+        throw std::runtime_error("Unexpeced state. Asset requires KYC but account is NOT_VERIFIED");
+    }
+
     //transfer fee
     AccountManager accountManager(app, db, delta, ledgerManager);
     accountManager.transferFee(issuanceCreationRequest.asset, totalFee);
@@ -99,10 +106,18 @@ bool ReviewIssuanceCreationRequestOpFrame::handleReject(Application & app, Ledge
 	return false;
 }
 
-SourceDetails ReviewIssuanceCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ReviewIssuanceCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                            int32_t ledgerVersion) const
 {
-	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
-						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
+    auto allowedSigners = static_cast<int32_t>(SignerType::ASSET_MANAGER);
+
+    auto newSingersVersion = static_cast<int32_t>(LedgerVersion::NEW_SIGNER_TYPES);
+    if (ledgerVersion >= newSingersVersion)
+    {
+        allowedSigners = static_cast<int32_t>(SignerType::USER_ISSUANCE_MANAGER);
+    }
+
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(), allowedSigners);
 }
 
 ReviewIssuanceCreationRequestOpFrame::ReviewIssuanceCreationRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :

@@ -14,14 +14,50 @@
 #include "ledger/AccountHelper.h"
 #include "xdrpp/printer.h"
 #include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
 #include "issuance/CreateIssuanceRequestOpFrame.h"
+#include "dex/CreateOfferOpFrame.h"
+#include "dex/CreateSaleParticipationOpFrame.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/AssetPairHelper.h"
+#include "dex/DeleteSaleParticipationOpFrame.h"
 
 namespace stellar
 {
 using namespace std;
 using xdr::operator==;
 
+
+CheckSaleStateOpFrame::SaleState CheckSaleStateOpFrame::getSaleState(
+    const SaleFrame::pointer sale, Database& db, LedgerManager& lm)
+{
+    uint64_t currentCap = 0;
+    if (!CreateSaleParticipationOpFrame::getSaleCurrentCap(sale, db, currentCap))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate current cap for sale: " << sale->getID();
+        throw runtime_error("Failed to calculate current cap for sale");
+    }
+
+    const auto reachedHardCap = currentCap >= sale->getHardCap();
+    if (reachedHardCap)
+    {
+        return CLOSE;
+    }
+
+    const auto currentTime = lm.getCloseTime();
+    const auto expired = sale->getEndTime() <= currentTime;
+    if (expired)
+    {
+        const auto reachedSoftCap = currentCap >= sale->getSoftCap();
+        if (reachedSoftCap)
+        {
+            return CLOSE;
+        }
+
+        return CANCEL;
+    }
+
+    return NOT_READY;
+}
 
 unordered_map<AccountID, CounterpartyDetails> CheckSaleStateOpFrame::
 getCounterpartyDetails(Database& db, LedgerDelta* delta) const
@@ -30,7 +66,7 @@ getCounterpartyDetails(Database& db, LedgerDelta* delta) const
     return {};
 }
 
-SourceDetails CheckSaleStateOpFrame::getSourceAccountDetails(unordered_map<AccountID, CounterpartyDetails>)
+SourceDetails CheckSaleStateOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails>, int32_t ledgerVersion)
 const
 {
     return SourceDetails({ AccountType::MASTER }, mSourceAccount->getLowThreshold(), int32_t(SignerType::EVENTS_CHECKER));
@@ -55,15 +91,25 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
         throw runtime_error("Unexpected state; issuance request was not fulfilled on check sale state");
     }
 
+    updateAvailableForIssuance(sale, delta, db);
+
     updateMaxIssuance(sale, delta, db);
 }
 
-bool CheckSaleStateOpFrame::handleCancel(const SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
-    Database& db)
+void CheckSaleStateOpFrame::cancelAllOffersForQuoteAsset(const SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, LedgerDelta& delta, Database& db)
 {
     auto orderBookID = sale->getID();
-    const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), sale->getQuoteAsset(), &orderBookID, nullptr, db);
+    const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), saleQuoteAsset.quoteAsset, &orderBookID, nullptr, db);
     OfferManager::deleteOffers(offersToCancel, db, delta);
+}
+
+bool CheckSaleStateOpFrame::handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
+    Database& db)
+{
+    for (auto& saleQuoteAsset : sale->getSaleEntry().quoteAssets)
+    {
+        cancelAllOffersForQuoteAsset(sale, saleQuoteAsset, delta, db);
+    }
 
     unlockPendingIssunace(sale, delta, db);
 
@@ -76,9 +122,10 @@ bool CheckSaleStateOpFrame::handleCancel(const SaleFrame::pointer sale, LedgerMa
     return true;
 }
 
-bool CheckSaleStateOpFrame::handleClose(const SaleFrame::pointer sale, Application& app,
+bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& app,
     LedgerManager& lm, LedgerDelta& delta, Database& db)
 {
+    updateOfferPrices(sale, delta, db);
     const auto saleOwnerAccount = AccountHelper::Instance()->loadAccount(sale->getOwnerID(), db, &delta);
     if (!saleOwnerAccount)
     {
@@ -88,33 +135,54 @@ bool CheckSaleStateOpFrame::handleClose(const SaleFrame::pointer sale, Applicati
 
     issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
 
-    const auto saleOfferResult = applySaleOffer(saleOwnerAccount, sale, app, lm, delta);
-    SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
     innerResult().code(CheckSaleStateResultCode::SUCCESS);
     auto& success = innerResult().success();
     success.saleID = sale->getID();
     success.effect.effect(CheckSaleStateEffect::CLOSED);
-    success.effect.saleClosed().saleDetails = saleOfferResult;
     success.effect.saleClosed().saleOwner = saleOwnerAccount->getID();
-    success.effect.saleClosed().saleBaseBalance = sale->getBaseBalanceID();
-    success.effect.saleClosed().saleQuoteBalance = sale->getQuoteBalanceID();
+    for (auto const& quoteAsset : sale->getSaleEntry().quoteAssets)
+    {
+        if (quoteAsset.currentCap == 0)
+            continue;
+        const auto saleOfferResult = applySaleOffer(saleOwnerAccount, sale, quoteAsset, app, lm, delta);
+        CheckSubSaleClosedResult result;
+        result.saleDetails = saleOfferResult;
+        result.saleBaseBalance = sale->getBaseBalanceID();
+        result.saleQuoteBalance = quoteAsset.quoteBalance;
+        success.effect.saleClosed().results.push_back(result);
+        cancelAllOffersForQuoteAsset(sale, quoteAsset, delta, db);
+    }
+    SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
+
+    auto baseBalance = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
+    if (baseBalance->getAmount() > ONE)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();
+        throw runtime_error("Unexpected state: after sale close issuer endup with balance > ONE");
+    }
+    
     return true;
 }
 
 void CheckSaleStateOpFrame::unlockPendingIssunace(const SaleFrame::pointer sale,
-    LedgerDelta& delta, Database& db) const
+    LedgerDelta& delta, Database& db)
 {
     auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
-    const auto baseAmount = sale->getBaseAmountForCurrentCap();
+    // TODO: should be fixed
+    // currently we are locking max issuance amount on sale creation, so it's safe for now to just unlock pending issuance
+    const auto baseAmount = baseAsset->getPendingIssuance();
     baseAsset->mustUnlockIssuedAmount(baseAmount);
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
 }
 
 CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
-    const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount,
+    SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount,
     Application& app, LedgerDelta& delta, LedgerManager& lm) const
 {
-    const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), sale->getBaseAmountForCurrentCap(), sale->getBaseBalanceID(), lm);
+    Database& db = app.getDatabase();
+    const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
+    const auto amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
+    const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue, sale->getBaseBalanceID(), lm);
     Operation op;
     op.sourceAccount.activate() = sale->getOwnerID();
     op.body.type(OperationType::CREATE_ISSUANCE_REQUEST);
@@ -136,35 +204,46 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
 }
 
 void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
-    LedgerDelta& delta, Database& db) const
+    LedgerDelta& delta, Database& db)
 {
     auto baseAsset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db, &delta);
-    uint64_t updatedMaxIssuance;
-    if (!safeSum(baseAsset->getIssued(), baseAsset->getPendingIssuance(), updatedMaxIssuance))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate updated max issuance on sale check state; saleID: " << sale->getID();
-        throw std::runtime_error("Failed to calculate updated max issuance on sale check state");
-    }
+
+    // at this point issued amount is the sum of a previously issued amount and a total amount of the sale
+    const uint64_t updatedMaxIssuance = baseAsset->getIssued();
 
     baseAsset->setMaxIssuance(updatedMaxIssuance);
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
 }
 
+void CheckSaleStateOpFrame::updateAvailableForIssuance(const SaleFrame::pointer sale, LedgerDelta &delta,
+                                                       Database &db)
+{
+    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db);
+
+    // destroy remaining assets (difference between hardCap and currentCap)
+    baseAsset->setAvailableForIssuance(0);
+
+    EntryHelperProvider::storeChangeEntry(delta, db, baseAsset->mEntry);
+}
+
 ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
-    const AccountFrame::pointer saleOwnerAccount, SaleFrame::pointer sale, Application& app,
-    LedgerManager& lm, LedgerDelta& delta)
+    const AccountFrame::pointer saleOwnerAccount, SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, Application& app,
+    LedgerManager& lm, LedgerDelta& delta) const
 {
     auto& db = app.getDatabase();
-    const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, sale->getQuoteAsset(), sale->getCurrentCap(), db);
+    auto baseBalance = BalanceHelper::Instance()->mustLoadBalance(sale->getBaseBalanceID(), db);
+
+    const auto baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
+    const auto quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);
+    const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
     if (feeResult.isOverflow)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: overflow on sale fees calculation: " << xdr::xdr_to_string(sale->getSaleEntry());
         throw runtime_error("Unexpected state: overflow on sale fees calculation");
     }
 
-    const auto baseAmount = sale->getBaseAmountForCurrentCap();
-    const auto manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), sale->getQuoteBalanceID(),
-        false, baseAmount, sale->getPrice(), feeResult.calculatedPercentFee, 0, sale->getID());
+    const auto manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), saleQuoteAsset.quoteBalance,
+        false, baseAmount, saleQuoteAsset.price, feeResult.calculatedPercentFee, 0, sale->getID());
     Operation op;
     op.sourceAccount.activate() = sale->getOwnerID();
     op.body.type(OperationType::MANAGE_OFFER);
@@ -173,7 +252,8 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     OperationResult opRes;
     opRes.code(OperationResultCode::opINNER);
     opRes.tr().type(OperationType::MANAGE_OFFER);
-    ManageOfferOpFrame manageOfferOpFrame(op, opRes, mParentTx);
+    // need to directly create CreateOfferOpFrame to bypass validation of CreateSaleParticipationOpFrame
+    CreateOfferOpFrame manageOfferOpFrame(op, opRes, mParentTx);
     manageOfferOpFrame.setSourceAccountPtr(saleOwnerAccount);
     if (!manageOfferOpFrame.doCheckValid(app) || !manageOfferOpFrame.doApply(app, delta, lm))
     {
@@ -189,7 +269,139 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
         throw runtime_error("Unexpected result code from manage offer on check sale state");
     }
 
-    return opRes.tr().manageOfferResult().success();
+    auto result = opRes.tr().manageOfferResult().success();
+    if (result.offersClaimed.empty())
+    {
+        throw runtime_error("Unexpected state: sale was closed, but no order matches");
+    }
+
+    return result;
+}
+
+bool CheckSaleStateOpFrame::cleanSale(SaleFrame::pointer sale, Application& app,
+    LedgerDelta& delta, LedgerManager& ledgerManager) const
+{
+    if (sale->getSaleType() != SaleType::CROWD_FUNDING)
+    {
+        return false;
+    }
+
+    auto& db = app.getDatabase();
+    const auto saleState = getSaleState(sale, db, ledgerManager);
+    if (saleState != CLOSE)
+    {
+        return false;
+    }
+
+    bool wasUpdated = false;
+    const int64_t priceInDefaultQuoteAsset = getSaleCurrentPriceInDefaultQuote(sale, delta, db);
+    for (auto const& quoteAsset : sale->getSaleEntry().quoteAssets)
+    {
+        const int64_t priceInQuoteAsset = getPriceInQuoteAsset(priceInDefaultQuoteAsset, sale, quoteAsset.quoteAsset, db);
+        int64_t minAllowedQuoteAmount = 0;
+        if (!bigDivide(minAllowedQuoteAmount, priceInQuoteAsset, 1, ONE, ROUND_UP))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate min allowed quote amount: " << sale->getID();
+            throw runtime_error("Failed to calculate min quote amount");
+        }
+
+        // it's not possible to create offer with quote amount < 1, so we can continue
+        if (minAllowedQuoteAmount == 1)
+        {
+            continue;
+        }
+
+        auto offersToCancel = OfferHelper::Instance()->loadOffers(sale->getBaseAsset(), quoteAsset.quoteAsset, sale->getID(), minAllowedQuoteAmount, db);
+        for (const auto offerToCancel : offersToCancel)
+        {
+            DeleteSaleParticipationOpFrame::deleteSaleParticipation(app, delta, ledgerManager, offerToCancel, mParentTx);
+            wasUpdated = true;
+        }
+
+
+    }
+
+    return wasUpdated;
+}
+
+void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
+    LedgerDelta& delta, Database& db) const
+{
+    if (sale->getSaleType() != SaleType::CROWD_FUNDING)
+    {
+        return;
+    }
+
+    auto& saleEntry = sale->getSaleEntry();
+    const auto priceInDefaultQuoteAsset = getSaleCurrentPriceInDefaultQuote(sale, delta, db);
+    for (auto& quoteAsset : saleEntry.quoteAssets)
+    {
+        quoteAsset.price = getPriceInQuoteAsset(priceInDefaultQuoteAsset, sale, quoteAsset.quoteAsset, db);
+        const auto offersToUpdate = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), quoteAsset.quoteAsset, &saleEntry.saleID, nullptr, db);
+        for (auto& offerToUpdate : offersToUpdate)
+        {
+            auto& offerEntry = offerToUpdate->getOffer();
+            offerEntry.price = quoteAsset.price;
+            if (!bigDivide(offerEntry.baseAmount, offerEntry.quoteAmount, ONE, offerEntry.price, ROUND_DOWN))
+            {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update price for offer: offerID: " << offerEntry.offerID;
+                throw runtime_error("Failed to update price for offer on crowdfund check state");
+            }
+
+            OfferHelper::Instance()->storeChange(delta, db, offerToUpdate->mEntry);
+        }
+    }
+    SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);
+}
+
+int64_t CheckSaleStateOpFrame::getSaleCurrentPriceInDefaultQuote(
+    const SaleFrame::pointer sale, LedgerDelta& delta, Database& db)
+{
+    uint64_t currentCap = 0;
+    if (!CreateSaleParticipationOpFrame::getSaleCurrentCap(sale, db, currentCap) || currentCap > INT64_MAX)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to get sale current cap! saleID: " << sale->getID();
+        throw runtime_error("Failed to get current sale cap");
+    }
+
+    return getSalePriceForCap(currentCap, sale);
+}
+
+int64_t CheckSaleStateOpFrame::getPriceInQuoteAsset(
+    int64_t const salePriceInDefaultQuote, const SaleFrame::pointer sale,
+    AssetCode const quoteAsset, Database& db)
+{
+    if (sale->getDefaultQuoteAsset() == quoteAsset)
+    {
+        return salePriceInDefaultQuote;
+    }
+
+    auto assetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(sale->getDefaultQuoteAsset(), quoteAsset, db);
+    if (!assetPair)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to load asset pair for quote asset and default quote asset. SaleID: " 
+            << sale->getID() << " quoteAsset" << quoteAsset;
+        throw runtime_error("failed to load default quote asset for sale");
+    }
+
+    int64_t priceInQuoteAsset = 0;
+    auto ok = false;
+    if (assetPair->getBaseAsset() == sale->getDefaultQuoteAsset())
+    {
+        ok = bigDivide(priceInQuoteAsset, salePriceInDefaultQuote, assetPair->getCurrentPrice(), ONE, ROUND_UP);
+    } else
+    {
+        ok = bigDivide(priceInQuoteAsset, salePriceInDefaultQuote, ONE, assetPair->getCurrentPrice(), ROUND_UP);
+    }
+
+    if (!ok)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate price in quote asset. SaleID: "
+            << sale->getID() << " quoteAsset" << quoteAsset;
+        throw runtime_error("Failed to calculate price in quote asset");
+    }
+
+    return priceInQuoteAsset;
 }
 
 CheckSaleStateOpFrame::CheckSaleStateOpFrame(Operation const& op,
@@ -201,24 +413,53 @@ bool CheckSaleStateOpFrame::doApply(Application& app, LedgerDelta& delta,
     LedgerManager& ledgerManager)
 {
     auto& db = app.getDatabase();
-    const auto sale = SaleHelper::Instance()->loadRequireStateChange(ledgerManager.getCloseTime(), db, delta);
+    const auto sale = SaleHelper::Instance()->loadSale(mCheckSaleState.saleID, db, &delta);
     if (!sale)
     {
-        innerResult().code(CheckSaleStateResultCode::NO_SALES_FOUND);
+        innerResult().code(CheckSaleStateResultCode::NOT_FOUND);
         return false;
     }
 
-    if (sale->getSoftCap() < sale->getCurrentCap())
+    const auto wasCleaned = cleanSale(sale, app, delta, ledgerManager);
+    if (wasCleaned)
     {
-        return handleClose(sale, app, ledgerManager, delta, db);
+        innerResult().code(CheckSaleStateResultCode::SUCCESS);
+        innerResult().success().saleID = sale->getID();
+        innerResult().success().effect.effect(CheckSaleStateEffect::UPDATED);
+        return true;
     }
-
-    return handleCancel(sale, ledgerManager, delta, db);
+    auto const  saleState = getSaleState(sale, db, ledgerManager);
+    switch (saleState)
+    {
+    case CLOSE:
+        return handleClose(sale, app, ledgerManager, delta, db);
+    case CANCEL:
+        return handleCancel(sale, ledgerManager, delta, db);
+    case NOT_READY:
+        innerResult().code(CheckSaleStateResultCode::NOT_READY);
+        return false;
+    default:
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected sale state: " << saleState;
+        throw runtime_error("Unexpected sale state");
+    }
 }
 
 bool CheckSaleStateOpFrame::doCheckValid(Application& app)
 {
     return true;
+}
+
+int64_t CheckSaleStateOpFrame::getSalePriceForCap(int64_t const cap,
+                                                  const SaleFrame::pointer sale)
+{
+    int64_t currentSalePrice = 0;
+    if (!bigDivide(currentSalePrice, cap, ONE, sale->getMaxAmountToBeSold(), ROUND_UP))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate current sale price in default quote. SaleID: " << sale->getID();
+        throw runtime_error("Failed to calculate current sale price in default quote");
+    }
+
+    return currentSalePrice;
 }
 
 std::string CheckSaleStateOpFrame::getInnerResultCodeAsStr()

@@ -84,7 +84,8 @@ std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpar
 	};
 }
 
-SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                      int32_t ledgerVersion) const
 {
 	int32_t signerType = static_cast<int32_t >(SignerType::BALANCE_MANAGER);
 	switch (mSourceAccount->getAccountType())
@@ -101,7 +102,8 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
 	std::vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
                                                      AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE};
 
-	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType);
+    // disallowed
+	return SourceDetails({}, mSourceAccount->getMediumThreshold(), signerType);
 }
 
 bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)
@@ -251,7 +253,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 	auto assetHelper = AssetHelper::Instance();
     auto assetFrame = assetHelper->loadAsset(mSourceBalance->getAsset(), db);
     assert(assetFrame);
-    if (!isAllowedToTransfer(db, assetFrame))
+    if (!isAllowedToTransfer(db, assetFrame) || !AccountManager::isAllowedToReceive(mPayment.destinationBalanceID, db))
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "not-allowed-by-asset-policy" }, "operation").Mark();
         innerResult().code(PaymentResultCode::NOT_ALLOWED_BY_ASSET_POLICY);

@@ -49,7 +49,7 @@ BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta
                                                                           mSourceAccount->getID(), db);
     if (!!existingPoolEntryFrame)
     {
-        existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry().expiresAt = ledgerManager.getCloseTime() + (24 * 60 * 60);
+        existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry().expiresAt = ledgerManager.getCloseTime() + dayInSeconds;
         externalSystemAccountIDPoolEntryHelper->storeChange(delta, db, existingPoolEntryFrame->mEntry);
         innerResult().code(BindExternalSystemAccountIdResultCode::SUCCESS);
         innerResult().success().data = existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry().data;
@@ -71,11 +71,19 @@ BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta
         auto existingExternalSystemAccountIDFrame = externalSystemAccountIDHelper->load(*poolEntryToBind.accountID,
                                                                                         mBindExternalSystemAccountId.externalSystemType,
                                                                                         db, &delta);
+        if (!existingExternalSystemAccountIDFrame)
+        {
+            auto accIDStr = PubKeyUtils::toStrKey(*poolEntryToBind.accountID);
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to load existing external system account id for account id:"
+                                                   << accIDStr;
+            throw runtime_error("Unexpected state: external system account id expected to exist");
+        }
+
         externalSystemAccountIDHelper->storeDelete(delta, db, existingExternalSystemAccountIDFrame->getKey());
     }
 
     poolEntryToBind.accountID.activate() = mSourceAccount->getID();
-    poolEntryToBind.expiresAt = ledgerManager.getCloseTime() + (24 * 60 * 60);
+    poolEntryToBind.expiresAt = ledgerManager.getCloseTime() + dayInSeconds;
 
     auto externalSystemAccountIDFrame = ExternalSystemAccountIDFrame::createNew(mSourceAccount->getID(),
                                                                                 mBindExternalSystemAccountId.externalSystemType,

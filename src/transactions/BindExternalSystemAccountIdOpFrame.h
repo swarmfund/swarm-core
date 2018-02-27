@@ -29,5 +29,11 @@ public:
     {
         return res.tr().bindExternalSystemAccountIdResult().code();
     }
+
+    std::string getInnerResultCodeAsStr() override {
+        return xdr::xdr_traits<BindExternalSystemAccountIdResultCode>::enum_name(innerResult().code());
+    }
+
+    static const uint64_t dayInSeconds = 24 * 60 * 60;
 };
 }

@@ -1,7 +1,6 @@
 #include "BindExternalSystemAccountIdTestHelper.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
-#include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "test/test_marshaler.h"
 
 namespace stellar
@@ -96,7 +95,7 @@ namespace txtest
             REQUIRE(boundPoolEntry.data == boundPoolEntryData);
             REQUIRE(!!boundPoolEntry.accountID);
             REQUIRE(*boundPoolEntry.accountID == source.key.getPublicKey());
-            REQUIRE(boundPoolEntry.expiresAt == mTestManager->getLedgerManager().getCloseTime() + (24 * 60 * 60));
+            REQUIRE(boundPoolEntry.expiresAt == mTestManager->getLedgerManager().getCloseTime() + BindExternalSystemAccountIdOpFrame::dayInSeconds);
 
             if (rebinding)
                 REQUIRE(!externalSystemAccountIDHelper->exists(db, externalSystemAccountIDBeforeTx->getExternalSystemAccountID().accountID,

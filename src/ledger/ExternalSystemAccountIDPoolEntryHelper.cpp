@@ -14,71 +14,81 @@ namespace stellar
 {
 using xdr::operator<;
 
-    const char* ExternalSystemAccountIDPoolEntryHelper::select = "SELECT * FROM external_system_account_id_pool";
+    const char* ExternalSystemAccountIDPoolEntryHelper::select = "SELECT id, external_system_type, data, account_id, "
+            "expires_at, lastmodified, version FROM external_system_account_id_pool";
 
     void ExternalSystemAccountIDPoolEntryHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
                                                                   LedgerEntry const &entry)
     {
-        auto poolEntryFrame = make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
-        auto poolEntry = poolEntryFrame->getExternalSystemAccountIDPoolEntry();
-
-        poolEntryFrame->touch(delta);
-
-        poolEntryFrame->ensureValid();
-
-        string sql;
-
-        if (insert)
+        try
         {
-            sql = "INSERT INTO external_system_account_id_pool (id, external_system_type, data, account_id, "
-                    "expires_at, lastmodified, version) "
-                    "VALUES (:id, :ex_sys_type, :data, :acc_id, :exp_at, :lm, :v)";
+            auto poolEntryFrame = make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
+            auto poolEntry = poolEntryFrame->getExternalSystemAccountIDPoolEntry();
+
+            poolEntryFrame->touch(delta);
+
+            poolEntryFrame->ensureValid();
+
+            string sql;
+
+            if (insert)
+            {
+                sql = "INSERT INTO external_system_account_id_pool (id, external_system_type, data, account_id, "
+                        "expires_at, lastmodified, version) "
+                        "VALUES (:id, :ex_sys_type, :data, :acc_id, :exp_at, :lm, :v)";
+            }
+            else
+            {
+                sql = "UPDATE external_system_account_id_pool "
+                        "SET external_system_type = :ex_sys_type, data = :data, account_id = :acc_id, "
+                        "expires_at = :exp_at, lastmodified = :lm, version = :v "
+                        "WHERE id = :id";
+            }
+
+            auto prep = db.getPreparedStatement(sql);
+            auto& st = prep.statement();
+
+            st.exchange(use(poolEntry.poolEntryID, "id"));
+            st.exchange(use(poolEntry.externalSystemType, "ex_sys_type"));
+            st.exchange(use(poolEntry.data, "data"));
+
+            std::string actIDStrKey;
+            if(poolEntry.accountID)
+            {
+                actIDStrKey = PubKeyUtils::toStrKey(*poolEntry.accountID);
+            }
+            st.exchange(use(actIDStrKey, "acc_id"));
+
+            st.exchange(use(poolEntry.expiresAt, "exp_at"));
+            st.exchange(use(poolEntryFrame->mEntry.lastModifiedLedgerSeq, "lm"));
+
+            const auto version = static_cast<int32_t>(poolEntry.ext.v());
+            st.exchange(use(version, "v"));
+            st.define_and_bind();
+
+            auto timer = insert ? db.getInsertTimer("external_system_account_id_pool")
+                                : db.getUpdateTimer("external_system_account_id_pool");
+            st.execute(true);
+
+            if (st.get_affected_rows() != 1)
+            {
+                throw runtime_error("could not update SQL");
+            }
+
+            if (insert)
+            {
+                delta.addEntry(*poolEntryFrame);
+            }
+            else
+            {
+                delta.modEntry(*poolEntryFrame);
+            }
         }
-        else
+        catch (exception ex)
         {
-            sql = "UPDATE external_system_account_id_pool "
-                    "SET external_system_type = :ex_sys_type, data = :data, account_id = :acc_id, "
-                    "expires_at = :exp_at, lastmodified = :lm, version = :v "
-                    "WHERE id = :id";
-        }
-
-        auto prep = db.getPreparedStatement(sql);
-        auto& st = prep.statement();
-
-        st.exchange(use(poolEntry.poolEntryID, "id"));
-        st.exchange(use(poolEntry.externalSystemType, "ex_sys_type"));
-        st.exchange(use(poolEntry.data, "data"));
-
-        std::string actIDStrKey;
-        if(poolEntry.accountID)
-        {
-            actIDStrKey = PubKeyUtils::toStrKey(*poolEntry.accountID);
-        }
-        st.exchange(use(actIDStrKey, "acc_id"));
-
-        st.exchange(use(poolEntry.expiresAt, "exp_at"));
-        st.exchange(use(poolEntryFrame->mEntry.lastModifiedLedgerSeq, "lm"));
-
-        const auto version = static_cast<int32_t>(poolEntry.ext.v());
-        st.exchange(use(version, "v"));
-        st.define_and_bind();
-
-        auto timer = insert ? db.getInsertTimer("external_system_account_id_pool")
-                            : db.getUpdateTimer("external_system_account_id_pool");
-        st.execute(true);
-
-        if (st.get_affected_rows() != 1)
-        {
-            throw runtime_error("could not update SQL");
-        }
-
-        if (insert)
-        {
-            delta.addEntry(*poolEntryFrame);
-        }
-        else
-        {
-            delta.modEntry(*poolEntryFrame);
+            CLOG(ERROR, Logging::ENTRY_LOGGER) << "Failed to update external system account id pool entry"
+                                               << xdr::xdr_to_string(entry) << " reason: " << ex.what();
+            throw_with_nested(runtime_error("Failed to update external system account id pool entry"));
         }
     }
 
@@ -286,35 +296,42 @@ using xdr::operator<;
     void ExternalSystemAccountIDPoolEntryHelper::load(StatementContext &prep,
                                                      std::function<void(LedgerEntry const &)> processor)
     {
-        LedgerEntry le;
-        le.data.type(LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY);
-        auto& p = le.data.externalSystemAccountIDPoolEntry();
-        int version;
-        std::string actIDStrKey;
-
-        statement& st = prep.statement();
-        st.exchange(into(p.poolEntryID));
-        st.exchange(into(p.externalSystemType));
-        st.exchange(into(p.data));
-        st.exchange(into(actIDStrKey));
-        st.exchange(into(p.expiresAt));
-        st.exchange(into(le.lastModifiedLedgerSeq));
-        st.exchange(into(version));
-        st.define_and_bind();
-        st.execute(true);
-
-        while (st.got_data())
+        try
         {
-            p.ext.v(static_cast<LedgerVersion>(version));
+            LedgerEntry le;
+            le.data.type(LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY);
+            auto& p = le.data.externalSystemAccountIDPoolEntry();
+            int version;
+            std::string actIDStrKey;
 
-            if (!actIDStrKey.empty())
+            statement& st = prep.statement();
+            st.exchange(into(p.poolEntryID));
+            st.exchange(into(p.externalSystemType));
+            st.exchange(into(p.data));
+            st.exchange(into(actIDStrKey));
+            st.exchange(into(p.expiresAt));
+            st.exchange(into(le.lastModifiedLedgerSeq));
+            st.exchange(into(version));
+            st.define_and_bind();
+            st.execute(true);
+
+            while (st.got_data())
             {
-                p.accountID.activate() = PubKeyUtils::fromStrKey(actIDStrKey);
-            }
+                p.ext.v(static_cast<LedgerVersion>(version));
 
-            ExternalSystemAccountIDPoolEntryFrame::ensureValid(p);
-            processor(le);
-            st.fetch();
+                if (!actIDStrKey.empty())
+                {
+                    p.accountID.activate() = PubKeyUtils::fromStrKey(actIDStrKey);
+                }
+
+                ExternalSystemAccountIDPoolEntryFrame::ensureValid(p);
+                processor(le);
+                st.fetch();
+            }
+        }
+        catch (...)
+        {
+            throw_with_nested(runtime_error("Failed to load external system account id pool entry"));
         }
     }
 

@@ -37,7 +37,7 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
     auto account = Account { SecretKey::random(), Salt(0) };
     createAccountTestHelper.applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::GENERAL);
 
-    testManager->advanceToTime(12 * 60 * 60);
+    testManager->advanceToTime(BindExternalSystemAccountIdOpFrame::dayInSeconds);
 
     SECTION("Happy path")
     {
@@ -49,7 +49,7 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
 
         SECTION("Prolongation of external system account id")
         {
-            testManager->advanceToTime(24 * 60 * 60);
+            testManager->advanceToTime(BindExternalSystemAccountIdOpFrame::dayInSeconds * 2);
 
             bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::ERC20_TOKEN);
         }
@@ -92,7 +92,7 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
 
         bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(binder, ExternalSystemType::ERC20_TOKEN);
 
-        testManager->advanceToTime(48 * 60 * 60);
+        testManager->advanceToTime(BindExternalSystemAccountIdOpFrame::dayInSeconds * 3);
 
         bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::ERC20_TOKEN);
     }

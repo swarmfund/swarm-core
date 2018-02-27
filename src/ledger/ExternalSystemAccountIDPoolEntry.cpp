@@ -55,6 +55,7 @@ using xdr::operator<;
         externalSystemAccountIDPoolEntry.poolEntryID = poolEntryID;
         externalSystemAccountIDPoolEntry.externalSystemType = externalSystemType;
         externalSystemAccountIDPoolEntry.data = data;
+        externalSystemAccountIDPoolEntry.expiresAt = 0;
         return std::make_shared<ExternalSystemAccountIDPoolEntryFrame>(le);
     }
 

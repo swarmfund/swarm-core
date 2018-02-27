@@ -26,7 +26,7 @@ CreateExternalSystemAccountIDPoolEntryOpFrame::doApply(Application &app, LedgerD
     Database& db = ledgerManager.getDatabase();
 
     auto poolEntryFrame = ExternalSystemAccountIDPoolEntryHelper::Instance()->load(mInput.externalSystemType,
-                                                                                   mInput.data, db, &delta);
+                                                                                   mInput.data, db);
 
     if (!!poolEntryFrame)
     {

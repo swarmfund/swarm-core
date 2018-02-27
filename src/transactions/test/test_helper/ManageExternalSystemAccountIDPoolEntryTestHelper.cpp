@@ -62,28 +62,27 @@ namespace txtest
 
         if (actualResultCode != ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS)
         {
-            REQUIRE(pool.size() == poolAfter.size());
+            return opResult;
+        }
+
+        if (action == ManageExternalSystemAccountIdPoolEntryAction::CREATE)
+        {
+            REQUIRE(pool.size() == poolAfter.size() - 1);
+
+            auto poolEntryFrame = poolEntryHelper->load(opResult.success().poolEntryID, db);
+            REQUIRE(poolEntryFrame);
+
+            auto poolEntry = poolEntryFrame->getExternalSystemAccountIDPoolEntry();
+            REQUIRE(poolEntry.externalSystemType ==
+                            actionInput.createExternalSystemAccountIdPoolEntryActionInput().externalSystemType);
+            REQUIRE(poolEntry.data ==
+                            actionInput.createExternalSystemAccountIdPoolEntryActionInput().data);
+            REQUIRE(poolEntry.accountID == nullptr);
+            REQUIRE(poolEntry.expiresAt == 0);
         }
         else
         {
-            if (action == ManageExternalSystemAccountIdPoolEntryAction::CREATE)
-            {
-                REQUIRE(pool.size() == poolAfter.size() - 1);
-                auto poolEntryFrame = poolEntryHelper->load(opResult.success().poolEntryID, db);
-                auto poolEntry = poolEntryFrame->getExternalSystemAccountIDPoolEntry();
-                REQUIRE(poolEntryFrame);
-                REQUIRE(poolEntry.externalSystemType ==
-                                actionInput.createExternalSystemAccountIdPoolEntryActionInput().externalSystemType);
-                REQUIRE(poolEntry.data ==
-                                actionInput.createExternalSystemAccountIdPoolEntryActionInput().data);
-                REQUIRE(poolEntry.accountID == nullptr);
-                REQUIRE(poolEntry.expiresAt == NULL);
-            }
-            else
-            {
-                REQUIRE(pool.size() == poolAfter.size() + 1);
-                REQUIRE(!poolEntryHelper->load(opResult.success().poolEntryID, db));
-            }
+            throw std::runtime_error("Unexpected action on manage external system account id pool entry operation");
         }
 
         return opResult;

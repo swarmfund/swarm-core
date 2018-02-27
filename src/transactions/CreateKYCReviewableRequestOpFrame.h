@@ -1,6 +1,6 @@
 #pragma once
 #include "transactions/OperationFrame.h"
-#include "ledger/ReviewableRequestFrame.h"
+
 #include "ledger/ReviewableRequestHelper.h"
 
 namespace stellar
@@ -8,7 +8,8 @@ namespace stellar
 	class CreateKYCRequestOpFrame : public OperationFrame {
 		CreateKYCRequestOp mCreateKYCRequest;
 		std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-		SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+		SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+											  int32_t ledgerVersion) const override;
 		CreateKYCRequestResult&
 			innerResult()
 		{
@@ -16,7 +17,7 @@ namespace stellar
 		}
 		std::string getReference() const;
 		void buildRequest(ReviewableRequestEntry& requestEntry);
-		bool updateKYCRequest(ReviewableRequestHelper* requestHelper, Database& db, LedgerDelta& delta, Application& app);
+		bool updateKYCRequest( Database& db, LedgerDelta& delta, Application& app);
 	public:
 		CreateKYCRequestOpFrame(Operation const& op, OperationResult& res,
 			TransactionFrame& parentTx);

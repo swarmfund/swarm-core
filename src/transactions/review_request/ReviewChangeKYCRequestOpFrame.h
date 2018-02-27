@@ -9,7 +9,8 @@ namespace stellar {
 
 		
 		SourceDetails
-			getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+			getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+									int32_t ledgerVersion) const override;
 	public:
 		ReviewChangeKYCRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx);
 	};

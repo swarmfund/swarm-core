@@ -100,6 +100,7 @@ class AccountFrame : public EntryFrame
         return mAccountEntry;
     }
 
+
 	bool getUpdateSigners() const
 	{
 		return mUpdateSigners;

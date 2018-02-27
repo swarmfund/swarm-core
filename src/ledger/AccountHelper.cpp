@@ -76,7 +76,7 @@ namespace stellar
 			st.exchange(use(accountEntry.blockReasons, "br"));
 			st.exchange(use(refIDStrKey, "ref"));
 			st.exchange(use(newAccountPolicies, "p"));
-			st.exchange(use(kycLevel, "lvl"));
+			st.exchange(use(kycLevel, "kyc"));
 			st.exchange(use(newAccountVersion, "v"));
 
 			st.define_and_bind();

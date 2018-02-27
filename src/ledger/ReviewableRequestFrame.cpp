@@ -172,12 +172,9 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
 }
 
 void ReviewableRequestFrame::ensureChangeKYCValid(ChangeKYCRequest const& request) {
-	Json::Value root;
-	Json::Reader reader;
-
-	if (!reader.parse(request.kycData, root, false)) {
-		throw std::runtime_error("KYC data is invalid");
-	}
+	//if (!isValidJson(request.kycData)) {
+	//	throw std::runtime_error("KYC data is invalid");
+	//}
 	bool res = isValidEnumValue(request.accountTypeToSet);
 	if (!res) {
 		throw runtime_error("invalid account type");

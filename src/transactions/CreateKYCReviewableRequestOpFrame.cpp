@@ -2,11 +2,7 @@
 #include "database/Database.h"
 #include "ledger/AccountHelper.h"
 #include "main/Application.h"
-#include "medida/meter.h"
-#include "medida/metrics_registry.h"
-#include "review_request/ReviewRequestOpFrame.h"
-#include "ledger/ReviewableRequestHelper.h"
-#include "ledger/ReviewableRequestFrame.h"
+
 #include "bucket/BucketApplicator.h"
 #include "xdrpp/printer.h"
 #include "ledger/LedgerDelta.h"
@@ -22,11 +18,12 @@ namespace stellar {
 	{
 
 	}
-	bool CreateKYCRequestOpFrame::updateKYCRequest(ReviewableRequestHelper* requestHelper,
+	bool CreateKYCRequestOpFrame::updateKYCRequest(
 		Database& db,LedgerDelta& delta,Application& app) {
+		auto requestHelper = ReviewableRequestHelper::Instance();
 		auto request = requestHelper->loadRequest(mCreateKYCRequest.requestID,mCreateKYCRequest.changeKYCRequest.updatedAccount,
-			ReviewableRequestType::CHANGE_KYC,db,&delta);
-		if (!request) {
+												  ReviewableRequestType::CHANGE_KYC,db,&delta);
+		if(!request){
 			innerResult().code(CreateKYCRequestResultCode::REQUEST_NOT_EXIST);
 			return false;
 		}
@@ -36,7 +33,7 @@ namespace stellar {
 
 		request->recalculateHashRejectReason();
 
-		requestHelper->storeChange(delta,db,request->mEntry);
+		ReviewableRequestHelper::Instance()->storeChange(delta,db,request->mEntry);
 		
 		innerResult().code(CreateKYCRequestResultCode::SUCCESS);
 		innerResult().success().requestID = mCreateKYCRequest.requestID;
@@ -46,10 +43,11 @@ namespace stellar {
 		LedgerManager& ledgerManager) {
 		Database& db = ledgerManager.getDatabase();
 		
-		auto requestHelper = ReviewableRequestHelper::Instance();
-		if (mCreateKYCRequest.requestID != 0) {
-			return updateKYCRequest(requestHelper,db,delta,app);
+
+		if (mCreateKYCRequest.requestID!=0) {
+			return updateKYCRequest(db,delta,app);
 		}
+
 		auto accountHelper = AccountHelper::Instance();
 		auto accountFrame = accountHelper->loadAccount(delta, mCreateKYCRequest.changeKYCRequest.updatedAccount, db);
 		if (!accountFrame) {
@@ -61,32 +59,33 @@ namespace stellar {
 		uint32 kycLevel = changeKYCRequest.kycLevel;
 		auto& account = accountFrame->getAccount();
 
-		if (account.accountType == changeKYCRequest.accountTypeToSet &&
-			account.ext.kycLevel() == changeKYCRequest.kycLevel) {
-			innerResult().code(CreateKYCRequestResultCode::SET_TYPE_THE_SAME);
-			return false;
-		}
+			if (account.accountType == changeKYCRequest.accountTypeToSet &&
+				accountFrame->getKYCLevel() == changeKYCRequest.kycLevel)
+			{
+				innerResult().code(CreateKYCRequestResultCode::SET_TYPE_THE_SAME);
+				return false;
+			}
 
 		auto reference = getReference();
 		const auto referencePtr = xdr::pointer<string64>(new string64(reference));
 		auto requestFrame = ReviewableRequestFrame::createNew(delta, changeKYCRequest.updatedAccount, app.getMasterID(), referencePtr, ledgerManager.getCloseTime());
-		
 
-		if (requestHelper->isReferenceExist(db, changeKYCRequest.updatedAccount, reference)) {
+		auto requestHelper = ReviewableRequestHelper::Instance();
+		if (requestHelper->isReferenceExist(db, changeKYCRequest.updatedAccount, reference, requestFrame->getRequestID())) {
 			innerResult().code(CreateKYCRequestResultCode::REQUEST_EXIST);	
 			return false;
 		}
 		auto& requestEntry = requestFrame->getRequestEntry();
 		requestEntry.body.type(ReviewableRequestType::CHANGE_KYC);
 		buildRequest(requestEntry);
-		
+
 		requestFrame->recalculateHashRejectReason();
 		
 		requestHelper->storeAdd(delta, db, requestFrame->mEntry);
 
 		innerResult().code(CreateKYCRequestResultCode::SUCCESS);
 	
-		innerResult().success().requestID = mCreateKYCRequest.requestID;
+		innerResult().success().requestID = requestFrame->getRequestID();
 		if (getSourceAccount().getAccountType() == AccountType::MASTER) {
 			auto reviewableRequest =requestHelper->loadRequest(requestFrame->getRequestID(), requestFrame->getRequestor(), db, &delta);
 			ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, reviewableRequest);
@@ -108,7 +107,8 @@ namespace stellar {
 		};
 	}
 
-	SourceDetails CreateKYCRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const {
+	SourceDetails CreateKYCRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+																   int32_t ledgerVersion) const {
 		
 		if (getSourceID() == mCreateKYCRequest.changeKYCRequest.updatedAccount) {
 			return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED},
@@ -127,7 +127,7 @@ namespace stellar {
 
 
 	void CreateKYCRequestOpFrame::buildRequest(ReviewableRequestEntry& requestEntry) {
-		
+
 		requestEntry.body.changeKYCRequest().accountTypeToSet = mCreateKYCRequest.changeKYCRequest.accountTypeToSet;
 		requestEntry.body.changeKYCRequest().updatedAccount = mCreateKYCRequest.changeKYCRequest.updatedAccount;
 		requestEntry.body.changeKYCRequest().kycLevel = mCreateKYCRequest.changeKYCRequest.kycLevel;

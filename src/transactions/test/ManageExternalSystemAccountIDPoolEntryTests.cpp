@@ -35,20 +35,26 @@ TEST_CASE("manage external system account id pool entry", "[tx][manage_external_
     SECTION("Invalid data")
     {
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                        ExternalSystemType::BITCOIN, "",
+                                                        ExternalSystemType::ERC20_TOKEN, "",
                                                         ManageExternalSystemAccountIdPoolEntryResultCode::MALFORMED);
     }
     SECTION("Already exists")
     {
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                            ExternalSystemType::BITCOIN, "Some data");
+                                                                            ExternalSystemType::ERC20_TOKEN, "Some data");
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                            ExternalSystemType::BITCOIN, "Some data",
+                                                                            ExternalSystemType::ERC20_TOKEN, "Some data",
                                                     ManageExternalSystemAccountIdPoolEntryResultCode::ALREADY_EXISTS);
+    }
+    SECTION("Auto generated type")
+    {
+        manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
+                                    ExternalSystemType::BITCOIN, "",
+                                    ManageExternalSystemAccountIdPoolEntryResultCode::AUTO_GENERATED_TYPE_NOT_ALLOWED);
     }
     SECTION("Happy path")
     {
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                            ExternalSystemType::BITCOIN, "Some data");
+                                                                            ExternalSystemType::ERC20_TOKEN, "Some data");
     }
 }

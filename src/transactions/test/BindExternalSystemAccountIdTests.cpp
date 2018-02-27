@@ -44,9 +44,6 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
                                                                                             ExternalSystemType::ERC20_TOKEN,
                                                                                             "Some data");
-        manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                                            ExternalSystemType::ETHEREUM,
-                                                                                            "Ethereum data");
 
         bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::ERC20_TOKEN);
 
@@ -64,17 +61,8 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
         }
     }
 
-    SECTION("Empty pool")
-    {
-        bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::ERC20_TOKEN,
-                                                             BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
-    }
-
     SECTION("No external system account ids of this type in pool")
     {
-        manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                                            ExternalSystemType::BITCOIN,
-                                                                                            "Some data");
         bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ExternalSystemType::ERC20_TOKEN,
                                                              BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
     }

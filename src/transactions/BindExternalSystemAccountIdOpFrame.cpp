@@ -42,6 +42,14 @@ BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta
 {
     Database& db = app.getDatabase();
 
+    if (mBindExternalSystemAccountId.externalSystemType == ExternalSystemType::BITCOIN ||
+        mBindExternalSystemAccountId.externalSystemType == ExternalSystemType::ETHEREUM ||
+        mBindExternalSystemAccountId.externalSystemType == ExternalSystemType::SECURE_VOTE)
+    {
+        innerResult().code(BindExternalSystemAccountIdResultCode::AUTO_GENERATED_TYPE_NOT_ALLOWED);
+        return false;
+    }
+
     auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
     auto externalSystemAccountIDPoolEntryHelper = ExternalSystemAccountIDPoolEntryHelper::Instance();
 

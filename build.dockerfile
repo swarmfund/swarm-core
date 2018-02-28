@@ -3,7 +3,7 @@ FROM ubuntu:16.04
 # TODO make base image out of it
 RUN true \
  && apt-get update \
- && apt-get install -y --no-install-recommends \
+ && apt-get install -y \
 	git \
 	build-essential \
 	pkg-config \

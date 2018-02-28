@@ -24,11 +24,11 @@ stages:
 build:
   image: docker:latest
   stage: build
-  only:
-   - master
-   - dev
-   - staging
-   - prod
+#  only:
+#   - master
+#   - dev
+#   - staging
+#   - prod
   script:
     # login to docker registry
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com

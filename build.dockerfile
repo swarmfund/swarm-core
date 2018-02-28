@@ -3,7 +3,7 @@ FROM ubuntu:16.04
 # TODO make base image out of it
 RUN true \
  && apt-get update \
- && apt-get install -y \
+ && apt-get install -y --no-install-recommends \
 	git \
 	build-essential \
 	pkg-config \
@@ -15,7 +15,8 @@ RUN true \
 	libpq-dev \
 	gcc \
 	g++ \
-	cpp
+	cpp \
+	awscli
 
 ARG RSA_KEY
 WORKDIR /build

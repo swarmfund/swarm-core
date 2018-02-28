@@ -75,9 +75,9 @@ SaleFrame::ensureValid(SaleEntry const& oe)
             throw runtime_error("details is invalid");
         }
 
-        if (oe.currentCapInBase > oe.hardCapInBase)
+        if (oe.currentCapInBase > oe.maxAmountToBeSold)
         {
-            throw runtime_error("current cap in base exceeds had cap in base");
+            throw runtime_error("current cap in base exceeds maxAmountToBeSold");
         }
 
         if (oe.quoteAssets.empty())
@@ -139,6 +139,11 @@ uint64_t SaleFrame::getPrice(AssetCode const& code)
     return getSaleQuoteAsset(code).price;
 }
 
+uint64_t SaleFrame::getMaxAmountToBeSold() const
+{
+    return mSale.maxAmountToBeSold;
+}
+
 BalanceID const& SaleFrame::getBaseBalanceID() const
 {
     return mSale.baseBalance;
@@ -180,6 +185,11 @@ AssetCode const& SaleFrame::getBaseAsset() const
     return mSale.baseAsset;
 }
 
+AssetCode const& SaleFrame::getDefaultQuoteAsset() const
+{
+    return mSale.defaultQuoteAsset;
+}
+
 bool SaleFrame::convertToBaseAmount(uint64_t const& price,
     uint64_t const& quoteAssetAmount, uint64_t& result)
 {
@@ -187,7 +197,7 @@ bool SaleFrame::convertToBaseAmount(uint64_t const& price,
 }
 
 SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &ownerID, SaleCreationRequest const& request,
-    map<AssetCode, BalanceID> balances, uint64_t hardCapInBase)
+    map<AssetCode, BalanceID> balances, uint64_t maxAmountToBeSold)
 {
     try
     {
@@ -203,7 +213,7 @@ SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &own
         sale.softCap = request.softCap;
         sale.hardCap = request.hardCap;
         sale.details = request.details;
-        sale.hardCapInBase = hardCapInBase;
+        sale.maxAmountToBeSold = maxAmountToBeSold;
         sale.currentCapInBase = 0;
         sale.quoteAssets.clear();
         for (auto const& quoteAsset : request.quoteAssets)
@@ -216,6 +226,13 @@ SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &own
             sale.quoteAssets.push_back(saleQuoteAsset);
         }
         sale.baseBalance = balances[request.baseAsset];
+
+        if (request.ext.v() == LedgerVersion::TYPED_SALE)
+        {
+            sale.ext.v(LedgerVersion::TYPED_SALE);
+            const auto saleType = request.ext.saleTypeExt().typedSale.saleType();
+            sale.ext.saleTypeExt().typedSale.saleType(saleType);
+        }
 
 
         return std::make_shared<SaleFrame>(entry);
@@ -258,22 +275,80 @@ uint64_t SaleFrame::getBaseAmountForCurrentCap()
 
 bool SaleFrame::tryLockBaseAsset(uint64_t amount)
 {
+    if (getSaleType() == SaleType::CROWD_FUNDING)
+    {
+        return true;
+    }
+
     if (!safeSum(mSale.currentCapInBase, amount, mSale.currentCapInBase))
     {
         return false;
     }
 
-    return mSale.currentCapInBase <= mSale.hardCapInBase;
+    return mSale.currentCapInBase <= mSale.maxAmountToBeSold;
 }
 
 void SaleFrame::unlockBaseAsset(uint64_t amount)
 {
+    // for crowd funding no need to unlock base asset, as we are not locking it
+    if (getSaleType() == SaleType::CROWD_FUNDING)
+    {
+        return;
+    }
+
     if (mSale.currentCapInBase < amount)
     {
         throw runtime_error("Unexpected state: tring to unlock more then we have in current cap in base asset");
     }
 
     mSale.currentCapInBase -= amount;
+}
+
+SaleType SaleFrame::getSaleType() const
+{
+    return getSaleType(mSale);
+}
+
+SaleType SaleFrame::getSaleType(SaleEntry const& sale)
+{
+    const auto version = sale.ext.v();
+    switch (version)
+    {
+    case LedgerVersion::EMPTY_VERSION:
+        return DEFAULT_SALE_TYPE;
+    case LedgerVersion::TYPED_SALE:
+        return sale.ext.saleTypeExt().typedSale.saleType();
+    default:
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected version of sale entry: " << xdr::xdr_to_string(version);
+        throw runtime_error("Unexpected version of sale entry");
+    }
+}
+
+void SaleFrame::setSaleType(SaleEntry& sale, const SaleType saleType)
+{
+    const auto version = sale.ext.v();
+    switch (version)
+    {
+    case LedgerVersion::EMPTY_VERSION:
+        if (saleType != DEFAULT_SALE_TYPE)
+        {
+            throw invalid_argument("Trying to set non default sale type to not TYPED_SALE sale");
+        }
+
+        return;
+    case LedgerVersion::TYPED_SALE:
+        if (saleType == DEFAULT_SALE_TYPE)
+        {
+            throw invalid_argument("Trying to set default sale type to TYPED_SALE sale");
+        }
+
+        sale.ext.saleTypeExt().typedSale.saleType(saleType);
+        return;
+    default:
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected ledger version of sale. version: " << xdr::xdr_to_string(version);
+        throw runtime_error("Unexpected ledger verison of sale");
+
+    }
 }
 
 void SaleFrame::normalize()

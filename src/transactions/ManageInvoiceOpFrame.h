@@ -19,7 +19,8 @@ class ManageInvoiceOpFrame : public OperationFrame
     ManageInvoiceOp const& mManageInvoice;
 
 	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                              int32_t ledgerVersion) const override;
 
   public:
     ManageInvoiceOpFrame(Operation const& op, OperationResult& res,

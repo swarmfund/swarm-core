@@ -29,8 +29,8 @@ CreateWithdrawalRequestOpFrame::getCounterpartyDetails(
     return {};
 }
 
-SourceDetails CreateWithdrawalRequestOpFrame::getSourceAccountDetails(
-    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
+SourceDetails CreateWithdrawalRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                      int32_t ledgerVersion)
 const
 {
     return SourceDetails({

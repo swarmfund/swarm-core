@@ -53,7 +53,8 @@ class OperationFrame
     virtual ~OperationFrame() = default;
 
     virtual std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const = 0;
-	  virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const = 0;
+    virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                      int32_t ledgerVersion) const = 0;
 
 	// returns true if operation is allowed in the system
 	virtual bool isAllowed() const;

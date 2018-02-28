@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include <transactions/test/test_helper/IssuanceRequestHelper.h>
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
+#include <transactions/test/test_helper/ManageAccountTestHelper.h>
 #include "main/test.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -153,6 +154,23 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
                                                                               invalidDetails, 100, 0);
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::INVALID_DETAILS);
+        }
+        SECTION("Try to review manage asset request from blocked syndicate")
+        {
+            Account syndicate = Account{SecretKey::random(), Salt(0)};
+            createAccountTestHelper.applyCreateAccountTx(root, syndicate.key.getPublicKey(), AccountType::SYNDICATE);
+
+            // create asset creation request
+            auto request = manageAssetHelper.createAssetCreationRequest("USD", syndicate.key.getPublicKey(), "{}", UINT64_MAX, 0);
+            auto requestID = manageAssetHelper.applyManageAssetTx(syndicate, 0, request).success().requestID;
+
+            // block syndicate
+            ManageAccountTestHelper(testManager).applyManageAccount(root, syndicate.key.getPublicKey(), AccountType::SYNDICATE,
+                                                                    {BlockReasons::SUSPICIOUS_BEHAVIOR}, {});
+
+            auto reviewHelper = ReviewAssetRequestHelper(testManager);
+            reviewHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "",
+                                              ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
         }
     }
     SECTION("Asset update request")

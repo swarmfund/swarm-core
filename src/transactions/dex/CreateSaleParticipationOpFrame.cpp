@@ -11,6 +11,8 @@
 #include "OfferManager.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "transactions/CheckSaleStateOpFrame.h"
+#include "xdrpp/printer.h"
 
 namespace stellar
 {
@@ -45,13 +47,44 @@ SaleFrame::pointer CreateSaleParticipationOpFrame::loadSaleForOffer(
         return nullptr;
     }
 
-    if (sale->getPrice(quoteBalance->getAsset()) != mManageOffer.price)
+    if (!isPriceValid(sale, quoteBalance, db))
     {
-        innerResult().code(ManageOfferResultCode::PRICE_DOES_NOT_MATCH);
         return nullptr;
     }
 
     return sale;
+}
+
+bool CreateSaleParticipationOpFrame::isPriceValid(SaleFrame::pointer sale, BalanceFrame::pointer quoteBalance, Database& db) const
+{
+    if (sale->getPrice(quoteBalance->getAsset()) != mManageOffer.price)
+    {
+        innerResult().code(ManageOfferResultCode::PRICE_DOES_NOT_MATCH);
+        return false;
+    }
+
+    //ensure that on soft cap we are able to receive some tokens
+    if (sale->getSaleType() != SaleType::CROWD_FUNDING)
+    {
+        return true;
+    }
+
+    const int64_t priceForSoftCap = CheckSaleStateOpFrame::getSalePriceForCap(sale->getSoftCap(), sale);
+    const int64_t priceInQuoteAsset = CheckSaleStateOpFrame::getPriceInQuoteAsset(priceForSoftCap, sale, quoteBalance->getAsset(), db);
+    int64_t baseAmount = 0;
+    if (!bigDivide(baseAmount, mManageOffer.amount, ONE, priceInQuoteAsset, ROUND_DOWN))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate base amount for sale participation on soft cap " << xdr::xdr_to_string(mManageOffer);
+        throw runtime_error("Failed to calculate base amount for sale participation on soft cap");
+    }
+
+    if (baseAmount == 0)
+    {
+        innerResult().code(ManageOfferResultCode::INVALID_AMOUNT);
+        return false;
+    }
+
+    return true;
 }
 
 CreateSaleParticipationOpFrame::CreateSaleParticipationOpFrame(

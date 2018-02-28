@@ -18,7 +18,8 @@ protected:
     bool handleReject(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager,
                       ReviewableRequestFrame::pointer request) override;
 
-    SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+    SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                          int32_t ledgerVersion) const override;
 
     bool tryCallSetLimits(Application &app,  LedgerManager &ledgerManager, LedgerDelta &delta,
                           ReviewableRequestFrame::pointer request);

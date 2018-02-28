@@ -19,7 +19,8 @@ class ManageBalanceOpFrame : public OperationFrame
     ManageBalanceOp const& mManageBalance;
 
 	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                              int32_t ledgerVersion) const override;
   public:
     
     ManageBalanceOpFrame(Operation const& op, OperationResult& res,
@@ -33,6 +34,13 @@ class ManageBalanceOpFrame : public OperationFrame
     getInnerCode(OperationResult const& res)
     {
         return res.tr().manageBalanceResult().code();
+    }
+
+    std::string getInnerResultCodeAsStr() override
+    {
+        const auto result = getResult();
+        const auto code = getInnerCode(result);
+        return xdr::xdr_traits<ManageBalanceResultCode>::enum_name(code);
     }
 };
 }

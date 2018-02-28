@@ -76,7 +76,7 @@ bool AccountFrame::isBlocked() const
 	return mAccountEntry.blockReasons > 0;
 }
 
-void AccountFrame::setBlockReasons(uint32 reasonsToAdd, uint32 reasonsToRemove) const
+void AccountFrame::setBlockReasons(uint32 reasonsToAdd, uint32 reasonsToRemove)
 {
 	mAccountEntry.blockReasons |= reasonsToAdd;
     mAccountEntry.blockReasons &= ~reasonsToRemove;

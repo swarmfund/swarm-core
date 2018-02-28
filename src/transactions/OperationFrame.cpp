@@ -266,7 +266,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 		return false;
 	}
 
-	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails);
+	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion);
     if (!doCheckSignature(app, db, sourceDetails))
     {
         return false;

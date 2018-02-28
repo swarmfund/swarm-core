@@ -390,7 +390,14 @@ bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
                 errorEncountered = true;
             }
             stateBeforeOp.push_back(opDelta.getState());
-            meta.operations().emplace_back(opDelta.getChanges());
+            auto detailedChangesVersion = static_cast<int32_t>(LedgerVersion::DETAILED_LEDGER_CHANGES);
+            if (app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion >= detailedChangesVersion)
+            {
+                meta.operations().emplace_back(opDelta.getAllChanges());
+            } else
+            {
+                meta.operations().emplace_back(opDelta.getChanges());
+            }
             opDelta.commit();
         }
 

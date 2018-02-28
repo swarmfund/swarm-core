@@ -40,18 +40,15 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]"){
     longstring kycData = "{}";
     uint32 kycLevel = 2;
     uint64 requestID = 0;
-    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::CHANGE_KYC));
-    auto reference = binToHex(hash);
-    const auto referencePtr = xdr::pointer<string64>(new string64(reference));
     SECTION("success") {
         SECTION("success, source master") {
-            auto tx = testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::COMMISSION,
+           testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::COMMISSION,
                                                                        kycData,
                                                                        updatedAccountID.getPublicKey(), kycLevel,
                                                                        CreateKYCRequestResultCode::SUCCESS);
         }
         SECTION("source updated account") {
-            auto tx = testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, requestID,
+            auto tx =testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, requestID,
                                                                        AccountType::COMMISSION, kycData,
                                                                        updatedAccountID.getPublicKey(), kycLevel,
                                                                        CreateKYCRequestResultCode::SUCCESS);
@@ -72,24 +69,24 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]"){
     SECTION("failed") {
         SECTION("set the same type") {
             kycLevel = 0;
-            auto tx = testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::GENERAL, kycData,
+            testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::GENERAL, kycData,
                                                                        updatedAccountID.getPublicKey(), kycLevel,
                                                                        CreateKYCRequestResultCode::SET_TYPE_THE_SAME);
 
         }
         SECTION("double creating, request exist") {
-            auto tx = testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, requestID,
+            testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, requestID,
                                                                        AccountType::COMMISSION, kycData,
                                                                        updatedAccountID.getPublicKey(), kycLevel,
                                                                        CreateKYCRequestResultCode::SUCCESS);
 
-            tx = testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::MASTER, kycData,
+            testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::MASTER, kycData,
                                                                   updatedAccountID.getPublicKey(), kycLevel,
                                                                   CreateKYCRequestResultCode::REQUEST_EXIST);
 
         }
         SECTION("updated request not exist") {
-            auto tx = testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, 100, AccountType::COMMISSION,
+            testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, 100, AccountType::COMMISSION,
                                                                        kycData,
                                                                        updatedAccountID.getPublicKey(), kycLevel,
                                                                        CreateKYCRequestResultCode::REQUEST_NOT_EXIST);

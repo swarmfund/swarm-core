@@ -56,7 +56,6 @@ namespace stellar {
 		}
 
 		auto& changeKYCRequest = mCreateKYCRequest.changeKYCRequest;
-		uint32 kycLevel = changeKYCRequest.kycLevel;
 		auto& account = accountFrame->getAccount();
 
 			if (account.accountType == changeKYCRequest.accountTypeToSet &&
@@ -87,9 +86,13 @@ namespace stellar {
 	
 		innerResult().success().requestID = requestFrame->getRequestID();
 		if (getSourceAccount().getAccountType() == AccountType::MASTER) {
-			auto reviewableRequest =requestHelper->loadRequest(requestFrame->getRequestID(), requestFrame->getRequestor(), db, &delta);
-			ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, reviewableRequest);
-			
+			auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, requestFrame);
+			if(result != ReviewRequestResultCode::SUCCESS){
+				CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: tryApproveRequest must be success, but result code is not success: "
+													   << xdr::xdr_to_string(result);
+				throw std::runtime_error("Unexpected state: tryApproveRequest must be success, but result code is not success.");
+				
+			}
 		}
 		return true;
 	

@@ -32,22 +32,23 @@ namespace stellar {
 			CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Requestor account not found.";
 			throw std::runtime_error("Unexpected state. Updated account not found.");
 		}
+		
 
 		// set KYC Data
 		auto kycHelper = AccountKYCHelper::Instance();
-		auto updatedKYCAccount = kycHelper->loadAccountKYC(changeKYCRequest.updatedAccount,db,&delta);
-		if (!updatedKYCAccount) {
+		auto updatedKYC = kycHelper->loadAccountKYC(updatedAccountID,db,&delta);
+		if (!updatedKYC) {
 			auto updatedKYCAccountFrame = AccountKYCFrame::createNew(updatedAccountID,changeKYCRequest.kycData);
 			kycHelper->storeAdd(delta, db, updatedKYCAccountFrame->mEntry);
 		}
 		else {
-			updatedKYCAccount->setKYCData(changeKYCRequest.kycData);
-			kycHelper->storeChange(delta, db, updatedKYCAccount->mEntry);
+			updatedKYC->setKYCData(changeKYCRequest.kycData);
+			kycHelper->storeChange(delta, db, updatedKYC->mEntry);
 		}
 
 		auto& accountEntry = updatedAccountFrame->getAccount();
 		accountEntry.ext.v(LedgerVersion::USE_KYC_LEVEL);
-		accountEntry.ext.kycLevel() = changeKYCRequest.kycLevel;
+		updatedAccountFrame->setKYCLevel(changeKYCRequest.kycLevel);
 		updatedAccountFrame->setAccountType(changeKYCRequest.accountTypeToSet);
 		EntryHelperProvider::storeChangeEntry(delta, db, updatedAccountFrame->mEntry);
 

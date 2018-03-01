@@ -47,6 +47,16 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 		auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
 		REQUIRE(!issuanceRequest);
 	}
+        SECTION("Auto review is disabled")
+	{
+            ManageAssetTestHelper(testManager).updateAsset(assetOwner, assetCode, root, uint32(AssetPolicy::ISSUANCE_MANUAL_REVIEW_REQUIRED));
+            auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, preIssuedAmount,
+                newAccountBalance->getBalanceID(),
+                newAccountKP.getStrKeyPublic());
+            REQUIRE(!issuanceRequestResult.success().fulfilled);
+            auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
+            REQUIRE(issuanceRequest);
+	}
     
     SECTION("charge fee on issuance") 
     {

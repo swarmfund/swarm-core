@@ -34,7 +34,8 @@ typedef std::unique_ptr<Application> appPtr;
 TEST_CASE("txenvelope", "[dep_tx][envelope]")
 {
     auto cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
-
+    auto txInternalID = "2fac657067d96144b2a81214b490bd12fb0792bdd45c48135eeac260789dd087";
+    cfg.TX_INTERNAL_ERROR.emplace(txInternalID);
     VirtualClock clock;
     Application::pointer appPtr = Application::create(clock, cfg);
     Application& app = *appPtr;
@@ -54,6 +55,14 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
         LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
                           app.getDatabase());
 
+        SECTION("Should throw if in tx internal list")
+        {
+            txFrame = createCreateAccountTx(networkID, root, a1, 124124, AccountType::GENERAL);
+            std::string txIDString(binToHex(txFrame->getContentsHash()));
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "tx must throw hash: " << txIDString;
+            REQUIRE(txInternalID == txIDString);
+            REQUIRE_THROWS(applyCheck(txFrame, delta, app));
+        }
         SECTION("no signature")
         {
             txFrame = createCreateAccountTx(networkID, root, a1, rootSeq++, AccountType::GENERAL);

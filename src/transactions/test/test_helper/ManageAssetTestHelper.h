@@ -39,6 +39,10 @@ namespace txtest
 
 		ManageAssetOp::_request_t createCancelRequest();
 
+                ManageAssetOp::_request_t createChangeSignerRequest(
+                    AssetCode code,
+                    AccountID accountID);
+
 		void createAsset(Account &assetOwner, SecretKey &preIssuedSigner, AssetCode assetCode, Account &root, uint32_t policies);
                 void updateAsset(Account& assetOwner, AssetCode assetCode, Account& root, uint32_t policies);
 	};

@@ -338,6 +338,7 @@
     <ClCompile Include="..\..\src\transactions\ManageAccountOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAssetPairOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\CancelAssetRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\CreateAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.cpp" />
@@ -610,6 +611,7 @@
     <ClInclude Include="..\..\src\transactions\ManageAccountOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAssetPairOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\CancelAssetRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\CreateAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetHelper.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.h" />
@@ -1067,6 +1069,8 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
+    <None Include="..\..\src\xdr\Stellar-operation-create-aml-alert.x" />
+    <None Include="..\..\src\xdr\Stellar-reviewable-request-aml-alert.x" />
     <None Include="libmedida\libmedida.vcxproj" />
   </ItemGroup>
   <ItemGroup>

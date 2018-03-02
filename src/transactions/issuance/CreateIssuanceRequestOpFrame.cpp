@@ -44,7 +44,19 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-    const auto reviewResultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
+        auto& database = app.getDatabase();
+        const auto assetFrame = AssetHelper::Instance()->loadAsset(mCreateIssuanceRequest.request.asset, database);
+        if (!assetFrame)
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to load asset for issuance request. Asset Code: " << mCreateIssuanceRequest.request.asset;
+            throw runtime_error("Failed to load asset for issuance request");
+        }
+
+        auto reviewResultCode = ReviewRequestResultCode::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
+        if (!assetFrame->checkPolicy(AssetPolicy::ISSUANCE_MANUAL_REVIEW_REQUIRED))
+        {
+            reviewResultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
+        }
 	bool isFulfilled;
 	switch (reviewResultCode) {
 	case ReviewRequestResultCode::SUCCESS:

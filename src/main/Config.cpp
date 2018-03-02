@@ -460,6 +460,14 @@ Config::load(std::string const& filename)
             {
                 // processing performed after this loop
             }
+            else if (item.first == "TX_INTERNAL_ERROR")
+            {
+                auto internalErrorsTxs = readStrVector(item.first, item.second);
+                for (std::string txHash : internalErrorsTxs)
+                {
+                    TX_INTERNAL_ERROR.emplace(txHash);
+                }
+            }
             else if (item.first == "COMMANDS")
             {
                 COMMANDS = readStrVector(item.first, item.second);

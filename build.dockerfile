@@ -15,7 +15,8 @@ RUN true \
 	libpq-dev \
 	gcc \
 	g++ \
-	cpp
+	cpp \
+	awscli
 
 ARG RSA_KEY
 WORKDIR /build

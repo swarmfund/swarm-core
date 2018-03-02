@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <set>
 #include "crypto/SecretKey.h"
 #include "lib/util/cpptoml.h"
 #include "util/types.h"
@@ -152,6 +153,8 @@ class Config : public std::enable_shared_from_this<Config>
     // Peers we will always try to stay connected to
     std::vector<std::string> PREFERRED_PEERS;
     std::vector<std::string> KNOWN_PEERS;
+
+    std::set<std::string> TX_INTERNAL_ERROR;
 
     // Preference can also be expressed by peer pubkey
     std::vector<std::string> PREFERRED_PEER_KEYS;

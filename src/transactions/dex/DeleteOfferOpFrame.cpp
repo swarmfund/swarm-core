@@ -37,6 +37,8 @@ DeleteOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     OfferManager::deleteOffer(offer, db, delta);
     innerResult().code(ManageOfferResultCode::SUCCESS);
     innerResult().success().offer.effect(ManageOfferEffect::DELETED);
+    innerResult().success().offer.totalAmount().baseAmount = offer->getOffer().baseAmount;
+    innerResult().success().offer.totalAmount().quoteAmount = offer->getOffer().quoteAmount;
 
     return true;
 }

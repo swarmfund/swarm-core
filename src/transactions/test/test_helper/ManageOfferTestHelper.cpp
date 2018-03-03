@@ -33,6 +33,9 @@ void ManageOfferTestHelper::ensureDeleteSuccess(Account& source, ManageOfferOp o
     auto sellingBalanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer->getLockedBalance(), mTestManager->getDB());
 
     REQUIRE(sellingBalanceAfter->getLocked() == sellingBalanceBefore.locked - offer->getLockedAmount());
+
+    REQUIRE(offer->getOffer().baseAmount == success.offer.totalAmount().baseAmount);
+    REQUIRE(offer->getOffer().quoteAmount == success.offer.totalAmount().quoteAmount);
 }
 
 void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp op,

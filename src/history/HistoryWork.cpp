@@ -1072,6 +1072,7 @@ ApplyLedgerChainWork::applyHistoryOfSingleLedger()
     CLOG(DEBUG, "History") << "Replay header:\n" << xdr::xdr_to_string(hHeader);
     if (lm.getLastClosedLedgerHeader().hash != hHeader.hash)
     {
+        CLOG(ERROR, "History") << "replay produced mismatched ledger hash. Expected: " << binToHex(lm.getLastClosedLedgerHeader().hash) << " , but got: " << binToHex(hHeader.hash);
         throw std::runtime_error("replay produced mismatched ledger hash");
     }
     mLastApplied = hHeader;

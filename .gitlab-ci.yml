@@ -3,21 +3,16 @@ services:
   - docker:dind
 
 variables:
-  # dockerfile for building test image
-  TEST_DOCKERFILE: test.dockerfile
   # dockerfile for building artifact image
   BUILD_DOCKERFILE: build.dockerfile
   IMAGE_NAME: registry.gitlab.com/swarmfund/core
   IMAGE_BUILD_NAME: $IMAGE_NAME:$CI_COMMIT_SHA
-  IMAGE_TEST_NAME: $IMAGE_NAME:$CI_COMMIT_SHA-test
   DEPLOYMENT_DIR: /root/deployment
   DEPLOYMENT_INV: $DEPLOYMENT_DIR/$CI_COMMIT_REF_NAME.ini
   DEPLOYMENT_SECRETS: $DEPLOYMENT_DIR/secrets/$CI_COMMIT_REF_NAME.yml
 
 stages:
   - build
-  # TODO implement test stage
-  #- test
   - deploy
 
 # build and publish docker image to the registry
@@ -25,7 +20,6 @@ build:
   image: docker:latest
   stage: build
   only:
-   - master
    - dev
    - staging
    - prod
@@ -34,15 +28,6 @@ build:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - docker build --pull --build-arg RSA_KEY="$SSH_PRIVATE_KEY" -t $IMAGE_BUILD_NAME -f $BUILD_DOCKERFILE .
     - docker push $IMAGE_BUILD_NAME
-
-# build testing image and run tests
-#test:
-#  image: docker:latest
-#  stage: test
-#  script:
-#    - docker build --pull -t $IMAGE_TEST_NAME -f $TEST_DOCKERFILE .
-#    - docker run $IMAGE_TEST_NAME ./...
-
 
 deploy:
   image: williamyeh/ansible:ubuntu16.04

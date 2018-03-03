@@ -16,15 +16,17 @@ class LedgerDelta;
 struct SourceDetails
 {
 	const std::vector<AccountType> mAllowedSourceAccountTypes;
+        const std::vector<PublicKey> mSpecificSigners;
 	const int32_t mNeeededTheshold;
 	const int32_t mNeededSignedClass;
 	const uint32_t mAllowedBlockedReasons;
 
-	SourceDetails(std::vector<AccountType> allowedSourceAccountTypes, int32_t neeededTheshold, int32_t neededSignedClass, uint32_t allowedBlockedReasons = 0) :
+	SourceDetails(std::vector<AccountType> allowedSourceAccountTypes, int32_t neeededTheshold, int32_t neededSignedClass, uint32_t allowedBlockedReasons = 0, std::vector<PublicKey> specificSigners = {}) :
 		mAllowedSourceAccountTypes(allowedSourceAccountTypes),
 		mNeeededTheshold(neeededTheshold),
 		mNeededSignedClass(neededSignedClass),
-		mAllowedBlockedReasons(allowedBlockedReasons)
+		mAllowedBlockedReasons(allowedBlockedReasons),
+                mSpecificSigners(specificSigners)
 	{
 	}
 };

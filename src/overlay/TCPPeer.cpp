@@ -412,7 +412,7 @@ TCPPeer::drop()
                 asio::ip::tcp::socket::shutdown_both, ec);
             if (ec)
             {
-                CLOG(ERROR, "Overlay")
+                CLOG(WARNING, "Overlay")
                     << "TCPPeer::drop shutdown socket failed: " << ec.message();
             }
             self->getApp().getClock().getIOService().post(

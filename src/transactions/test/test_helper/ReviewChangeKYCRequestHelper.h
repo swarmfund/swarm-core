@@ -9,11 +9,9 @@ namespace txtest
 {
     class ReviewKYCRequestChecker : public ReviewChecker
     {
-    private:
-        std::shared_ptr<ChangeKYCRequest> request;
-        AccountFrame::pointer accountBeforeTx;
+
     public:
-        explicit ReviewKYCRequestChecker(TestManager::pointer, uint64_t requestID);
+        explicit ReviewKYCRequestChecker(TestManager::pointer);
 
         void checkApprove(ReviewableRequestFrame::pointer pointer) override;
 //

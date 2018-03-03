@@ -7,28 +7,19 @@ namespace stellar {
 
     namespace txtest {
         void ReviewKYCRequestChecker::checkApprove(ReviewableRequestFrame::pointer pointer) {
-            REQUIRE(!!request);
-            REQUIRE(!!accountBeforeTx);
-            auto accountAfterTx = AccountHelper::Instance()->loadAccount(request->updatedAccount, mTestManager->getDB());
+            auto request = pointer->getRequestEntry().body.changeKYCRequest();
+            auto accountAfterTx = AccountHelper::Instance()->loadAccount(request.updatedAccount, mTestManager->getDB());
             REQUIRE(!!accountAfterTx);
-            REQUIRE(accountAfterTx->getAccountType() == request->accountTypeToSet);
-            REQUIRE(accountAfterTx->getKYCLevel() == request->kycLevel);
+            REQUIRE(accountAfterTx->getAccountType() == request.accountTypeToSet);
+            REQUIRE(accountAfterTx->getKYCLevel() == request.kycLevel);
 
-            auto accountKYCAfterTx = AccountKYCHelper::Instance()->loadAccountKYC(request->updatedAccount,mTestManager->getDB());
+            auto accountKYCAfterTx = AccountKYCHelper::Instance()->loadAccountKYC(request.updatedAccount,mTestManager->getDB());
             REQUIRE(!!accountKYCAfterTx);
-            REQUIRE(accountKYCAfterTx->getKYCData() == request->kycData);
+            REQUIRE(accountKYCAfterTx->getKYCData() == request.kycData);
         }
 
-        ReviewKYCRequestChecker::ReviewKYCRequestChecker(TestManager::pointer testManager, uint64_t requestID)
+        ReviewKYCRequestChecker::ReviewKYCRequestChecker(TestManager::pointer testManager)
                 : ReviewChecker(testManager) {
-            auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(requestID, mTestManager->getDB());
-            if (!requestFrame || requestFrame->getType() != ReviewableRequestType::CHANGE_KYC) {
-                return;
-            }
-
-            request = std::make_shared<ChangeKYCRequest>(requestFrame->getRequestEntry().body.changeKYCRequest());
-            accountBeforeTx = AccountHelper::Instance()->loadAccount(
-                    requestFrame->getRequestEntry().body.changeKYCRequest().updatedAccount, mTestManager->getDB());
         }
 
 
@@ -44,13 +35,12 @@ namespace stellar {
                                                                              ReviewRequestOpAction action,
                                                                              std::string rejectReason,
                                                                              ReviewRequestResultCode expectedResult) {
-            auto checker = ReviewKYCRequestChecker(mTestManager, requestID);
+            auto checker = ReviewKYCRequestChecker(mTestManager);
             return ReviewRequestHelper::applyReviewRequestTx(source, requestID,
                                                              requestHash, requestType,
                                                              action, rejectReason,
                                                              expectedResult,
-                                                             checker
-            );
+                                                             checker);
         }
 
 

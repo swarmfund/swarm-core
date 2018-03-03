@@ -18,9 +18,13 @@ namespace stellar {
             applyCreateChangeKYCRequest(Account &source, uint64_t requestID,AccountType accountType,
                                                                     longstring kycData,AccountID updatedAccount,
                                                                     uint32 kycLevel,
-                                                                    CreateKYCRequestResultCode expectedResultCode =CreateKYCRequestResultCode::SUCCESS);
-            ;
-            ReviewableRequestFrame::pointer CreateReviewableChangeKYCRequest(ChangeKYCRequest request,uint64 requestID);
+                                                                    CreateKYCRequestResultCode expectedResultCode);
+        protected:
+            CreateKYCRequestResult
+            checkApprovedCreation(CreateKYCRequestResult opResult,AccountID updatedAccount,LedgerDelta::KeyEntryMap stateBeforeOp);
+
+                ReviewableRequestFrame::pointer createReviewableChangeKYCRequest(ChangeKYCRequest request,uint64 requestID);
+            xdr::pointer<string64> getReference();
 
 
 

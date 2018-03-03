@@ -8,6 +8,7 @@
 #include "bucket/BucketApplicator.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ReviewChangeKYCRequestHelper.h"
+
 using namespace stellar;
 using namespace stellar::txtest;
 
@@ -33,8 +34,6 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]"){
     CreateAccountTestHelper accountTestHelper(testManager);
 
     accountTestHelper.applyCreateAccountTx(master,updatedAccountID.getPublicKey(),AccountType::GENERAL);
-
-
 
     CreateKYCRequestTestHelper testKYCRequestHelper(testManager);
     longstring kycData = "{}";
@@ -64,6 +63,16 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]"){
                                                                 ReviewRequestOpAction::APPROVE, "",
                                                                 ReviewRequestResultCode::SUCCESS);
             }
+        }
+        SECTION("update request success"){
+            auto tx =testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, requestID,
+                                                                      AccountType::COMMISSION, kycData,
+                                                                      updatedAccountID.getPublicKey(), kycLevel,
+                                                                      CreateKYCRequestResultCode::SUCCESS);
+            testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, tx.success().requestID,
+                                                                      AccountType::MASTER, kycData,
+                                                                      updatedAccountID.getPublicKey(), kycLevel,
+                                                                      CreateKYCRequestResultCode::SUCCESS);
         }
     }
     SECTION("failed") {

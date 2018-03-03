@@ -46,7 +46,14 @@ BalanceFrame::pointer StateBeforeTxHelper::getBalance(BalanceID balanceID) {
         return nullptr;
     return std::make_shared<BalanceFrame>(mState[key]->mEntry);
 }
-
+ReviewableRequestFrame::pointer StateBeforeTxHelper::getReviewableRequest(uint64 requestID) {
+    LedgerKey key;
+    key.type(LedgerEntryType::REVIEWABLE_REQUEST);
+    key.reviewableRequest().requestID = requestID;
+    if (mState.find(key) == mState.end())
+        return nullptr;
+    return std::make_shared<ReviewableRequestFrame>(mState[key]->mEntry);
+}
 OfferEntry StateBeforeTxHelper::getOffer(uint64_t offerID, AccountID ownerID)
 {
     LedgerKey key;

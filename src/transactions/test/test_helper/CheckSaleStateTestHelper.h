@@ -3,7 +3,7 @@
 
 #include "ManageOfferTestHelper.h"
 #include "ledger/SaleFrame.h"
-
+#include "ledger/ReviewableRequestFrame.h"
 namespace stellar
 {
 namespace txtest
@@ -20,6 +20,8 @@ namespace txtest
         OfferEntry getOffer(uint64_t offerID, AccountID ownerID);
         BalanceFrame::pointer getBalance(BalanceID balanceID);
         std::vector<OfferEntry> getAllOffers();
+        ReviewableRequestFrame::pointer getReviewableRequest(uint64 requestID);
+
     };
 
     class CheckSaleStateHelper : public TxHelper

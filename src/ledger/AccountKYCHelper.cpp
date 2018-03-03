@@ -9,12 +9,12 @@ namespace stellar
 
 void AccountKYCHelper::dropAll(Database &db)
 {
-    db.getSession() << "DROP TABLE IF EXISTS account_KYC;";
+    db.getSession() << "DROP TABLE IF EXISTS account_kyc;";
 
-    db.getSession() << "CREATE TABLE account_KYC"
+    db.getSession() << "CREATE TABLE account_kyc"
                        "("
                        "accountid       VARCHAR(56)     PRIMARY KEY,"
-                       "KYC_data        TEXT            NOT NULL,"
+                       "kyc_data        TEXT            NOT NULL,"
                        "lastmodified    INT             NOT NULL,"
                        "version         INT             NOT NULL    DEFAULT 0"
                        ");";
@@ -31,11 +31,11 @@ void AccountKYCHelper::storeUpdate(LedgerDelta &delta, Database &db, const Ledge
 
     std::string sqlQuery;
     if (insert)
-        sqlQuery = std::string("INSERT INTO account_KYC (accountid, KYC_data, lastmodified, version) "
+        sqlQuery = std::string("INSERT INTO account_kyc (accountid, kyc_data, lastmodified, version) "
                                "VALUES (:id, :data, :lm, :v) ");
     else
-        sqlQuery = std::string("UPDATE account_KYC "
-                               "SET    KYC_data=:data, lastmodified=:lm, version=:v "
+        sqlQuery = std::string("UPDATE account_kyc "
+                               "SET    kyc_data=:data, lastmodified=:lm, version=:v "
                                "WHERE  accountid=:id ");
 
     auto accountKYCEntry = accountKYCFrame->getAccountKYC();
@@ -52,7 +52,7 @@ void AccountKYCHelper::storeUpdate(LedgerDelta &delta, Database &db, const Ledge
 
     st.define_and_bind();
 
-    auto timer = insert ? db.getInsertTimer("account_KYC") : db.getUpdateTimer("account_KYC");
+    auto timer = insert ? db.getInsertTimer("account_kyc") : db.getUpdateTimer("account_kyc");
     st.execute(true);
 
     if (st.get_affected_rows() != 1)
@@ -88,7 +88,7 @@ void AccountKYCHelper::storeChange(LedgerDelta &delta, Database &db, LedgerEntry
 void AccountKYCHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key)
 {
     flushCachedEntry(key, db);
-    std::string sqlQuery = std::string("DELETE FROM account_KYC "
+    std::string sqlQuery = std::string("DELETE FROM account_kyc "
                                        "WHERE accountid=:id ");
 
     auto prep = db.getPreparedStatement(sqlQuery);
@@ -98,7 +98,7 @@ void AccountKYCHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey c
     st.exchange(soci::use(accIdStr, "id"));
     st.define_and_bind();
 
-    auto timer = db.getDeleteTimer("account_KYC");
+    auto timer = db.getDeleteTimer("account_kyc");
     st.execute(true);
 
     delta.deleteEntry(key);
@@ -110,7 +110,7 @@ bool AccountKYCHelper::exists(Database &db, LedgerKey const &key)
         return true;
 
     std::string sqlQuery = std::string("SELECT EXISTS (SELECT NULL "
-                                                      "FROM   account_KYC "
+                                                      "FROM   account_kyc "
                                                       "WHERE  accountid=:id)");
     auto prep = db.getPreparedStatement(sqlQuery);
     auto& st = prep.statement();
@@ -129,7 +129,7 @@ bool AccountKYCHelper::exists(Database &db, LedgerKey const &key)
 uint64_t AccountKYCHelper::countObjects(soci::session &sess)
 {
     uint32_t count = 0;
-    sess << "SELECT COUNT(*) FROM account_KYC;", soci::into(count);
+    sess << "SELECT COUNT(*) FROM account_kyc;", soci::into(count);
 
     return count;
 }
@@ -156,8 +156,8 @@ AccountKYCFrame::pointer AccountKYCHelper::loadAccountKYC(const AccountID &accou
     auto& accountKYC = ledgerEntry.data.accountKYC();
     accountKYC.accountID = accountID;
 
-    std::string sqlQuery = std::string("SELECT KYC_data, lastmodified, version "
-                                       "FROM   account_KYC "
+    std::string sqlQuery = std::string("SELECT kyc_data, lastmodified, version "
+                                       "FROM   account_kyc "
                                        "WHERE  accountid=:id");
     auto prep = db.getPreparedStatement(sqlQuery);
     auto& st = prep.statement();

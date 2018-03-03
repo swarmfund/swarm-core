@@ -85,14 +85,16 @@ namespace stellar {
 		innerResult().code(CreateKYCRequestResultCode::SUCCESS);
 	
 		innerResult().success().requestID = requestFrame->getRequestID();
+		innerResult().success().fulfilled =false;
 		if (getSourceAccount().getAccountType() == AccountType::MASTER) {
 			auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, requestFrame);
 			if(result != ReviewRequestResultCode::SUCCESS){
 				CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: tryApproveRequest must be success, but result code is not success: "
 													   << xdr::xdr_to_string(result);
 				throw std::runtime_error("Unexpected state: tryApproveRequest must be success, but result code is not success.");
-				
+
 			}
+			innerResult().success().fulfilled = true;
 		}
 		return true;
 	

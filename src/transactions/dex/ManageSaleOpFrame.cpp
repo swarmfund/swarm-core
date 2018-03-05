@@ -35,7 +35,6 @@ namespace stellar
     bool ManageSaleOpFrame::doCheckValid(Application &app)
     {
         if (mManageSaleOp.saleID == 0) {
-            app.getMetrics().NewMeter({ "op-manage-sale", "failure", "not-found" }, "operation").Mark();
             innerResult().code(ManageSaleResultCode::NOT_FOUND);
             return false;
         }
@@ -48,7 +47,6 @@ namespace stellar
         auto saleFrame = SaleHelper::Instance()->loadSale(mManageSaleOp.saleID, app.getDatabase(), &delta);
         if (!saleFrame || !(saleFrame->getOwnerID() == getSourceID()))
         {
-            app.getMetrics().NewMeter({"op-manage-sale", "failure", "not-found"}, "operation").Mark();
             innerResult().code(ManageSaleResultCode::NOT_FOUND);
             return false;
         }
@@ -56,10 +54,18 @@ namespace stellar
         switch (mManageSaleOp.action)
         {
             case ManageSaleAction::BLOCK:
+                if ( saleFrame->getSaleState() == SaleState::BLOCKED){
+                    innerResult().code(ManageSaleResultCode::ALREADY_BLOCKED);
+                    return false;
+                }
                 saleFrame->setSaleState(SaleState::BLOCKED);
                 EntryHelperProvider::storeChangeEntry(delta, app.getDatabase(), saleFrame->mEntry);
                 break;
             case ManageSaleAction::UNBLOCK:
+                if ( saleFrame->getSaleState() == SaleState::ACTIVE){
+                    innerResult().code(ManageSaleResultCode::ALREADY_UNBLOCKED);
+                    return false;
+                }
                 saleFrame->setSaleState(SaleState::ACTIVE);
                 EntryHelperProvider::storeChangeEntry(delta, app.getDatabase(), saleFrame->mEntry);
                 break;
@@ -75,6 +81,10 @@ namespace stellar
         innerResult().code(ManageSaleResultCode::SUCCESS);
         return true;
     }
-
+    std::string ManageSaleOpFrame::getInnerResultCodeAsStr()
+    {
+        const auto code = getInnerCode(mResult);
+        return xdr::xdr_traits<ManageSaleResultCode>::enum_name(code);
+    }
 
 }

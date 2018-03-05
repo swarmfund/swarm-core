@@ -270,8 +270,9 @@ TEST_CASE("Sale", "[tx][sale]")
             REQUIRE(checkRes.success().effect.effect() == CheckSaleStateEffect::CANCELED);
         }
 
-        SECTION("delete sale")
+        SECTION("manage sale")
         {
+
             const int numberOfParticipants = 10;
             const uint64_t quoteAmount = softCap / numberOfParticipants;
             uint64_t feeToPay(0);
@@ -284,9 +285,19 @@ TEST_CASE("Sale", "[tx][sale]")
             CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
 
             testManager->upgradeToCurrentLedgerVersion(app);
+            SECTION("block sale"){
+                saleRequestHelper.applyManageSale(syndicate,saleID,ManageSaleAction::BLOCK);
+            }
+            SECTION("unblock sale"){
+                saleRequestHelper.applyManageSale(syndicate,saleID,ManageSaleAction::BLOCK);
+                saleRequestHelper.applyManageSale(syndicate,saleID,ManageSaleAction::UNBLOCK);
+            }
+            SECTION("delete sale") {
 
-            saleRequestHelper.applyManageSale(syndicate, saleID, ManageSaleAction::DELETE);
+                saleRequestHelper.applyManageSale(syndicate, saleID, ManageSaleAction::DELETE);
+            }
         }
+
     }
 
     SECTION("Create SaleCreationRequest")

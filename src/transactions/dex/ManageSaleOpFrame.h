@@ -38,6 +38,7 @@ public:
     {
         return res.tr().manageSaleResult().code();
     }
+    std::string getInnerResultCodeAsStr() override;
 };
 
 }

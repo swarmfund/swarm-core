@@ -128,7 +128,7 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     auto state = static_cast<int32_t>(SaleState::ACTIVE);
     if (saleEntry.ext.v() == LedgerVersion::ALLOW_TO_MANAGE_SALE)
     {
-        state = static_cast<int32_t>(saleEntry.ext.state());
+        state = static_cast<int32_t>(saleEntry.ext.saleStates().state);
     }
 
     if (insert)
@@ -223,7 +223,7 @@ void SaleHelper::loadSales(Database& db, StatementContext& prep,
         oe.ext.v(static_cast<LedgerVersion>(version));
         if (oe.ext.v() == LedgerVersion::ALLOW_TO_MANAGE_SALE)
         {
-            oe.ext.state() = static_cast<SaleState>(state);
+            oe.ext.saleStates().state = static_cast<SaleState>(state);
         }
 
         oe.quoteAssets = SaleQuoteAssetHelper::loadQuoteAssets(db, oe.saleID);

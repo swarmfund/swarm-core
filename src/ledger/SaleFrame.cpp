@@ -259,13 +259,13 @@ SaleState SaleFrame::getSaleState() const
     if (mSale.ext.v() != LedgerVersion::ALLOW_TO_MANAGE_SALE)
         return SaleState::ACTIVE;
 
-    return mSale.ext.state();
+    return mSale.ext.saleStates().state;
 }
 
 void SaleFrame::setSaleState(SaleState state)
 {
     mSale.ext.v(LedgerVersion::ALLOW_TO_MANAGE_SALE);
-    mSale.ext.state() = state;
+    mSale.ext.saleStates().state = state;
 }
 }
 

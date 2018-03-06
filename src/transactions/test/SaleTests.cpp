@@ -211,7 +211,7 @@ TEST_CASE("Sale", "[tx][sale]")
             const auto offerEntry = offer->getOffer();
             auto manageOfferOp = OfferManager::buildManageOfferOp(offerEntry.baseBalance, offerEntry.quoteBalance,
                 true, 0, price, 0, offerEntry.offerID, 0);
-            ParticipateInSaleTestHelper(testManager).applyManageOffer(account, manageOfferOp, ManageOfferResultCode::NOT_FOUND);
+            ParticipateInSaleTestHelper(testManager).applyManageOffer(account, manageOfferOp, ManageOfferResultCode::OFFER_NOT_FOUND);
             manageOfferOp.orderBookID = saleID;
             ParticipateInSaleTestHelper(testManager).applyManageOffer(account, manageOfferOp);
 
@@ -519,7 +519,7 @@ TEST_CASE("Sale", "[tx][sale]")
             SECTION("try to participate with zero price")
             {
                 manageOffer.price = 0;
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::PRICE_IS_INVALID);
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::INVALID_PRICE);
             }
             SECTION("overflow quote amount")
             {
@@ -552,13 +552,13 @@ TEST_CASE("Sale", "[tx][sale]")
             {
                 manageOffer.baseBalance = quoteBalance;
                 manageOffer.quoteBalance = baseBalance;
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXISTS);
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXIST);
             }
             SECTION("try participate in non-existing sale")
             {
                 uint64_t nonExistingSaleID = saleID + 1;
                 manageOffer.orderBookID = nonExistingSaleID;
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXISTS);
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXIST);
             }
             SECTION("base and quote balances are in the same asset")
             {
@@ -568,12 +568,12 @@ TEST_CASE("Sale", "[tx][sale]")
                 manageOffer.quoteBalance = baseBalanceID;
 
                 // can't find a sale from base to base
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXISTS);
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXIST);
             }
             SECTION("price doesn't match sales price")
             {
                 manageOffer.price = saleRequest.quoteAssets[0].price + 1;
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::PRICE_DOES_NOT_MATCH);
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::PRICE_MISMATCHED);
             }
             SECTION("try to participate in own sale")
             {
@@ -585,7 +585,7 @@ TEST_CASE("Sale", "[tx][sale]")
                                                                          .success().balanceID;
                 manageOffer.baseBalance = baseBalanceID;
                 manageOffer.quoteBalance = quoteBalanceID;
-                participateHelper.applyManageOffer(owner, manageOffer, ManageOfferResultCode::CANT_PARTICIPATE_OWN_SALE);
+                participateHelper.applyManageOffer(owner, manageOffer, ManageOfferResultCode::CANNOT_PARTICIPATE_OWN_SALE);
             }
             SECTION("amount exceeds hard cap")
             {
@@ -597,7 +597,7 @@ TEST_CASE("Sale", "[tx][sale]")
                     int64_t baseAssetAmount = bigDivide(hardCap + 2 * ONE, ONE, price, ROUND_DOWN);
                     manageOffer.amount = baseAssetAmount;
                     participateHelper.applyManageOffer(participant, manageOffer,
-                                                       ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);
+                                                       ManageOfferResultCode::ORDER_EXCEEDS_HARD_CAP);
                 }
             }
             SECTION("try to buy asset which requires KYC being NOT_VERIFIED")
@@ -637,13 +637,13 @@ TEST_CASE("Sale", "[tx][sale]")
                 {
                     //switch to non-existing offerID
                     manageOffer.offerID++;
-                    participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::NOT_FOUND);
+                    participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::OFFER_NOT_FOUND);
                 }
                 SECTION("try to delete from non-existing orderBook")
                 {
                     uint64_t nonExistingOrderBookID = saleID + 1;
                     manageOffer.orderBookID = nonExistingOrderBookID;
-                    participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::NOT_FOUND);
+                    participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::OFFER_NOT_FOUND);
                 }
                 SECTION("try to delete closed sale")
                 {

@@ -292,7 +292,7 @@ bool CreateOfferOpFrame::doCheckValid(Application& app)
 
     if (mManageOffer.price <= 0)
     {
-        innerResult().code(ManageOfferResultCode::PRICE_IS_INVALID);
+        innerResult().code(ManageOfferResultCode::INVALID_PRICE);
         return false;
     }
 

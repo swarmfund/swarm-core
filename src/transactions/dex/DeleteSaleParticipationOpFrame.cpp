@@ -47,14 +47,14 @@ bool DeleteSaleParticipationOpFrame::doApply(Application& app,
         &delta);
     if (!offer)
     {
-        innerResult().code(ManageOfferResultCode::NOT_FOUND);
+        innerResult().code(ManageOfferResultCode::OFFER_NOT_FOUND);
         return false;
     }
 
     auto sale = SaleHelper::Instance()->loadSale(mManageOffer.orderBookID, db, &delta);
     if (!sale)
     {
-        innerResult().code(ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXISTS);
+        innerResult().code(ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXIST);
         return false;
     }
 

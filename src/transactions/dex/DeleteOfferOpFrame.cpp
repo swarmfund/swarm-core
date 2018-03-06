@@ -30,7 +30,7 @@ DeleteOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     const auto offer = OfferHelper::Instance()->loadOffer(getSourceID(), mManageOffer.offerID, mManageOffer.orderBookID, db, &delta);
     if (!offer)
     {
-        innerResult().code(ManageOfferResultCode::NOT_FOUND);
+        innerResult().code(ManageOfferResultCode::OFFER_NOT_FOUND);
         return false;
     }
 
@@ -53,7 +53,7 @@ bool DeleteOfferOpFrame::doCheckValid(Application& app)
 
     if (mManageOffer.offerID == 0)
     {
-        innerResult().code(ManageOfferResultCode::NOT_FOUND);
+        innerResult().code(ManageOfferResultCode::OFFER_NOT_FOUND);
         return false;
     }
     

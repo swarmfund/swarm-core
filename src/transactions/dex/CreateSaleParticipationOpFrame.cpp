@@ -43,7 +43,7 @@ SaleFrame::pointer CreateSaleParticipationOpFrame::loadSaleForOffer(
                                                  &delta);
     if (!sale)
     {
-        innerResult().code(ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXISTS);
+        innerResult().code(ManageOfferResultCode::ORDER_BOOK_DOES_NOT_EXIST);
         return nullptr;
     }
 
@@ -59,7 +59,7 @@ bool CreateSaleParticipationOpFrame::isPriceValid(SaleFrame::pointer sale, Balan
 {
     if (sale->getPrice(quoteBalance->getAsset()) != mManageOffer.price)
     {
-        innerResult().code(ManageOfferResultCode::PRICE_DOES_NOT_MATCH);
+        innerResult().code(ManageOfferResultCode::PRICE_MISMATCHED);
         return false;
     }
 
@@ -143,7 +143,7 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
 
     if (sale->getSaleEntry().ownerID == getSourceID())
     {
-        innerResult().code(ManageOfferResultCode::CANT_PARTICIPATE_OWN_SALE);
+        innerResult().code(ManageOfferResultCode::CANNOT_PARTICIPATE_OWN_SALE);
         return false;
     }
 
@@ -154,7 +154,7 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
 
     if (!sale->tryLockBaseAsset(mManageOffer.amount))
     {
-        innerResult().code(ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);
+        innerResult().code(ManageOfferResultCode::ORDER_EXCEEDS_HARD_CAP);
         return false;
     }
 
@@ -169,7 +169,7 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
     auto quoteBalance = BalanceHelper::Instance()->mustLoadBalance(mManageOffer.quoteBalance, db);
     if (!tryAddSaleCap(db, quoteAmount, quoteBalance->getAsset(), sale))
     {
-        innerResult().code(ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);
+        innerResult().code(ManageOfferResultCode::ORDER_EXCEEDS_HARD_CAP);
         return false;
     }
 

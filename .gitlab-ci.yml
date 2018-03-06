@@ -1,83 +1,40 @@
-before_script:
-  # Run ssh-agent (inside the build environment)
-  - eval $(ssh-agent -s)
-  # Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
-  - echo "$SSH_PRIVATE_KEY" | ssh-add -
-  - mkdir -p ~/.ssh
-  - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-  - chmod 600 ~/.ssh/id_rsa
-  - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-  - 'echo -e "Host gitlab\n\tHostName gitlab.com\n\tIdentityFile ~/.ssh/id_rsa\n\tUser git\n" >> ~/.ssh/config'
-  -  git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/
+# docker-in-docker allows to build and publish docker images
+services:
+  - docker:dind
+
+variables:
+  # dockerfile for building artifact image
+  BUILD_DOCKERFILE: build.dockerfile
+  IMAGE_NAME: registry.gitlab.com/swarmfund/core
+  IMAGE_BUILD_NAME: $IMAGE_NAME:$CI_COMMIT_SHA
+  DEPLOYMENT_DIR: /root/deployment
+  DEPLOYMENT_INV: $DEPLOYMENT_DIR/$CI_COMMIT_REF_NAME.ini
+  DEPLOYMENT_SECRETS: $DEPLOYMENT_DIR/secrets/$CI_COMMIT_REF_NAME.yml
 
 stages:
   - build
-  - test
-  - delivery
   - deploy
 
+# build and publish docker image to the registry
 build:
+  image: docker:latest
   stage: build
-  image: shebgregor/ubuntu-autotools 
-  script:
-    - git submodule init
-    - git submodule update
-    - chmod +x ./autogen.sh
-    - chmod +x ./make-mks
-    - ./autogen.sh
-    - ./configure
-    - make -j 2
-  artifacts:
-      expire_in: 1 week
-      paths:
-        - src/stellar-core
   only:
-    - staging
-    - dev
-
-tx-test:
-  stage: test
-  image: shebgregor/ubuntu-autotools
-  services:
-    - postgres:9.5
-  variables:
-    POSTGRES_DB: core_test
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: "password"
-    STELLAR_TX_TEST_DB: "postgresql://dbname=core_test user=postgres password=password host=postgres"
-  before_script:
-    - echo "replace default"
+   - dev
+   - staging
+   - prod
   script:
-    - ./src/stellar-core --test [tx]
-  only:
-    - staging
-    - dev
+    # login to docker registry
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    - docker build --pull --build-arg RSA_KEY="$SSH_PRIVATE_KEY" -t $IMAGE_BUILD_NAME -f $BUILD_DOCKERFILE .
+    - docker push $IMAGE_BUILD_NAME
 
-delivery:
-  image: shebgregor/alpine-rsync-git
-  stage: delivery
-  script:
-    - rsync src/stellar-core ubuntu@$HOST_DEV:artifacts/core/${CI_COMMIT_SHA:0:8}/
-  only:
-    - staging
-    - dev
-
-deploy-dev:
-  image: shebgregor/alpine-rsync-git
+deploy:
+  image: williamyeh/ansible:ubuntu16.04
   stage: deploy
-  script:
-    - ssh ubuntu@$HOST_DEV "artifacts/update.sh core dev ${CI_COMMIT_SHA:0:8}"
-    - curl -X POST http://$HOST_DEV:8842/${HOOK_TOKEN}
-  when: manual
-  only:
-    - dev
-
-deploy-staging:
-  image: shebgregor/alpine-rsync-git
-  stage: deploy
-  script:
-    - ssh ubuntu@$HOST_DEV "artifacts/update.sh core staging ${CI_COMMIT_SHA:0:8}"
-    - curl -X POST http://$HOST_STAGING:8842/${HOOK_TOKEN}
-  when: manual
   only:
     - staging
+    - dev
+  script:
+    # TODO add host fingerprint
+    - ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i $DEPLOYMENT_INV -e @$DEPLOYMENT_SECRETS -e core_revision=$CI_COMMIT_SHA $DEPLOYMENT_DIR/core.yml

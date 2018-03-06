@@ -29,6 +29,7 @@ namespace stellar
         }
 
         void dropAll(Database& db) override;
+        void addType(Database& db);
 
         // add field sale state for ledger version MANAGE_SALE
         void addSaleState(Database& db);

@@ -123,6 +123,13 @@ std::string OperationFrame::getInnerResultCodeAsStr() {
 	return "not_implemented";
 }
 
+SourceDetails OperationFrame::getSourceAccountDetails(
+    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+    int32_t ledgerVersion, Database& db) const
+{
+    return getSourceAccountDetails(counterpartiesDetails, ledgerVersion);
+}
+
 bool OperationFrame::isAllowed() const
 {
 	// by default all operations are allowed
@@ -269,7 +276,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 		return false;
 	}
 
-	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion);
+	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion, db);
     if (!doCheckSignature(app, db, sourceDetails))
     {
         return false;

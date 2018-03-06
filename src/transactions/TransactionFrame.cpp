@@ -376,6 +376,13 @@ bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
         soci::transaction sqlTx(app.getDatabase().getSession());
         LedgerDelta thisTxDelta(delta);
 
+        string txIDString(binToHex(getContentsHash()));
+        auto& txInternal = app.getConfig().TX_INTERNAL_ERROR;
+        if (txInternal.find(txIDString) != txInternal.end())
+        {
+            throw runtime_error("Throwing exception to have consistent blockchain");
+        }
+
         auto& opTimer =
             app.getMetrics().NewTimer({ "transaction", "op", "apply" });
 

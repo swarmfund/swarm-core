@@ -50,6 +50,7 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     }
 
     // TODO: at current stage we do not allow to issue tokens before the sale. Must be fixed
+    // If you are fixing this make sure to apply fix to check sale state when we are unlocking pendingIssuance amount
     const uint64_t requiredBaseAssetForHardCap = baseAsset->getMaxIssuanceAmount();
     if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
     {
@@ -63,7 +64,7 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     AccountManager accountManager(app, db, delta, ledgerManager);
     const auto balances = loadBalances(accountManager, request, saleCreationRequest);
     const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest,
-        balances);
+        balances, requiredBaseAssetForHardCap);
     SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
     createAssetPair(saleFrame, app, ledgerManager, delta);
     innerResult().code(ReviewRequestResultCode::SUCCESS);

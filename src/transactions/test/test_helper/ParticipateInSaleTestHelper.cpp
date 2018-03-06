@@ -34,6 +34,8 @@ void ParticipateInSaleTestHelper::ensureDeleteSuccess(Account& source,
     auto balanceBeforeTx = getBalance(stateBeforeTx, offerBeforeTx.quoteBalance);
     SaleFrame saleBeforeTx(stateBeforeTx[saleAfterTx->getKey()]->mEntry);
     REQUIRE(saleBeforeTx.getSaleQuoteAsset(balanceBeforeTx.asset).currentCap == saleAfterTx->getSaleQuoteAsset(balanceBeforeTx.asset).currentCap + offerBeforeTx.quoteAmount);
+    REQUIRE(saleBeforeTx.getSaleEntry().maxAmountToBeSold == saleAfterTx->getSaleEntry().maxAmountToBeSold);
+    REQUIRE(saleBeforeTx.getSaleEntry().currentCapInBase == saleAfterTx->getSaleEntry().currentCapInBase + offerBeforeTx.baseAmount);
     ManageOfferTestHelper::ensureDeleteSuccess(source, op, success, stateBeforeTx);
 }
 
@@ -48,7 +50,11 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
     auto balanceBeforeTx = getBalance(stateBeforeTx, success.offer.offer().quoteBalance);
     REQUIRE(saleBeforeTx.getSaleQuoteAsset(balanceBeforeTx.asset).currentCap + 
         success.offer.offer().quoteAmount == saleAfterTx->getSaleQuoteAsset(balanceBeforeTx.asset).currentCap);
-
+    REQUIRE(saleBeforeTx.getSaleEntry().maxAmountToBeSold == saleAfterTx->getSaleEntry().maxAmountToBeSold);
+    if (saleBeforeTx.getSaleType() != SaleType::CROWD_FUNDING)
+    {
+        REQUIRE(saleBeforeTx.getSaleEntry().currentCapInBase + op.amount == saleAfterTx->getSaleEntry().currentCapInBase);
+    }
     return ManageOfferTestHelper::ensureCreateSuccess(source, op, success, stateBeforeTx);
 }
 }

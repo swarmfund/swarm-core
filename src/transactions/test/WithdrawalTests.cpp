@@ -7,8 +7,8 @@
 #include <ledger/AccountHelper.h>
 #include <ledger/FeeHelper.h>
 #include <ledger/ReviewableRequestHelper.h>
+#include <transactions/test/test_helper/ManageAccountTestHelper.h>
 #include "main/test.h"
-#include "TxTests.h"
 #include "crypto/SHA.h"
 #include "test_helper/ManageAssetTestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
@@ -16,7 +16,6 @@
 #include "test_helper/WithdrawRequestHelper.h"
 #include "test_helper/ReviewWithdrawalRequestHelper.h"
 #include "test/test_marshaler.h"
-#include "ledger/ReviewableRequestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -39,6 +38,7 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
     auto reviewWithdrawHelper = ReviewWithdrawRequestHelper(testManager);
     auto withdrawRequestHelper = WithdrawRequestHelper(testManager);
     auto createAccountTestHelper = CreateAccountTestHelper(testManager);
+    auto manageAccountTestHelper = ManageAccountTestHelper(testManager);
 
     // create asset and make it withdrawable
     const AssetCode asset = "USD";
@@ -299,6 +299,27 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
                                                              CreateWithdrawalRequestResultCode::STATS_OVERFLOW);
         }
 
+        SECTION("try to review withdrawal request of blocked user")
+        {
+            // successfully create withdraw request
+            auto requestID = withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest).success().requestID;
+
+            // block withdrawer
+            manageAccountTestHelper.applyManageAccount(root, withdrawerKP.getPublicKey(), AccountType::GENERAL,
+                                                       {BlockReasons::SUSPICIOUS_BEHAVIOR}, {});
+
+            // try to review withdrawal request
+            reviewWithdrawHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "",
+                                                      ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
+
+            // unlock withdrawer
+            manageAccountTestHelper.applyManageAccount(root, withdrawerKP.getPublicKey(), AccountType::GENERAL, {},
+                                                       {BlockReasons::SUSPICIOUS_BEHAVIOR});
+
+            // and now everything is ok
+            reviewWithdrawHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "");
+        }
+
         //TEST CASE SUSPENDED
 //        SECTION("exceed limits")
 //        {
@@ -341,7 +362,6 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
             expectedAmountInDestAsset);
 
         auto withdrawResult = withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest);
-
         auto twoStepHelper = ReviewTwoStepWithdrawRequestHelper(testManager);
         SECTION("Happy path")
         {

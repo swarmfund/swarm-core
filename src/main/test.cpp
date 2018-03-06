@@ -127,7 +127,10 @@ getTestConfig(int instanceNumber, Config::TestDbMode mode)
             {
                 dbname << db_conn_str;
             } else {
-                dbname << "postgresql://dbname=stellar_test10 user=postgres password=password host=localhost";
+                std::string dbNumber = "";
+                if (instanceNumber != 0)
+                    dbNumber = std::to_string(instanceNumber);
+                dbname << "postgresql://dbname=stellar_test10" << dbNumber << " user=postgres password=password host=localhost";
             }
             break;
 #endif

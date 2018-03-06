@@ -900,6 +900,15 @@
     <ClCompile Include="..\..\src\ledger\SaleQuoteAssetHelper.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\CrowdfundTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.cpp">
+      <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1763,6 +1772,12 @@
     <ClInclude Include="..\..\src\ledger\SaleQuoteAssetHelper.h">
       <Filter>ledger</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.h">
+      <Filter>transactions\manage_asset</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -1845,6 +1860,12 @@
     </None>
     <None Include="..\..\docs\learn\testnet.md">
       <Filter>docs</Filter>
+    </None>
+    <None Include="..\..\src\xdr\Stellar-operation-create-aml-alert.x">
+      <Filter>xdr</Filter>
+    </None>
+    <None Include="..\..\src\xdr\Stellar-reviewable-request-aml-alert.x">
+      <Filter>xdr</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

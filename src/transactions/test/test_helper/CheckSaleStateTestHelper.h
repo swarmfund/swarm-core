@@ -14,6 +14,7 @@ namespace txtest
     public:
         explicit StateBeforeTxHelper(LedgerDelta::KeyEntryMap state);
 
+        AccountFrame::pointer getAccount(AccountID accountID);
         SaleFrame::pointer getSale(uint64_t id);
         AssetEntry getAssetEntry(AssetCode assetCode);
         OfferEntry getOffer(uint64_t offerID, AccountID ownerID);
@@ -24,6 +25,7 @@ namespace txtest
     class CheckSaleStateHelper : public TxHelper
     {
         void ensureClose(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
+        void ensureUpdated(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
         void ensureNoOffersLeft(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
         void checkBalancesAfterApproval(StateBeforeTxHelper& stateBeforeTx, SaleFrame::pointer sale,
             SaleQuoteAsset const& saleQuoteAsset, CheckSubSaleClosedResult result) const;

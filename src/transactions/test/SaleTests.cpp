@@ -509,7 +509,7 @@ TEST_CASE("Sale", "[tx][sale]")
             SECTION("try to sell base asset being participant")
             {
                 manageOffer.isBuy = false;
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::MALFORMED);
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::REQUIRES_IS_BUY);
             }
             SECTION("try to participate with negative amount")
             {

@@ -451,7 +451,7 @@ TEST_CASE("manage offer", "[tx][offer]")
                                    baseSellerBalance->getBalanceID(),
                                    quoteSellerBalance->getBalanceID(),
                                    baseAssetAmount, 1 * ONE, false, 0,
-                                   ManageOfferResultCode::MALFORMED);
+                                   ManageOfferResultCode::INVALID_PERCENT_FEE);
             }
             SECTION("Success")
             {

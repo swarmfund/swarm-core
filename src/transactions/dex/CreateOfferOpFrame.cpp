@@ -183,7 +183,7 @@ CreateOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
     const bool isFeeCorrect = offer.fee <= mManageOffer.fee;
     if (!isFeeCorrect)
     {
-        innerResult().code(ManageOfferResultCode::MALFORMED);
+        innerResult().code(ManageOfferResultCode::INVALID_PERCENT_FEE);
         return false;
     }
 

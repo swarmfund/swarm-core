@@ -32,7 +32,7 @@ bool DeleteSaleParticipationOpFrame::doCheckValid(Application& app)
 
     if (!mManageOffer.isBuy)
     {
-        innerResult().code(ManageOfferResultCode::MALFORMED);
+        innerResult().code(ManageOfferResultCode::REQUIRES_IS_BUY);
         return false;
     }
 

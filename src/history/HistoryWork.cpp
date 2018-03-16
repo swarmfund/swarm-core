@@ -1029,6 +1029,8 @@ ApplyLedgerChainWork::applyHistoryOfSingleLedger()
     {
         if (hHeader.hash != lm.getLastClosedLedgerHeader().hash)
         {
+            CLOG(ERROR, "History") << "replay at LCL disagreed on hash; hHeader.hash: " <<
+                binToHex(hHeader.hash) << "; lm.getLastClosedLedgerHeader().hash: " << binToHex(lm.getLastClosedLedgerHeader().hash);
             throw std::runtime_error("replay at LCL disagreed on hash");
         }
         CLOG(DEBUG, "History") << "Catchup at LCL=" << header.ledgerSeq

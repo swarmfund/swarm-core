@@ -11,6 +11,7 @@
 #include "transactions/test/test_helper/ManageAssetTestHelper.h"
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test/test_marshaler.h"
+#include "transactions/manage_asset/ManageAssetOpFrame.h"
 
 using namespace stellar;
 using namespace txtest;
@@ -18,6 +19,64 @@ using namespace txtest;
 void testManageAssetHappyPath(TestManager::pointer testManager,
                               Account& account, Account& root);
 
+TEST_CASE("Asset issuer migration", "[tx][asset_issuer_migration]")
+{
+    auto cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
+    cfg.LEDGER_PROTOCOL_VERSION = uint32(LedgerVersion::ASSET_PREISSUER_MIGRATION);
+    VirtualClock clock;
+    const auto appPtr = Application::create(clock, cfg);
+    auto& app = *appPtr;
+    app.start();
+    auto testManager = TestManager::make(app);
+
+    auto root = Account{ getRoot(), Salt(0) };
+
+    auto account = Account{ SecretKey::random(), 0 };
+
+    CreateAccountTestHelper createAccountTestHelper(testManager);
+    createAccountTestHelper.applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::SYNDICATE);
+
+
+    auto preissuedSigner = SecretKey::random();
+    auto manageAssetHelper = ManageAssetTestHelper(testManager);
+    const AssetCode assetCode = "EURT";
+    const uint64_t maxIssuance = 102030;
+    const auto initialPreIssuedAmount = maxIssuance;
+    const auto creationRequest = manageAssetHelper.
+        createAssetCreationRequest(assetCode,
+            preissuedSigner.getPublicKey(),
+            "{}", maxIssuance, 0, initialPreIssuedAmount);
+    auto creationResult = manageAssetHelper.applyManageAssetTx(account, 0,
+        creationRequest);
+
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+
+    auto approvingRequest = reviewableRequestHelper->
+        loadRequest(creationResult.success().requestID,
+            testManager->getDB(), nullptr);
+    REQUIRE(approvingRequest);
+    auto reviewRequetHelper = ReviewAssetRequestHelper(testManager);
+    reviewRequetHelper.applyReviewRequestTx(root, approvingRequest->
+        getRequestID(),
+        approvingRequest->getHash(),
+        approvingRequest->getType(),
+        ReviewRequestOpAction::
+        APPROVE, "");
+
+    auto newPreIssuanceSigner = SecretKey::random();
+    auto changePreIssanceSigner = manageAssetHelper.createChangeSignerRequest(assetCode, newPreIssuanceSigner.getPublicKey());
+    auto preissuedSignerAccount = Account{ preissuedSigner, 0 };
+    auto txFrame = manageAssetHelper.createManageAssetTx(account, 0, changePreIssanceSigner);
+    SECTION("Owner is not able to change signer")
+    {
+        changePreIssanceSigner = manageAssetHelper.createChangeSignerRequest(assetCode, newPreIssuanceSigner.getPublicKey());
+        txFrame = manageAssetHelper.createManageAssetTx(account, 0, changePreIssanceSigner);
+        testManager->applyCheck(txFrame);
+        auto txResult = txFrame->getResult();
+        const auto opResult = txResult.result.results()[0];
+        REQUIRE(opResult.code() == OperationResultCode::opBAD_AUTH);
+    }
+}
 
 TEST_CASE("manage asset", "[tx][manage_asset]")
 {
@@ -148,7 +207,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         {
             const AssetCode assetCode = "USD";
             // missed value
-            std::string invalidDetails = "{\"key\"}";
+            const std::string invalidDetails = "{\"key\"}";
 
             const auto request = manageAssetHelper.createAssetCreationRequest(assetCode, root.key.getPublicKey(),
                                                                               invalidDetails, 100, 0);
@@ -217,8 +276,8 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             const AssetCode assetCode = "USD";
             manageAssetHelper.createAsset(root, root.key, assetCode, root, 0);
 
-            std::string invalidDetails = "{\"key\"}";
-            auto request = manageAssetHelper.createAssetUpdateRequest(assetCode, invalidDetails, 0);
+            const std::string invalidDetails = "{\"key\"}";
+            const auto request = manageAssetHelper.createAssetUpdateRequest(assetCode, invalidDetails, 0);
             manageAssetHelper.applyManageAssetTx(root, 0, request,
                                                  ManageAssetResultCode::INVALID_DETAILS);
         }
@@ -344,6 +403,33 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
                                                     approvingRequest->getType(),
                                                     ReviewRequestOpAction::
                                                     APPROVE, "");
+            SECTION("Can change asset pre issuance signer")
+            {
+                auto newPreIssuanceSigner = SecretKey::random();
+                auto signer = Signer(preissuedSigner.getPublicKey(), 1, int32_t(SignerType::TX_SENDER), 0, "", Signer::_ext_t{});
+                applySetOptions(testManager->getApp(), account.key, 0, nullptr, &signer);
+                auto changePreIssanceSigner = manageAssetHelper.createChangeSignerRequest(assetCode, newPreIssuanceSigner.getPublicKey());
+                auto preissuedSignerAccount = Account{ preissuedSigner, 0 };
+                auto txFrame = manageAssetHelper.createManageAssetTx(account, 0, changePreIssanceSigner);
+                txFrame->getEnvelope().signatures.clear();
+                txFrame->addSignature(preissuedSigner);
+                testManager->applyCheck(txFrame);
+                auto txResult = txFrame->getResult();
+                const auto opResult = txResult.result.results()[0];
+                auto actualResultCode = ManageAssetOpFrame::getInnerCode(opResult);
+                REQUIRE(actualResultCode == ManageAssetResultCode::SUCCESS);
+                auto assetFrame = AssetHelper::Instance()->loadAsset(assetCode, testManager->getDB());
+                REQUIRE(assetFrame->getPreIssuedAssetSigner() == newPreIssuanceSigner.getPublicKey());
+                SECTION("Owner is not able to change signer")
+                {
+                    changePreIssanceSigner = manageAssetHelper.createChangeSignerRequest(assetCode, newPreIssuanceSigner.getPublicKey());
+                    txFrame = manageAssetHelper.createManageAssetTx(account, 0, changePreIssanceSigner);
+                    testManager->applyCheck(txFrame);
+                    auto txResult = txFrame->getResult();
+                    const auto opResult = txResult.result.results()[0];
+                    REQUIRE(opResult.code() == OperationResultCode::opBAD_AUTH);
+                }
+            }
             SECTION("Can update asset")
             {
                 const auto updateRequestBody = manageAssetHelper.

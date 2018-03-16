@@ -9,6 +9,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "main/Application.h"
+#include "ChangeAssetPreIssuerOpFrame.h"
 
 namespace stellar
 {
@@ -46,6 +47,8 @@ ManageAssetOpFrame* ManageAssetOpFrame::makeHelper(Operation const & op, Operati
 		return new UpdateAssetOpFrame(op, res, parentTx);
 	case ManageAssetAction::CANCEL_ASSET_REQUEST:
 		return new CancelAssetRequestOpFrame(op, res, parentTx);
+        case ManageAssetAction::CHANGE_PREISSUED_ASSET_SIGNER:
+            return new ChangeAssetPreIssuerOpFrame(op, res, parentTx);
 	default:
 		throw runtime_error("Unexpected action in manage asset op");
 	}

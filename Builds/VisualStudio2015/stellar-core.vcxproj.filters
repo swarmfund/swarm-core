@@ -924,6 +924,9 @@
     <ClCompile Include="..\..\src\transactions\test\AmlAlertTests.cpp">
       <Filter>transactions\test</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.cpp">
+      <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1804,6 +1807,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.h">
       <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.h">
+      <Filter>transactions\manage_asset</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

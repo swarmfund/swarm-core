@@ -322,6 +322,7 @@
     <ClCompile Include="..\..\src\transactions\AccountManager.cpp" />
     <ClCompile Include="..\..\src\transactions\CheckSaleStateOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateAccountOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\CreateAMLAlertRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateSaleCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\CreateOfferOpFrame.cpp" />
@@ -342,6 +343,7 @@
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\UpdateAssetOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewAssetCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewAssetUpdateRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewIssuanceCreationRequestOpFrame.cpp" />
@@ -354,6 +356,7 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\test\AccountManagerTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\AmlAlertTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CreateAccountTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CrowdfundTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\DirectDebitTests.cpp" />
@@ -367,16 +370,19 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAMLAlertTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetLimitsTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\WithdrawRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\WithdrawalTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\ManageInvoiceTests.cpp" />
@@ -594,6 +600,7 @@
     <ClInclude Include="..\..\src\transactions\CheckSaleStateOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CounterpartyDetails.h" />
     <ClInclude Include="..\..\src\transactions\CreateAccountOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\CreateAMLAlertRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CreateSaleCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CreateWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\CreateOfferOpFrame.h" />
@@ -614,6 +621,7 @@
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetHelper.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\UpdateAssetOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewAssetCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewAssetUpdateRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewIssuanceCreationRequestOpFrame.h" />
@@ -630,11 +638,13 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\IssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAMLAlertTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPreIssuanceRequestHelper.h" />
@@ -645,6 +655,7 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetLimitsTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\TestManager.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\TxHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\WithdrawRequestHelper.h" />
@@ -1062,6 +1073,18 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-limits-update.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-AML-alert-request.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-AML-alert.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

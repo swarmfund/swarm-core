@@ -26,6 +26,8 @@ namespace stellar
 
         SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                               int32_t ledgerVersion) const override;
+
+        static AMLAlertRequest getAmlAlert(ReviewableRequestFrame::pointer request);
     };
 }
 

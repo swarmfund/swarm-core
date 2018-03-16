@@ -173,6 +173,11 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
             throw runtime_error("reason is invalid");
         }
 
+        if (request.amount == 0)
+        {
+            throw runtime_error("amount can not be 0");
+        }
+
     }
 
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
@@ -213,8 +218,9 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
             return;
         case ReviewableRequestType::AML_ALERT:
             ensureAMLAlertValid(oe.body.amlAlertRequest());
+            return;
         default:
-            throw runtime_error("Unexpected reviewable request typw");
+            throw runtime_error("Unexpected reviewable request type");
         }
     } catch(exception ex)
     {

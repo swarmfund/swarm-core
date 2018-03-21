@@ -36,11 +36,18 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
     auto txFrame = createReviewRequestTx(source, requestID, requestHash,
                                          requestType, action, rejectReason);
 
-    mTestManager->applyCheck(txFrame);
+    std::vector<LedgerDelta::KeyEntryMap> stateBeforeOp;
+    mTestManager->applyCheck(txFrame, stateBeforeOp);
     auto txResult = txFrame->getResult();
     auto opResult = txResult.result.results()[0];
     auto actualResultCode = ReviewRequestOpFrame::getInnerCode(opResult);
     REQUIRE(actualResultCode == expectedResult);
+
+    auto txOperation = txFrame->getOperations()[0]->getOperation();
+    reviewChecker.setOperation(txOperation);
+    REQUIRE(stateBeforeOp.size() == 1);
+    const StateBeforeTxHelper stateBeforeTxHelper(stateBeforeOp[0]);
+    reviewChecker.setStateBeforeTxHelper(stateBeforeTxHelper);
 
     auto reviewResult = opResult.tr().reviewRequestResult();
     if (expectedResult != ReviewRequestResultCode::SUCCESS)
@@ -81,8 +88,6 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
         REQUIRE(!!requestAfterTx);
     }
 
-    auto txOperation = txFrame->getOperations()[0]->getOperation();
-    reviewChecker.setOperation(txOperation);
     reviewChecker.checkApprove(requestBeforeTx);
     return reviewResult;
 }

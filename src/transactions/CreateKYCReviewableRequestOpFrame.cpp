@@ -9,133 +9,152 @@
 #include "review_request/ReviewRequestHelper.h"
 
 namespace stellar {
-	using namespace std;
-	using xdr::operator==;
-	CreateKYCRequestOpFrame::CreateKYCRequestOpFrame(Operation const& op, OperationResult& res,
-		TransactionFrame& parentTx) 
-		: OperationFrame(op, res, parentTx)
-		, mCreateKYCRequest(mOperation.body.createKYCRequestOp())
-	{
+    using namespace std;
+    using xdr::operator==;
 
-	}
-	bool CreateKYCRequestOpFrame::updateKYCRequest(
-		Database& db,LedgerDelta& delta,Application& app) {
-		auto requestHelper = ReviewableRequestHelper::Instance();
-		auto request = requestHelper->loadRequest(mCreateKYCRequest.requestID,mCreateKYCRequest.changeKYCRequest.updatedAccount,
-												  ReviewableRequestType::CHANGE_KYC,db,&delta);
-		if(!request){
-			innerResult().code(CreateKYCRequestResultCode::REQUEST_NOT_EXIST);
-			return false;
-		}
-		auto& requestEntry = request->getRequestEntry();
+    CreateUpdateKYCRequestOpFrame::CreateUpdateKYCRequestOpFrame(Operation const &op, OperationResult &res,
+                                                                 TransactionFrame &parentTx)
+            : OperationFrame(op, res, parentTx), mCreateUpdateKYCRequest(mOperation.body.createUpdateKYCRequestOp()) {
 
-		buildRequest(requestEntry);
+    }
 
-		request->recalculateHashRejectReason();
+    std::unordered_map<AccountID, CounterpartyDetails>
+    CreateUpdateKYCRequestOpFrame::getCounterpartyDetails(Database &db, LedgerDelta *delta) const {
+        return {{mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC,
+                        CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED}, true, true)}
+        };
+    }
 
-		ReviewableRequestHelper::Instance()->storeChange(delta,db,request->mEntry);
-		
-		innerResult().code(CreateKYCRequestResultCode::SUCCESS);
-		innerResult().success().requestID = mCreateKYCRequest.requestID;
-		return true;
-	}
-	bool CreateKYCRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
-		LedgerManager& ledgerManager) {
-		Database& db = ledgerManager.getDatabase();
-		
+    SourceDetails
+    CreateUpdateKYCRequestOpFrame::getSourceAccountDetails(
+            std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+            int32_t ledgerVersion) const {
+        if (mCreateUpdateKYCRequest.updateKYCRequestData.allTasks) {
+            return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
+                                 static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
+        }
+        if (getSourceID() == mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC) {
+            return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED},
+                                 mSourceAccount->getHighThreshold(), static_cast<int32_t>(SignerType::KYC_ACC_MANAGER));
+        }
+        return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
+                             static_cast<int32_t>(SignerType::KYC_ACC_MANAGER));
+    }
 
-		if (mCreateKYCRequest.requestID!=0) {
-			return updateKYCRequest(db,delta,app);
-		}
+    bool CreateUpdateKYCRequestOpFrame::changeUpdateKYCRequest(Database &db, LedgerDelta &delta, Application &app) {
+        auto requestHelper = ReviewableRequestHelper::Instance();
+        auto request = requestHelper->loadRequest(mCreateUpdateKYCRequest.requestID,
+                                                  mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC,
+                                                  ReviewableRequestType::UPDATE_KYC, db, &delta);
+        if (!request) {
+            innerResult().code(CreateUpdateKYCRequestResultCode::REQUEST_DOES_NOT_EXIST);
+            return false;
+        }
 
-		auto accountHelper = AccountHelper::Instance();
-		auto accountFrame = accountHelper->loadAccount(delta, mCreateKYCRequest.changeKYCRequest.updatedAccount, db);
-		if (!accountFrame) {
-			innerResult().code(CreateKYCRequestResultCode::UPDATED_ACC_NOT_EXIST);
-			return false;
-		}
+        if (request->getRejectReason().empty()) {
+            innerResult().code(CreateUpdateKYCRequestResultCode::PENDING_REQUEST_UPDATE_NOT_ALLOWED);
+            return false;
+        }
 
-		auto& changeKYCRequest = mCreateKYCRequest.changeKYCRequest;
-		auto& account = accountFrame->getAccount();
+        auto &requestEntry = request->getRequestEntry();
+        createRequest(requestEntry);
+        const auto newHash = ReviewableRequestFrame::calculateHash(requestEntry.body);
+        requestEntry.hash = newHash;
+        ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
 
-			if (account.accountType == changeKYCRequest.accountTypeToSet &&
-				accountFrame->getKYCLevel() == changeKYCRequest.kycLevel)
-			{
-				innerResult().code(CreateKYCRequestResultCode::SET_TYPE_THE_SAME);
-				return false;
-			}
+        innerResult().code(CreateUpdateKYCRequestResultCode::SUCCESS);
+        innerResult().success().requestID = mCreateUpdateKYCRequest.requestID;
+        return true;
+    }
 
-		auto reference = getReference();
-		const auto referencePtr = xdr::pointer<string64>(new string64(reference));
-		auto requestFrame = ReviewableRequestFrame::createNew(delta, changeKYCRequest.updatedAccount, app.getMasterID(), referencePtr, ledgerManager.getCloseTime());
+    bool CreateUpdateKYCRequestOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
+        Database &db = ledgerManager.getDatabase();
 
-		auto requestHelper = ReviewableRequestHelper::Instance();
-		if (requestHelper->isReferenceExist(db, changeKYCRequest.updatedAccount, reference, requestFrame->getRequestID())) {
-			innerResult().code(CreateKYCRequestResultCode::REQUEST_EXIST);	
-			return false;
-		}
-		auto& requestEntry = requestFrame->getRequestEntry();
-		requestEntry.body.type(ReviewableRequestType::CHANGE_KYC);
-		buildRequest(requestEntry);
+        if (mCreateUpdateKYCRequest.requestID != 0) {
+            return changeUpdateKYCRequest(db, delta, app);
+        }
 
-		requestFrame->recalculateHashRejectReason();
-		
-		requestHelper->storeAdd(delta, db, requestFrame->mEntry);
+        auto accountHelper = AccountHelper::Instance();
+        auto accountFrame = accountHelper->loadAccount(delta,
+                                                       mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC,
+                                                       db);
+        if (!accountFrame) {
+            innerResult().code(CreateUpdateKYCRequestResultCode::ACC_TO_UPDATE_DOES_NOT_EXIST);
+            return false;
+        }
 
-		innerResult().code(CreateKYCRequestResultCode::SUCCESS);
-	
-		innerResult().success().requestID = requestFrame->getRequestID();
-		innerResult().success().fulfilled =false;
-		if (getSourceAccount().getAccountType() == AccountType::MASTER) {
-			auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, requestFrame);
-			if(result != ReviewRequestResultCode::SUCCESS){
-				CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: tryApproveRequest must be success, but result code is not success: "
-													   << xdr::xdr_to_string(result);
-				throw std::runtime_error("Unexpected state: tryApproveRequest must be success, but result code is not success.");
+        auto updateKYCRequestData = mCreateUpdateKYCRequest.updateKYCRequestData;
+        auto account = accountFrame->getAccount();
+        if (account.accountType == updateKYCRequestData.accountTypeToSet &&
+            accountFrame->getKYCLevel() == updateKYCRequestData.kycLevel) {
+            innerResult().code(CreateUpdateKYCRequestResultCode::SAME_ACC_TYPE_TO_SET);
+            return false;
+        }
 
-			}
-			innerResult().success().fulfilled = true;
-		}
-		return true;
-	
-	}
+        auto reference = getReference();
+        const auto referencePtr = xdr::pointer<string64>(new string64(reference));
+        auto requestFrame = ReviewableRequestFrame::createNew(delta, updateKYCRequestData.accountToUpdateKYC,
+                                                              app.getMasterID(),
+                                                              referencePtr, ledgerManager.getCloseTime());
 
+        auto requestHelper = ReviewableRequestHelper::Instance();
+        if (requestHelper->isReferenceExist(db, updateKYCRequestData.accountToUpdateKYC, reference,
+                                            requestFrame->getRequestID())) {
+            innerResult().code(CreateUpdateKYCRequestResultCode::REQUEST_ALREADY_EXISTS);
+            return false;
+        }
 
-	bool CreateKYCRequestOpFrame::doCheckValid(Application& app) {
-		return true;
-	}
+        auto &requestEntry = requestFrame->getRequestEntry();
+        requestEntry.body.type(ReviewableRequestType::UPDATE_KYC);
+        createRequest(requestEntry);
 
+        requestFrame->recalculateHashRejectReason();
 
-	std::unordered_map<AccountID, CounterpartyDetails> CreateKYCRequestOpFrame::getCounterpartyDetails(Database& db, LedgerDelta* delta) const {
-		return { {mCreateKYCRequest.changeKYCRequest.updatedAccount,
-			CounterpartyDetails({ AccountType::GENERAL,AccountType::NOT_VERIFIED }, true, true)}
-		};
-	}
+        requestHelper->storeAdd(delta, db, requestFrame->mEntry);
 
-	SourceDetails CreateKYCRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
-																   int32_t ledgerVersion) const {
-		
-		if (getSourceID() == mCreateKYCRequest.changeKYCRequest.updatedAccount) {
-			return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED},
-				mSourceAccount->getHighThreshold(), static_cast<int32_t>(SignerType::KYC_ACC_MANAGER));
-		}
-		return SourceDetails({ AccountType::MASTER }, mSourceAccount->getHighThreshold(),
-			static_cast<int32_t>(SignerType::KYC_ACC_MANAGER));
-	}
+        innerResult().code(CreateUpdateKYCRequestResultCode::SUCCESS);
 
+        innerResult().success().requestID = requestFrame->getRequestID();
+        innerResult().success().fulfilled = false;
 
-	std::string CreateKYCRequestOpFrame::getReference() const
-	{
-		const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::CHANGE_KYC));
-		return binToHex(hash);
-	}
+        if (mCreateUpdateKYCRequest.updateKYCRequestData.allTasks &&
+            mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate() == 0) {
+            auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, requestFrame);
+            if (result != ReviewRequestResultCode::SUCCESS) {
+                CLOG(ERROR, Logging::OPERATION_LOGGER)
+                        << "Unexpected state: tryApproveRequest expected to be success, but was: "
+                        << xdr::xdr_to_string(result);
+                throw std::runtime_error("Unexpected state: tryApproveRequest expected to be success");
+            }
+            innerResult().success().fulfilled = true;
+        }
 
+        return true;
+    }
 
-	void CreateKYCRequestOpFrame::buildRequest(ReviewableRequestEntry& requestEntry) {
+    bool CreateUpdateKYCRequestOpFrame::doCheckValid(Application &app) {
+        return true;
+    }
 
-		requestEntry.body.changeKYCRequest().accountTypeToSet = mCreateKYCRequest.changeKYCRequest.accountTypeToSet;
-		requestEntry.body.changeKYCRequest().updatedAccount = mCreateKYCRequest.changeKYCRequest.updatedAccount;
-		requestEntry.body.changeKYCRequest().kycLevel = mCreateKYCRequest.changeKYCRequest.kycLevel;
-		requestEntry.body.changeKYCRequest().kycData = mCreateKYCRequest.changeKYCRequest.kycData;
-	}
+    std::string CreateUpdateKYCRequestOpFrame::getReference() const {
+        const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::UPDATE_KYC));
+        return binToHex(hash);
+    }
+
+    void CreateUpdateKYCRequestOpFrame::createRequest(ReviewableRequestEntry &requestEntry) {
+        requestEntry.body.updateKYCRequest().accountToUpdateKYC = mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC;
+        requestEntry.body.updateKYCRequest().accountTypeToSet = mCreateUpdateKYCRequest.updateKYCRequestData.accountTypeToSet;
+        requestEntry.body.updateKYCRequest().kycLevel = mCreateUpdateKYCRequest.updateKYCRequestData.kycLevel;
+        requestEntry.body.updateKYCRequest().kycData = mCreateUpdateKYCRequest.updateKYCRequestData.kycData;
+
+        requestEntry.body.updateKYCRequest().allTasks = mCreateUpdateKYCRequest.updateKYCRequestData.allTasks
+                                                        ? mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate()
+                                                        : CreateUpdateKYCRequestOpFrame::defaultTasks;
+
+        requestEntry.body.updateKYCRequest().pendingTasks = requestEntry.body.updateKYCRequest().allTasks;
+
+        if (requestEntry.rejectReason.empty()) {
+            requestEntry.body.updateKYCRequest().sequenceNumber = 0;
+        }
+    }
 }

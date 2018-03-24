@@ -22,24 +22,24 @@ namespace stellar {
         }
 
         ReviewableRequestFrame::pointer
-        CreateKYCRequestTestHelper::createReviewableChangeKYCRequest(ChangeKYCRequest request, uint64 requestID) {
+        CreateKYCRequestTestHelper::createReviewableChangeKYCRequest(UpdateKYCRequest request, uint64 requestID) {
             auto referencePtr = getReference();
-            auto frame = ReviewableRequestFrame::createNew(requestID, request.updatedAccount,
+            auto frame = ReviewableRequestFrame::createNew(requestID, request.accountToUpdateKYC,
                                                            mTestManager->getApp().getMasterID(),
                                                            referencePtr,
                                                            mTestManager->getLedgerManager().getCloseTime());
-            frame->mEntry.data.reviewableRequest().body.changeKYCRequest() = request;
+            frame->mEntry.data.reviewableRequest().body.updateKYCRequest() = request;
             frame->recalculateHashRejectReason();
             return frame;
         }
 
 
-        CreateKYCRequestResult
+        UpdateKYCRequest
         CreateKYCRequestTestHelper::applyCreateChangeKYCRequest(Account &source, uint64_t requestID,
                                                                 AccountType accountType,
                                                                 longstring kycData, AccountID updatedAccount,
                                                                 uint32 kycLevel,
-                                                                CreateKYCRequestResultCode expectedResultCode) {
+                                                                CreateUpdateKYCRequestResultCode expectedResultCode) {
 
             TransactionFramePtr txFrame;
 
@@ -55,7 +55,7 @@ namespace stellar {
 
             auto txResult = txFrame->getResult();
             auto actualResultCode =
-                    CreateKYCRequestOpFrame::getInnerCode(txResult.result.results()[0]);
+                    CreateUpdateKYCRequestOpFrame::getInnerCode(txResult.result.results()[0]);
 
             REQUIRE(actualResultCode == expectedResultCode);
 
@@ -64,9 +64,9 @@ namespace stellar {
 
             auto accountAfter = accountHelper->loadAccount(updatedAccount, db);
 
-            auto opResult = txResult.result.results()[0].tr().createKYCRequestResult();
+            auto opResult = txResult.result.results()[0].tr().createUpdateKYCRequestResult();
 
-            if (actualResultCode != CreateKYCRequestResultCode::SUCCESS) {
+            if (actualResultCode != CreateUpdateKYCRequestResultCode::SUCCESS) {
                 REQUIRE(accountAfter->getAccountType() == accountBefore->getAccountType());
                 REQUIRE(accountAfter->getKYCLevel() == accountBefore->getKYCLevel());
                 return opResult;

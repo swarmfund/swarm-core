@@ -171,10 +171,10 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     saleFrame->ensureValid();
 }
 
-void ReviewableRequestFrame::ensureChangeKYCValid(ChangeKYCRequest const& request) {
-	//if (!isValidJson(request.kycData)) {
-	//	throw std::runtime_error("KYC data is invalid");
-	//}
+void ReviewableRequestFrame::ensureUpdateKYCValid(UpdateKYCRequest const &request) {
+	if (!isValidJson(request.kycData)) {
+		throw std::runtime_error("KYC data is invalid");
+	}
 	bool res = isValidEnumValue(request.accountTypeToSet);
 	if (!res) {
 		throw runtime_error("invalid account type");
@@ -217,8 +217,8 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
             ensureWithdrawalValid(oe.body.twoStepWithdrawalRequest());
             return;
-		case ReviewableRequestType::CHANGE_KYC:
-			ensureChangeKYCValid(oe.body.changeKYCRequest());
+		case ReviewableRequestType::UPDATE_KYC:
+            ensureUpdateKYCValid(oe.body.updateKYCRequest());
 			return;
         default:
             throw runtime_error("Unexpected reviewable request type");

@@ -91,7 +91,7 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
     case OperationType::CHECK_SALE_STATE:
         return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
 	case OperationType::CREATE_KYC_REQUEST:
-		return shared_ptr<OperationFrame>(new CreateKYCRequestOpFrame(op, res, tx));
+		return shared_ptr<OperationFrame>(new CreateUpdateKYCRequestOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

@@ -3,7 +3,7 @@
 namespace stellar {
 
 
-	class ReviewChangeKYCRequestOpFrame : public ReviewRequestOpFrame {
+	class ReviewUpdateKYCRequestOpFrame : public ReviewRequestOpFrame {
 	protected:
 		bool handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) override;
 
@@ -12,6 +12,6 @@ namespace stellar {
 			getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
 									int32_t ledgerVersion) const override;
 	public:
-		ReviewChangeKYCRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx);
+		ReviewUpdateKYCRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx);
 	};
 }

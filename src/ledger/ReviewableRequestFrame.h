@@ -31,7 +31,7 @@ class ReviewableRequestFrame : public EntryFrame
 	static void ensureIssuanceValid(IssuanceRequest const& request);
 	static void ensureWithdrawalValid(WithdrawalRequest const& request);
 	static void ensureSaleCreationValid(SaleCreationRequest const& request);
-	static void ensureChangeKYCValid(ChangeKYCRequest const& request);
+	static void ensureUpdateKYCValid(UpdateKYCRequest const &request);
 
 
   public:
@@ -111,7 +111,7 @@ class ReviewableRequestFrame : public EntryFrame
 	static uint256 calculateHash(ReviewableRequestEntry::_body_t const& body);
 
 	void recalculateHashRejectReason() {
-	        const auto newHash = calculateHash(mRequest.body);
+		const auto newHash = calculateHash(mRequest.body);
 		mRequest.hash = newHash;
 		mRequest.rejectReason = "";
 	}

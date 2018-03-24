@@ -1,17 +1,17 @@
-#include "ReviewChangeKYCRequestOpFrame.h"
+#include "ReviewUpdateKYCRequestOpFrame.h"
 #include "ReviewRequestOpFrame.h"
 #include "ReviewRequestHelper.h"
 #include "ledger/EntryHelper.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountKYCHelper.h"
 namespace stellar {
-	ReviewChangeKYCRequestOpFrame::ReviewChangeKYCRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx) :
+	ReviewUpdateKYCRequestOpFrame::ReviewUpdateKYCRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx) :
 		ReviewRequestOpFrame(op, res, parentTx)
 	{
 
 	}
-	bool ReviewChangeKYCRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) {
-		if (request->getRequestType() != ReviewableRequestType::CHANGE_KYC)
+	bool ReviewUpdateKYCRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) {
+		if (request->getRequestType() != ReviewableRequestType::UPDATE_KYC)
 		{
 			CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected CHANGE_KYC, but got " << xdr::
 				xdr_traits<ReviewableRequestType>::
@@ -22,10 +22,10 @@ namespace stellar {
 		Database& db = ledgerManager.getDatabase();
 		EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
-		auto changeKYCRequest = request->getRequestEntry().body.changeKYCRequest();
+		auto changeKYCRequest = request->getRequestEntry().body.updateKYCRequest();
 
 
-		auto updatedAccountID = changeKYCRequest.updatedAccount;
+		auto updatedAccountID = changeKYCRequest.accountToUpdateKYC;
 		auto updatedAccountFrame = AccountHelper::Instance()->loadAccount(updatedAccountID, db);
 		if (!updatedAccountFrame)
 		{
@@ -59,7 +59,7 @@ namespace stellar {
 
 
 	SourceDetails
-		ReviewChangeKYCRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+		ReviewUpdateKYCRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
 															   int32_t ledgerVersion) const {
 		return SourceDetails({ AccountType::MASTER }, mSourceAccount->getHighThreshold(), static_cast<int32_t>(SignerType::KYC_ACC_MANAGER));
 

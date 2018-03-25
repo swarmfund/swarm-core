@@ -12,6 +12,8 @@ namespace stellar {
     using namespace std;
     using xdr::operator==;
 
+    uint32 const CreateUpdateKYCRequestOpFrame::defaultTasks = 3;
+
     CreateUpdateKYCRequestOpFrame::CreateUpdateKYCRequestOpFrame(Operation const &op, OperationResult &res,
                                                                  TransactionFrame &parentTx)
             : OperationFrame(op, res, parentTx), mCreateUpdateKYCRequest(mOperation.body.createUpdateKYCRequestOp()) {
@@ -42,6 +44,8 @@ namespace stellar {
     }
 
     bool CreateUpdateKYCRequestOpFrame::changeUpdateKYCRequest(Database &db, LedgerDelta &delta, Application &app) {
+        innerResult().code(CreateUpdateKYCRequestResultCode::SUCCESS);
+
         auto requestHelper = ReviewableRequestHelper::Instance();
         auto request = requestHelper->loadRequest(mCreateUpdateKYCRequest.requestID,
                                                   mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC,
@@ -51,9 +55,14 @@ namespace stellar {
             return false;
         }
 
-        if (request->getRejectReason().empty()) {
+        if (mSourceAccount->getAccountType() != AccountType::MASTER && request->getRejectReason().empty()) {
             innerResult().code(CreateUpdateKYCRequestResultCode::PENDING_REQUEST_UPDATE_NOT_ALLOWED);
             return false;
+        }
+
+        if (tryAutoApprove(db, delta, app, request)) {
+            innerResult().success().requestID = mCreateUpdateKYCRequest.requestID;
+            return true;
         }
 
         auto &requestEntry = request->getRequestEntry();
@@ -62,7 +71,6 @@ namespace stellar {
         requestEntry.hash = newHash;
         ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
 
-        innerResult().code(CreateUpdateKYCRequestResultCode::SUCCESS);
         innerResult().success().requestID = mCreateUpdateKYCRequest.requestID;
         return true;
     }
@@ -113,22 +121,34 @@ namespace stellar {
         requestHelper->storeAdd(delta, db, requestFrame->mEntry);
 
         innerResult().code(CreateUpdateKYCRequestResultCode::SUCCESS);
-
         innerResult().success().requestID = requestFrame->getRequestID();
         innerResult().success().fulfilled = false;
 
-        if (mCreateUpdateKYCRequest.updateKYCRequestData.allTasks &&
-            mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate() == 0) {
-            auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, requestFrame);
-            if (result != ReviewRequestResultCode::SUCCESS) {
-                CLOG(ERROR, Logging::OPERATION_LOGGER)
-                        << "Unexpected state: tryApproveRequest expected to be success, but was: "
-                        << xdr::xdr_to_string(result);
-                throw std::runtime_error("Unexpected state: tryApproveRequest expected to be success");
-            }
-            innerResult().success().fulfilled = true;
+        tryAutoApprove(db, delta, app, requestFrame);
+
+        return true;
+    }
+
+    bool
+    CreateUpdateKYCRequestOpFrame::tryAutoApprove(Database &db, LedgerDelta &delta, Application &app,
+                                                  ReviewableRequestFrame::pointer requestFrame) {
+        if (!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks) {
+            return false;
         }
 
+        if (!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate() == 0) {
+            return false;
+        }
+
+        auto &ledgerManager = app.getLedgerManager();
+        auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, requestFrame);
+        if (result != ReviewRequestResultCode::SUCCESS) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                    << "Unexpected state: tryApproveRequest expected to be success, but was: "
+                    << xdr::xdr_to_string(result);
+            throw std::runtime_error("Unexpected state: tryApproveRequest expected to be success");
+        }
+        innerResult().success().fulfilled = true;
         return true;
     }
 

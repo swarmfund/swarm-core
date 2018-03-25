@@ -7,13 +7,13 @@ namespace stellar {
 
     namespace txtest {
         void ReviewKYCRequestChecker::checkApprove(ReviewableRequestFrame::pointer pointer) {
-            auto request = pointer->getRequestEntry().body.changeKYCRequest();
-            auto accountAfterTx = AccountHelper::Instance()->loadAccount(request.updatedAccount, mTestManager->getDB());
+            auto request = pointer->getRequestEntry().body.updateKYCRequest();
+            auto accountAfterTx = AccountHelper::Instance()->loadAccount(request.accountToUpdateKYC, mTestManager->getDB());
             REQUIRE(!!accountAfterTx);
             REQUIRE(accountAfterTx->getAccountType() == request.accountTypeToSet);
             REQUIRE(accountAfterTx->getKYCLevel() == request.kycLevel);
 
-            auto accountKYCAfterTx = AccountKYCHelper::Instance()->loadAccountKYC(request.updatedAccount,mTestManager->getDB());
+            auto accountKYCAfterTx = AccountKYCHelper::Instance()->loadAccountKYC(request.accountToUpdateKYC,mTestManager->getDB());
             REQUIRE(!!accountKYCAfterTx);
             REQUIRE(accountKYCAfterTx->getKYCData() == request.kycData);
         }

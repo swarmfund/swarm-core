@@ -25,6 +25,9 @@ namespace stellar {
 
         bool changeUpdateKYCRequest(Database &db, LedgerDelta &delta, Application &app);
 
+        bool tryAutoApprove(Database &db, LedgerDelta &delta, Application &app,
+                            ReviewableRequestFrame::pointer requestFrame);
+
     public:
         CreateUpdateKYCRequestOpFrame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);
 
@@ -40,6 +43,6 @@ namespace stellar {
             return xdr::xdr_traits<CreateUpdateKYCRequestResultCode>::enum_name(innerResult().code());
         }
 
-        static const uint32 defaultTasks = 3;
+        static const uint32 defaultTasks;
     };
 }

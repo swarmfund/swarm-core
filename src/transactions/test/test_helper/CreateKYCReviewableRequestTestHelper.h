@@ -1,34 +1,34 @@
 #pragma once
+
 #include "TxHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+
 namespace stellar {
     namespace txtest {
-
-
-        class CreateKYCRequestTestHelper : TxHelper{
+        class CreateKYCRequestTestHelper : TxHelper {
         public:
             explicit CreateKYCRequestTestHelper(TestManager::pointer testManager);
 
-            TransactionFramePtr createKYCRequestTx(Account &source, uint64_t requestID,AccountType accountType,
-                                                                               longstring kycData,AccountID updatedAccount,
-                                                                               uint32 kycLevel = 0 );
+            TransactionFramePtr createUpdateKYCRequestTx(Account &source, uint64_t requestID,
+                                                         AccountID accountToUpdateKYC, AccountType accountType,
+                                                         longstring kycData, uint32 kycLevel, uint32 *allTasks);
 
 
             CreateUpdateKYCRequestResult
-            applyCreateChangeKYCRequest(Account &source, uint64_t requestID,AccountType accountType,
-                                                                    longstring kycData,AccountID updatedAccount,
-                                                                    uint32 kycLevel,
-                                                                    CreateUpdateKYCRequestResultCode expectedResultCode);
+            applyCreateUpdateKYCRequest(Account &source, uint64_t requestID, AccountID accountToUpdateKYC,
+                                        AccountType accountType, longstring kycData, uint32 kycLevel, uint32 *allTasks,
+                                        CreateUpdateKYCRequestResultCode expectedResultCode =
+                                        CreateUpdateKYCRequestResultCode::SUCCESS);
+
         protected:
             CreateUpdateKYCRequestResult
-            checkApprovedCreation(CreateUpdateKYCRequestResult opResult,AccountID updatedAccount,LedgerDelta::KeyEntryMap stateBeforeOp);
+            checkApprovedCreation(CreateUpdateKYCRequestResult opResult, AccountID accountToUpdateKYC,
+                                  LedgerDelta::KeyEntryMap stateBeforeOp);
 
-                ReviewableRequestFrame::pointer createReviewableChangeKYCRequest(UpdateKYCRequest request,uint64 requestID);
+            ReviewableRequestFrame::pointer
+            createReviewableChangeKYCRequest(UpdateKYCRequest request, uint64 requestID);
+
             xdr::pointer<string64> getReference();
-
-
-
         };
-
     }
 }

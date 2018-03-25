@@ -75,8 +75,25 @@ namespace stellar {
 
                 if (requestBeforeTx) {
                     auto requestAfterTx = ReviewableRequestHelper::Instance()->loadRequest(requestID, db);
-                    //TODO: Maybe need to be checked with fields
-                    REQUIRE(requestAfterTx == requestBeforeTx);
+                    auto requestAfterTxEntry = requestAfterTx->getRequestEntry();
+                    auto requestBeforeTxEntry = requestBeforeTx->getRequestEntry();
+
+                    REQUIRE(requestAfterTxEntry.body.updateKYCRequest().accountToUpdateKYC ==
+                            requestBeforeTxEntry.body.updateKYCRequest().accountToUpdateKYC);
+                    REQUIRE(requestAfterTxEntry.body.updateKYCRequest().accountTypeToSet ==
+                            requestBeforeTxEntry.body.updateKYCRequest().accountTypeToSet);
+                    REQUIRE(requestAfterTxEntry.body.updateKYCRequest().kycData ==
+                            requestBeforeTxEntry.body.updateKYCRequest().kycData);
+                    REQUIRE(requestAfterTxEntry.body.updateKYCRequest().kycLevel ==
+                            requestBeforeTxEntry.body.updateKYCRequest().kycLevel);
+                    REQUIRE(requestAfterTxEntry.body.updateKYCRequest().allTasks ==
+                            requestBeforeTxEntry.body.updateKYCRequest().allTasks);
+                    REQUIRE(requestAfterTxEntry.body.updateKYCRequest().pendingTasks ==
+                            requestBeforeTxEntry.body.updateKYCRequest().pendingTasks);
+                    REQUIRE(requestAfterTxEntry.body.updateKYCRequest().sequenceNumber ==
+                            requestBeforeTxEntry.body.updateKYCRequest().sequenceNumber);
+                    REQUIRE(requestAfterTxEntry.body.updateKYCRequest().externalDetails ==
+                            requestBeforeTxEntry.body.updateKYCRequest().externalDetails);
                 }
 
                 return opResult;

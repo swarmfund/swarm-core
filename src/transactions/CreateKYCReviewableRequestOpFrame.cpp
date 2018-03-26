@@ -40,16 +40,15 @@ namespace stellar {
                                  mSourceAccount->getHighThreshold(), static_cast<int32_t>(SignerType::KYC_ACC_MANAGER));
         }
         return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
-                             static_cast<int32_t>(SignerType::KYC_ACC_MANAGER));
+                             static_cast<int32_t>(SignerType::KYC_ACC_MANAGER) |
+                             static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
     }
 
     bool CreateUpdateKYCRequestOpFrame::changeUpdateKYCRequest(Database &db, LedgerDelta &delta, Application &app) {
         innerResult().code(CreateUpdateKYCRequestResultCode::SUCCESS);
 
         auto requestHelper = ReviewableRequestHelper::Instance();
-        auto request = requestHelper->loadRequest(mCreateUpdateKYCRequest.requestID,
-                                                  mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC,
-                                                  ReviewableRequestType::UPDATE_KYC, db, &delta);
+        auto request = requestHelper->loadRequest(mCreateUpdateKYCRequest.requestID, db, &delta);
         if (!request) {
             innerResult().code(CreateUpdateKYCRequestResultCode::REQUEST_DOES_NOT_EXIST);
             return false;
@@ -136,7 +135,7 @@ namespace stellar {
             return false;
         }
 
-        if (!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate() == 0) {
+        if (mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate() != 0) {
             return false;
         }
 

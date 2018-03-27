@@ -32,6 +32,7 @@
 #include "transactions/ManageInvoiceOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
+#include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/CreateKYCReviewableRequestOpFrame.h"
 #include "database/Database.h"
 
@@ -90,6 +91,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::CHECK_SALE_STATE:
         return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
+    case OperationType::CREATE_AML_ALERT:
+        return shared_ptr<OperationFrame>(new CreateAMLAlertRequestOpFrame(op,res,tx));
 	case OperationType::CREATE_KYC_REQUEST:
 		return shared_ptr<OperationFrame>(new CreateUpdateKYCRequestOpFrame(op, res, tx));
     default:
@@ -120,6 +123,13 @@ OperationFrame::apply(LedgerDelta& delta, Application& app)
 std::string OperationFrame::getInnerResultCodeAsStr() {
 	// Default implementation does nothing, make remove this implementation when all operations switched to it
 	return "not_implemented";
+}
+
+SourceDetails OperationFrame::getSourceAccountDetails(
+    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+    int32_t ledgerVersion, Database& db) const
+{
+    return getSourceAccountDetails(counterpartiesDetails, ledgerVersion);
 }
 
 bool OperationFrame::isAllowed() const
@@ -268,7 +278,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 		return false;
 	}
 
-	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion);
+	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion, db);
     if (!doCheckSignature(app, db, sourceDetails))
     {
         return false;

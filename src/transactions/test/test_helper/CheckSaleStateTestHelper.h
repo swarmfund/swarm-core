@@ -3,26 +3,11 @@
 
 #include "ManageOfferTestHelper.h"
 #include "ledger/SaleFrame.h"
-#include "ledger/ReviewableRequestFrame.h"
+
 namespace stellar
 {
 namespace txtest
 {
-    class StateBeforeTxHelper
-    {
-        LedgerDelta::KeyEntryMap mState;
-    public:
-        explicit StateBeforeTxHelper(LedgerDelta::KeyEntryMap state);
-
-        AccountFrame::pointer getAccount(AccountID accountID);
-        SaleFrame::pointer getSale(uint64_t id);
-        AssetEntry getAssetEntry(AssetCode assetCode);
-        OfferEntry getOffer(uint64_t offerID, AccountID ownerID);
-        BalanceFrame::pointer getBalance(BalanceID balanceID);
-        std::vector<OfferEntry> getAllOffers();
-        ReviewableRequestFrame::pointer getReviewableRequest(uint64 requestID);
-
-    };
 
     class CheckSaleStateHelper : public TxHelper
     {

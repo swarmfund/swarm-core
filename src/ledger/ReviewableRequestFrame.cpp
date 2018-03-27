@@ -170,6 +170,17 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalances, 0);
     saleFrame->ensureValid();
 }
+void ReviewableRequestFrame::ensureAMLAlertValid(AMLAlertRequest const &request) {
+    if(request.reason.empty()){
+        throw runtime_error("reason is invalid");
+    }
+
+    if (request.amount == 0)
+    {
+        throw runtime_error("amount can not be 0");
+    }
+
+}
 
 void ReviewableRequestFrame::ensureUpdateKYCValid(UpdateKYCRequest const &request) {
 	if (!isValidJson(request.kycData)) {
@@ -217,6 +228,9 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
             ensureWithdrawalValid(oe.body.twoStepWithdrawalRequest());
             return;
+        case ReviewableRequestType::AML_ALERT:
+            ensureAMLAlertValid(oe.body.amlAlertRequest());
+            return;
 		case ReviewableRequestType::UPDATE_KYC:
             ensureUpdateKYCValid(oe.body.updateKYCRequest());
 			return;
@@ -236,4 +250,3 @@ ReviewableRequestFrame::ensureValid() const
     ensureValid(mRequest);
 }
 }
-

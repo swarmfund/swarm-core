@@ -8,7 +8,7 @@
 #include "ledger/AccountKYCHelper.h"
 #include "ReviewUpdateKYCRequestHelper.h"
 #include "test/test_marshaler.h"
-#include "CheckSaleStateTestHelper.h"
+#include "ReviewRequestTestHelper.h"
 #include "ledger/AccountHelper.h"
 #include "bucket/BucketApplicator.h"
 

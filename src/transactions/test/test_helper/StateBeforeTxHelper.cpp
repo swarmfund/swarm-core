@@ -95,5 +95,13 @@ BalanceFrame::pointer StateBeforeTxHelper::getBalance(BalanceID balanceID) {
         return std::make_shared<AccountFrame>(mState[key]->mEntry);
     }
 
+    ReviewableRequestFrame::pointer StateBeforeTxHelper::getReviewableRequest(uint64 requestID) {
+        LedgerKey key;
+        key.type(LedgerEntryType::REVIEWABLE_REQUEST);
+        key.reviewableRequest().requestID = requestID;
+        if (mState.find(key) == mState.end())
+            return nullptr;
+        return std::make_shared<ReviewableRequestFrame>(mState[key]->mEntry);
+    }
 }
 }

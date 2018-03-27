@@ -13,9 +13,7 @@ namespace txtest
     public:
         explicit ReviewKYCRequestChecker(TestManager::pointer);
 
-        void checkApprove(ReviewableRequestFrame::pointer pointer) override;
-//
-
+        void checkApprove(ReviewableRequestFrame::pointer request) override;
     };
 
     class ReviewKYCRequestTestHelper : public ReviewRequestHelper
@@ -29,7 +27,9 @@ namespace txtest
                              ReviewRequestResultCode expectedResult) override;
         using ReviewRequestHelper::applyReviewRequestTx;
 
-
+        TransactionFramePtr createReviewRequestTx(Account& source,
+                                                  uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
+                                                  ReviewRequestOpAction action, std::string rejectReason) override;
     };
 }
 

@@ -7,14 +7,14 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "bucket/BucketApplicator.h"
 #include "test_helper/CreateAccountTestHelper.h"
-#include "test_helper/ReviewChangeKYCRequestHelper.h"
+#include "transactions/test/test_helper/ReviewUpdateKYCRequestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("create KYC request", "[tx][create_KYC_request]"){
+TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     Config const &cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
 
     VirtualClock clock;
@@ -27,79 +27,137 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]"){
 
     auto updatedAccountID = SecretKey::random();
 
-    auto updatedAccount = Account{updatedAccountID,Salt(1)};
+    auto updatedAccount = Account{updatedAccountID, Salt(1)};
 
-    auto master = Account{getRoot(),Salt(1)};
+    auto master = Account{getRoot(), Salt(1)};
 
     CreateAccountTestHelper accountTestHelper(testManager);
 
-    accountTestHelper.applyCreateAccountTx(master,updatedAccountID.getPublicKey(),AccountType::GENERAL);
+    accountTestHelper.applyCreateAccountTx(master, updatedAccountID.getPublicKey(), AccountType::GENERAL);
 
     CreateKYCRequestTestHelper testKYCRequestHelper(testManager);
     longstring kycData = "{}";
     uint32 kycLevel = 2;
     uint64 requestID = 0;
+    uint32 tasks = 0;
+    ReviewKYCRequestTestHelper reviewKYCRequestTestHelper(testManager);
     SECTION("success") {
-        SECTION("success, source master") {
-           testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::COMMISSION,
-                                                                       kycData,
-                                                                       updatedAccountID.getPublicKey(), kycLevel,
-                                                                       CreateKYCRequestResultCode::SUCCESS);
-        }
-        SECTION("source updated account") {
-            auto tx =testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, requestID,
-                                                                       AccountType::COMMISSION, kycData,
-                                                                       updatedAccountID.getPublicKey(), kycLevel,
-                                                                       CreateKYCRequestResultCode::SUCCESS);
-            ReviewKYCRequestTestHelper reviewKYCRequestTestHelper(testManager);
-            auto request = ReviewableRequestHelper::Instance()->loadRequest(tx.success().requestID,
-                                                                            updatedAccountID.getPublicKey(),
-                                                                            ReviewableRequestType::CHANGE_KYC,
-                                                                            testManager->getDB());
-            SECTION("success,approve request") {
+        SECTION("source master, create and approve") {
 
-                reviewKYCRequestTestHelper.applyReviewRequestTx(master, tx.success().requestID, request->getHash(),
-                                                                ReviewableRequestType::CHANGE_KYC,
-                                                                ReviewRequestOpAction::APPROVE, "",
-                                                                ReviewRequestResultCode::SUCCESS);
-            }
+            auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0,
+                                                                                                 updatedAccountID.getPublicKey(),
+                                                                                                 AccountType::GENERAL,
+                                                                                                 kycData, kycLevel,
+                                                                                                 nullptr);
+
+            requestID = createUpdateKYCRequestResult.success().requestID;
+            auto request = ReviewableRequestHelper::Instance()->loadRequest(requestID, updatedAccountID.getPublicKey(),
+                                                                            ReviewableRequestType::UPDATE_KYC,
+                                                                            testManager->getDB());
+
+            reviewKYCRequestTestHelper.applyReviewRequestTx(master, requestID, ReviewRequestOpAction::APPROVE, "");
         }
-        SECTION("update request success"){
-            auto tx =testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, requestID,
-                                                                      AccountType::COMMISSION, kycData,
-                                                                      updatedAccountID.getPublicKey(), kycLevel,
-                                                                      CreateKYCRequestResultCode::SUCCESS);
-            testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, tx.success().requestID,
-                                                                      AccountType::MASTER, kycData,
-                                                                      updatedAccountID.getPublicKey(), kycLevel,
-                                                                      CreateKYCRequestResultCode::SUCCESS);
+        SECTION("source master, autoapprove") {
+            auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0,
+                                                                                                 updatedAccountID.getPublicKey(),
+                                                                                                 AccountType::GENERAL,
+                                                                                                 kycData, kycLevel,
+                                                                                                 &tasks);
         }
+        SECTION("source updatedAccount, create -> reject -> update -> approve") {
+            auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
+                                                                                                 updatedAccountID.getPublicKey(),
+                                                                                                 AccountType::GENERAL,
+                                                                                                 kycData, kycLevel,
+                                                                                                 nullptr);
+
+            requestID = createUpdateKYCRequestResult.success().requestID;
+            auto request = ReviewableRequestHelper::Instance()->loadRequest(requestID, updatedAccountID.getPublicKey(),
+                                                                            ReviewableRequestType::UPDATE_KYC,
+                                                                            testManager->getDB());
+
+            reviewKYCRequestTestHelper.applyReviewRequestTx(master, requestID, ReviewRequestOpAction::REJECT,
+                                                            "Not enough docs for third kyc level");
+
+            reviewKYCRequestTestHelper.applyReviewRequestTx(master, requestID, ReviewRequestOpAction::REJECT,
+                                                            "One more reject, just for fun");
+
+            uint32 newKYCLevel = kycLevel - 1;
+            auto changeUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount,
+                                                                                                 requestID,
+                                                                                                 updatedAccountID.getPublicKey(),
+                                                                                                 AccountType::GENERAL,
+                                                                                                 kycData, newKYCLevel,
+                                                                                                 nullptr);
+
+            reviewKYCRequestTestHelper.applyReviewRequestTx(master, requestID, ReviewRequestOpAction::APPROVE, "");
+        }
+
+        tasks = 3;
+
+        SECTION("source master, create and update pending") {
+            auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0,
+                                                                                                 updatedAccountID.getPublicKey(),
+                                                                                                 AccountType::GENERAL,
+                                                                                                 kycData, kycLevel,
+                                                                                                 &tasks);
+            requestID = createUpdateKYCRequestResult.success().requestID;
+            uint32 newTasks = 1;
+            testKYCRequestHelper.applyCreateUpdateKYCRequest(master, requestID, updatedAccountID.getPublicKey(),
+                                                             AccountType::GENERAL, kycData, kycLevel, &newTasks);
+        }
+
+//TODO: fix problem with flow
+//        SECTION("source master, create and update(autoapprove)") {
+//            auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0,
+//                                                                                                 updatedAccountID.getPublicKey(),
+//                                                                                                 AccountType::GENERAL,
+//                                                                                                 kycData, kycLevel,
+//                                                                                                 &tasks);
+//
+//            requestID = createUpdateKYCRequestResult.success().requestID;
+//            uint32 newTasks = 0;
+//            testKYCRequestHelper.applyCreateUpdateKYCRequest(master, requestID, updatedAccountID.getPublicKey(),
+//                                                             AccountType::GENERAL, kycData, kycLevel, &newTasks);
+//        }
     }
     SECTION("failed") {
         SECTION("set the same type") {
             kycLevel = 0;
-            testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::GENERAL, kycData,
-                                                                       updatedAccountID.getPublicKey(), kycLevel,
-                                                                       CreateKYCRequestResultCode::SET_TYPE_THE_SAME);
+
+            testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0, updatedAccountID.getPublicKey(),
+                                                             AccountType::GENERAL, kycData, kycLevel, nullptr,
+                                                             CreateUpdateKYCRequestResultCode::SAME_ACC_TYPE_TO_SET);
 
         }
-        SECTION("double creating, request exist") {
-            testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, requestID,
-                                                                       AccountType::COMMISSION, kycData,
-                                                                       updatedAccountID.getPublicKey(), kycLevel,
-                                                                       CreateKYCRequestResultCode::SUCCESS);
+        SECTION("double creating, request exists") {
+            testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
+                                                             AccountType::GENERAL, kycData, kycLevel, nullptr,
+                                                             CreateUpdateKYCRequestResultCode::SUCCESS);
 
-            testKYCRequestHelper.applyCreateChangeKYCRequest(master, requestID, AccountType::MASTER, kycData,
-                                                                  updatedAccountID.getPublicKey(), kycLevel,
-                                                                  CreateKYCRequestResultCode::REQUEST_EXIST);
+            testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
+                                                             AccountType::GENERAL, kycData, kycLevel, nullptr,
+                                                             CreateUpdateKYCRequestResultCode::REQUEST_ALREADY_EXISTS);
 
         }
-        SECTION("updated request not exist") {
-            testKYCRequestHelper.applyCreateChangeKYCRequest(updatedAccount, 100, AccountType::COMMISSION,
-                                                                       kycData,
-                                                                       updatedAccountID.getPublicKey(), kycLevel,
-                                                                       CreateKYCRequestResultCode::REQUEST_NOT_EXIST);
+        SECTION("updated request does not exist") {
+            testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 100, updatedAccountID.getPublicKey(),
+                                                             AccountType::GENERAL, kycData, kycLevel, nullptr,
+                                                             CreateUpdateKYCRequestResultCode::REQUEST_DOES_NOT_EXIST);
 
+        }
+        SECTION("update pending is not allowed for user") {
+            auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
+                                                                                                 updatedAccountID.getPublicKey(),
+                                                                                                 AccountType::GENERAL,
+                                                                                                 kycData, kycLevel,
+                                                                                                 nullptr,
+                                                                                                 CreateUpdateKYCRequestResultCode::SUCCESS);
+            requestID = createUpdateKYCRequestResult.success().requestID;
+            uint32 newKYCLevel = 2;
+            testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, requestID, updatedAccountID.getPublicKey(),
+                                                             AccountType::GENERAL, kycData, newKYCLevel, nullptr,
+                                                             CreateUpdateKYCRequestResultCode::PENDING_REQUEST_UPDATE_NOT_ALLOWED);
         }
     }
 }

@@ -6,7 +6,7 @@
 #include "CreateKYCReviewableRequestTestHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/AccountKYCHelper.h"
-#include "ReviewChangeKYCRequestHelper.h"
+#include "ReviewUpdateKYCRequestHelper.h"
 #include "test/test_marshaler.h"
 #include "CheckSaleStateTestHelper.h"
 #include "ledger/AccountHelper.h"
@@ -47,7 +47,6 @@ namespace stellar {
 
             if (requestID != 0) {
                 requestBeforeTx = requestHelper->loadRequest(requestID, db);
-                REQUIRE(requestBeforeTx);
             }
 
             TransactionFramePtr txFrame;

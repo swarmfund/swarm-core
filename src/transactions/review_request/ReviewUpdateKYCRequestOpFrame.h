@@ -24,5 +24,7 @@ namespace stellar {
 
     public:
         ReviewUpdateKYCRequestOpFrame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);
+
+        bool doCheckValid(Application &app) override;
     };
 }

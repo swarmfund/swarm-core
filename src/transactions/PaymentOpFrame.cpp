@@ -103,7 +103,8 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
                                                      AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE};
 
     // disallowed
-	return SourceDetails({}, mSourceAccount->getMediumThreshold(), signerType);
+	return SourceDetails({}, mSourceAccount->getMediumThreshold(), signerType,
+						 static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
 }
 
 bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)

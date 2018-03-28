@@ -6,7 +6,7 @@
 #include "bucket/BucketApplicator.h"
 #include "xdrpp/printer.h"
 #include "ledger/LedgerDelta.h"
-#include "review_request/ReviewRequestHelper.h"
+#include "transactions/review_request/ReviewRequestHelper.h"
 
 namespace stellar {
     using namespace std;

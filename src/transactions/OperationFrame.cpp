@@ -33,7 +33,7 @@
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
-#include "transactions/CreateKYCReviewableRequestOpFrame.h"
+#include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 #include "database/Database.h"
 
 #include "medida/meter.h"

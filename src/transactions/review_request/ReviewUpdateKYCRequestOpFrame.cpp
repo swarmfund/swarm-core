@@ -4,7 +4,7 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountKYCHelper.h"
-#include "transactions/CreateKYCReviewableRequestOpFrame.h"
+#include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 
 namespace stellar {
     ReviewUpdateKYCRequestOpFrame::ReviewUpdateKYCRequestOpFrame(Operation const &op, OperationResult &res,

@@ -100,7 +100,7 @@ namespace stellar {
 
             requestID = opResult.success().requestID;
 
-            if (sourceAccount->getAccountType() == AccountType::MASTER && allTasks && *allTasks == 0) {
+            if (sourceAccount->getAccountType() == AccountType::MASTER && !!allTasks && *allTasks == 0) {
                 return checkApprovedCreation(opResult, accountToUpdateKYC, stateBeforeOps[0]);
             }
 
@@ -119,7 +119,7 @@ namespace stellar {
             REQUIRE(requestAfterTxEntry.body.updateKYCRequest().kycLevel == kycLevel);
             REQUIRE(requestAfterTxEntry.body.updateKYCRequest().kycData == kycData);
 
-            if (allTasks) {
+            if (!!allTasks) {
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().allTasks == *allTasks);
             } else {
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().allTasks ==
@@ -132,7 +132,7 @@ namespace stellar {
             if (requestBeforeTx) {
                 auto requestBeforeTxEntry = requestBeforeTx->getRequestEntry();
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().sequenceNumber ==
-                        requestBeforeTxEntry.body.updateKYCRequest().sequenceNumber);
+                        requestBeforeTxEntry.body.updateKYCRequest().sequenceNumber + 1);
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().externalDetails ==
                         requestBeforeTxEntry.body.updateKYCRequest().externalDetails);
             } else {
@@ -153,8 +153,8 @@ namespace stellar {
             op.updateKYCRequestData.accountToUpdateKYC = accountToUpdateKYC;
             op.updateKYCRequestData.accountTypeToSet = accountType;
             op.updateKYCRequestData.kycData = kycData;
-            op.updateKYCRequestData.kycLevel = kycLevel;
-            if (allTasks) {
+            op.updateKYCRequestData.kycLevelToSet = kycLevel;
+            if (!!allTasks) {
                 op.updateKYCRequestData.allTasks.activate() = *allTasks;
             }
 

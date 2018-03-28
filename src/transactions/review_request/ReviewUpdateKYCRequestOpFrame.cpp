@@ -29,7 +29,7 @@ namespace stellar {
     bool
     ReviewUpdateKYCRequestOpFrame::handleApprove(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
                                                  ReviewableRequestFrame::pointer request) {
-        checkRequestType(request);
+        CreateUpdateKYCRequestOpFrame::checkRequestType(request);
 
         Database &db = ledgerManager.getDatabase();
 
@@ -81,7 +81,7 @@ namespace stellar {
 
     bool ReviewUpdateKYCRequestOpFrame::handleReject(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
                                                      ReviewableRequestFrame::pointer request) {
-        checkRequestType(request);
+        CreateUpdateKYCRequestOpFrame::checkRequestType(request);
 
         Database &db = ledgerManager.getDatabase();
 
@@ -101,22 +101,6 @@ namespace stellar {
 
         innerResult().code(ReviewRequestResultCode::SUCCESS);
         return true;
-    }
-
-    void ReviewUpdateKYCRequestOpFrame::checkRequestType(ReviewableRequestFrame::pointer request) {
-        if (request->getRequestType() != ReviewableRequestType::UPDATE_KYC) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected UPDATE_KYC, but got " << xdr::
-            xdr_traits<ReviewableRequestType>::
-            enum_name(request->getRequestType());
-            throw std::invalid_argument("Unexpected request type for review update KYC request");
-        }
-    }
-
-    bool ReviewUpdateKYCRequestOpFrame::handlePermanentReject(Application &app, LedgerDelta &delta,
-                                                              LedgerManager &ledgerManager,
-                                                              ReviewableRequestFrame::pointer request) {
-        innerResult().code(ReviewRequestResultCode::PERMANENT_REJECT_NOT_ALLOWED);
-        return false;
     }
 
     bool ReviewUpdateKYCRequestOpFrame::doCheckValid(Application &app) {

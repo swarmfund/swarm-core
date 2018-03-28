@@ -3,8 +3,6 @@
 #include "ReviewRequestOpFrame.h"
 
 namespace stellar {
-
-
     class ReviewUpdateKYCRequestOpFrame : public ReviewRequestOpFrame {
     protected:
         bool handleApprove(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
@@ -12,11 +10,6 @@ namespace stellar {
 
         bool handleReject(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
                           ReviewableRequestFrame::pointer request) override;
-
-        void checkRequestType(ReviewableRequestFrame::pointer request);
-
-        bool handlePermanentReject(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
-                                   ReviewableRequestFrame::pointer request) override;
 
         SourceDetails
         getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,

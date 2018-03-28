@@ -23,10 +23,14 @@ namespace stellar {
 
         void createRequest(ReviewableRequestEntry &requestEntry);
 
+        void updateRequest(ReviewableRequestEntry &requestEntry);
+
         bool changeUpdateKYCRequest(Database &db, LedgerDelta &delta, Application &app);
 
-        bool tryAutoApprove(Database &db, LedgerDelta &delta, Application &app,
+        void tryAutoApprove(Database &db, LedgerDelta &delta, Application &app,
                             ReviewableRequestFrame::pointer requestFrame);
+
+        bool ensureUpdateKYCDataValid(ReviewableRequestEntry& requestEntry);
 
     public:
         CreateUpdateKYCRequestOpFrame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);
@@ -34,6 +38,8 @@ namespace stellar {
         bool doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) override;
 
         bool doCheckValid(Application &app) override;
+
+        static void checkRequestType(ReviewableRequestFrame::pointer request);
 
         static CreateUpdateKYCRequestResultCode getInnerCode(OperationResult const &res) {
             return res.tr().createUpdateKYCRequestResult().code();

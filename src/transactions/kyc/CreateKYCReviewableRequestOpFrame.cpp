@@ -1,5 +1,4 @@
 #include "CreateKYCReviewableRequestOpFrame.h"
-#include "database/Database.h"
 #include "ledger/AccountHelper.h"
 #include "main/Application.h"
 
@@ -31,7 +30,7 @@ namespace stellar {
     CreateUpdateKYCRequestOpFrame::getSourceAccountDetails(
             std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
             int32_t ledgerVersion) const {
-        if (mCreateUpdateKYCRequest.updateKYCRequestData.allTasks) {
+        if (!!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks) {
             return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                                  static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
         }
@@ -44,32 +43,64 @@ namespace stellar {
                              static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
     }
 
-    bool CreateUpdateKYCRequestOpFrame::changeUpdateKYCRequest(Database &db, LedgerDelta &delta, Application &app) {
-        innerResult().code(CreateUpdateKYCRequestResultCode::SUCCESS);
+    void CreateUpdateKYCRequestOpFrame::checkRequestType(ReviewableRequestFrame::pointer request) {
+        if (request->getRequestType() != ReviewableRequestType::UPDATE_KYC) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected UPDATE_KYC, but got " << xdr::
+            xdr_traits<ReviewableRequestType>::
+            enum_name(request->getRequestType());
+            throw std::invalid_argument("Unexpected request type for review update KYC request");
+        }
+    }
 
-        auto requestHelper = ReviewableRequestHelper::Instance();
-        auto request = requestHelper->loadRequest(mCreateUpdateKYCRequest.requestID, db, &delta);
+    bool CreateUpdateKYCRequestOpFrame::ensureUpdateKYCDataValid(ReviewableRequestEntry &requestEntry) {
+        auto &updateKYCRequest = requestEntry.body.updateKYCRequest();
+        auto updateKYCRequestData = mCreateUpdateKYCRequest.updateKYCRequestData;
+
+        if (!(updateKYCRequest.accountToUpdateKYC == updateKYCRequestData.accountToUpdateKYC)) {
+            return false;
+        }
+        if (updateKYCRequest.accountTypeToSet != updateKYCRequestData.accountTypeToSet) {
+            return false;
+        }
+        if (updateKYCRequest.kycLevel != updateKYCRequestData.kycLevelToSet) {
+            return false;
+        }
+        if (!!updateKYCRequestData.allTasks) {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool CreateUpdateKYCRequestOpFrame::changeUpdateKYCRequest(Database &db, LedgerDelta &delta, Application &app) {
+        if (mSourceAccount->getAccountType() == AccountType::MASTER) {
+            innerResult().code(CreateUpdateKYCRequestResultCode::NOT_ALLOWED_TO_UPDATE_REQUEST);
+            return false;
+        }
+
+        auto request = ReviewableRequestHelper::Instance()->loadRequest(mCreateUpdateKYCRequest.requestID, db, &delta);
         if (!request) {
             innerResult().code(CreateUpdateKYCRequestResultCode::REQUEST_DOES_NOT_EXIST);
             return false;
         }
-
-        if (mSourceAccount->getAccountType() != AccountType::MASTER && request->getRejectReason().empty()) {
+        if (request->getRejectReason().empty()) {
             innerResult().code(CreateUpdateKYCRequestResultCode::PENDING_REQUEST_UPDATE_NOT_ALLOWED);
             return false;
         }
 
-        if (tryAutoApprove(db, delta, app, request)) {
-            innerResult().success().requestID = mCreateUpdateKYCRequest.requestID;
-            return true;
+        auto &requestEntry = request->getRequestEntry();
+        if (!ensureUpdateKYCDataValid(requestEntry)) {
+            innerResult().code(CreateUpdateKYCRequestResultCode::INVALID_UPDATE_KYC_REQUEST_DATA);
+            return false;
         }
 
-        auto &requestEntry = request->getRequestEntry();
-        createRequest(requestEntry);
-        const auto newHash = ReviewableRequestFrame::calculateHash(requestEntry.body);
-        requestEntry.hash = newHash;
+        updateRequest(requestEntry);
+
+        request->recalculateHashRejectReason();
+
         ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
 
+        innerResult().code(CreateUpdateKYCRequestResultCode::SUCCESS);
         innerResult().success().requestID = mCreateUpdateKYCRequest.requestID;
         return true;
     }
@@ -93,7 +124,7 @@ namespace stellar {
         auto updateKYCRequestData = mCreateUpdateKYCRequest.updateKYCRequestData;
         auto account = accountFrame->getAccount();
         if (account.accountType == updateKYCRequestData.accountTypeToSet &&
-            accountFrame->getKYCLevel() == updateKYCRequestData.kycLevel) {
+            accountFrame->getKYCLevel() == updateKYCRequestData.kycLevelToSet) {
             innerResult().code(CreateUpdateKYCRequestResultCode::SAME_ACC_TYPE_TO_SET);
             return false;
         }
@@ -123,20 +154,22 @@ namespace stellar {
         innerResult().success().requestID = requestFrame->getRequestID();
         innerResult().success().fulfilled = false;
 
-        tryAutoApprove(db, delta, app, requestFrame);
+        if (mSourceAccount->getAccountType() == AccountType::MASTER) {
+            tryAutoApprove(db, delta, app, requestFrame);
+        }
 
         return true;
     }
 
-    bool
+    void
     CreateUpdateKYCRequestOpFrame::tryAutoApprove(Database &db, LedgerDelta &delta, Application &app,
                                                   ReviewableRequestFrame::pointer requestFrame) {
         if (!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks) {
-            return false;
+            return;
         }
 
         if (mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate() != 0) {
-            return false;
+            return;
         }
 
         auto &ledgerManager = app.getLedgerManager();
@@ -147,8 +180,8 @@ namespace stellar {
                     << xdr::xdr_to_string(result);
             throw std::runtime_error("Unexpected state: tryApproveRequest expected to be success");
         }
+
         innerResult().success().fulfilled = true;
-        return true;
     }
 
     bool CreateUpdateKYCRequestOpFrame::doCheckValid(Application &app) {
@@ -163,17 +196,21 @@ namespace stellar {
     void CreateUpdateKYCRequestOpFrame::createRequest(ReviewableRequestEntry &requestEntry) {
         requestEntry.body.updateKYCRequest().accountToUpdateKYC = mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC;
         requestEntry.body.updateKYCRequest().accountTypeToSet = mCreateUpdateKYCRequest.updateKYCRequestData.accountTypeToSet;
-        requestEntry.body.updateKYCRequest().kycLevel = mCreateUpdateKYCRequest.updateKYCRequestData.kycLevel;
+        requestEntry.body.updateKYCRequest().kycLevel = mCreateUpdateKYCRequest.updateKYCRequestData.kycLevelToSet;
         requestEntry.body.updateKYCRequest().kycData = mCreateUpdateKYCRequest.updateKYCRequestData.kycData;
 
-        requestEntry.body.updateKYCRequest().allTasks = mCreateUpdateKYCRequest.updateKYCRequestData.allTasks
+        requestEntry.body.updateKYCRequest().allTasks = !!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks
                                                         ? mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate()
                                                         : CreateUpdateKYCRequestOpFrame::defaultTasks;
 
         requestEntry.body.updateKYCRequest().pendingTasks = requestEntry.body.updateKYCRequest().allTasks;
+        requestEntry.body.updateKYCRequest().sequenceNumber = 0;
+    }
 
-        if (requestEntry.rejectReason.empty()) {
-            requestEntry.body.updateKYCRequest().sequenceNumber = 0;
-        }
+    void CreateUpdateKYCRequestOpFrame::updateRequest(ReviewableRequestEntry &requestEntry) {
+        requestEntry.body.updateKYCRequest().kycData = mCreateUpdateKYCRequest.updateKYCRequestData.kycData;
+        requestEntry.body.updateKYCRequest().allTasks = CreateUpdateKYCRequestOpFrame::defaultTasks;
+        requestEntry.body.updateKYCRequest().pendingTasks = requestEntry.body.updateKYCRequest().allTasks;
+        requestEntry.body.updateKYCRequest().sequenceNumber++;
     }
 }

@@ -64,9 +64,9 @@ std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(Trans
     reviewRequestOp.requestID = mRequest->getRequestID();
     reviewRequestOp.requestDetails.requestType(mRequest->getRequestType());
 
-    //TODO: maybe should be removed
     if (mRequest->getRequestType() == ReviewableRequestType::UPDATE_KYC) {
-        reviewRequestOp.requestDetails.updateKYC().newTasks = 0;
+        reviewRequestOp.requestDetails.updateKYC().tasksToAdd = 0;
+        reviewRequestOp.requestDetails.updateKYC().tasksToRemove = 0;
         reviewRequestOp.requestDetails.updateKYC().externalDetails = "{}";
     }
 

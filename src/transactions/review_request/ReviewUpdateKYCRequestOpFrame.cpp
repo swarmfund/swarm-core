@@ -16,8 +16,8 @@ namespace stellar {
     SourceDetails
     ReviewUpdateKYCRequestOpFrame::getSourceAccountDetails(
             std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const {
-        //TODO: replace integer literal with const
-        if (mReviewRequest.requestDetails.updateKYC().newTasks & 1 == 0) {
+        int32_t superAdminTask = ~mReviewRequest.requestDetails.updateKYC().tasksToRemove & 1;
+        if (superAdminTask == 0) {
             return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                                  static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
         }
@@ -35,21 +35,23 @@ namespace stellar {
 
         auto &updateKYCRequest = request->getRequestEntry().body.updateKYCRequest();
 
-        updateKYCRequest.pendingTasks &= mReviewRequest.requestDetails.updateKYC().newTasks;
+        updateKYCRequest.allTasks |= mReviewRequest.requestDetails.updateKYC().tasksToAdd;
+        updateKYCRequest.pendingTasks &= ~mReviewRequest.requestDetails.updateKYC().tasksToRemove;
+        updateKYCRequest.pendingTasks |= mReviewRequest.requestDetails.updateKYC().tasksToAdd;
+        updateKYCRequest.externalDetails.emplace_back(mReviewRequest.requestDetails.updateKYC().externalDetails);
 
-        if (updateKYCRequest.pendingTasks != 0) {
-            auto &requestEntry = request->getRequestEntry();
-            const auto newHash = ReviewableRequestFrame::calculateHash(requestEntry.body);
-            requestEntry.hash = newHash;
-            ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
+        auto &requestEntry = request->getRequestEntry();
+        const auto newHash = ReviewableRequestFrame::calculateHash(requestEntry.body);
+        requestEntry.hash = newHash;
 
+        ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
+
+        if (!canBeFulfilled(requestEntry)) {
             innerResult().code(ReviewRequestResultCode::SUCCESS);
             return true;
         }
 
         EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
-
-        createReference(delta, db, request->getRequestor(), request->getReference());
 
         auto accountToUpdateKYC = updateKYCRequest.accountToUpdateKYC;
         auto accountToUpdateKYCFrame = AccountHelper::Instance()->loadAccount(accountToUpdateKYC, db);
@@ -87,7 +89,7 @@ namespace stellar {
 
         auto &updateKYCRequest = request->getRequestEntry().body.updateKYCRequest();
 
-        updateKYCRequest.allTasks = CreateUpdateKYCRequestOpFrame::defaultTasks;
+        updateKYCRequest.allTasks |= mReviewRequest.requestDetails.updateKYC().tasksToAdd;
         updateKYCRequest.pendingTasks = updateKYCRequest.allTasks;
         updateKYCRequest.sequenceNumber++;
         updateKYCRequest.externalDetails.emplace_back(mReviewRequest.requestDetails.updateKYC().externalDetails);
@@ -101,6 +103,10 @@ namespace stellar {
 
         innerResult().code(ReviewRequestResultCode::SUCCESS);
         return true;
+    }
+
+    bool ReviewUpdateKYCRequestOpFrame::canBeFulfilled(ReviewableRequestEntry &requestEntry) {
+        return requestEntry.body.updateKYCRequest().pendingTasks == 0;
     }
 
     bool ReviewUpdateKYCRequestOpFrame::doCheckValid(Application &app) {

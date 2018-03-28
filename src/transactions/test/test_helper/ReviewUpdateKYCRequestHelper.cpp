@@ -55,7 +55,8 @@ namespace stellar {
             reviewRequestOp.requestHash = requestHash;
             reviewRequestOp.requestID = requestID;
             reviewRequestOp.requestDetails.requestType(requestType);
-            reviewRequestOp.requestDetails.updateKYC().newTasks = 0;
+            reviewRequestOp.requestDetails.updateKYC().tasksToAdd = 0;
+            reviewRequestOp.requestDetails.updateKYC().tasksToRemove = 3;
             reviewRequestOp.requestDetails.updateKYC().externalDetails = "{}";
 
             return txFromOperation(source, op, nullptr);

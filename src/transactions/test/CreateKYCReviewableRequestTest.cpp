@@ -43,7 +43,6 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     ReviewKYCRequestTestHelper reviewKYCRequestTestHelper(testManager);
     SECTION("success") {
         SECTION("source master, create and approve") {
-
             auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0,
                                                                                                  updatedAccountID.getPublicKey(),
                                                                                                  AccountType::GENERAL,

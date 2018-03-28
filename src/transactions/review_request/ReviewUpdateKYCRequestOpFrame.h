@@ -18,6 +18,8 @@ namespace stellar {
     public:
         ReviewUpdateKYCRequestOpFrame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);
 
+        static bool canBeFulfilled(ReviewableRequestEntry &requestEntry);
+
         bool doCheckValid(Application &app) override;
     };
 }

@@ -46,6 +46,7 @@
 #include <vector>
 #include <sstream>
 #include <thread>
+#include <ledger/AccountKYCHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
 
@@ -72,10 +73,11 @@ enum databaseSchemaVersion : unsigned long {
 	DROP_BAN = 4,
     REFERENCE_VERSION = 5,
     ADD_SALE_TYPE = 6,
-	USE_KYC_LEVEL = 7
+	USE_KYC_LEVEL = 7,
+    ADD_ACCOUNT_KYC = 8
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::USE_KYC_LEVEL;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ACCOUNT_KYC;
 
 static void
 setSerializable(soci::session& sess)
@@ -147,6 +149,9 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::USE_KYC_LEVEL:
             AccountHelper::Instance()->addKYCLevel(*this);
+            break;
+        case databaseSchemaVersion::ADD_ACCOUNT_KYC:
+            AccountKYCHelper::Instance()->dropAll(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

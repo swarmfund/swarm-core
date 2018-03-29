@@ -124,11 +124,6 @@ namespace stellar {
 
         auto updateKYCRequestData = mCreateUpdateKYCRequest.updateKYCRequestData;
         auto account = accountFrame->getAccount();
-        if (account.accountType == updateKYCRequestData.accountTypeToSet &&
-            accountFrame->getKYCLevel() == updateKYCRequestData.kycLevelToSet) {
-            innerResult().code(CreateUpdateKYCRequestResultCode::SAME_ACC_TYPE_TO_SET);
-            return false;
-        }
 
         auto reference = getReference();
         const auto referencePtr = xdr::pointer<string64>(new string64(reference));

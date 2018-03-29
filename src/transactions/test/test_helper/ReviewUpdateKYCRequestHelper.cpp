@@ -3,6 +3,8 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountKYCHelper.h"
+#include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
+
 namespace stellar {
 
     namespace txtest {
@@ -56,7 +58,9 @@ namespace stellar {
             reviewRequestOp.requestID = requestID;
             reviewRequestOp.requestDetails.requestType(requestType);
             reviewRequestOp.requestDetails.updateKYC().tasksToAdd = 0;
-            reviewRequestOp.requestDetails.updateKYC().tasksToRemove = action == ReviewRequestOpAction::APPROVE ? 3 : 0;
+            reviewRequestOp.requestDetails.updateKYC().tasksToRemove = action == ReviewRequestOpAction::APPROVE
+                                                                       ? CreateUpdateKYCRequestOpFrame::defaultTasks
+                                                                       : 0;
             reviewRequestOp.requestDetails.updateKYC().externalDetails = "{}";
 
             return txFromOperation(source, op, nullptr);

@@ -12,7 +12,7 @@ namespace stellar {
     using namespace std;
     using xdr::operator==;
 
-    uint32 const CreateUpdateKYCRequestOpFrame::defaultTasks = 3;
+    uint32 const CreateUpdateKYCRequestOpFrame::defaultTasks = 30;
 
     CreateUpdateKYCRequestOpFrame::CreateUpdateKYCRequestOpFrame(Operation const &op, OperationResult &res,
                                                                  TransactionFrame &parentTx)

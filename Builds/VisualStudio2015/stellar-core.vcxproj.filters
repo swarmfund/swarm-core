@@ -121,6 +121,9 @@
     <Filter Include="lib\coincore\hashfunc">
       <UniqueIdentifier>{91d7d631-0e93-40ce-bbd2-1bedd110bdfe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="transactions\kyc">
+      <UniqueIdentifier>{29e6bc01-600f-48ea-9bec-1442464f8b4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -926,6 +929,18 @@
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.cpp">
       <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\AccountKYCFrame.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\AccountKYCHelper.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\kyc\CreateKYCReviewableRequestOpFrame.cpp">
+      <Filter>transactions\kyc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1811,6 +1826,18 @@
     <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.h">
       <Filter>transactions\manage_asset</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\ledger\AccountKYCFrame.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\AccountKYCHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\kyc\CreateKYCReviewableRequestOpFrame.h">
+      <Filter>transactions\kyc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -2038,6 +2065,15 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-AML-alert.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-KYC.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-KYC.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-KYC-request.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

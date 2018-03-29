@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/json/json.h>
 #include "ReviewableRequestFrame.h"
 #include "database/Database.h"
 #include "LedgerDelta.h"
@@ -10,6 +11,7 @@
 #include "xdrpp/printer.h"
 #include "crypto/SHA.h"
 #include "SaleFrame.h"
+#include "util/types.h"
 
 using namespace soci;
 using namespace std;
@@ -168,17 +170,27 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalances, 0);
     saleFrame->ensureValid();
 }
-    void ReviewableRequestFrame::ensureAMLAlertValid(AMLAlertRequest const &request) {
-        if(request.reason.empty()){
-            throw runtime_error("reason is invalid");
-        }
-
-        if (request.amount == 0)
-        {
-            throw runtime_error("amount can not be 0");
-        }
-
+void ReviewableRequestFrame::ensureAMLAlertValid(AMLAlertRequest const &request) {
+    if(request.reason.empty()){
+        throw runtime_error("reason is invalid");
     }
+
+    if (request.amount == 0)
+    {
+        throw runtime_error("amount can not be 0");
+    }
+
+}
+
+void ReviewableRequestFrame::ensureUpdateKYCValid(UpdateKYCRequest const &request) {
+	if (!isValidJson(request.kycData)) {
+		throw std::runtime_error("KYC data is invalid");
+	}
+	bool res = isValidEnumValue(request.accountTypeToSet);
+	if (!res) {
+		throw runtime_error("invalid account type");
+	}
+}
 
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
 {
@@ -219,6 +231,9 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::AML_ALERT:
             ensureAMLAlertValid(oe.body.amlAlertRequest());
             return;
+		case ReviewableRequestType::UPDATE_KYC:
+            ensureUpdateKYCValid(oe.body.updateKYCRequest());
+			return;
         default:
             throw runtime_error("Unexpected reviewable request type");
         }

@@ -90,18 +90,15 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
 
             reviewKYCRequestTestHelper.applyReviewRequestTx(master, requestID, ReviewRequestOpAction::APPROVE, "");
         }
-
-        tasks = 3;
-    }
-    SECTION("failed") {
         SECTION("set the same type") {
             kycLevel = 0;
 
             testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0, updatedAccountID.getPublicKey(),
-                                                             AccountType::GENERAL, kycData, kycLevel, nullptr,
-                                                             CreateUpdateKYCRequestResultCode::SAME_ACC_TYPE_TO_SET);
-
+                                                             AccountType::GENERAL, kycData, kycLevel, nullptr);
         }
+    }
+    SECTION("failed") {
+
         SECTION("double creating, request exists") {
             testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
                                                              AccountType::GENERAL, kycData, kycLevel, nullptr,
@@ -131,6 +128,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                              CreateUpdateKYCRequestResultCode::PENDING_REQUEST_UPDATE_NOT_ALLOWED);
         }
         SECTION("source master, create and update pending") {
+            tasks = 3;
             auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0,
                                                                                                  updatedAccountID.getPublicKey(),
                                                                                                  AccountType::GENERAL,

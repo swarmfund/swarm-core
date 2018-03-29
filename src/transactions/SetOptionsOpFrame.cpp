@@ -36,7 +36,8 @@ SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<Acco
     // disallow to create update limits requests
 	return SourceDetails(allowedAccountTypes,
                          mSourceAccount->getHighThreshold(),
-                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), static_cast<int32_t>(BlockReasons::KYC_UPDATE));
+                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
 }
 
 SetOptionsOpFrame::SetOptionsOpFrame(Operation const& op, OperationResult& res,
@@ -84,7 +85,7 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 				it = signers.erase(it);
 				continue;
 			}
-			
+
 			it++;
 		}
 
@@ -93,7 +94,7 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 	}
 
 
-	
+
 	// update
 	for (size_t i = 0; i < signers.size(); i++)
 	{
@@ -204,7 +205,7 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
                                 "operation").Mark();
             innerResult().code(SetOptionsResultCode::BALANCE_NOT_FOUND);
             return false;
-        }        
+        }
 
 		auto trustHelper = TrustHelper::Instance();
 

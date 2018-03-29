@@ -148,6 +148,8 @@ namespace stellar {
 
         virtual int64 getMaxInvoicesForReceiverAccount() const override;
 
+        virtual int32 getKYCSuperAdminMask() const override;
+
     private:
         VirtualClock &mVirtualClock;
         Config mConfig;

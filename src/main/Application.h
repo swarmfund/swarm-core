@@ -263,6 +263,7 @@ class Application
     virtual uint64 getWithdrawalDetailsMaxLength() const = 0;
 	virtual uint64 getIssuanceDetailsMaxLength() const = 0;
     virtual int64 getMaxInvoicesForReceiverAccount() const = 0;
+    virtual int32 getKYCSuperAdminMask() const = 0;
 
     virtual bool areAllExternalSystemGeneratorsAvailable(xdr::xvector<ExternalSystemIDGeneratorType> ex) const = 0;
     virtual void addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType ex) = 0;

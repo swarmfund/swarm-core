@@ -16,8 +16,8 @@ namespace stellar {
     SourceDetails
     ReviewUpdateKYCRequestOpFrame::getSourceAccountDetails(
             std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const {
-        int32_t superAdminTask = ~mReviewRequest.requestDetails.updateKYC().tasksToRemove & 1;
-        if (superAdminTask == 0) {
+        int32_t superAdminTask = mReviewRequest.requestDetails.updateKYC().tasksToRemove & 1;
+        if (superAdminTask == 1) {
             return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                                  static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
         }
@@ -83,6 +83,11 @@ namespace stellar {
 
     bool ReviewUpdateKYCRequestOpFrame::handleReject(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
                                                      ReviewableRequestFrame::pointer request) {
+        if (mReviewRequest.requestDetails.updateKYC().tasksToRemove != 0) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Tasks to remove must be zero.";
+            throw std::runtime_error("Unexpected state. Tasks to remove must be zero.");
+        }
+
         CreateUpdateKYCRequestOpFrame::checkRequestType(request);
 
         Database &db = ledgerManager.getDatabase();
@@ -91,7 +96,6 @@ namespace stellar {
 
         updateKYCRequest.allTasks |= mReviewRequest.requestDetails.updateKYC().tasksToAdd;
         updateKYCRequest.pendingTasks = updateKYCRequest.allTasks;
-        updateKYCRequest.sequenceNumber++;
         updateKYCRequest.externalDetails.emplace_back(mReviewRequest.requestDetails.updateKYC().externalDetails);
 
         request->setRejectReason(mReviewRequest.reason);

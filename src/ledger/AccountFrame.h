@@ -100,6 +100,7 @@ class AccountFrame : public EntryFrame
         return mAccountEntry;
     }
 
+
 	bool getUpdateSigners() const
 	{
 		return mUpdateSigners;
@@ -144,7 +145,22 @@ class AccountFrame : public EntryFrame
 	{
 		return mAccountEntry.policies;
 	}
-
+	uint32 getKYCLevel() const 
+	{
+		uint32 kycLevel = 0;
+		if (mAccountEntry.ext.v() == LedgerVersion::USE_KYC_LEVEL) {
+			kycLevel = mAccountEntry.ext.kycLevel();
+		}
+		return kycLevel;
+	}
+	void setKYCLevel(uint32 kycLevel) {
+		if (mAccountEntry.ext.v() == LedgerVersion::USE_KYC_LEVEL) {
+			mAccountEntry.ext.kycLevel() = kycLevel;
+		}
+		else if (kycLevel != 0) {
+			throw std::runtime_error("Could not read KYC Level");
+		}
+	}
     // compare signers, ignores weight
     static bool signerCompare(Signer const& s1, Signer const& s2);
 

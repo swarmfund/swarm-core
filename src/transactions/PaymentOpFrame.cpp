@@ -99,11 +99,14 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
 	default:
 		break;
 	}
-	std::vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
-                                                     AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE};
+        std::vector<AccountType> allowedAccountTypes;
+    if (ledgerVersion >= int32_t(LedgerVersion::ALLOW_TRANSFERS))
+    {
+        allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
+            AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE };
+    }
 
-    // disallowed
-	return SourceDetails({}, mSourceAccount->getMediumThreshold(), signerType);
+	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType);
 }
 
 bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)
@@ -230,9 +233,7 @@ bool PaymentOpFrame::calculateSourceDestAmount()
 
 bool PaymentOpFrame::isAllowedToTransfer(Database& db, AssetFrame::pointer asset)
 {
-	// TODO fix me
-	//asset->checkPolicy(AssetPolicy::TRANSFERABLE);
-	return true;
+	return asset->checkPolicy(AssetPolicy::TRANSFERABLE);
 }
 
 bool

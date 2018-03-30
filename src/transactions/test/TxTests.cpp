@@ -625,6 +625,8 @@ applyPaymentTx(Application& app, SecretKey& from, BalanceID fromBalanceID,
 
     checkTransaction(*txFrame);
     auto txResult = txFrame->getResult();
+    auto opResult = txResult.result.results()[0];
+    REQUIRE(opResult.code() == OperationResultCode::opINNER);
     auto innerCode = PaymentOpFrame::getInnerCode(txResult.result.results()[0]);
     REQUIRE(innerCode == result);
     REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
@@ -981,7 +983,6 @@ void uploadPreemissions(Application& app, SecretKey& source, SecretKey& issuance
 void fundAccount(Application& app, SecretKey& source, SecretKey& issuance,
     Salt& sourceSeq, BalanceID to, int64 amount, AssetCode asset)
 {
-	throw std::runtime_error("Not implemented");
 }
 
 [[deprecated]]

@@ -1,6 +1,3 @@
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 #include "main/Application.h"
 #include "util/Timer.h"
 #include "main/Config.h"
@@ -15,237 +12,329 @@
 #include "crypto/SHA.h"
 #include "test/test_marshaler.h"
 #include "ledger/AssetHelper.h"
+#include "test_helper/IssuanceRequestHelper.h"
+#include "test_helper/ManageAssetTestHelper.h"
+#include "test_helper/CreateAccountTestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("payment", "[dep_tx][payment]")
+TEST_CASE("payment", "[tx][payment]")
 {
-	Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
-
+    // TODO requires refactoring
+    Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
     Application::pointer appPtr = Application::create(clock, cfg);
     Application& app = *appPtr;
     app.start();
-    closeLedgerOn(app, 2, 1, 7, 2014);
-	upgradeToCurrentLedgerVersion(app);
-    // set up world
-    SecretKey root = getRoot();
-    SecretKey issuance = getIssuanceKey();
+    auto testManager = TestManager::make(app);
+    TestManager::upgradeToCurrentLedgerVersion(app);
+    auto root = Account{getRoot(), Salt(0)};
+    auto issuanceHelper = IssuanceRequestHelper(testManager);
 
-	int64 paymentAmount = 10 * ONE;
+    int64 paymentAmount = 10 * ONE;
 
     Salt rootSeq = 1;
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
 
-	auto emissionAmount = 2 * paymentAmount;
-    
-	// fund some account
+    auto emissionAmount = 2 * paymentAmount;
+
+    const AssetCode asset = "USD";
+    issuanceHelper.createAssetWithPreIssuedAmount(root, asset, INT64_MAX, root);
+    ManageAssetTestHelper(testManager).updateAsset(root, asset, root,
+                                                   static_cast<uint32_t>(
+                                                       AssetPolicy::BASE_ASSET)
+                                                   | static_cast<uint32_t>(
+                                                       AssetPolicy::TRANSFERABLE
+                                                   ));
+
+    // fund some account
 
     // aWM stends for account with money
     auto aWM = SecretKey::random();
-    applyCreateAccountTx(app, root, aWM, rootSeq++, AccountType::GENERAL);
-    fundAccount(app, root, issuance, rootSeq, aWM.getPublicKey(), emissionAmount);
+    auto createAccountTestHelper = CreateAccountTestHelper(testManager);
+    createAccountTestHelper.applyCreateAccountTx(root, aWM.getPublicKey(),
+                                                 AccountType::GENERAL);
+    auto aWMBalance = BalanceHelper::Instance()->loadBalance(aWM.getPublicKey(),
+                                                             asset,
+                                                             testManager->
+                                                             getDB(), nullptr);
+    REQUIRE(!!aWMBalance);
+    issuanceHelper.applyCreateIssuanceRequest(root, asset, emissionAmount,
+                                              aWMBalance->getBalanceID(),
+                                              SecretKey::random().
+                                              getStrKeyPublic());
 
     auto secondAsset = "AETH";
-    std::vector<AssetFrame::pointer> baseAssets;
-    AssetHelper::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
-    REQUIRE(!baseAssets.empty());
-    auto asset = baseAssets[0];
 
-	auto balanceHelper = BalanceHelper::Instance();
-	auto paymentRequestHelper = PaymentRequestHelper::Instance();
+    auto balanceHelper = BalanceHelper::Instance();
+    auto paymentRequestHelper = PaymentRequestHelper::Instance();
 
-	SECTION("basic tests")
-	{
-		auto account = SecretKey::random();
-		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
-		REQUIRE(getBalance(account.getPublicKey(), app) == 0);
-		REQUIRE(getBalance(aWM.getPublicKey(), app) ==
+    SECTION("basic tests")
+    {
+        auto account = SecretKey::random();
+        applyCreateAccountTx(app, root.key, account, rootSeq++,
+                             AccountType::GENERAL);
+        auto accountBalance = BalanceHelper::Instance()->
+            loadBalance(account.getPublicKey(), asset, testManager->getDB(),
+                        nullptr);
+        REQUIRE(getBalance(accountBalance->getBalanceID(), app) == 0);
+        REQUIRE(getBalance(aWMBalance->getBalanceID(), app) ==
             emissionAmount);
 
-		auto paymentResult = applyPaymentTx(app, aWM, account,
-            rootSeq++, paymentAmount, getNoPaymentFee(), false);
-		REQUIRE(getBalance(account.getPublicKey(), app) == paymentAmount);
-		REQUIRE(getBalance(aWM.getPublicKey(), app) == (emissionAmount - paymentAmount));
-        REQUIRE(paymentResult.paymentResponse().destination == account.getPublicKey());
+        auto paymentResult = applyPaymentTx(app, aWM,
+                                            aWMBalance->getBalanceID(),
+                                            accountBalance->getBalanceID(),
+                                            rootSeq++, paymentAmount,
+                                            getNoPaymentFee(), false);
+        REQUIRE(getBalance(accountBalance->getBalanceID(), app) == paymentAmount
+        );
+        REQUIRE(getBalance(aWMBalance->getBalanceID(), app) == (emissionAmount -
+            paymentAmount));
+        REQUIRE(paymentResult.paymentResponse().destination == account.
+            getPublicKey());
 
-		// send back
-		auto accountSeq = 1;
-		paymentResult = applyPaymentTx(app, account, aWM, accountSeq++, paymentAmount, getNoPaymentFee(), false);
-		REQUIRE(getBalance(account.getPublicKey(), app) == 0);
-		REQUIRE(getBalance(aWM.getPublicKey(), app) == emissionAmount);
-        REQUIRE(paymentResult.paymentResponse().destination == aWM.getPublicKey());
+        // send back
+        auto accountSeq = 1;
+        paymentResult = applyPaymentTx(app, account,
+                                       accountBalance->getBalanceID(),
+                                       aWMBalance->getBalanceID(),
+                                       accountSeq++, paymentAmount,
+                                       getNoPaymentFee(), false);
+        REQUIRE(getBalance(accountBalance->getBalanceID(), app) == 0);
+        REQUIRE(getBalance(aWMBalance->getBalanceID(), app) == emissionAmount);
+        REQUIRE(paymentResult.paymentResponse().destination == aWM.getPublicKey(
+        ));
 
         auto paymentID = paymentResult.paymentResponse().paymentID;
         soci::session& sess = app.getDatabase().getSession();
         REQUIRE(paymentRequestHelper->countObjects(sess) == 0);
-	}
+    }
     SECTION("send to self")
     {
         auto balanceBefore = getAccountBalance(aWM, app);
-        applyPaymentTx(app, aWM, aWM, rootSeq++, paymentAmount, getNoPaymentFee(), false, "", "", PaymentResultCode::MALFORMED);
+        applyPaymentTx(app, aWM, aWM, rootSeq++, paymentAmount,
+                       getNoPaymentFee(), false, "", "",
+                       PaymentResultCode::MALFORMED);
     }
-	SECTION("Malformed")
-	{
-		auto account = SecretKey::random();
-		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
-		SECTION("Negative amount")
-		{
-			applyPaymentTx(app, aWM, account, rootSeq++, -100, getNoPaymentFee(), false, "", "", PaymentResultCode::MALFORMED);
-		}
-		SECTION("Zero amount")
-		{
-			applyPaymentTx(app, aWM, account, rootSeq++, 0, getNoPaymentFee(),
-                false, "", "",PaymentResultCode::MALFORMED);
-		}
-	}
-	SECTION("PAYMENT_UNDERFUNDED")
-	{
-		auto account = SecretKey::random();
-		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
-		applyPaymentTx(app, aWM, account, rootSeq++, emissionAmount+1, getNoPaymentFee(),
-            false, "", "", PaymentResultCode::UNDERFUNDED);
-	}
-	SECTION("Destination does not exist")
-	{
-		auto account = SecretKey::random();
-		applyPaymentTx(app, aWM, account, rootSeq++, emissionAmount, getNoPaymentFee(), 
-            false, "","", PaymentResultCode::BALANCE_NOT_FOUND);
-	}
+    SECTION("Malformed")
+    {
+        auto account = SecretKey::random();
+        applyCreateAccountTx(app, root.key, account, rootSeq++,
+                             AccountType::GENERAL);
+        SECTION("Negative amount")
+        {
+            applyPaymentTx(app, aWM, account, rootSeq++, -100,
+                           getNoPaymentFee(), false, "", "",
+                           PaymentResultCode::MALFORMED);
+        }
+        SECTION("Zero amount")
+        {
+            applyPaymentTx(app, aWM, account, rootSeq++, 0, getNoPaymentFee(),
+                           false, "", "", PaymentResultCode::MALFORMED);
+        }
+    }
+    SECTION("PAYMENT_UNDERFUNDED")
+    {
+        auto account = SecretKey::random();
+        applyCreateAccountTx(app, root.key, account, rootSeq++,
+                             AccountType::GENERAL);
+        auto accountBalance = BalanceHelper::Instance()->
+            loadBalance(account.getPublicKey(), asset, testManager->getDB(),
+                        nullptr);
+        applyPaymentTx(app, aWM, aWMBalance->getBalanceID(),
+                       accountBalance->getBalanceID(), rootSeq++,
+                       emissionAmount + 1, getNoPaymentFee(),
+                       false, "", "", PaymentResultCode::UNDERFUNDED);
+    }
+    SECTION("Destination does not exist")
+    {
+        auto account = SecretKey::random();
+        applyPaymentTx(app, aWM, aWMBalance->getBalanceID(),
+                       account.getPublicKey(), rootSeq++, emissionAmount,
+                       getNoPaymentFee(),
+                       false, "", "", PaymentResultCode::BALANCE_NOT_FOUND);
+    }
     SECTION("Payment between different assets are not supported")
     {
-		auto paymentAmount = 600;
+        auto paymentAmount = 600;
         auto account = SecretKey::random();
-		auto accSeq = 1;
-		auto balanceID = SecretKey::random().getPublicKey();
-		std::string accountID = PubKeyUtils::toStrKey(account.getPublicKey());
-        
-        applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
+        auto accSeq = 1;
+        auto balanceID = SecretKey::random().getPublicKey();
+        std::string accountID = PubKeyUtils::toStrKey(account.getPublicKey());
 
-        applyManageAssetTx(app, root, rootSeq++, secondAsset);
+        applyCreateAccountTx(app, root.key, account, rootSeq++,
+                             AccountType::GENERAL);
 
-		applyManageBalanceTx(app, account, account, accSeq++, secondAsset);
+        issuanceHelper.createAssetWithPreIssuedAmount(root, secondAsset,
+                                                      emissionAmount, root);
 
-        auto accBalanceForSecondAsset = balanceHelper->loadBalance(account.getPublicKey(), secondAsset, app.getDatabase(), &delta);
+        applyManageBalanceTx(app, account, account, accSeq++, secondAsset);
 
-        auto paymentResult = applyPaymentTx(app, aWM, aWM.getPublicKey(), accBalanceForSecondAsset->getBalanceID(), rootSeq++,
-            paymentAmount, getNoPaymentFee(), false, "", "", PaymentResultCode::BALANCE_ASSETS_MISMATCHED);
+        auto accBalanceForSecondAsset = balanceHelper->
+            loadBalance(account.getPublicKey(), secondAsset, app.getDatabase(),
+                        nullptr);
+
+        auto paymentResult = applyPaymentTx(app, aWM,
+                                            aWMBalance->getBalanceID(),
+                                            accBalanceForSecondAsset->
+                                            getBalanceID(), rootSeq++,
+                                            paymentAmount, getNoPaymentFee(),
+                                            false, "", "",
+                                            PaymentResultCode::
+                                            BALANCE_ASSETS_MISMATCHED);
     }
-	SECTION("Payment fee")
+    SECTION("Payment fee")
     {
-		int64 feeAmount = 2 * ONE; // fee is 2%
-		int64_t fixedFee = 3;
-        
-        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, fixedFee, feeAmount, asset->getCode());
+        int64 feeAmount = 2 * ONE; // fee is 2%
+        int64_t fixedFee = 3;
+
+        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, fixedFee,
+                                         feeAmount, asset);
         auto fee = feeFrame->getFee();
-        
-		applySetFees(app, root, rootSeq++, &fee, false, nullptr);
-		auto account = SecretKey::random();
-		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
-		auto accountSeq = 1;
-		int64 balance = 60 * ONE;
-		paymentAmount = 6 * ONE;
-        PaymentFeeData paymentFee = getGeneralPaymentFee(fixedFee, paymentAmount * (feeAmount / ONE) / 100);
-		fundAccount(app, root, issuance, rootSeq, account.getPublicKey(), balance);
-		auto dest = SecretKey::random();
-		applyCreateAccountTx(app, root, dest, rootSeq++, AccountType::GENERAL);
-		SECTION("Fee mismatched")
-		{
-			auto invalidFee = paymentFee;
-			invalidFee.sourceFee.paymentFee -= 1;
-			applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, invalidFee,
-                false, "", "", PaymentResultCode::FEE_MISMATCHED);
-			invalidFee = paymentFee;
-			invalidFee.sourceFee.fixedFee -= 1;
-			applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, invalidFee,
-				false, "", "", PaymentResultCode::FEE_MISMATCHED);
-		}
-        BalanceID commissionBalanceID = getCommissionKP().getPublicKey();
-        uint64 totalFee = 2 * (paymentFee.sourceFee.paymentFee + paymentFee.sourceFee.fixedFee);
-		SECTION("Success source is paying")
-		{
+
+        applySetFees(app, root.key, rootSeq++, &fee, false, nullptr);
+        auto account = SecretKey::random();
+        applyCreateAccountTx(app, root.key, account, rootSeq++,
+                             AccountType::GENERAL);
+        auto accountSeq = 1;
+        int64 balance = 600 * ONE;
+        paymentAmount = 6 * ONE;
+        PaymentFeeData paymentFee = getGeneralPaymentFee(fixedFee,
+                                                         paymentAmount * (
+                                                             feeAmount / ONE) /
+                                                         100);
+        auto accountBalance = BalanceHelper::Instance()->
+            loadBalance(account.getPublicKey(), asset, testManager->getDB(),
+                        nullptr);
+        REQUIRE(!!accountBalance);
+        issuanceHelper.applyCreateIssuanceRequest(root, asset, balance,
+                                                  accountBalance->
+                                                  getBalanceID(),
+                                                  SecretKey::random().
+                                                  getStrKeyPublic());
+        auto dest = SecretKey::random();
+        applyCreateAccountTx(app, root.key, dest, rootSeq++,
+                             AccountType::GENERAL);
+        auto destBalance = BalanceHelper::Instance()->
+            loadBalance(dest.getPublicKey(), asset, testManager->getDB(),
+                        nullptr);;
+        REQUIRE(!!destBalance);
+        SECTION("Fee mismatched")
+        {
+            auto invalidFee = paymentFee;
+            invalidFee.sourceFee.paymentFee -= 1;
+            applyPaymentTx(app, account, accountBalance->getBalanceID(),
+                           destBalance->getBalanceID(), accountSeq++,
+                           paymentAmount, invalidFee,
+                           false, "", "", PaymentResultCode::FEE_MISMATCHED);
+            invalidFee = paymentFee;
+            invalidFee.sourceFee.fixedFee -= 1;
+            applyPaymentTx(app, account, accountBalance->getBalanceID(),
+                           destBalance->getBalanceID(), accountSeq++,
+                           paymentAmount, invalidFee,
+                           false, "", "", PaymentResultCode::FEE_MISMATCHED);
+        }
+        auto commission = getCommissionKP();
+        auto comissionBalance = BalanceHelper::Instance()->
+            loadBalance(commission.getPublicKey(), asset, testManager->getDB(),
+                        nullptr);
+        uint64 totalFee = 2 * (paymentFee.sourceFee.paymentFee + paymentFee.
+                               sourceFee.fixedFee);
+        SECTION("Success source is paying")
+        {
             paymentFee.sourcePaysForDest = true;
-			applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, paymentFee, true);
-			REQUIRE(getBalance(account.getPublicKey(), app) == balance - paymentAmount - totalFee);
-			REQUIRE(getBalance(dest.getPublicKey(), app) == paymentAmount);
-			REQUIRE(getBalance(commissionBalanceID, app) == totalFee);
-		}
-		SECTION("Success dest is paying")
-		{
+            applyPaymentTx(app, account, accountBalance->getBalanceID(),
+                           destBalance->getBalanceID(), accountSeq++,
+                           paymentAmount, paymentFee, true);
+            accountBalance = BalanceHelper::Instance()->
+                loadBalance(account.getPublicKey(), asset, testManager->getDB(),
+                            nullptr);
+            REQUIRE(getBalance(accountBalance->getBalanceID(), app) == balance -
+                paymentAmount - totalFee);
+            REQUIRE(getBalance(destBalance->getBalanceID(), app) ==
+                paymentAmount);
+            REQUIRE(getBalance(comissionBalance->getBalanceID(), app) ==
+                totalFee);
+        }
+        SECTION("Success dest is paying")
+        {
             paymentFee.sourcePaysForDest = false;
-			applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, paymentFee, false);
-			REQUIRE(getBalance(account.getPublicKey(), app) == balance - paymentAmount - totalFee / 2);
-			REQUIRE(getBalance(dest.getPublicKey(), app) == paymentAmount - totalFee / 2);
-			REQUIRE(getBalance(commissionBalanceID, app) == totalFee);
-			SECTION("Recipient fee is not required")
-			{
-				auto commission = getCommissionKP();
-				auto payment = createPaymentTx(app.getNetworkID(), commission, commission.getPublicKey(), dest.getPublicKey(), 0, totalFee, getNoPaymentFee(), false);
-				payment->getEnvelope().signatures.clear();
-				payment->addSignature(root);
-				LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-					app.getDatabase());
-				REQUIRE(applyCheck(payment, delta, app));
-				REQUIRE(PaymentOpFrame::getInnerCode(getFirstResult(*payment)) == PaymentResultCode::SUCCESS);
-			}
-		}
-
+            applyPaymentTx(app, account, accountBalance->getBalanceID(),
+                           destBalance->getBalanceID(), accountSeq++,
+                           paymentAmount, paymentFee, false);
+            accountBalance = BalanceHelper::Instance()->
+                loadBalance(account.getPublicKey(), asset, testManager->getDB(),
+                            nullptr);
+            REQUIRE(getBalance(accountBalance->getBalanceID(), app) == balance -
+                paymentAmount - totalFee / 2);
+            REQUIRE(getBalance(destBalance->getBalanceID(), app) ==
+                paymentAmount - totalFee / 2);
+            REQUIRE(getBalance(comissionBalance->getBalanceID(), app) ==
+                totalFee);
+            SECTION("Recipient fee is not required")
+            {
+                auto payment = createPaymentTx(app.getNetworkID(), commission,
+                                               comissionBalance->getBalanceID(),
+                                               destBalance->getBalanceID(), 0,
+                                               totalFee, getNoPaymentFee(),
+                                               false);
+                payment->getEnvelope().signatures.clear();
+                payment->addSignature(root.key);
+                LedgerDelta delta(app.getLedgerManager().
+                                      getCurrentLedgerHeader(),
+                                  app.getDatabase());
+                REQUIRE(applyCheck(payment, delta, app));
+                REQUIRE(PaymentOpFrame::getInnerCode(getFirstResult(*payment))
+                    == PaymentResultCode::SUCCESS);
+            }
+        }
     }
-	SECTION("Payment fee with minimum values")
+    SECTION("Payment fee with minimum values")
     {
-		int64 feeAmount = 1; 
-        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 0, feeAmount, asset->getCode());
+        int64 feeAmount = 1;
+        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, 0, feeAmount,
+                                         asset);
         auto fee = feeFrame->getFee();
-        
-		applySetFees(app, root, rootSeq++, &fee, false, nullptr);
-		auto account = SecretKey::random();
-		applyCreateAccountTx(app, root, account, rootSeq++, AccountType::GENERAL);
-		auto accountSeq = 1;
-		int64 balance = 60 * ONE;
-		paymentAmount = 1;
-		PaymentFeeData paymentFee = getNoPaymentFee();
-        paymentFee.sourcePaysForDest = true;
-        
-		fundAccount(app, root, issuance, rootSeq, account.getPublicKey(), balance);
-		auto dest = SecretKey::random();
-		applyCreateAccountTx(app, root, dest, rootSeq++, AccountType::GENERAL);
 
-        applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, paymentFee,
-                true, "", "", PaymentResultCode::FEE_MISMATCHED);
+        applySetFees(app, root.key, rootSeq++, &fee, false, nullptr);
+        auto account = SecretKey::random();
+        applyCreateAccountTx(app, root.key, account, rootSeq++,
+                             AccountType::GENERAL);
+        auto accountSeq = 1;
+        int64 balance = 60 * ONE;
+        paymentAmount = 1;
+        PaymentFeeData paymentFee = getNoPaymentFee();
+        paymentFee.sourcePaysForDest = true;
+
+        auto accountBalance = BalanceHelper::Instance()->
+            loadBalance(account.getPublicKey(), asset, testManager->getDB(),
+                        nullptr);
+        REQUIRE(!!accountBalance);
+        issuanceHelper.applyCreateIssuanceRequest(root, asset, balance,
+                                                  accountBalance->
+                                                  getBalanceID(),
+                                                  SecretKey::random().
+                                                  getStrKeyPublic());
+
+        auto dest = SecretKey::random();
+        applyCreateAccountTx(app, root.key, dest, rootSeq++,
+                             AccountType::GENERAL);
+        auto destBalance = BalanceHelper::Instance()->
+            loadBalance(dest.getPublicKey(), asset, testManager->getDB(),
+                        nullptr);;
+        REQUIRE(!!destBalance);
+
+        applyPaymentTx(app, account, accountBalance->getBalanceID(),
+                       destBalance->getBalanceID(), accountSeq++, paymentAmount,
+                       paymentFee,
+                       true, "", "", PaymentResultCode::FEE_MISMATCHED);
         paymentFee = getGeneralPaymentFee(0, 1);
 
-		applyPaymentTx(app, account, dest, accountSeq++, paymentAmount, paymentFee,
-			true, "");
-    }
-}
-
-TEST_CASE("single create account SQL", "[singlesql][paymentsql][hide]")
-{
-    Config::TestDbMode mode = Config::TESTDB_ON_DISK_SQLITE;
-#ifdef USE_POSTGRES
-    if (!force_sqlite)
-        mode = Config::TESTDB_POSTGRESQL;
-#endif
-
-    VirtualClock clock;
-    Application::pointer app =
-        Application::create(clock, getTestConfig(0, mode));
-    app->start();
-
-    SecretKey root = getRoot();
-    SecretKey a1 = getAccount("A");
-    int64_t txfee = app->getLedgerManager().getTxFee();
-    const int64_t paymentAmount =
-        app->getLedgerManager().getMinBalance(1) + txfee * 10;
-
-    Salt rootSeq = 1;
-
-    {
-        auto ctx = app->getDatabase().captureAndLogSQL("createAccount");
-        applyCreateAccountTx(*app, root, a1, rootSeq++, AccountType::GENERAL);
+        applyPaymentTx(app, account, accountBalance->getBalanceID(),
+                       destBalance->getBalanceID(), accountSeq++, paymentAmount,
+                       paymentFee,
+                       true, "");
     }
 }

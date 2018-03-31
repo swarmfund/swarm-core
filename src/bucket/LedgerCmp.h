@@ -163,6 +163,12 @@ struct LedgerEntryIdCmp
             auto const& bs = b.sale();
             return as.saleID < bs.saleID;
             }
+        case LedgerEntryType::ACCOUNT_KYC:
+            {
+            auto const &akyc = a.accountKYC();
+            auto const &bkyc = b.accountKYC();
+            return akyc.accountID < bkyc.accountID;
+            }
         }
 
         return false;

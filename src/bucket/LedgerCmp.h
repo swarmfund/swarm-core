@@ -173,7 +173,7 @@ struct LedgerEntryIdCmp
             }
         default:
             {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unknown ledger entry type";
+            CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unknown ledger entry type";
             throw std::runtime_error("Unknown ledger entry type");
             }
         }

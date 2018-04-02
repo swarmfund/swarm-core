@@ -4,6 +4,8 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/util/easylogging++.h>
+#include <util/Logging.h>
 #include "overlay/StellarXDR.h"
 #include "ledger/EntryFrame.h"
 #include "crypto/Hex.h"
@@ -162,6 +164,17 @@ struct LedgerEntryIdCmp
             auto const& as = a.sale();
             auto const& bs = b.sale();
             return as.saleID < bs.saleID;
+            }
+        case LedgerEntryType::ACCOUNT_KYC:
+            {
+            auto const &akyc = a.accountKYC();
+            auto const &bkyc = b.accountKYC();
+            return akyc.accountID < bkyc.accountID;
+            }
+        default:
+            {
+            CLOG(ERROR, Logging::ENTRY_LOGGER) <<"LedgerCmp cannot compare structures. Unknown ledger entry type";
+            throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");
             }
         }
 

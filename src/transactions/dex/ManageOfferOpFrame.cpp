@@ -15,6 +15,7 @@
 #include "util/types.h"
 #include "DeleteOfferOpFrame.h"
 #include "CreateOfferOpFrame.h"
+#include "UpdateOfferOpFrame.h"
 #include "DeleteSaleParticipationOpFrame.h"
 #include "CreateSaleParticipationOpFrame.h"
 
@@ -36,6 +37,11 @@ ManageOfferOpFrame* ManageOfferOpFrame::make(Operation const& op,
                                              TransactionFrame& parentTx)
 {
     const auto manageOffer = op.body.manageOfferOp();
+
+    if (manageOffer.offerID != 0 && manageOffer.amount != 0) {
+        return new UpdateOfferOpFrame(op, res, parentTx);
+    }
+
     if (manageOffer.orderBookID == SECONDARY_MARKET_ORDER_BOOK_ID)
     {
         if (manageOffer.amount == 0)

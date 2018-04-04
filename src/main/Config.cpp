@@ -29,7 +29,7 @@ operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
     // non configurable
     FORCE_SCP = false;
-    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::USE_KYC_LEVEL);
+    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::ALLOW_UPDATE_OFFERS);
     OVERLAY_PROTOCOL_MIN_VERSION = 5;
     OVERLAY_PROTOCOL_VERSION = 5;
 

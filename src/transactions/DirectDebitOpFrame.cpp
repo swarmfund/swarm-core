@@ -37,7 +37,8 @@ SourceDetails DirectDebitOpFrame::getSourceAccountDetails(std::unordered_map<Acc
                                                 AccountType::COMMISSION, AccountType::EXCHANGE};
     // disallowed
 	return SourceDetails({}, mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t >(SignerType::DIRECT_DEBIT_OPERATOR));
+                         static_cast<int32_t >(SignerType::DIRECT_DEBIT_OPERATOR),
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
 }
 
 DirectDebitOpFrame::DirectDebitOpFrame(Operation const& op, OperationResult& res,

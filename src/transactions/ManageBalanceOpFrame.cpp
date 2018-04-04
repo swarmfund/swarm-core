@@ -47,7 +47,8 @@ SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(
         allowedSourceAccounts = {AccountType::MASTER};
     return SourceDetails(allowedSourceAccounts,
                          mSourceAccount->getLowThreshold(),
-                         static_cast<int32_t>(SignerType::BALANCE_MANAGER));
+                         static_cast<int32_t>(SignerType::BALANCE_MANAGER),
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
 }
 
 ManageBalanceOpFrame::ManageBalanceOpFrame(Operation const& op,

@@ -84,6 +84,11 @@ namespace stellar {
     bool ReviewUpdateKYCRequestOpFrame::handleReject(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
                                                      ReviewableRequestFrame::pointer request) {
         if (mReviewRequest.requestDetails.updateKYC().tasksToRemove != 0) {
+            if (ledgerManager.shouldUse(LedgerVersion::ERROR_ON_NON_ZERO_TASKS_TO_REMOVE_IN_REJECT_KYC)) {
+                innerResult().code(ReviewRequestResultCode::NON_ZERO_TASKS_TO_REMOVE_NOT_ALLOWED);
+                return false;
+            }
+
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Tasks to remove must be zero.";
             throw std::runtime_error("Unexpected state. Tasks to remove must be zero.");
         }

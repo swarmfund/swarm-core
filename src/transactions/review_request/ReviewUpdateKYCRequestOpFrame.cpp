@@ -84,8 +84,7 @@ namespace stellar {
     bool ReviewUpdateKYCRequestOpFrame::handleReject(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
                                                      ReviewableRequestFrame::pointer request) {
         if (mReviewRequest.requestDetails.updateKYC().tasksToRemove != 0) {
-            if (app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion >=
-                static_cast<uint32>(LedgerVersion::ERROR_ON_NON_ZERO_TASKS_TO_REMOVE_IN_REJECT_KYC)) {
+            if (ledgerManager.shouldUse(LedgerVersion::ERROR_ON_NON_ZERO_TASKS_TO_REMOVE_IN_REJECT_KYC)) {
                 innerResult().code(ReviewRequestResultCode::NON_ZERO_TASKS_TO_REMOVE_NOT_ALLOWED);
                 return false;
             }

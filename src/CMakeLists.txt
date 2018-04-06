@@ -39,13 +39,13 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
         transactions/test/test_helper/Account.h
-)
+        transactions/ComisssionHandler.cpp transactions/ComisssionHandler.h transactions/ComisssionHandler.cpp transactions/ComisssionHandler.h ledger/KeyValueEntryFrame.cpp ledger/KeyValueEntryFrame.h ledger/KeyValueHelper.cpp ledger/KeyValueHelper.h)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)
 
 #create executeble file "core"
-add_executable(core ${STELLAR_CORE_SOURCE_FILES} ../config.h ${XDRS_PATH} ${H_GENERATE_FILES} ${NOT_COMMON_SOURCE_FILES})
+add_executable(core ${STELLAR_CORE_SOURCE_FILES} ../config.h ${XDRS_PATH} ${H_GENERATE_FILES} ${NOT_COMMON_SOURCE_FILES} transactions/ComisssionHandler.cpp transactions/ComisssionHandler.h)
 
 #link libs
 include(platform_libs.cmake)

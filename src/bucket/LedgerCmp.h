@@ -3,9 +3,7 @@
 // Copyright 2015 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-#include "util/asio.h"
-#include <lib/util/easylogging++.h>
-#include <util/Logging.h>
+
 #include "overlay/StellarXDR.h"
 #include "ledger/EntryFrame.h"
 #include "crypto/Hex.h"
@@ -173,12 +171,9 @@ struct LedgerEntryIdCmp
             }
         default:
             {
-            CLOG(ERROR, Logging::ENTRY_LOGGER) <<"LedgerCmp cannot compare structures. Unknown ledger entry type";
             throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");
             }
         }
-
-        return false;
     }
 
     template <typename T>

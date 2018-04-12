@@ -29,7 +29,7 @@ operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
     // non configurable
     FORCE_SCP = false;
-    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::ALLOW_TRANSFERS);
+    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::ERROR_ON_NON_ZERO_TASKS_TO_REMOVE_IN_REJECT_KYC);
     OVERLAY_PROTOCOL_MIN_VERSION = 5;
     OVERLAY_PROTOCOL_VERSION = 5;
 
@@ -218,7 +218,7 @@ Config::load(std::string const& filename)
                     throw std::invalid_argument("bad HTTP_MAX_CLIENT");
                 HTTP_MAX_CLIENT = static_cast<unsigned short>(maxHttpClient);
             }
-			
+
             else if (item.first == "PUBLIC_HTTP_PORT")
             {
                 if (!item.second->as<bool>())

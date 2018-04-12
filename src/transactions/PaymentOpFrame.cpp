@@ -100,13 +100,13 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
 		break;
 	}
         std::vector<AccountType> allowedAccountTypes;
-    if (ledgerVersion >= int32_t(LedgerVersion::ALLOW_TRANSFERS))
+    if (ledgerVersion >= int32_t(LedgerVersion::USE_KYC_LEVEL))
     {
         allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
             AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE };
     }
-
-	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType);
+	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType,
+						 static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
 }
 
 bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)

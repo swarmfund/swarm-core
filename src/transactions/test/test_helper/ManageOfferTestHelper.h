@@ -16,6 +16,7 @@ namespace txtest
 
         virtual void ensureDeleteSuccess(Account& source, ManageOfferOp op, ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx);
         virtual void ensureCreateSuccess(Account& source, ManageOfferOp op, ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx);
+        virtual void ensureUpdateSuccess(Account& source, ManageOfferOp op, ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx);
     public:
         explicit ManageOfferTestHelper(TestManager::pointer testManager);
 

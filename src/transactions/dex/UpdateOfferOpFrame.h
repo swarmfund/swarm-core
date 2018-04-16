@@ -7,7 +7,7 @@ namespace stellar {
     class UpdateOfferOpFrame : public ManageOfferOpFrame {
         ManageOfferResultCode tryDeleteOffer(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager);
 
-        ManageOfferResultCode tryCreateOffer();
+        ManageOfferResult tryCreateOffer(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager);
 
     public:
         UpdateOfferOpFrame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);

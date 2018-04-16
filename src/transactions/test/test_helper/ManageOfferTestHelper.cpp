@@ -68,7 +68,7 @@ void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp o
             break;
         }
     case ManageOfferEffect::UPDATED:
-        throw std::runtime_error("Update offer is not supported");
+        throw std::runtime_error("Offer should not be updated as an effect of CreateOfferOpFrame");
     case ManageOfferEffect::DELETED:
         {
         if (op.offerID == 0)
@@ -80,6 +80,29 @@ void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp o
     default:
         throw std::runtime_error("Unexpected offer effect");
     }
+}
+
+void ManageOfferTestHelper::ensureUpdateSuccess(txtest::Account &source, ManageOfferOp op,
+                                                ManageOfferSuccessResult success,
+                                                LedgerDelta::KeyEntryMap &stateBeforeTx) {
+    LedgerKey offerKey;
+    offerKey.type(LedgerEntryType::OFFER_ENTRY);
+    offerKey.offer().ownerID = source.key.getPublicKey();
+    offerKey.offer().offerID = op.offerID;
+
+    auto oldOffer = std::make_shared<OfferFrame>(stateBeforeTx[offerKey]->mEntry);
+
+    // ensure old offer was removed
+    auto removedOfferFrame = OfferHelper::Instance()->loadOffer(oldOffer->getOffer().ownerID, oldOffer->getOfferID(), mTestManager->getDB());
+    REQUIRE(!removedOfferFrame);
+
+    auto& offerResult = success.offer;
+
+    REQUIRE(offerResult.effect() == ManageOfferEffect::UPDATED);
+
+    auto newOfferFrame = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), offerResult.offer().offerID,
+                                                    mTestManager->getDB());
+    REQUIRE(!!newOfferFrame);
 }
 
 ManageOfferTestHelper::ManageOfferTestHelper(const TestManager::pointer testManager) : TxHelper(testManager)
@@ -137,6 +160,13 @@ ManageOfferResult ManageOfferTestHelper::applyManageOffer(Account& source,
     if (isCreate)
     {
         ensureCreateSuccess(source, manageOfferOp, manageOfferResult.success(), stateBeforeOp);
+        return manageOfferResult;
+    }
+
+    const bool isUpdate = !isCreate && manageOfferOp.amount != 0;
+    if (isUpdate)
+    {
+        ensureUpdateSuccess(source, manageOfferOp, manageOfferResult.success(), stateBeforeOp);
         return manageOfferResult;
     }
 

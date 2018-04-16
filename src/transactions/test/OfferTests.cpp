@@ -168,6 +168,28 @@ TEST_CASE("manage offer", "[tx][offer]")
             REQUIRE(quoteBuyerBalance->getLocked() == 0);
             REQUIRE(quoteBuyerBalance->getAmount() == quoteAssetAmount);
         }
+        SECTION("Place and update offer")
+        {
+            auto result = offerTestHelper.applyManageOffer(buyer, 0,
+                                                           baseBuyerBalance->getBalanceID(),
+                                                           quoteBuyerBalance->getBalanceID(),
+                                                           baseAssetAmount, 5 * ONE, true, 0);
+            quoteBuyerBalance = loadBalance(quoteBuyerBalance->getBalanceID(),
+                                            app);
+            REQUIRE(quoteBuyerBalance->getLocked() == quoteAssetAmount);
+            REQUIRE(quoteBuyerBalance->getAmount() == 0);
+
+            // update
+            offerTestHelper.applyManageOffer(buyer,
+                                             result.success().offer.offer().offerID,
+                                             baseBuyerBalance->getBalanceID(),
+                                             quoteBuyerBalance->getBalanceID(), baseAssetAmount / 2, 5 * ONE,
+                                             true, 0);
+            quoteBuyerBalance = loadBalance(quoteBuyerBalance->getBalanceID(),
+                                            app);
+            REQUIRE(quoteBuyerBalance->getLocked() == quoteAssetAmount / 2);
+            REQUIRE(quoteBuyerBalance->getAmount() == quoteAssetAmount / 2);
+        }
         SECTION("base*price = quote")
         {
             auto buyerAccountID = buyer.key.getPublicKey();

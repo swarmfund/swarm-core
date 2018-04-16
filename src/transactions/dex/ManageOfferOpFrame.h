@@ -36,6 +36,10 @@ public:
     ManageOfferOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);
 
+    static ManageOfferResult getInnerResult(OperationResult const& res) {
+        return res.tr().manageOfferResult();
+    }
+
     static ManageOfferResultCode getInnerCode(OperationResult const& res)
     {
         return res.tr().manageOfferResult().code();

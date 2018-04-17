@@ -9,6 +9,9 @@ namespace stellar {
 
         ManageOfferResult tryCreateOffer(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager);
 
+        OperationResult executeManageOfferOp(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+                                             ManageOfferOp const& manageOfferOp);
+
     public:
         UpdateOfferOpFrame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);
 

@@ -45,8 +45,12 @@ public:
         return res.tr().manageOfferResult().code();
     }
 
-    static ManageOfferOpFrame* make(Operation const& op, OperationResult& res,
-        TransactionFrame& parentTx);
+    static ManageOfferOpFrame* make(Operation const& op, OperationResult& res, TransactionFrame& parentTx);
+
     std::string getInnerResultCodeAsStr() override;
+
+    bool doApply(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager) override = 0;
+
+    bool doCheckValid(Application& app) override = 0;
 };
 }

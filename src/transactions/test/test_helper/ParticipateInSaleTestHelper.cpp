@@ -57,5 +57,35 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
     }
     return ManageOfferTestHelper::ensureCreateSuccess(source, op, success, stateBeforeTx);
 }
+
+void ParticipateInSaleTestHelper::ensureUpdateSuccess(Account &source, ManageOfferOp op,
+                                                      ManageOfferSuccessResult success,
+                                                      LedgerDelta::KeyEntryMap &stateBeforeTx)
+{
+    LedgerKey key;
+    key.type(LedgerEntryType::OFFER_ENTRY);
+    key.offer().offerID = op.offerID;
+    key.offer().ownerID = source.key.getPublicKey();
+    auto saleAfterTx = SaleHelper::Instance()->loadSale(op.orderBookID, mTestManager->getDB());
+    SaleFrame saleBeforeTx(stateBeforeTx[saleAfterTx->getKey()]->mEntry);
+    auto offerBeforeTx = stateBeforeTx[key]->mEntry.data.offer();
+    auto balanceBeforeTx = getBalance(stateBeforeTx, offerBeforeTx.quoteBalance);
+
+    REQUIRE(saleAfterTx->getSaleQuoteAsset(balanceBeforeTx.asset).currentCap ==
+            (saleBeforeTx.getSaleQuoteAsset(balanceBeforeTx.asset).currentCap -
+             offerBeforeTx.quoteAmount + success.offer.offer().quoteAmount)
+    );
+
+    REQUIRE(saleBeforeTx.getSaleEntry().maxAmountToBeSold == saleAfterTx->getSaleEntry().maxAmountToBeSold);
+
+    if (saleBeforeTx.getSaleType() != SaleType::CROWD_FUNDING) {
+        REQUIRE(saleAfterTx->getSaleEntry().currentCapInBase == (saleBeforeTx.getSaleEntry().currentCapInBase -
+                                                                 offerBeforeTx.baseAmount + op.amount)
+        );
+    }
+
+    ManageOfferTestHelper::ensureUpdateSuccess(source, op, success, stateBeforeTx);
+}
+
 }
 }

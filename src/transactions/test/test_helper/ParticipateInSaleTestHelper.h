@@ -20,6 +20,9 @@ namespace txtest
         void ensureCreateSuccess(Account& source, ManageOfferOp op,
             ManageOfferSuccessResult success,
             LedgerDelta::KeyEntryMap& stateBeforeTx) override;
+        void ensureUpdateSuccess(Account &source, ManageOfferOp op,
+            ManageOfferSuccessResult success,
+            LedgerDelta::KeyEntryMap &stateBeforeTx) override;
     };
 }
 

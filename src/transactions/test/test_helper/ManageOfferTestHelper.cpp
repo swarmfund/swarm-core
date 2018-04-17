@@ -90,10 +90,10 @@ void ManageOfferTestHelper::ensureUpdateSuccess(txtest::Account &source, ManageO
     offerKey.offer().ownerID = source.key.getPublicKey();
     offerKey.offer().offerID = op.offerID;
 
-    auto oldOffer = std::make_shared<OfferFrame>(stateBeforeTx[offerKey]->mEntry);
+    auto oldOfferFrame = std::make_shared<OfferFrame>(stateBeforeTx[offerKey]->mEntry);
 
     // ensure old offer was removed
-    auto removedOfferFrame = OfferHelper::Instance()->loadOffer(oldOffer->getOffer().ownerID, oldOffer->getOfferID(), mTestManager->getDB());
+    auto removedOfferFrame = OfferHelper::Instance()->loadOffer(oldOfferFrame->getOffer().ownerID, oldOfferFrame->getOfferID(), mTestManager->getDB());
     REQUIRE(!removedOfferFrame);
 
     auto& offerResult = success.offer;
@@ -103,6 +103,21 @@ void ManageOfferTestHelper::ensureUpdateSuccess(txtest::Account &source, ManageO
     auto newOfferFrame = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), offerResult.offer().offerID,
                                                     mTestManager->getDB());
     REQUIRE(!!newOfferFrame);
+    auto &newOfferEntry = newOfferFrame->getOffer();
+    REQUIRE(newOfferEntry == offerResult.offer());
+    REQUIRE(newOfferEntry.price == op.price);
+    REQUIRE(newOfferEntry.baseBalance == op.baseBalance);
+    REQUIRE(newOfferEntry.quoteBalance == op.quoteBalance);
+
+    LedgerKey balanceKey;
+    balanceKey.type(LedgerEntryType::BALANCE);
+    balanceKey.balance().balanceID = newOfferFrame->getLockedBalance();
+    auto balanceBefore = stateBeforeTx[balanceKey]->mEntry.data.balance();
+    auto balanceAfter = BalanceHelper::Instance()->mustLoadBalance(newOfferFrame->getLockedBalance(), mTestManager->getDB());
+
+    REQUIRE(balanceAfter->getLocked() == (balanceBefore.locked - oldOfferFrame->getLockedAmount() +
+                                          newOfferFrame->getLockedAmount())
+    );
 }
 
 ManageOfferTestHelper::ManageOfferTestHelper(const TestManager::pointer testManager) : TxHelper(testManager)

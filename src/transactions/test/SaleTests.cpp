@@ -506,10 +506,20 @@ TEST_CASE("Sale", "[tx][sale]")
                 manageOffer.offerID = offers[0]->getOfferID();
                 participateHelper.applyManageOffer(participant, manageOffer);
             }
+            SECTION("create participation and update it")
+            {
+                participateHelper.applyManageOffer(participant, manageOffer);
+                auto offers = OfferHelper::Instance()->loadOffersWithFilters(baseAsset, quoteAsset, &saleID, nullptr, db);
+                REQUIRE(offers.size() == 1);
+
+                manageOffer.amount /= 2;
+                manageOffer.offerID = offers[0]->getOfferID();
+                participateHelper.applyManageOffer(participant, manageOffer);
+            }
             SECTION("try to sell base asset being participant")
             {
                 manageOffer.isBuy = false;
-                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::REQUIRES_IS_BUY);
+                participateHelper.applyManageOffer(participant, manageOffer, ManageOfferResultCode::SELLING_NOT_ALLOWED);
             }
             SECTION("try to participate with negative amount")
             {

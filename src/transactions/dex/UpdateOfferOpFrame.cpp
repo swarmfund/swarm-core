@@ -20,27 +20,8 @@ namespace stellar {
                                                               mManageOffer.isBuy, 0, mManageOffer.price,
                                                               mManageOffer.fee, mManageOffer.offerID,
                                                               mManageOffer.orderBookID);
-        Operation op;
-        op.sourceAccount.activate() = mSourceAccount->getID();
-        op.body.type(OperationType::MANAGE_OFFER);
-        op.body.manageOfferOp() = manageOfferOp;
-
-        OperationResult opRes;
-        opRes.code(OperationResultCode::opINNER);
-        opRes.tr().type(OperationType::MANAGE_OFFER);
-
-        auto deleteOfferOpFrame = dynamic_cast<DeleteOfferOpFrame *>(ManageOfferOpFrame::make(op, opRes, mParentTx));
-        if (!deleteOfferOpFrame) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to cast ManageOfferOpFrame to DeleteOfferOpFrame";
-            throw std::runtime_error("Failed to cast ManageOfferOpFrame to DeleteOfferOpFrame");
-        }
-
-        deleteOfferOpFrame->setSourceAccountPtr(mSourceAccount);
-        deleteOfferOpFrame->doCheckValid(app);
-        deleteOfferOpFrame->doApply(app, delta, ledgerManager);
-
+        const auto opRes = executeManageOfferOp(app, delta, ledgerManager, manageOfferOp);
         const auto deleteOfferResultCode = ManageOfferOpFrame::getInnerCode(opRes);
-
         return deleteOfferResultCode;
     }
 
@@ -51,6 +32,14 @@ namespace stellar {
                                                               mManageOffer.price,
                                                               mManageOffer.fee, 0,
                                                               mManageOffer.orderBookID);
+        const auto opRes = executeManageOfferOp(app, delta, ledgerManager, manageOfferOp);
+        const auto createOfferResult = ManageOfferOpFrame::getInnerResult(opRes);
+        return createOfferResult;
+    }
+
+    OperationResult
+    UpdateOfferOpFrame::executeManageOfferOp(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+                                             ManageOfferOp const &manageOfferOp) {
         Operation op;
         op.sourceAccount.activate() = mSourceAccount->getID();
         op.body.type(OperationType::MANAGE_OFFER);
@@ -60,19 +49,13 @@ namespace stellar {
         opRes.code(OperationResultCode::opINNER);
         opRes.tr().type(OperationType::MANAGE_OFFER);
 
-        auto createOfferOpFrame = dynamic_cast<CreateOfferOpFrame *>(ManageOfferOpFrame::make(op, opRes, mParentTx));
-        if (!createOfferOpFrame) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to cast ManageOfferOpFrame to CreateOfferOpFrame";
-            throw std::runtime_error("Failed to cast ManageOfferOpFrame to CreateOfferOpFrame");
-        }
+        auto manageOfferOpFrame = shared_ptr<ManageOfferOpFrame>(ManageOfferOpFrame::make(op, opRes, mParentTx));
 
-        createOfferOpFrame->setSourceAccountPtr(mSourceAccount);
-        createOfferOpFrame->doCheckValid(app);
-        createOfferOpFrame->doApply(app, delta, ledgerManager);
+        manageOfferOpFrame->setSourceAccountPtr(mSourceAccount);
+        manageOfferOpFrame->doCheckValid(app);
+        manageOfferOpFrame->doApply(app, delta, ledgerManager);
 
-        const auto createOfferResult = ManageOfferOpFrame::getInnerResult(opRes);
-
-        return createOfferResult;
+        return opRes;
     }
 
     bool

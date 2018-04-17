@@ -118,6 +118,10 @@ void ManageOfferTestHelper::ensureUpdateSuccess(txtest::Account &source, ManageO
     REQUIRE(balanceAfter->getLocked() == (balanceBefore.locked - oldOfferFrame->getLockedAmount() +
                                           newOfferFrame->getLockedAmount())
     );
+
+    REQUIRE(balanceAfter->getAmount() == (balanceBefore.amount + oldOfferFrame->getLockedAmount() -
+                                          newOfferFrame->getLockedAmount())
+    );
 }
 
 ManageOfferTestHelper::ManageOfferTestHelper(const TestManager::pointer testManager) : TxHelper(testManager)

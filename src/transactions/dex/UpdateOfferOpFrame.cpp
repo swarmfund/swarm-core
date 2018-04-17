@@ -26,7 +26,7 @@ namespace stellar {
     }
 
     ManageOfferResult UpdateOfferOpFrame::tryCreateOffer(Application &app, LedgerDelta &delta,
-                                                             LedgerManager &ledgerManager) {
+                                                         LedgerManager &ledgerManager) {
         auto manageOfferOp = OfferManager::buildManageOfferOp(mManageOffer.baseBalance, mManageOffer.quoteBalance,
                                                               mManageOffer.isBuy, mManageOffer.amount,
                                                               mManageOffer.price,
@@ -52,8 +52,14 @@ namespace stellar {
         auto manageOfferOpFrame = shared_ptr<ManageOfferOpFrame>(ManageOfferOpFrame::make(op, opRes, mParentTx));
 
         manageOfferOpFrame->setSourceAccountPtr(mSourceAccount);
-        manageOfferOpFrame->doCheckValid(app);
-        manageOfferOpFrame->doApply(app, delta, ledgerManager);
+
+        if (!manageOfferOpFrame->doCheckValid(app) || !manageOfferOpFrame->doApply(app, delta, ledgerManager)) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                    << "Unexpected state: failed to execute manage offer operation on update offer: "
+                    << manageOfferOp.offerID
+                    << manageOfferOpFrame->getInnerResultCodeAsStr();
+            throw runtime_error("Unexpected state: failed to execute manage offer operation on update offer");
+        }
 
         return opRes;
     }

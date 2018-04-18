@@ -88,7 +88,7 @@ vector<Signer> SignatureValidator::getSigners(Application& app, Database& db,
 }
 
 SignatureValidator::Result SignatureValidator::check(
-    std::vector<PublicKey> keys, int signaturesRequired)
+    std::vector<PublicKey> keys, int signaturesRequired, LedgerVersion ledgerVersion)
 {
     set<PublicKey> usedKeys;
     for (size_t i = 0; i < mSignatures.size(); i++)
@@ -102,6 +102,11 @@ SignatureValidator::Result SignatureValidator::check(
                 PubKeyUtils::verifySig(*it, sig.signature, mContentHash))
             {
                 signaturesRequired--;
+                if (ledgerVersion >= LedgerVersion::CHANGE_ASSET_ISSUER_BAD_AUTH_EXTRA_FIXED)
+                {
+                    mUsedSignatures[i] = true;
+                }
+
                 if (signaturesRequired == 0)
                 {
                     return SUCCESS;
@@ -176,7 +181,7 @@ SignatureValidator::Result SignatureValidator::check(
 
     if (!sourceDetails.mSpecificSigners.empty())
     {
-        return check(sourceDetails.mSpecificSigners, sourceDetails.mNeeededTheshold);
+        return check(sourceDetails.mSpecificSigners, sourceDetails.mNeeededTheshold, LedgerVersion(app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion));
     }
 
     return checkSignature(app, db, account, sourceDetails);

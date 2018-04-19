@@ -15,6 +15,7 @@
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"
 #include "test_helper/CreateAccountTestHelper.h"
+#include "test_helper/ManageBalanceTestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -71,6 +72,59 @@ TEST_CASE("payment", "[tx][payment]")
     auto balanceHelper = BalanceHelper::Instance();
     auto paymentRequestHelper = PaymentRequestHelper::Instance();
 
+    SECTION("Non base asset tests")
+    {
+        // create asset
+        const AssetCode assetCode = "EUR";
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
+        manageAssetHelper.createAsset(root, root.key, assetCode, root, static_cast<uint32_t>(AssetPolicy::TRANSFERABLE));
+        issuanceHelper.authorizePreIssuedAmount(root, root.key, assetCode, INT64_MAX, root);
+        // create conterparties
+        auto sender = SecretKey::random();
+        auto receiver = SecretKey::random();
+        auto balanceTestHelper = ManageBalanceTestHelper(testManager);
+        for (auto counterparty : {sender, receiver})
+        {
+            auto pubKey = counterparty.getPublicKey();
+            createAccountTestHelper.applyCreateAccountTx(root, pubKey,
+                AccountType::GENERAL);
+            balanceTestHelper.createBalance(root, pubKey, assetCode);
+        }
+
+        // fund sender
+        auto senderBalance = BalanceHelper::Instance()->loadBalance(sender.getPublicKey(),
+            assetCode,
+            testManager->getDB(), nullptr);
+        REQUIRE(!!senderBalance);
+        issuanceHelper.applyCreateIssuanceRequest(root, assetCode, emissionAmount,
+            senderBalance->getBalanceID(),
+            SecretKey::random().getStrKeyPublic());
+
+        // create fee
+        const int64_t fixedFee = 3;
+
+        auto feeFrame = FeeFrame::create(FeeType::PAYMENT_FEE, fixedFee,
+            0, assetCode);
+        auto fee = feeFrame->getFee();
+        applySetFees(app, root.key, rootSeq++, &fee, false, nullptr);
+
+        // perform transfer
+
+        auto receiverBalance = BalanceHelper::Instance()->loadBalance(receiver.getPublicKey(),
+            assetCode,
+            testManager->getDB(), nullptr);
+        auto paymentFee = getNoPaymentFee();
+        paymentFee.sourceFee.fixedFee = fixedFee;
+        paymentFee.destinationFee.fixedFee = fixedFee;
+        applyPaymentTx(app, sender, senderBalance->getBalanceID(),
+            receiverBalance->getBalanceID(), 0, paymentAmount,
+            paymentFee,
+            true, "", "");
+
+        auto commissionBalance = balanceHelper->loadBalance(app.getCommissionID(), assetCode, testManager->getDB(), nullptr);
+        REQUIRE(!!commissionBalance);
+        REQUIRE(commissionBalance->getAmount() == fixedFee * 2);
+    }
     SECTION("basic tests")
     {
         auto account = SecretKey::random();

@@ -31,7 +31,7 @@ public:
 	
 	SignatureValidator(Hash contentHash, xdr::xvector<DecoratedSignature, 20> signatures);
 	// checks if signature is valid.
-    Result check(std::vector<PublicKey> keys, int signaturesRequired);
+    Result check(std::vector<PublicKey> keys, int signaturesRequired, LedgerVersion ledgerVersion);
 	Result check(Application& app, Database &db, AccountFrame& account, SourceDetails& sourceDetails);
 	bool checkAllSignaturesUsed();
 	void resetSignatureTracker();

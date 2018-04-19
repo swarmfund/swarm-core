@@ -36,8 +36,13 @@ namespace stellar {
                                  static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
         }
         if (getSourceID() == mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC) {
+            int32_t allowedSignerTypes = static_cast<int32_t>(SignerType::KYC_ACC_MANAGER);
+            if (ledgerVersion >= static_cast<int32_t>(LedgerVersion::ALLOW_ACCOUNT_MANAGER_TO_CHANGE_KYC))
+            {
+                allowedSignerTypes |= static_cast<int32_t>(SignerType::ACCOUNT_MANAGER);
+            }
             return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED},
-                                 mSourceAccount->getHighThreshold(), static_cast<int32_t>(SignerType::KYC_ACC_MANAGER));
+                                 mSourceAccount->getHighThreshold(), allowedSignerTypes);
         }
         return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t>(SignerType::KYC_ACC_MANAGER) |

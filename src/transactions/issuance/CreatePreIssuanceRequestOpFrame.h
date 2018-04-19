@@ -23,7 +23,7 @@ class CreatePreIssuanceRequestOpFrame : public OperationFrame
 	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                               int32_t ledgerVersion) const override;
 
-	bool isSignatureValid(AssetFrame::pointer asset);
+	bool isSignatureValid(AssetFrame::pointer asset, LedgerVersion version);
 
   public:
 

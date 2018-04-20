@@ -252,7 +252,10 @@ bool PaymentOpFrame::processFees_v1(Application& app, LedgerDelta& delta,
     auto balanceHelper = BalanceHelper::Instance();
     auto commissionBalanceFrame = balanceHelper->loadBalance(app.getCommissionID(),
         mSourceBalance->getAsset(), app.getDatabase(), &delta);
-    assert(commissionBalanceFrame);
+    if (!commissionBalanceFrame)
+    {
+        throw runtime_error("Unexpected state: failed to load commission balance for transfer");
+    }
 
     auto accountHelper = AccountHelper::Instance();
     auto commissionAccount = accountHelper->loadAccount(delta, commissionBalanceFrame->getAccountID(), db);

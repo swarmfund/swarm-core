@@ -50,6 +50,8 @@ namespace stellar {
 
             return prefix;
         }
+
+        const char* kycRulesPrefix = "kyc_lvlup_rules";
     };
 
 }

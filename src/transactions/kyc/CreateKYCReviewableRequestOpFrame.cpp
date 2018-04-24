@@ -7,6 +7,7 @@
 #include "ledger/LedgerDelta.h"
 #include "transactions/review_request/ReviewRequestHelper.h"
 #include "transactions/review_request/ReviewUpdateKYCRequestOpFrame.h"
+#include "ledger/KeyValueHelper.h"
 
 namespace stellar {
     using namespace std;
@@ -145,7 +146,7 @@ namespace stellar {
 
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.type(ReviewableRequestType::UPDATE_KYC);
-        createRequest(requestEntry);
+        createRequest(requestEntry, db);
 
         requestFrame->recalculateHashRejectReason();
 
@@ -193,16 +194,41 @@ namespace stellar {
         return binToHex(hash);
     }
 
-    void CreateUpdateKYCRequestOpFrame::createRequest(ReviewableRequestEntry &requestEntry) {
+    void CreateUpdateKYCRequestOpFrame::createRequest(ReviewableRequestEntry &requestEntry, Database &db) {
         requestEntry.body.updateKYCRequest().accountToUpdateKYC = mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC;
         requestEntry.body.updateKYCRequest().accountTypeToSet = mCreateUpdateKYCRequest.updateKYCRequestData.accountTypeToSet;
         requestEntry.body.updateKYCRequest().kycLevel = mCreateUpdateKYCRequest.updateKYCRequestData.kycLevelToSet;
         requestEntry.body.updateKYCRequest().kycData = mCreateUpdateKYCRequest.updateKYCRequestData.kycData;
 
+        auto accountHelper = AccountHelper::Instance();
+        auto account = accountHelper->loadAccount(mOperation.body.createUpdateKYCRequestOp().updateKYCRequestData.accountToUpdateKYC,db);
+
+        string256 key = "kyc_lvlup_rules:";
+        key = key + (char)static_cast<uint32 >(account.get()->getAccount().accountType) + ":" +
+                (char)(account.get()->getAccount().ext.kycLevel()) +":" +
+                (char)static_cast<uint32>(this->mOperation.body.createUpdateKYCRequestOp().updateKYCRequestData.accountTypeToSet) + ":" +
+                (char)static_cast<uint32>(this->mOperation.body.createUpdateKYCRequestOp().updateKYCRequestData.kycLevelToSet);
+
+
+        auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key,db);
+
+        if (kvEntry == nullptr)
+        {
+            this->mResult.code(OperationResultCode::opNOT_ALLOWED);
+            throw new exception;
+        }
+        if(kvEntry.get()->getKeyValue().value.type() != KeyValueEntryType ::UINT32)
+        {
+            this->mResult.code(OperationResultCode::opNOT_ALLOWED);
+            throw new exception;
+        }
+
+        requestEntry.body.updateKYCRequest().allTasks = kvEntry.get()->getKeyValue().value.defaultMask();
+        /*
         requestEntry.body.updateKYCRequest().allTasks = !!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks
                                                         ? mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate()
                                                         : CreateUpdateKYCRequestOpFrame::defaultTasks;
-
+        */
         requestEntry.body.updateKYCRequest().pendingTasks = requestEntry.body.updateKYCRequest().allTasks;
         requestEntry.body.updateKYCRequest().sequenceNumber = 0;
     }

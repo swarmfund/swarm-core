@@ -8,8 +8,6 @@
 #include "ledger/EntryFrame.h"
 #include <iostream>
 
-const char* kycRulesPrefix = "lvl_up_rules";
-
 namespace stellar {
     class KeyValueEntryFrame : public EntryFrame {
 

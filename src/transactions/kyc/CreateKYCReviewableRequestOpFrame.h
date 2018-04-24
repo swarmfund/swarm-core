@@ -21,7 +21,7 @@ namespace stellar {
 
         std::string getReference() const;
 
-        void createRequest(ReviewableRequestEntry &requestEntry);
+        void createRequest(ReviewableRequestEntry &requestEntry, Database &db);
 
         void updateRequest(ReviewableRequestEntry &requestEntry);
 

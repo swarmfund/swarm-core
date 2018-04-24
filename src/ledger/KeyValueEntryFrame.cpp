@@ -1,6 +1,3 @@
-//
-// Created by dmytriiev on 04.04.18.
-//
 
 #include "KeyValueEntryFrame.h"
 

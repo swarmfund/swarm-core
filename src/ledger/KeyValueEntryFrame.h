@@ -6,6 +6,9 @@
 #define STELLAR_KYCSETTINGS_H
 
 #include "ledger/EntryFrame.h"
+#include <iostream>
+
+const char* kycRulesPrefix = "lvl_up_rules";
 
 namespace stellar {
     class KeyValueEntryFrame : public EntryFrame {
@@ -19,6 +22,7 @@ namespace stellar {
 
         KeyValueEntryFrame();
         KeyValueEntryFrame(LedgerEntry const& from);
+
         KeyValueEntryFrame& operator=(KeyValueEntryFrame const& other);
 
         EntryFrame::pointer copy() const override
@@ -36,7 +40,7 @@ namespace stellar {
             return mKeyEntry;
         }
 
-        string256 getEntryKey()
+        longstring getEntryKey()
         {
             return mKeyEntry.key;
         }
@@ -44,6 +48,15 @@ namespace stellar {
         void setKey(string256 newKey)
         {
             mKeyEntry.key = newKey;
+        }
+
+        string256 getPrefix()
+        {
+            string256 prefix;
+            std::istringstream from(mKeyEntry.key);
+            std::getline(from,prefix,':');
+
+            return prefix;
         }
 
     };

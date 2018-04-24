@@ -39,7 +39,19 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
         transactions/test/test_helper/Account.h
-        transactions/ComisssionHandler.cpp transactions/ComisssionHandler.h transactions/ComisssionHandler.cpp transactions/ComisssionHandler.h ledger/KeyValueEntryFrame.cpp ledger/KeyValueEntryFrame.h ledger/KeyValueHelper.cpp ledger/KeyValueHelper.h)
+        transactions/ComisssionHandler.cpp
+        transactions/ComisssionHandler.h
+        transactions/ComisssionHandler.cpp
+        transactions/ComisssionHandler.h
+        ledger/KeyValueEntryFrame.cpp
+        ledger/KeyValueEntryFrame.h
+        ledger/KeyValueHelper.cpp
+        ledger/KeyValueHelper.h
+        transactions/ManageKeyValueOpFrame.cpp
+        transactions/ManageKeyValueOpFrame.h
+        transactions/test/test_helper/ManageKeyValueTestHelper.cpp
+        transactions/test/test_helper/ManageKeyValueTestHelper.h
+        transactions/test/ManageKeyValueTests.cpp)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

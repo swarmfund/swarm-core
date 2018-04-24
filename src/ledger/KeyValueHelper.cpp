@@ -1,6 +1,3 @@
-//
-// Created by dmytriiev on 04.04.18.
-//
 
 #include "KeyValueHelper.h"
 #include "xdrpp/printer.h"
@@ -20,7 +17,7 @@ namespace stellar {
         db.getSession() << "DROP TABLE IF EXISTS key_value_entry;";
         db.getSession() << "CREATE TABLE key_value_entry"
                            "("
-                           "key           VARCHAR256    NOT NULL,"
+                           "key           TEXT          NOT NULL,"
                            "value         TEXT          NOT NULL,"
                            "version       INT           NOT NULL,"
                            "lastmodified  INT           NOT NULL,"
@@ -75,9 +72,9 @@ namespace stellar {
         flushCachedEntry(key, db);
         string sql;
 
-        auto bodyBytes = xdr::xdr_to_opaque(keyValueFrame->getKeyValue().value);
-        std::string strBody = bn::encode_b64(bodyBytes);
-        auto version = static_cast<int32_t>(keyValueFrame->getKeyValue().ext.v());
+        auto valueBytes = xdr::xdr_to_opaque(keyValueEntry.value);
+        std::string strValue = bn::encode_b64(valueBytes);
+        auto version = static_cast<int32_t>(keyValueEntry.ext.v());
 
         if (insert)
         {
@@ -94,7 +91,7 @@ namespace stellar {
         auto& st = prep.statement();
 
         st.exchange(use(keyValueEntry.key, "key"));
-        st.exchange(use(strBody, "value"));
+        st.exchange(use(strValue, "value"));
         st.exchange(use(version, "v"));
         st.exchange(use(keyValueFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.define_and_bind();
@@ -152,7 +149,7 @@ namespace stellar {
         sql += " WHERE key = :key";
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
-        st.exchange(use(valueKey));
+        st.exchange(use(valueKey,"key"));
 
         KeyValueEntryFrame::pointer retKeyValue;
         auto timer = db.getSelectTimer("key_value_entry");
@@ -187,6 +184,7 @@ namespace stellar {
         int version;
 
         statement& st = prep.statement();
+        st.exchange(into(oe.key));
         st.exchange(into(value));
         st.exchange(into(version));
         st.exchange(into(le.lastModifiedLedgerSeq));

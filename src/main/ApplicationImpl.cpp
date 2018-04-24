@@ -231,6 +231,9 @@ namespace stellar {
 		return mConfig.ISSUANCE_DETAILS_MAX_LENGTH;
 	}
 
+    int32 ApplicationImpl::getKYCSuperAdminMask() const {
+        return mConfig.KYC_SUPER_ADMIN_MASK;
+    }
 
     ApplicationImpl::~ApplicationImpl() {
         LOG(INFO) << "Application destructing";

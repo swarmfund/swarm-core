@@ -150,10 +150,18 @@ struct LedgerEntryIdCmp
             case LedgerEntryType::KEY_VALUE: {
                 auto const &akv = a.keyValue();
                 auto const &bkv = b.keyValue();
-                return akv.key<bkv.key;
+                return akv.key < bkv.key;
+            }
+            case LedgerEntryType::ACCOUNT_KYC: {
+                auto const &akyc = a.accountKYC();
+                auto const &bkyc = b.accountKYC();
+                return akyc.accountID < bkyc.accountID;
+            }
+            default: {
+                throw std::runtime_error(
+                        "Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");
             }
         }
-        return false;
     }
 
     template <typename T>

@@ -33,6 +33,7 @@
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
+#include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 #include "database/Database.h"
 
 #include "medida/meter.h"
@@ -90,9 +91,10 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::CHECK_SALE_STATE:
         return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
-    case OperationType ::CREATE_AML_ALERT:
+    case OperationType::CREATE_AML_ALERT:
         return shared_ptr<OperationFrame>(new CreateAMLAlertRequestOpFrame(op,res,tx));
-
+	case OperationType::CREATE_KYC_REQUEST:
+		return shared_ptr<OperationFrame>(new CreateUpdateKYCRequestOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

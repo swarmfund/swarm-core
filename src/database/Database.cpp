@@ -37,7 +37,7 @@
 #include "transactions/TransactionFrame.h"
 #include "bucket/BucketManager.h"
 #include "herder/Herder.h"
-
+#include "ledger/AccountHelper.h"
 #include "medida/metrics_registry.h"
 #include "medida/timer.h"
 #include "medida/counter.h"
@@ -46,6 +46,7 @@
 #include <vector>
 #include <sstream>
 #include <thread>
+#include <ledger/AccountKYCHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
 
@@ -70,11 +71,13 @@ enum databaseSchemaVersion : unsigned long {
 	DROP_SCP = 2,
 	INITIAL = 3,
 	DROP_BAN = 4,
-        REFERENCE_VERSION = 5,
-        ADD_SALE_TYPE = 6
+    REFERENCE_VERSION = 5,
+    ADD_SALE_TYPE = 6,
+	USE_KYC_LEVEL = 7,
+    ADD_ACCOUNT_KYC = 8
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_SALE_TYPE;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ACCOUNT_KYC;
 
 static void
 setSerializable(soci::session& sess)
@@ -129,25 +132,30 @@ Database::applySchemaUpgrade(unsigned long vers)
 {
     clearPreparedStatementCache();
 
-    switch (vers)
-    {
-	case databaseSchemaVersion::DROP_SCP:
-        Herder::dropAll(*this);
-        break;
-	case databaseSchemaVersion::INITIAL:
-        break;
-	case databaseSchemaVersion::DROP_BAN:
-        BanManager::dropAll(*this);
-        break;
+    switch (vers) {
+        case databaseSchemaVersion::DROP_SCP:
+            Herder::dropAll(*this);
+            break;
+        case databaseSchemaVersion::INITIAL:
+            break;
+        case databaseSchemaVersion::DROP_BAN:
+            BanManager::dropAll(*this);
+            break;
         case ADD_SALE_TYPE:
             SaleHelper::Instance()->addType(*this);
             break;
         case REFERENCE_VERSION:
             ReferenceHelper::addVersion(*this);
             break;
-    default:
-        throw std::runtime_error("Unknown DB schema version");
-        break;
+        case databaseSchemaVersion::USE_KYC_LEVEL:
+            AccountHelper::Instance()->addKYCLevel(*this);
+            break;
+        case databaseSchemaVersion::ADD_ACCOUNT_KYC:
+            AccountKYCHelper::Instance()->dropAll(*this);
+            break;
+        default:
+            throw std::runtime_error("Unknown DB schema version");
+            break;
     }
 }
 

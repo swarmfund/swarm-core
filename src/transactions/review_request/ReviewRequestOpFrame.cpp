@@ -22,6 +22,7 @@
 #include "main/Application.h"
 #include "ReviewSaleCreationRequestOpFrame.h"
 #include "ReviewAMLAlertRequestOpFrame.h"
+#include "ReviewUpdateKYCRequestOpFrame.h"
 
 namespace stellar
 {
@@ -74,8 +75,10 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewLimitsUpdateRequestOpFrame(op, res, parentTx);
     case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
         return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
-	case ReviewableRequestType ::AML_ALERT:
+	case ReviewableRequestType::AML_ALERT:
 		return new ReviewAMLAlertRequestOpFrame(op,res,parentTx);
+    case ReviewableRequestType::UPDATE_KYC:
+        return new ReviewUpdateKYCRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}

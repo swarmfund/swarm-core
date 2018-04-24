@@ -42,6 +42,7 @@
 #include "crypto/Hex.h"
 #include "database/Database.h"
 #include "SaleHelper.h"
+#include "AccountKYCHelper.h"
 
 namespace stellar
 {
@@ -183,6 +184,7 @@ namespace stellar
 		{ LedgerEntryType::STATISTICS, StatisticsHelper::Instance() },
 		{ LedgerEntryType::TRUST, TrustHelper::Instance() },
 		{ LedgerEntryType::SALE, SaleHelper::Instance()},
-		{ LedgerEntryType ::KEY_VALUE, KeyValueHelper::Instance()}
+		{ LedgerEntryType ::KEY_VALUE, KeyValueHelper::Instance()},
+        { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance()}
 	};
 }

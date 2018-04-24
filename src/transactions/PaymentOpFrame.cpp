@@ -99,11 +99,14 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
 	default:
 		break;
 	}
-	std::vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
-                                                     AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE};
-
-    // disallowed
-	return SourceDetails({}, mSourceAccount->getMediumThreshold(), signerType);
+        std::vector<AccountType> allowedAccountTypes;
+    if (ledgerVersion >= int32_t(LedgerVersion::USE_KYC_LEVEL))
+    {
+        allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
+            AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE };
+    }
+	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType,
+						 static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
 }
 
 bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)
@@ -230,9 +233,72 @@ bool PaymentOpFrame::calculateSourceDestAmount()
 
 bool PaymentOpFrame::isAllowedToTransfer(Database& db, AssetFrame::pointer asset)
 {
-	// TODO fix me
-	//asset->checkPolicy(AssetPolicy::TRANSFERABLE);
-	return true;
+	return asset->checkPolicy(AssetPolicy::TRANSFERABLE);
+}
+
+bool PaymentOpFrame::processFees(Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db)
+{
+    if (lm.shouldUse(LedgerVersion::AUTO_CREATE_COMMISSION_BALANCE_ON_TRANSFER))
+    {
+        return processFees_v2(app, delta, db);
+    }
+
+    return processFees_v1(app, delta, db);
+}
+
+bool PaymentOpFrame::processFees_v1(Application& app, LedgerDelta& delta,
+    Database& db)
+{
+    auto balanceHelper = BalanceHelper::Instance();
+    auto commissionBalanceFrame = balanceHelper->loadBalance(app.getCommissionID(),
+        mSourceBalance->getAsset(), app.getDatabase(), &delta);
+    if (!commissionBalanceFrame)
+    {
+        throw runtime_error("Unexpected state: failed to load commission balance for transfer");
+    }
+
+    auto accountHelper = AccountHelper::Instance();
+    auto commissionAccount = accountHelper->loadAccount(delta, commissionBalanceFrame->getAccountID(), db);
+    auto feeData = mPayment.feeData;
+    auto totalFee = feeData.sourceFee.paymentFee + feeData.sourceFee.fixedFee +
+        feeData.destinationFee.paymentFee + feeData.destinationFee.fixedFee;
+
+    if (!commissionBalanceFrame->addBalance(totalFee))
+    {
+        app.getMetrics().NewMeter({ "op-payment", "failure", "commission-full-line" }, "operation").Mark();
+        innerResult().code(PaymentResultCode::LINE_FULL);
+        return false;
+    }
+    EntryHelperProvider::storeChangeEntry(delta, db, commissionBalanceFrame->mEntry);
+    return true;
+}
+
+bool PaymentOpFrame::processFees_v2(Application& app, LedgerDelta& delta,
+    Database& db)
+{
+    uint64_t totalFees;
+    if (!safeSum(totalFees, std::vector<uint64_t>{uint64_t(mPayment.feeData.sourceFee.fixedFee), uint64_t(mPayment.feeData.sourceFee.paymentFee),
+        uint64_t(mPayment.feeData.destinationFee.fixedFee), uint64_t(mPayment.feeData.destinationFee.paymentFee)}))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to calculate total sum of fees to be charged - overflow";
+        throw std::runtime_error("Total sum of fees to be charged - overlows");
+    }
+
+    if (totalFees == 0)
+    {
+        return true;
+    }
+
+    auto balance = AccountManager::loadOrCreateBalanceFrameForAsset(app.getCommissionID(), mSourceBalance->getAsset(), db, delta);
+    if (!balance->tryFundAccount(totalFees))
+    {
+        app.getMetrics().NewMeter({ "op-payment", "failure", "commission-full-line" }, "operation").Mark();
+        innerResult().code(PaymentResultCode::LINE_FULL);
+        return false;
+    }
+
+    EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);
+    return true;
 }
 
 bool
@@ -314,24 +380,10 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 		return false;
 	}
 
-	auto balanceHelper = BalanceHelper::Instance();
-	auto commissionBalanceFrame = balanceHelper->loadBalance(app.getCommissionID(),
-		mSourceBalance->getAsset(), app.getDatabase(), &delta);
-	assert(commissionBalanceFrame);
-
-	auto accountHelper = AccountHelper::Instance();
-	auto commissionAccount = accountHelper->loadAccount(delta, commissionBalanceFrame->getAccountID(), db);
-	auto feeData = mPayment.feeData;
-	auto totalFee = feeData.sourceFee.paymentFee + feeData.sourceFee.fixedFee +
-		feeData.destinationFee.paymentFee + feeData.destinationFee.fixedFee;
-
-	if (!commissionBalanceFrame->addBalance(totalFee))
+	if (!processFees(app, ledgerManager, delta, db))
 	{
-		app.getMetrics().NewMeter({ "op-payment", "failure", "commission-full-line" }, "operation").Mark();
-		innerResult().code(PaymentResultCode::LINE_FULL);
-		return false;
+            return false;
 	}
-	EntryHelperProvider::storeChangeEntry(delta, db, commissionBalanceFrame->mEntry);
 
     innerResult().paymentResponse().destination = mDestBalance->getAccountID();
     innerResult().paymentResponse().asset = mDestBalance->getAsset();

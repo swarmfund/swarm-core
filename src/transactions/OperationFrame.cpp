@@ -16,7 +16,7 @@
 #include "ledger/AccountHelper.h"
 #include "transactions/TransactionFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
-#include "transactions/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
 #include "transactions/SetFeesOpFrame.h"
 #include "transactions/ManageAccountOpFrame.h"

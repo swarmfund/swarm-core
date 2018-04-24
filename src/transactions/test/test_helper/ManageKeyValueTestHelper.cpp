@@ -43,8 +43,8 @@ namespace stellar {
 
             if(kvAction == ManageKVAction::PUT)
             {
-                op.body.manageKeyValueOp().action.value().value.type(KeyValueEntryType::KYC_SETTINGS);
-                op.body.manageKeyValueOp().action.value().value.kycSettings() = KYCSettings();
+                op.body.manageKeyValueOp().action.value().value.type(KeyValueEntryType::UINT32);
+                op.body.manageKeyValueOp().action.value().value.defaultMask() = 0;
                 op.body.manageKeyValueOp().action.value().key = key;
             }
             return op;

@@ -37,7 +37,8 @@ const
                              AccountType::GENERAL, AccountType::SYNDICATE,
                              AccountType::OPERATIONAL, AccountType::EXCHANGE, AccountType::NOT_VERIFIED
                          }, mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t>(SignerType::BALANCE_MANAGER));
+                         static_cast<int32_t>(SignerType::BALANCE_MANAGER),
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
 }
 
 BalanceFrame::pointer CreateWithdrawalRequestOpFrame::tryLoadBalance(

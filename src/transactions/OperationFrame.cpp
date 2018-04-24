@@ -33,14 +33,15 @@
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
-#include "transactions/BindExternalSystemAccountIdOpFrame.h"
-
+#include "transactions/CreateAMLAlertRequestOpFrame.h"
+#include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 #include "database/Database.h"
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "dex/ManageOfferOpFrame.h"
 #include "CheckSaleStateOpFrame.h"
+#include "BindExternalSystemAccountIdOpFrame.h"
 
 namespace stellar
 {
@@ -96,6 +97,10 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(ManageExternalSystemAccountIdPoolEntryOpFrame::makeHelper(op, res, tx));
     case OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID:
         return shared_ptr<OperationFrame>(new BindExternalSystemAccountIdOpFrame(op, res, tx));
+    case OperationType::CREATE_AML_ALERT:
+        return shared_ptr<OperationFrame>(new CreateAMLAlertRequestOpFrame(op,res,tx));
+	case OperationType::CREATE_KYC_REQUEST:
+		return shared_ptr<OperationFrame>(new CreateUpdateKYCRequestOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());
@@ -124,6 +129,13 @@ OperationFrame::apply(LedgerDelta& delta, Application& app)
 std::string OperationFrame::getInnerResultCodeAsStr() {
 	// Default implementation does nothing, make remove this implementation when all operations switched to it
 	return "not_implemented";
+}
+
+SourceDetails OperationFrame::getSourceAccountDetails(
+    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+    int32_t ledgerVersion, Database& db) const
+{
+    return getSourceAccountDetails(counterpartiesDetails, ledgerVersion);
 }
 
 bool OperationFrame::isAllowed() const
@@ -272,7 +284,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 		return false;
 	}
 
-	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion);
+	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion, db);
     if (!doCheckSignature(app, db, sourceDetails))
     {
         return false;

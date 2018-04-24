@@ -8,6 +8,7 @@ namespace stellar
 {
 namespace txtest
 {
+
     class CheckSaleStateHelper : public TxHelper
     {
         void ensureCancel(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;

@@ -1,9 +1,20 @@
 #include "StateBeforeTxHelper.h"
 
+#include "WithdrawRequestHelper.h"
+#include "ledger/BalanceHelper.h"
+#include "transactions/CreateWithdrawalRequestOpFrame.h"
+#include "test/test_marshaler.h"
+
+
 namespace stellar
 {
 namespace txtest
 {
+
+    StateBeforeTxHelper::StateBeforeTxHelper()
+    {
+    }
+
     StateBeforeTxHelper::StateBeforeTxHelper(const LedgerDelta::KeyEntryMap state)
     {
         mState = state;
@@ -25,13 +36,26 @@ namespace txtest
 
     AssetEntry StateBeforeTxHelper::getAssetEntry(AssetCode assetCode)
     {
-        LedgerKey key;
-        key.type(LedgerEntryType::ASSET);
-        key.asset().code = assetCode;
-        return mState[key]->mEntry.data.asset();
+        auto assetFrame = getAssetFrame(assetCode);
+        REQUIRE(!!assetFrame);
+        return assetFrame->getAsset();
     }
 
-    BalanceFrame::pointer StateBeforeTxHelper::getBalance(BalanceID balanceID) {
+AssetFrame::pointer StateBeforeTxHelper::getAssetFrame(AssetCode assetCode)
+{
+    LedgerKey key;
+    key.type(LedgerEntryType::ASSET);
+    key.asset().code = assetCode;
+    auto entryFrame = mState.find(key);
+    if (entryFrame == mState.end())
+    {
+        return nullptr;
+    }
+
+    return std::make_shared<AssetFrame>(entryFrame->second->mEntry);
+}
+
+BalanceFrame::pointer StateBeforeTxHelper::getBalance(BalanceID balanceID) {
         LedgerKey key;
         key.type(LedgerEntryType::BALANCE);
         key.balance().balanceID = balanceID;
@@ -71,6 +95,16 @@ namespace txtest
             return nullptr;
 
         return std::make_shared<AccountFrame>(mState[key]->mEntry);
+    }
+
+
+    ReviewableRequestFrame::pointer StateBeforeTxHelper::getReviewableRequest(uint64 requestID) {
+        LedgerKey key;
+        key.type(LedgerEntryType::REVIEWABLE_REQUEST);
+        key.reviewableRequest().requestID = requestID;
+        if (mState.find(key) == mState.end())
+            return nullptr;
+        return std::make_shared<ReviewableRequestFrame>(mState[key]->mEntry);
     }
 }
 }

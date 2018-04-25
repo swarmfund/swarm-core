@@ -15,8 +15,12 @@ namespace stellar {
     const int32 EMPTY_VALUE = -1;
 
     static const char* feeColumnSelector = "SELECT fee_type, asset, fixed, percent, account_id, account_type, subtype, "
-            "lower_bound, upper_bound, hash, lastmodified, version "
+            "lower_bound, upper_bound, hash, lastmodified, fee_asset, version "
             "FROM   fee_state";
+
+    void FeeHelper::addFeeAsset(Database &db) {
+        db.getSession() << "ALTER TABLE fee_state ADD fee_asset VARCHAR(16) NOT NULL DEFAULT ''";
+    }
 
     void FeeHelper::dropAll(Database &db) {
         db.getSession() << "DROP TABLE IF EXISTS fee_state;";
@@ -122,14 +126,14 @@ namespace stellar {
         if (insert)
         {
             sql = "INSERT INTO fee_state (fee_type, asset, fixed, percent, account_id, account_type, subtype, "
-                    "lastmodified, lower_bound, upper_bound, hash, version) "
-                    "VALUES (:ft, :as, :f, :p, :aid, :at, :subt, :lm, :lb, :ub, :hash, :v)";
+                    "lastmodified, lower_bound, upper_bound, hash, fee_asset, version) "
+                    "VALUES (:ft, :as, :f, :p, :aid, :at, :subt, :lm, :lb, :ub, :hash, :fa, :v)";
         }
         else
         {
             sql = "UPDATE fee_state "
                     "SET    fee_type=:ft, asset=:as, fixed=:f, percent=:p, account_id=:aid, "
-                    "account_type=:at, subtype=:subt, lastmodified=:lm, version=:v "
+                    "account_type=:at, subtype=:subt, lastmodified=:lm, fee_asset=:fa, version=:v "
                     "WHERE  lower_bound=:lb AND upper_bound=:ub AND hash=:hash";
         }
 
@@ -161,6 +165,10 @@ namespace stellar {
 
         string hash(binToHex(feeEntry.hash));
         st.exchange(use(hash, "hash"));
+
+        std::string feeAsset = feeEntry.ext.v() == LedgerVersion::USE_PAYMENT_V2
+                               ? feeEntry.ext.feeAsset() : "";
+        st.exchange(use(feeAsset, "fa"));
 
         auto feeVersion = static_cast<int32_t >(feeEntry.ext.v());
         st.exchange(use(feeVersion, "v"));
@@ -204,6 +212,8 @@ namespace stellar {
         int32_t accountType;
         int32_t feeVersion = 0;
 
+        string feeAsset;
+
         auto& st = prep.statement();
         st.exchange(into(rawFeeType));
         st.exchange(into(rawAsset));
@@ -218,6 +228,7 @@ namespace stellar {
         st.exchange(into(rawHash));
 
         st.exchange(into(le.lastModifiedLedgerSeq));
+        st.exchange(into(feeAsset));
         st.exchange(into(feeVersion));
 
         st.define_and_bind();
@@ -227,6 +238,14 @@ namespace stellar {
             le.data.feeState().asset = rawAsset;
             le.data.feeState().feeType = FeeType(rawFeeType);
             le.data.feeState().ext.v((LedgerVersion)feeVersion);
+
+            if (le.data.feeState().ext.v() == LedgerVersion::USE_PAYMENT_V2) {
+                if (feeAsset.empty()) {
+                    throw std::runtime_error("Invalid fee asset value in database");
+                }
+                le.data.feeState().ext.feeAsset() = feeAsset;
+            }
+
             if (!actIDStrKey.empty())
                 le.data.feeState().accountID.activate() = PubKeyUtils::fromStrKey(actIDStrKey);
 

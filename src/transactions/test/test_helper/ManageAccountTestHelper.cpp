@@ -1,6 +1,7 @@
 #include "ManageAccountTestHelper.h"
 #include "StateBeforeTxHelper.h"
 #include <transactions/ManageAccountOpFrame.h>
+#include <ledger/AccountHelper.h>
 #include "test/test_marshaler.h"
 
 namespace stellar

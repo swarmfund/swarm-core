@@ -21,7 +21,7 @@ namespace stellar {
 
         std::string getReference() const;
 
-        void createRequest(ReviewableRequestEntry &requestEntry, Database &db);
+        bool createRequest(ReviewableRequestEntry &requestEntry, Database &db, bool useKYCRules);
 
         void updateRequest(ReviewableRequestEntry &requestEntry);
 
@@ -47,6 +47,10 @@ namespace stellar {
 
         std::string getInnerResultCodeAsStr() override {
             return xdr::xdr_traits<CreateUpdateKYCRequestResultCode>::enum_name(innerResult().code());
+        }
+
+        CreateUpdateKYCRequestOp& getKYCUpdateOp(){
+            return mCreateUpdateKYCRequest;
         }
 
         static const uint32 defaultTasks;

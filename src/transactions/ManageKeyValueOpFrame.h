@@ -2,6 +2,7 @@
 #ifndef STELLAR_MANAGEKEYVALUEOPFRAME_H
 #define STELLAR_MANAGEKEYVALUEOPFRAME_H
 
+#include <transactions/kyc/CreateKYCReviewableRequestOpFrame.h>
 #include "transactions/OperationFrame.h"
 
 namespace stellar {
@@ -51,7 +52,10 @@ namespace stellar {
             return prefix;
         }
 
-        const char* kycRulesPrefix = "kyc_lvlup_rules";
+        static bool getKYCMask(Database &db, bool useKYCRules, CreateUpdateKYCRequestOpFrame *kycUpdateOpFrame,
+                               uint32 &allTasks);
+
+        static constexpr char* kycRulesPrefix = "kyc_lvlup_rules";
     };
 
 }

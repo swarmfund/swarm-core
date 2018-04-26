@@ -122,8 +122,15 @@ namespace stellar {
             if (!!allTasks) {
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().allTasks == *allTasks);
             } else {
+                uint32 tasks;
+                UpdateKYCRequestData requestData;
+                requestData.accountTypeToSet = requestAfterTxEntry.body.updateKYCRequest().accountTypeToSet;
+                requestData.kycLevelToSet    = requestAfterTxEntry.body.updateKYCRequest().kycLevel;
+
+                CreateUpdateKYCRequestOpFrame::getDefaultKYCMask(mTestManager->getDB(),mTestManager->getLedgerManager()
+                ,requestData,accountAfter->getAccount(),tasks);
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().allTasks ==
-                        CreateUpdateKYCRequestOpFrame::defaultTasks);
+                        tasks);
             }
 
             REQUIRE(requestAfterTxEntry.body.updateKYCRequest().pendingTasks ==

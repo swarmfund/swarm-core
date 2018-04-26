@@ -18,16 +18,18 @@ namespace stellar{
 
             ManageKeyValueTestHelper copy();
 
-            ManageKeyValueTestHelper* setKey(string256 key);
+            ManageKeyValueTestHelper* setKey(longstring key);
+
+            ManageKeyValueTestHelper* setValue(uint32 value);
 
             ManageKeyValueTestHelper* setResult(ManageKeyValueResultCode resultCode);
 
-            void doAply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
-                                    ManageKVAction action, bool require = true);
+            void doAply(Application &app, ManageKVAction action, bool require);
 
         private:
 
-            string256 key;
+            uint32 value;
+            longstring key;
             ManageKeyValueResultCode expectedResult = ManageKeyValueResultCode ::SUCCESS;
         };
 
@@ -44,7 +46,7 @@ namespace stellar{
 
             Operation buildOp() override ;
 
-            string256 key;
+            longstring key;
             ManageKVAction kvAction;
             ManageKeyValueOpFrame* kvManager;
             Operation op;

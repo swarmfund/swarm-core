@@ -69,7 +69,7 @@ namespace stellar {
     {
         auto prefix = getPrefix();
 
-        if(prefix.compare(kycRulesPrefix) == 0) {
+        if(strcmp(prefix.c_str(),kycRulesPrefix) == 0) {
             return SourceDetails({AccountType::MASTER}, static_cast<int32_t >(ThresholdIndexes::HIGH),
                                  static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
         }
@@ -77,42 +77,14 @@ namespace stellar {
         return SourceDetails({AccountType::MASTER}, static_cast<int32_t >(ThresholdIndexes::HIGH),0);
     }
 
+    longstring
+    ManageKeyValueOpFrame::makeKYCRuleKey(AccountType accountType, uint32 kycLevel, AccountType accountTypeToSet,
+                                          uint32 kycLevelToSet) {
+        longstring key;
+        key = key + kycRulesPrefix + ":" + to_string(static_cast<uint32 >(accountType)) + ":" + to_string(kycLevel) + ":"
+            + to_string(static_cast<uint32>(accountTypeToSet)) + ":" + to_string(kycLevelToSet);
 
-    bool ManageKeyValueOpFrame::getKYCMask(Database &db, bool useKYCRules,
-                                           CreateUpdateKYCRequestOpFrame *kycUpdateOpFrame, uint32 &allTasks)
-    {
-        if(!useKYCRules)
-        {
-            allTasks = !!kycUpdateOpFrame->getKYCUpdateOp().updateKYCRequestData.allTasks
-                       ? kycUpdateOpFrame->getKYCUpdateOp().updateKYCRequestData.allTasks.activate()
-                       : CreateUpdateKYCRequestOpFrame::defaultTasks;
-            return true;
-        }
-
-        auto accountHelper = AccountHelper::Instance();
-        auto account = accountHelper->loadAccount(kycUpdateOpFrame->getKYCUpdateOp().updateKYCRequestData.accountToUpdateKYC,db);
-
-        //string256 key = "";
-        string256 key = kycRulesPrefix + to_string(static_cast<uint32 >(account.get()->getAccount().accountType)) + ":" +
-              to_string(static_cast<uint32 >(account.get()->getAccount().ext.kycLevel())) +":" +
-              to_string(static_cast<uint32>(kycUpdateOpFrame->getOperation().body.createUpdateKYCRequestOp().updateKYCRequestData.accountTypeToSet)) + ":" +
-              to_string(static_cast<uint32>(kycUpdateOpFrame->getOperation().body.createUpdateKYCRequestOp().updateKYCRequestData.kycLevelToSet));
-
-
-        auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key,db);
-
-        if (kvEntry == nullptr)
-        {
-            return false;
-        }
-
-        allTasks = kvEntry.get()->getKeyValue().value.defaultMask();
-        /*
-        requestEntry.body.updateKYCRequest().allTasks = !!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks
-                                                        ? mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate()
-                                                        : CreateUpdateKYCRequestOpFrame::defaultTasks;
-        */
-        return true;
+        return key;
     }
 
 }

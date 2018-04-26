@@ -148,11 +148,16 @@ namespace stellar {
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.type(ReviewableRequestType::UPDATE_KYC);
 
-        if(!createRequest(requestEntry, db, ledgerManager.shouldUse(LedgerVersion::KYC_RULES)))
+        uint32 defaultMask;
+
+        if(!getDefaultKYCMask(db, ledgerManager, mCreateUpdateKYCRequest.updateKYCRequestData,
+                                                    account, defaultMask))
         {
             innerResult().code(CreateUpdateKYCRequestResultCode::KYC_RULE_NOT_FOUND);
             return false;
         }
+
+        createRequest(requestEntry, defaultMask);
 
         requestFrame->recalculateHashRejectReason();
 
@@ -200,21 +205,42 @@ namespace stellar {
         return binToHex(hash);
     }
 
-    bool
-    CreateUpdateKYCRequestOpFrame::createRequest(ReviewableRequestEntry &requestEntry, Database &db, bool useKYCRules) {
+    void
+    CreateUpdateKYCRequestOpFrame::createRequest(ReviewableRequestEntry &requestEntry, uint32 defaultMask) {
         requestEntry.body.updateKYCRequest().accountToUpdateKYC = mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC;
         requestEntry.body.updateKYCRequest().accountTypeToSet = mCreateUpdateKYCRequest.updateKYCRequestData.accountTypeToSet;
         requestEntry.body.updateKYCRequest().kycLevel = mCreateUpdateKYCRequest.updateKYCRequestData.kycLevelToSet;
         requestEntry.body.updateKYCRequest().kycData = mCreateUpdateKYCRequest.updateKYCRequestData.kycData;
 
-        if(!ManageKeyValueOpFrame::getKYCMask(db, useKYCRules, this,
-                                          requestEntry.body.updateKYCRequest().allTasks))
+        requestEntry.body.updateKYCRequest().allTasks = !!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks
+                                                        ?mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate()
+                                                        :defaultMask;
+
+        requestEntry.body.updateKYCRequest().pendingTasks = requestEntry.body.updateKYCRequest().allTasks;
+        requestEntry.body.updateKYCRequest().sequenceNumber = 0;
+    }
+
+    bool
+    CreateUpdateKYCRequestOpFrame::getDefaultKYCMask(Database &db, LedgerManager &ledgerManager,
+                                                     UpdateKYCRequestData kycRequestData,
+                                                     AccountEntry account, uint32 &defaultMask)
+    {
+        if(!ledgerManager.shouldUse(LedgerVersion::KYC_RULES))
+        {
+            defaultMask = CreateUpdateKYCRequestOpFrame::defaultTasks;
+            return true;
+        }
+
+        auto  key = ManageKeyValueOpFrame::makeKYCRuleKey(account.accountType,account.ext.kycLevel(),kycRequestData.accountTypeToSet,kycRequestData.kycLevelToSet);
+
+        auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key,db);
+
+        if (!kvEntry)
         {
             return false;
         }
 
-        requestEntry.body.updateKYCRequest().pendingTasks = requestEntry.body.updateKYCRequest().allTasks;
-        requestEntry.body.updateKYCRequest().sequenceNumber = 0;
+        defaultMask = kvEntry.get()->getKeyValue().value.defaultMask();
 
         return true;
     }

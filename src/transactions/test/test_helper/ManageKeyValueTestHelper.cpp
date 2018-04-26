@@ -13,9 +13,14 @@ namespace stellar {
             return *this;
         }
 
-        txtest::ManageKeyValueTestHelper* txtest::ManageKeyValueTestHelper::setKey(string256 key)
+        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setKey(longstring key)
         {
             this->key = key;
+            return this;
+        }
+
+        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(uint32 value) {
+            this->value = value;
             return this;
         }
 
@@ -25,13 +30,16 @@ namespace stellar {
             return  this;
         }
 
-        void ManageKeyValueTestHelper::doAply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
-                                                      ManageKVAction action, bool require)
+        void ManageKeyValueTestHelper::doAply(Application &app, ManageKVAction action, bool require)
         {
+            LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(),mTestManager->getDB());
+
             ManageKeyValueTestBuilder builder(key, mTestManager, action);
-            REQUIRE(builder.kvManager->doApply(app,delta,ledgerManager) == require);
+
+            REQUIRE(builder.kvManager->doApply(app,delta,mTestManager->getLedgerManager()) == require);
             REQUIRE(builder.kvManager->getInnerCode(builder.kvManager->getResult()) == expectedResult);
         }
+
 
         Operation ManageKeyValueTestBuilder::buildOp()
         {

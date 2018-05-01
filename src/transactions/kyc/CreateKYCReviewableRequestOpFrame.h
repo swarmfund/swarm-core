@@ -40,7 +40,7 @@ namespace stellar {
         bool doCheckValid(Application &app) override;
 
         static bool getDefaultKYCMask(Database &db, LedgerManager &ledgerManager, UpdateKYCRequestData kycRequestData,
-                               AccountEntry account, uint32 &defaultMask);
+                               AccountFrame::pointer account, uint32 &defaultMask);
 
         static void checkRequestType(ReviewableRequestFrame::pointer request);
 

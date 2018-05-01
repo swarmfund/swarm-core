@@ -49,23 +49,19 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     ReviewKYCRequestTestHelper reviewKYCRequestTestHelper(testManager);
 
     LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(),testManager->getDB());
+
+
     auto account = AccountHelper::Instance()->loadAccount(updatedAccountID.getPublicKey(),
                                                           testManager->getDB());
-    if(account)
-    {
-        account->getAccount().ext.v(LedgerVersion::USE_KYC_LEVEL);
-        account->  setKYCLevel(0);
-    }
 
-    AccountHelper::Instance()->storeChange(delta,testManager->getDB(),account->mEntry);
-
+    //make KYC_RULE key
     longstring key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType, account->getKYCLevel(),
                                                            AccountType::GENERAL, kycLevel);
 
     SECTION("success") {
-        //add record of KV to DB
+        //store KV record into DB
         if (testManager->getLedgerManager().shouldUse(LedgerVersion::KYC_RULES)) {
-            manageKVHelper.setKey(key)->setValue(tasks);
+            manageKVHelper.setKey(key)->setValue(30);
             manageKVHelper.doAply(app, ManageKVAction::PUT, true);
         }
 
@@ -121,7 +117,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
         SECTION("set the same type") {
             kycLevel = 0;
 
-            key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType,account->getAccount().ext.kycLevel(),
+            key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType,account->getKYCLevel(),
                         AccountType::GENERAL,kycLevel);
             manageKVHelper.setKey(key)->doAply(app,ManageKVAction::PUT,true);
             

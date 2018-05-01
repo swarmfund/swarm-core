@@ -151,7 +151,7 @@ namespace stellar {
         uint32 defaultMask;
 
         if(!getDefaultKYCMask(db, ledgerManager, mCreateUpdateKYCRequest.updateKYCRequestData,
-                                                    account, defaultMask))
+                                                    accountFrame, defaultMask))
         {
             innerResult().code(CreateUpdateKYCRequestResultCode::KYC_RULE_NOT_FOUND);
             return false;
@@ -223,7 +223,7 @@ namespace stellar {
     bool
     CreateUpdateKYCRequestOpFrame::getDefaultKYCMask(Database &db, LedgerManager &ledgerManager,
                                                      UpdateKYCRequestData kycRequestData,
-                                                     AccountEntry account, uint32 &defaultMask)
+                                                     AccountFrame::pointer account, uint32 &defaultMask)
     {
         if(!ledgerManager.shouldUse(LedgerVersion::KYC_RULES))
         {
@@ -231,7 +231,8 @@ namespace stellar {
             return true;
         }
 
-        auto  key = ManageKeyValueOpFrame::makeKYCRuleKey(account.accountType,account.ext.kycLevel(),kycRequestData.accountTypeToSet,kycRequestData.kycLevelToSet);
+        auto  key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType,account->getKYCLevel(),
+                                                          kycRequestData.accountTypeToSet,kycRequestData.kycLevelToSet);
 
         auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key,db);
 

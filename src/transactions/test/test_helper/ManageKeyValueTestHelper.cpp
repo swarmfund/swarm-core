@@ -34,7 +34,7 @@ namespace stellar {
         {
             LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(),mTestManager->getDB());
 
-            ManageKeyValueTestBuilder builder(key, mTestManager, action);
+            ManageKeyValueTestBuilder builder(key, mTestManager, action, value);
 
             REQUIRE(builder.kvManager->doApply(app,delta,mTestManager->getLedgerManager()) == require);
             REQUIRE(builder.kvManager->getInnerCode(builder.kvManager->getResult()) == expectedResult);
@@ -52,16 +52,17 @@ namespace stellar {
             if(kvAction == ManageKVAction::PUT)
             {
                 op.body.manageKeyValueOp().action.value().value.type(KeyValueEntryType::UINT32);
-                op.body.manageKeyValueOp().action.value().value.defaultMask() = 0;
+                op.body.manageKeyValueOp().action.value().value.defaultMask() = value;
                 op.body.manageKeyValueOp().action.value().key = key;
             }
             return op;
         }
 
         ManageKeyValueTestBuilder::ManageKeyValueTestBuilder(string256 key, TestManager::pointer &testManager,
-                                                             ManageKVAction action)
+                                                                     ManageKVAction action, uint32 value)
                 :key(key),
-                 kvAction(action)
+                 kvAction(action),
+                 value(value)
         {
             auto txFrame = this->buildTx(testManager);
             tx = txFrame.get();

@@ -37,7 +37,8 @@ namespace stellar{
         {
         public:
 
-            ManageKeyValueTestBuilder(string256 key, TestManager::pointer &testManager, ManageKVAction action);
+            ManageKeyValueTestBuilder(string256 key, TestManager::pointer &testManager,
+                                                  ManageKVAction action, uint32 value);
 
             ManageKeyValueTestBuilder copy() override
             {
@@ -47,6 +48,7 @@ namespace stellar{
             Operation buildOp() override ;
 
             longstring key;
+            uint32 value;
             ManageKVAction kvAction;
             ManageKeyValueOpFrame* kvManager;
             Operation op;

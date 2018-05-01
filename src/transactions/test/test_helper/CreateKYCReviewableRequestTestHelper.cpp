@@ -128,7 +128,8 @@ namespace stellar {
                 requestData.kycLevelToSet    = requestAfterTxEntry.body.updateKYCRequest().kycLevel;
 
                 CreateUpdateKYCRequestOpFrame::getDefaultKYCMask(mTestManager->getDB(),mTestManager->getLedgerManager()
-                ,requestData,accountAfter->getAccount(),tasks);
+                ,requestData,accountAfter,tasks);
+
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().allTasks ==
                         tasks);
             }

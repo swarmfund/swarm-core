@@ -39,7 +39,7 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
         transactions/test/test_helper/Account.h
-)
+        transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.cpp transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.h)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

@@ -1,5 +1,6 @@
 #include "ManageExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "CreateExternalSystemAccountIDPoolEntryOpFrame.h"
+#include "DeleteExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "main/Application.h"
@@ -40,6 +41,8 @@ using xdr::operator==;
         switch (op.body.manageExternalSystemAccountIdPoolEntryOp().actionInput.action()) {
             case ManageExternalSystemAccountIdPoolEntryAction ::CREATE:
                 return new CreateExternalSystemAccountIDPoolEntryOpFrame(op, res, parentTx);
+            case ManageExternalSystemAccountIdPoolEntryAction ::DELETE:
+                return new DeleteExternalSystemAccountIDPoolEntryOpFrame(op, res, parentTx);
             default:
                 throw runtime_error("Unexpected action in manage external system account id pool entry op");
         }

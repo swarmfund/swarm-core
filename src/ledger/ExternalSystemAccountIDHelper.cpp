@@ -130,7 +130,7 @@ namespace stellar
 	}
 
 	bool ExternalSystemAccountIDHelper::exists(Database& db, AccountID rawAccountID,
-		ExternalSystemType externalSystemType)
+		int32 externalSystemType)
 	{
 		int exists = 0;
 		auto timer = db.getSelectTimer("external-system-account-id-exists");
@@ -179,7 +179,7 @@ namespace stellar
 
 	ExternalSystemAccountIDFrame::pointer 
 	ExternalSystemAccountIDHelper::	load(const AccountID rawAccountID,
-		const ExternalSystemType externalSystemType,
+		const int32 externalSystemType,
 		Database& db, LedgerDelta* delta)
 	{
 		std::string sql = select;

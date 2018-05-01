@@ -15,7 +15,7 @@ namespace txtest
 
     TransactionFramePtr
     BindExternalSystemAccountIdTestHelper::createBindExternalSystemAccountIdTx(Account &source,
-                                                                               ExternalSystemType externalSystemType,
+                                                                               int32 externalSystemType,
                                                                                Account *signer)
     {
         Operation op;
@@ -28,7 +28,7 @@ namespace txtest
 
     BindExternalSystemAccountIdResult
     BindExternalSystemAccountIdTestHelper::applyBindExternalSystemAccountIdTx(Account &source,
-                                                                              ExternalSystemType externalSystemType,
+                                                                              int32 externalSystemType,
                                                                               BindExternalSystemAccountIdResultCode expectedResultCode,
                                                                               Account *signer)
     {

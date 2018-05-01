@@ -19,11 +19,21 @@ namespace txtest
                                                        Account *signer = nullptr);
 
         ManageExternalSystemAccountIdPoolEntryResult
-        applyManageExternalSystemAccountIDPoolEntryTx(Account &source,
+        applyCreateExternalSystemAccountIDPoolEntryTx(Account &source,
                                                       ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t
                                                       actionInput,
                                                       ManageExternalSystemAccountIdPoolEntryAction action =
                                                       ManageExternalSystemAccountIdPoolEntryAction::CREATE,
+                                                      ManageExternalSystemAccountIdPoolEntryResultCode expectedResultCode =
+                                                      ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS,
+                                                      Account *signer = nullptr);
+
+        ManageExternalSystemAccountIdPoolEntryResult
+        applyDeleteExternalSystemAccountIDPoolEntryTx(Account &source,
+                                                      ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t
+                                                      actionInput,
+                                                      ManageExternalSystemAccountIdPoolEntryAction action =
+                                                      ManageExternalSystemAccountIdPoolEntryAction::DELETE,
                                                       ManageExternalSystemAccountIdPoolEntryResultCode expectedResultCode =
                                                       ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS,
                                                       Account *signer = nullptr);
@@ -32,10 +42,15 @@ namespace txtest
 
 
         ManageExternalSystemAccountIdPoolEntryResult
-        createExternalSystemAccountIdPoolEntry(Account &source, ExternalSystemType type, std::string data,
+        createExternalSystemAccountIdPoolEntry(Account &source, int32 type, std::string data,
                                                ManageExternalSystemAccountIdPoolEntryResultCode expectedResultCode =
                                                ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS,
                                                Account *signer = nullptr);
+        ManageExternalSystemAccountIdPoolEntryResult
+        deleteExternalSystemAccountIdPoolEntry(Account &source,
+                                               ManageExternalSystemAccountIdPoolEntryResultCode expectedResultCode =
+                                               ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS,
+                                               uint64 poolEntryID = 0, Account *signer = nullptr);
     };
 }
 }

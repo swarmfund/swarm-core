@@ -1,3 +1,5 @@
+#include <exsysidgen/Generator.h>
+#include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include "main/Application.h"
 #include "util/Timer.h"
 #include "main/Config.h"
@@ -18,6 +20,7 @@ typedef std::unique_ptr<Application> appPtr;
 
 TEST_CASE("manage external system account id pool entry", "[tx][manage_external_system_account_id_pool_entry]")
 {
+    auto const ERC20_TokenExternalSystemType = 4;
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
     auto const appPtr = Application::create(clock, cfg);
@@ -35,26 +38,37 @@ TEST_CASE("manage external system account id pool entry", "[tx][manage_external_
     SECTION("Invalid data")
     {
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                        ExternalSystemType::ERC20_TOKEN, "",
+                                                        ERC20_TokenExternalSystemType, "",
                                                         ManageExternalSystemAccountIdPoolEntryResultCode::MALFORMED);
     }
     SECTION("Already exists")
     {
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                            ExternalSystemType::ERC20_TOKEN, "Some data");
+                                                        ERC20_TokenExternalSystemType, "Some data");
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                            ExternalSystemType::ERC20_TOKEN, "Some data",
+                                                        ERC20_TokenExternalSystemType, "Some data",
                                                     ManageExternalSystemAccountIdPoolEntryResultCode::ALREADY_EXISTS);
     }
     SECTION("Auto generated type")
     {
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                    ExternalSystemType::BITCOIN, "",
+                                                        BitcoinExternalSystemType, "",
                                     ManageExternalSystemAccountIdPoolEntryResultCode::AUTO_GENERATED_TYPE_NOT_ALLOWED);
     }
     SECTION("Happy path")
     {
-        manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
-                                                                            ExternalSystemType::ERC20_TOKEN, "Some data");
+        auto res = manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
+                                                        ERC20_TokenExternalSystemType, "Some data");
+        SECTION("Delete")
+        {
+            manageExternalSystemAccountIDPoolEntryTestHelper.deleteExternalSystemAccountIdPoolEntry(root,
+                                                      ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS,
+                                                      res.success().poolEntryID);
+        }
+    }
+    SECTION("Not found")
+    {
+        manageExternalSystemAccountIDPoolEntryTestHelper.deleteExternalSystemAccountIdPoolEntry(root,
+                                                        ManageExternalSystemAccountIdPoolEntryResultCode::NOT_FOUND);
     }
 }

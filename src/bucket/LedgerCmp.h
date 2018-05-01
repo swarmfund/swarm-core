@@ -169,6 +169,16 @@ struct LedgerEntryIdCmp
             auto const &bkyc = b.accountKYC();
             return akyc.accountID < bkyc.accountID;
             }
+        case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
+            {
+                auto const& apool = a.externalSystemAccountIDPoolEntry();
+                auto const& bpool = b.externalSystemAccountIDPoolEntry();
+                if (apool.poolEntryID < bpool.poolEntryID)
+                    return true;
+                if (bpool.poolEntryID < apool.poolEntryID)
+                    return false;
+                return apool.externalSystemType < bpool.externalSystemType;
+            }
         default:
             {
             throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");

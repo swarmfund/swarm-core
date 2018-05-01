@@ -66,17 +66,17 @@ void type_conversion<stellar::uint64>::to_base(const stellar::uint64& number,
     result = number;
 }
 
-void type_conversion<ExternalSystemType, void>::from_base(int32_t number,
+void type_conversion<int32, void>::from_base(int32_t number,
                                                           indicator ind,
-                                                          ExternalSystemType&
+                                                          int32&
                                                           result)
 {
-    result = static_cast<ExternalSystemType>(number);
+    result = static_cast<int32>(number);
     ind = i_ok;
 }
 
-void type_conversion<ExternalSystemType, void>::to_base(
-    ExternalSystemType& number, int32_t& result, indicator& ind)
+void type_conversion<int32, void>::to_base(
+    int32& number, int32_t& result, indicator& ind)
 {
     result = static_cast<int32_t>(number);
     ind = i_ok;

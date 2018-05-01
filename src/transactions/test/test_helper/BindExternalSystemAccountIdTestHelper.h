@@ -14,11 +14,11 @@ namespace txtest
     public:
         explicit BindExternalSystemAccountIdTestHelper(TestManager::pointer testManager);
 
-        TransactionFramePtr createBindExternalSystemAccountIdTx(Account& source, ExternalSystemType externalSystemType,
-                                                                Account* signer = nullptr);
+        TransactionFramePtr createBindExternalSystemAccountIdTx(Account &source, int32 externalSystemType,
+                                                                Account *signer = nullptr);
 
         BindExternalSystemAccountIdResult applyBindExternalSystemAccountIdTx(Account& source,
-                                                               ExternalSystemType externalSystemType,
+                                                               int32 externalSystemType,
                                                                BindExternalSystemAccountIdResultCode expectedResultCode =
                                                                BindExternalSystemAccountIdResultCode::SUCCESS,
                                                                Account* signer = nullptr);

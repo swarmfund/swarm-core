@@ -94,6 +94,61 @@ AccountManager::Result AccountManager::processTransfer(
     return SUCCESS;
 }
 
+AccountManager::ProcessTransferResult AccountManager::processTransferV2(AccountFrame::pointer from, BalanceFrame::pointer fromBalance,
+    BalanceFrame::pointer toBalance, uint64_t amount, bool noIncludeIntoStats)
+{
+    // charge sender
+    if (!fromBalance->tryCharge(amount)) {
+        return ProcessTransferResult(Result::UNDERFUNDED, 0);
+    }
+
+    EntryHelperProvider::storeChangeEntry(mDelta, mDb, fromBalance->mEntry);
+
+    if (!toBalance->tryFundAccount(amount)) {
+        return ProcessTransferResult(Result::LINE_FULL, 0);
+    }
+
+    EntryHelperProvider::storeChangeEntry(mDelta, mDb, toBalance->mEntry);
+
+    auto statsAssetFrame = AssetHelper::Instance()->loadStatsAsset(mDb);
+    if (!statsAssetFrame) {
+        return ProcessTransferResult(Result::SUCCESS, 0);
+    }
+
+    auto assetPairFrame = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(fromBalance->getAsset(), statsAssetFrame->getCode(),
+        mDb, &mDelta);
+    if (!assetPairFrame) {
+        return ProcessTransferResult(Result::SUCCESS, 0);
+    }
+
+    uint64_t universalAmount;
+    if (!assetPairFrame->convertAmount(fromBalance->getAsset(), amount, Rounding::ROUND_UP, universalAmount)) {
+        return ProcessTransferResult(Result::STATS_OVERFLOW, 0);
+    }
+
+    auto result = ProcessTransferResult(Result::STATS_OVERFLOW, universalAmount);
+    if (noIncludeIntoStats) {
+        return result;
+    }
+
+    auto stats = StatisticsHelper::Instance()->mustLoadStatistics(fromBalance->getAccountID(), mDb, &mDelta);
+
+    auto now = mLm.getCloseTime();
+    if (!stats->add(universalAmount, now))
+    {
+        return ProcessTransferResult(Result::STATS_OVERFLOW, 0);
+    }
+
+    if (!validateStats(from, fromBalance, stats))
+    {
+        return ProcessTransferResult(Result::LIMITS_EXCEEDED, 0);
+    }
+
+    EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
+    return result;
+
+}
+
 bool AccountManager::revertRequest(AccountFrame::pointer account,
                                    BalanceFrame::pointer balance, int64 amount,
                                    int64 universalAmount, time_t timePerformed)
@@ -293,6 +348,7 @@ BalanceFrame::pointer AccountManager::loadOrCreateBalanceFrameForAsset(
     return balance;
 }
 
+[[deprecated]]
 bool AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db)
 {
     auto balanceFrame = BalanceHelper::Instance()->loadBalance(receivingBalance, db);

@@ -4,6 +4,7 @@
 #include <ledger/BalanceHelper.h>
 #include <ledger/FeeHelper.h>
 #include <ledger/ReferenceHelper.h>
+#include <ledger/AssetPairHelper.h>
 #include "ledger/LedgerDelta.h"
 #include <transactions/AccountManager.h>
 #include "PaymentOpV2Frame.h"
@@ -48,34 +49,129 @@ namespace stellar {
                              static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
     }
 
+    bool PaymentOpV2Frame::processTransfer(AccountManager & accountManager, BalanceFrame::pointer from, BalanceFrame::pointer to,
+        uint64_t amount)
+    {
+        auto sourceAccount = make_shared<AccountFrame>(getSourceAccount());
+        auto transferResult = accountManager.processTransferV2(sourceAccount, from, to, amount);
+        if (transferResult.result == AccountManager::Result::SUCCESS) {
+            return true;
+        }
+
+        switch (transferResult.result) {
+        case AccountManager::Result::UNDERFUNDED: {
+            innerResult().code(PaymentV2ResultCode::UNDERFUNDED);
+            return false;
+        }
+        case AccountManager::Result::STATS_OVERFLOW: {
+            innerResult().code(PaymentV2ResultCode::STATS_OVERFLOW);
+            return false;
+        }
+        case AccountManager::Result::LIMITS_EXCEEDED: {
+            innerResult().code(PaymentV2ResultCode::LIMITS_EXCEEDED);
+            return false;
+        }
+        case AccountManager::Result::LINE_FULL: {
+            innerResult().code(PaymentV2ResultCode::LINE_FULL);
+            return false;
+        }
+        default: {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from process transfer v2: " << transferResult.result;
+            throw std::runtime_error("Unexpected result code from process transfer v2");
+        }
+        }
+    }
+
+    bool PaymentOpV2Frame::processTransferFee(AccountManager& accountManager, AccountFrame::pointer payer,
+        BalanceFrame::pointer chargeFrom, FeeDataV2 expectedFee, FeeDataV2 actualFee,
+        AccountID const& commissionID, Database& db, LedgerDelta& delta, bool ignoreStats)
+    {
+        if (actualFee.fixedFee == 0 && actualFee.maxPaymentFee == 0) {
+            return true;
+        }
+
+        if (actualFee.feeAsset != expectedFee.feeAsset) {
+            // TODO: add proper error code
+            innerResult().code(PaymentV2ResultCode::DESTINATION_FEE_MISMATCHED);
+            return false;
+        }
+
+        if (actualFee.fixedFee <= expectedFee.fixedFee && actualFee.maxPaymentFee <= expectedFee.maxPaymentFee) {
+            // TODO: add proper error code
+            innerResult().code(PaymentV2ResultCode::DESTINATION_FEE_MISMATCHED);
+            return false;
+        }
+
+        uint64_t totalFee;
+        if (!safeSum(actualFee.fixedFee, actualFee.maxPaymentFee, totalFee)) {
+            // TODO: add proper error code
+            innerResult().code(PaymentV2ResultCode::DESTINATION_FEE_MISMATCHED);
+            return false;
+        }
+
+        // try to load balance for fee to be charged
+        if (chargeFrom->getAsset() != actualFee.feeAsset) {
+            chargeFrom = BalanceHelper::Instance()->loadBalance(chargeFrom->getAccountID(), actualFee.feeAsset, db, &delta);
+            if (!chargeFrom) {
+                // TODO: add proper error code
+                innerResult().code(PaymentV2ResultCode::DESTINATION_FEE_MISMATCHED);
+                return false;
+            }
+        }
+        
+        // load commission balance
+        auto commissionBalance = AccountManager::loadOrCreateBalanceFrameForAsset(commissionID, actualFee.feeAsset, db, delta);
+        if (!commissionBalance) {
+            // TODO: add proper exception
+            throw std::runtime_error("AAAAAAAAAA");
+        }
+
+        auto transferResult = accountManager.processTransferV2(payer, chargeFrom, commissionBalance, totalFee, ignoreStats);
+        if (transferResult.result == AccountManager::Result::SUCCESS) {
+            return true;
+        }
+
+        // TODO: add proper handling
+        throw std::runtime_error("TODO: add proper handling");
+    }
+
     bool PaymentOpV2Frame::isRecipientFeeNotRequired() {
         return mSourceAccount->getAccountType() == AccountType::COMMISSION;
     }
 
-    bool PaymentOpV2Frame::tryLoadDestinationBalance(Database &db, LedgerDelta &delta) {
+	BalanceFrame::pointer PaymentOpV2Frame::tryLoadDestinationBalance(AssetCode asset, Database &db, LedgerDelta &delta) {
         switch (mPayment.destination.type()) {
             case PaymentDestinationType::BALANCE: {
-                mDestinationBalance = BalanceHelper::Instance()->loadBalance(mPayment.destination.balanceID(), db,
+                auto dest = BalanceHelper::Instance()->loadBalance(mPayment.destination.balanceID(), db,
                                                                              &delta);
-                if (!mDestinationBalance) {
+                if (!dest) {
                     innerResult().code(PaymentV2ResultCode::DESTINATION_BALANCE_NOT_FOUND);
-                    return false;
+                    return nullptr;
                 }
+
+		if (dest->getAsset() != asset) {
+			innerResult().code(PaymentV2ResultCode::BALANCE_ASSETS_MISMATCHED);
+			return nullptr;
+		}
+
+		return dest;
             }
             case PaymentDestinationType::ACCOUNT: {
-                mDestinationBalance = AccountManager::loadOrCreateBalanceFrameForAsset(mPayment.destination.accountID(),
-                                                                                       mSourceBalance->getAsset(), db,
+                auto dest = AccountManager::loadOrCreateBalanceFrameForAsset(mPayment.destination.accountID(),
+                                                                                       asset, db,
                                                                                        delta);
-                if (!mDestinationBalance) {
+                if (!dest) {
                     CLOG(ERROR, Logging::OPERATION_LOGGER)
                             << "Unexpected state: expected destination balance to exist, account id: "
                             << PubKeyUtils::toStrKey(mPayment.destination.accountID());
                     throw runtime_error("Unexpected state: expected destination balance to exist");
                 }
-            }
-        }
 
-        return true;
+		return dest;
+            }
+            default:
+                throw std::runtime_error("Unexpected destination type on payment v2");
+        }
     }
 
     bool PaymentOpV2Frame::processBalanceChange(AccountManager::Result balanceChangeResult) {
@@ -96,20 +192,43 @@ namespace stellar {
         return true;
     }
 
-    bool PaymentOpV2Frame::isAllowedToTransfer(Database &db) {
-        if (mSourceBalance->getAsset() != mDestinationBalance->getAsset()) {
+    bool PaymentOpV2Frame::isTransferAllowed(BalanceFrame::pointer from, BalanceFrame::pointer to, Database & db)
+    {
+        if (from->getAsset() != to->getAsset()) {
             innerResult().code(PaymentV2ResultCode::BALANCE_ASSETS_MISMATCHED);
             return false;
         }
 
-        auto assetFrame = AssetHelper::Instance()->loadAsset(mSourceBalance->getAsset(), db);
+        // is transfer allowed by asset policy
+        auto asset = AssetHelper::Instance()->mustLoadAsset(from->getAsset(), db);
+        if (asset->isPolicySet(AssetPolicy::TRANSFERABLE)) {
+            innerResult().code(PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
+            return false;
+        }
+
+        // is holding asset require KYC
+        if (!asset->isRequireKYC()) {
+            return true;
+        }
+
+        auto destAccount = AccountHelper::Instance()->mustLoadAccount(to->getAccountID(), db);
+        if (destAccount->getAccountType() == AccountType::NOT_VERIFIED) {
+            innerResult().code(PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
+            return false;
+        }
+
+        return true;
+    }
+
+    bool PaymentOpV2Frame::isAllowedToTransfer(Database &db, AssetCode assetToTransfer) {
+        auto assetFrame = AssetHelper::Instance()->loadAsset(assetToTransfer, db);
         if (!assetFrame) {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: expected asset to exist:"
-                                                   << mSourceBalance->getAsset();
+                                                   << assetToTransfer;
             throw std::runtime_error("Unexpected state: expected asset to exist");
         }
 
-        if (!assetFrame->checkPolicy(AssetPolicy::TRANSFERABLE) ||
+        if (!assetFrame->isPolicySet(AssetPolicy::TRANSFERABLE) ||
             !AccountManager::isAllowedToReceive(mDestinationBalance->getBalanceID(), db)) {
             innerResult().code(PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
             return false;
@@ -224,6 +343,40 @@ namespace stellar {
         return true;
     }
 
+    FeeDataV2 PaymentOpV2Frame::getActualFee(AccountFrame::pointer accountFrame, AssetCode const & transferAsset, uint64_t amount,
+        PaymentFeeType feeType, Database & db)
+    {
+        FeeDataV2 actualFee;
+        actualFee.feeAsset = transferAsset;
+        actualFee.maxPaymentFee = 0;
+        actualFee.fixedFee = 0;
+        auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::PAYMENT_FEE, transferAsset, static_cast<int64_t>(feeType),
+            accountFrame, amount, db);
+        // if we do not have any fee frame - any fee is valid
+        if (!feeFrame) {
+            return actualFee;
+        }
+
+        actualFee.feeAsset = feeFrame->getFeeAsset();
+        if (actualFee.feeAsset != transferAsset) {
+            auto assetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(actualFee.feeAsset, transferAsset, db);
+            if (!assetPair) {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Failed to load asset pair for cross asset fee: " 
+                    << actualFee.feeAsset << " " << transferAsset;
+                throw std::runtime_error("Unexpected state. Failed to load asset pair for cross asset fee");
+            }
+
+            if (!assetPair->convertAmount(transferAsset, amount, Rounding::ROUND_UP, amount)) {
+                // most probably it will not happen, but it'd better to return error code
+                throw std::runtime_error("failed to convert transfer amount into fee asset");
+            }
+        }
+
+        actualFee.maxPaymentFee = feeFrame->calculatePercentFee(amount, true);
+        actualFee.fixedFee = feeFrame->getFee().fixedFee;
+        return actualFee;
+    }
+
     //TODO: might be refactored
     bool PaymentOpV2Frame::tryFundCommissionAccount(Application &app, Database &db, LedgerDelta &delta) {
         auto commissionSourceFeeAssetBalance = AccountManager::loadOrCreateBalanceFrameForAsset(app.getCommissionID(),
@@ -313,35 +466,53 @@ namespace stellar {
         return true;
     }
 
+
+
+
     bool PaymentOpV2Frame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
         Database &db = app.getDatabase();
 
-        // check operation prerequisites
-        mSourceBalance = BalanceHelper::Instance()->loadBalance(getSourceID(), mPayment.sourceBalanceID, db,
-                                                                &delta);
-        if (!mSourceBalance) {
+	auto sourceBalance = BalanceHelper::Instance()->loadBalance(getSourceID(), mPayment.sourceBalanceID, db, &delta);
+        if (!sourceBalance) {
             innerResult().code(PaymentV2ResultCode::SRC_BALANCE_NOT_FOUND);
             return false;
         }
 
-        if (!tryLoadDestinationBalance(db, delta))
-            return false;
+	auto destBalance = tryLoadDestinationBalance(sourceBalance->getAsset(), db, delta);
+	if (!destBalance) {
+		return false;
+	}
 
-        if (!isAllowedToTransfer(db))
+        if (!isTransferAllowed(sourceBalance, destBalance, db)) {
             return false;
+        }
 
-        // subtract amount from sourceBalance
         AccountManager accountManager(app, db, delta, app.getLedgerManager());
-
-        int64_t universalAmount;
-        auto transferResult = accountManager.processTransfer(mSourceAccount, mSourceBalance, mPayment.amount,
-                                                             universalAmount);
-        if (!processBalanceChange(transferResult))
+        // process transfer from source to dest
+        if (!processTransfer(accountManager, sourceBalance, destBalance, mPayment.amount)) {
             return false;
+        }
 
-        mSourceSentUniversal += universalAmount;
+        auto sourceAccount = make_shared<AccountFrame>(getSourceAccount());
+        auto sourceFee = getActualFee(sourceAccount, sourceBalance->getAsset(), mPayment.amount, PaymentFeeType::OUTGOING, db);
+        if (!processTransferFee(accountManager, sourceAccount, sourceBalance, mPayment.feeData.sourceFee, sourceFee,
+            app.getCommissionID(), db, delta, false)) {
+            return false;
+        }
+        
+        auto destAccount = AccountHelper::Instance()->mustLoadAccount(destBalance->getAccountID(), db);
+        auto destFee = getActualFee(destAccount, sourceBalance->getAsset(), mPayment.amount, PaymentFeeType::INCOMING, db);
+        if (destFee.feeAsset != sourceBalance->getAsset()) {
+            // TODO: set proper error
+            return false;
+        }
 
-        EntryHelperProvider::storeChangeEntry(delta, db, mSourceBalance->mEntry);
+        auto destFeePayer = destAccount;
+        auto destFeePayerBalance = destBalance;
+        if (mPayment.feeData.sourcePaysForDest) {
+            destFeePayer = sourceAccount;
+            destFeePayerBalance = sourceBalance;
+        }
 
         // calculate and subtract fee from source
         if (!processSourceFee(accountManager, db, delta))

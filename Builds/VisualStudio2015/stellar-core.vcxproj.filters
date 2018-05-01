@@ -124,6 +124,9 @@
     <Filter Include="transactions\kyc">
       <UniqueIdentifier>{29e6bc01-600f-48ea-9bec-1442464f8b4f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="transactions\payment">
+      <UniqueIdentifier>{4f0d87a5-983c-4b3a-82ba-82845fb2d834}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -256,9 +259,6 @@
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\TransactionFrame.cpp">
-      <Filter>transactions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\transactions\PaymentOpFrame.cpp">
       <Filter>transactions</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\SetOptionsOpFrame.cpp">
@@ -942,6 +942,12 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.cpp">
       <Filter>transactions\review_request</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\payment\PaymentOpFrame.cpp">
+      <Filter>transactions\payment</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\payment\PaymentOpV2Frame.cpp">
+      <Filter>transactions\payment</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1053,9 +1059,6 @@
       <Filter>util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\TransactionFrame.h">
-      <Filter>transactions</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\transactions\PaymentOpFrame.h">
       <Filter>transactions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\SetOptionsOpFrame.h">
@@ -1838,6 +1841,12 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.h">
       <Filter>transactions\review_request</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\payment\PaymentOpFrame.h">
+      <Filter>transactions\payment</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\payment\PaymentOpV2Frame.h">
+      <Filter>transactions\payment</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -2074,6 +2083,9 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-KYC-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment-v2.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

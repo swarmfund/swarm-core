@@ -514,36 +514,7 @@ namespace stellar {
             destFeePayerBalance = sourceBalance;
         }
 
-        // calculate and subtract fee from source
-        if (!processSourceFee(accountManager, db, delta))
-            return false;
 
-        // try to fund destination account
-        if (!mDestinationBalance->tryFundAccount(mPayment.amount)) {
-            innerResult().code(PaymentV2ResultCode::LINE_FULL);
-            return false;
-        }
-
-        // calculate and subtract fee from destination
-        if (!processDestinationFee(accountManager, db, delta)) {
-            return false;
-        }
-
-        uint64 paymentID = delta.getHeaderFrame().generateID(LedgerEntryType::PAYMENT_REQUEST);
-
-        if (!mPayment.reference.empty()) {
-            AccountID sourceAccountID = mSourceAccount->getID();
-
-            if (ReferenceHelper::Instance()->exists(db, mPayment.reference, sourceAccountID)) {
-                innerResult().code(PaymentV2ResultCode::REFERENCE_DUPLICATION);
-                return false;
-            }
-            createReferenceEntry(mPayment.reference, &delta, db);
-        }
-
-        if (!tryFundCommissionAccount(app, db, delta)) {
-            return false;
-        }
 
         innerResult().code(PaymentV2ResultCode::SUCCESS);
         innerResult().paymentV2Response().destination = mDestinationBalance->getAccountID();

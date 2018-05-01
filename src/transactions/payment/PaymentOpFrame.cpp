@@ -233,7 +233,7 @@ bool PaymentOpFrame::calculateSourceDestAmount()
 
 bool PaymentOpFrame::isAllowedToTransfer(Database& db, AssetFrame::pointer asset)
 {
-	return asset->checkPolicy(AssetPolicy::TRANSFERABLE);
+	return asset->isPolicySet(AssetPolicy::TRANSFERABLE);
 }
 
 bool PaymentOpFrame::processFees(Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db)

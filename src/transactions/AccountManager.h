@@ -28,7 +28,6 @@ protected:
     LedgerDelta& mDelta;
     LedgerManager& mLm;
 
-private:
 public:
     void createStats(AccountFrame::pointer account);
 

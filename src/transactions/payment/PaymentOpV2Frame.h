@@ -8,9 +8,17 @@ namespace stellar {
             return mResult.tr().paymentV2Result();
         }
 
-        PaymentOpV2 const &mPaymentV2;
-        uint64_t mSourceSent;
-        uint64_t mDestReceived;
+        PaymentOpV2 const &mPayment;
+
+        BalanceFrame::pointer mSourceBalance;
+        BalanceFrame::pointer mDestinationBalance;
+        BalanceFrame::pointer mSourceFeeBalance;
+
+        uint64_t mSourceSentUniversal;
+        uint64_t mActualSourcePaymentFee;
+        uint64_t mActualDestinationPaymentFee;
+
+        bool mIsCrossAssetPayment;
 
         std::unordered_map<AccountID, CounterpartyDetails>
         getCounterpartyDetails(Database &db, LedgerDelta *delta) const override;
@@ -19,21 +27,25 @@ namespace stellar {
         getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                 int32_t ledgerVersion) const override;
 
-        bool isRecipientFeeNotRequired(Database &db);
+        bool isRecipientFeeNotRequired();
 
-        bool isAllowedToTransfer(Database &db, AssetFrame::pointer asset);
+        bool tryLoadDestinationBalance(Database &db, LedgerDelta &delta);
 
-        bool processFees(Application &app, LedgerDelta &delta, Database &db);
+        bool processBalanceChange(AccountManager::Result balanceChangeResult);
 
-    protected:
+        bool isAllowedToTransfer(Database &db);
 
-        AccountFrame::pointer mDestAccount;
-        BalanceFrame::pointer mSourceBalance;
-        BalanceFrame::pointer mDestBalance;
+        bool processSourceFee(AccountManager &accountManager, Database &db, LedgerDelta &delta);
 
-        bool tryLoadBalances(Application &app, Database &db, LedgerDelta &delta);
+        bool processDestinationFee(AccountManager &accountManager, Database &db, LedgerDelta &delta);
 
-        bool checkFees(Application &app, Database &db, LedgerDelta &delta);
+        bool
+        isTransferFeeMatch(AccountFrame::pointer accountFrame, AssetCode const &assetCode, FeeDataV2 const &feeData,
+                           int64_t const &amount, int64_t subtype, Database &db, LedgerDelta &delta);
+
+        bool tryLoadSourceFeeBalance(Database &db, LedgerDelta &delta);
+
+        bool tryFundCommissionAccount(Application &app, Database &db, LedgerDelta &delta);
 
     public:
         PaymentOpV2Frame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);
@@ -41,12 +53,6 @@ namespace stellar {
         bool doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) override;
 
         bool doCheckValid(Application &app) override;
-
-        bool processBalanceChange(Application &app, AccountManager::Result balanceChangeResult);
-
-        static bool isTransferFeeMatch(AccountFrame::pointer accountFrame, AssetCode const &assetCode,
-                                       FeeDataV2 const &feeData, uint64_t const &amount, PaymentFeeType paymentFeeType,
-                                       Database &db, LedgerDelta &delta);
 
         static PaymentV2ResultCode getInnerCode(OperationResult const &res) {
             return res.tr().paymentV2Result().code();

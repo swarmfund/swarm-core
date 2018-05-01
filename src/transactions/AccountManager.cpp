@@ -62,16 +62,12 @@ AccountManager::Result AccountManager::processTransfer(
             return UNDERFUNDED;
     }
 
-    auto assetHelper = AssetHelper::Instance();
-    auto statsAssetFrame = assetHelper->loadStatsAsset(mDb);
+    auto statsAssetFrame = AssetHelper::Instance()->loadStatsAsset(mDb);
     if (!statsAssetFrame)
         return SUCCESS;
 
-    auto assetPairHelper = AssetPairHelper::Instance();
-    auto assetPairFrame = assetPairHelper->loadAssetPair(balance->getAsset(),
-                                                         statsAssetFrame->
-                                                         getCode(), mDb,
-                                                         &mDelta);
+    auto assetPairFrame = AssetPairHelper::Instance()->loadAssetPair(balance->getAsset(), statsAssetFrame->getCode(),
+                                                                     mDb, &mDelta);
     if (!assetPairFrame)
         return SUCCESS;
 
@@ -81,9 +77,7 @@ AccountManager::Result AccountManager::processTransfer(
         return STATS_OVERFLOW;
     }
 
-    auto statisticsHelper = StatisticsHelper::Instance();
-    auto stats = statisticsHelper->mustLoadStatistics(balance->getAccountID(),
-                                                      mDb, &mDelta);
+    auto stats = StatisticsHelper::Instance()->mustLoadStatistics(balance->getAccountID(), mDb, &mDelta);
 
     auto now = mLm.getCloseTime();
     if (!stats->add(universalAmount, now))

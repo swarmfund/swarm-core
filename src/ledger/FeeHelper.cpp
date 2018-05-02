@@ -166,7 +166,7 @@ namespace stellar {
         string hash(binToHex(feeEntry.hash));
         st.exchange(use(hash, "hash"));
 
-        std::string feeAsset = feeEntry.ext.v() == LedgerVersion::USE_PAYMENT_V2
+        std::string feeAsset = feeEntry.ext.v() == LedgerVersion::CROSS_ASSET_FEE
                                ? feeEntry.ext.feeAsset() : "";
         st.exchange(use(feeAsset, "fa"));
 
@@ -239,7 +239,7 @@ namespace stellar {
             le.data.feeState().feeType = FeeType(rawFeeType);
             le.data.feeState().ext.v((LedgerVersion)feeVersion);
 
-            if (le.data.feeState().ext.v() == LedgerVersion::USE_PAYMENT_V2) {
+            if (le.data.feeState().ext.v() == LedgerVersion::CROSS_ASSET_FEE) {
                 if (feeAsset.empty()) {
                     throw std::runtime_error("Invalid fee asset value in database");
                 }

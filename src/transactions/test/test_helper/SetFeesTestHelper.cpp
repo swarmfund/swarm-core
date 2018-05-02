@@ -73,7 +73,7 @@ namespace stellar {
             fee.hash = FeeFrame::calcHash(type, asset, accountID, accountType, subtype);
 
             if (feeAsset != nullptr) {
-                fee.ext.v(LedgerVersion::USE_PAYMENT_V2);
+                fee.ext.v(LedgerVersion::CROSS_ASSET_FEE);
                 fee.ext.feeAsset() = *feeAsset;
             }
 

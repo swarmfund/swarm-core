@@ -99,7 +99,7 @@ namespace stellar {
             return false;
         }
 
-        if (mSetFees.fee->ext.v() == LedgerVersion::USE_PAYMENT_V2 &&
+        if (mSetFees.fee->ext.v() == LedgerVersion::CROSS_ASSET_FEE &&
             mSetFees.fee->asset != mSetFees.fee->ext.feeAsset()) {
             if (!AssetHelper::Instance()->exists(db, mSetFees.fee->ext.feeAsset())) {
                 innerResult().code(SetFeesResultCode::FEE_ASSET_NOT_FOUND);
@@ -281,7 +281,7 @@ namespace stellar {
             return false;
         }
 
-        if (mSetFees.fee->ext.v() == LedgerVersion::USE_PAYMENT_V2) {
+        if (mSetFees.fee->ext.v() == LedgerVersion::CROSS_ASSET_FEE) {
             if (!AssetFrame::isAssetCodeValid(mSetFees.fee->ext.feeAsset())) {
                 innerResult().code(SetFeesResultCode::INVALID_FEE_ASSET);
                 return false;

@@ -173,11 +173,7 @@ struct LedgerEntryIdCmp
             {
                 auto const& apool = a.externalSystemAccountIDPoolEntry();
                 auto const& bpool = b.externalSystemAccountIDPoolEntry();
-                if (apool.poolEntryID < bpool.poolEntryID)
-                    return true;
-                if (bpool.poolEntryID < apool.poolEntryID)
-                    return false;
-                return apool.externalSystemType < bpool.externalSystemType;
+                return apool.poolEntryID < bpool.poolEntryID;
             }
         default:
             {

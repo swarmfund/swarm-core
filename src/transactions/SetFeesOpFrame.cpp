@@ -106,8 +106,16 @@ namespace stellar {
                 return false;
             }
 
-            if (!AssetPairHelper::Instance()->exists(db, mSetFees.fee->asset, mSetFees.fee->ext.feeAsset())) {
+            auto feeAssetPair = AssetPairHelper::Instance()->loadAssetPair(mSetFees.fee->asset,
+                                                                           mSetFees.fee->ext.feeAsset(), db);
+
+            if(!feeAssetPair) {
                 innerResult().code(SetFeesResultCode::ASSET_PAIR_NOT_FOUND);
+                return false;
+            }
+
+            if (feeAssetPair->getCurrentPrice() <= 0) {
+                innerResult().code(SetFeesResultCode::INVALID_ASSET_PAIR_PRICE);
                 return false;
             }
         }

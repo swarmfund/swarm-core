@@ -212,6 +212,13 @@ TEST_CASE("Set fee", "[tx][set_fees]") {
                 setFeesTestHelper.applySetFeesTx(master, &feeEntry, true);
             }
         }
+        SECTION("Invalid asset pair price") {
+            manageAssetPairTestHelper.createAssetPair(master, assetCode, usdt, 0);
+            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,
+                                                             static_cast<int64_t>(PaymentFeeType::OUTGOING), 0,
+                                                             INT64_MAX, &usdt);
+            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false, SetFeesResultCode::INVALID_ASSET_PAIR_PRICE);
+        }
         SECTION("Cross asset fee creation success") {
             manageAssetPairTestHelper.createAssetPair(master, assetCode, usdt, 5);
             auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,

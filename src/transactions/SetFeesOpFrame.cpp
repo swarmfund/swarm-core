@@ -106,9 +106,9 @@ namespace stellar {
                 return false;
             }
 
-            auto feeAssetPair = AssetPairHelper::Instance()->loadAssetPair(mSetFees.fee->asset,
-                                                                           mSetFees.fee->ext.feeAsset(), db);
-
+            auto feeAssetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(mSetFees.fee->asset,
+                                                                                       mSetFees.fee->ext.feeAsset(),
+                                                                                       db);
             if(!feeAssetPair) {
                 innerResult().code(SetFeesResultCode::ASSET_PAIR_NOT_FOUND);
                 return false;

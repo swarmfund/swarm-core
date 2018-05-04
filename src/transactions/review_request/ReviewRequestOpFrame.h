@@ -35,6 +35,9 @@ protected:
 		throw std::runtime_error("There is no default implementation of handleApprove of Reviewable Request");
 	}
 
+        // ensures that blocking rules are fulfilled, if not sets the error code and returns false
+        bool areBlockingRulesFulfilled(ReviewableRequestFrame::pointer request, LedgerManager& lm, Database& db, LedgerDelta& delta);
+
 	// creates reference entry, throws excpetion if reference already exist. Throws expception if reference is null
 	void createReference(LedgerDelta& delta, Database& db, AccountID const& requestor, xdr::pointer<stellar::string64> reference);
 

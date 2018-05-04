@@ -322,6 +322,7 @@ namespace stellar {
 
         innerResult().code(PaymentV2ResultCode::SUCCESS);
         innerResult().paymentV2Response().destination = destAccount->getID();
+        innerResult().paymentV2Response().destinationBalance = destBalance->getBalanceID();
         innerResult().paymentV2Response().asset = destBalance->getAsset();
         innerResult().paymentV2Response().sourceSentUniversal = sourceSentUniversal;
         innerResult().paymentV2Response().paymentID = paymentID;

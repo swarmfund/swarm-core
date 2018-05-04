@@ -60,7 +60,7 @@ using xdr::operator<;
         externalSystemAccountIDPoolEntry.parent = parent;
         externalSystemAccountIDPoolEntry.expiresAt = 0;
         externalSystemAccountIDPoolEntry.bindedAt = 0;
-        externalSystemAccountIDPoolEntry.isDeleted = 0;
+        externalSystemAccountIDPoolEntry.isDeleted = false;
         return std::make_shared<ExternalSystemAccountIDPoolEntryFrame>(le);
     }
 
@@ -91,14 +91,8 @@ using xdr::operator<;
         return ensureValid(mExternalSystemAccountIDPoolEntry);
     }
 
-    void ExternalSystemAccountIDPoolEntryFrame::markAsDeleted(
-            ExternalSystemAccountIDPoolEntry externalSystemAccountIDPoolEntry)
-    {
-        externalSystemAccountIDPoolEntry.isDeleted = 1;
-    }
-
     void ExternalSystemAccountIDPoolEntryFrame::markAsDeleted()
     {
-        markAsDeleted(mExternalSystemAccountIDPoolEntry);
+        mExternalSystemAccountIDPoolEntry.isDeleted = true;
     }
 }

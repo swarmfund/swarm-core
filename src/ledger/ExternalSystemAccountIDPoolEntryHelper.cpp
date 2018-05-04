@@ -15,7 +15,7 @@ namespace stellar
 using xdr::operator<;
 
     const char* ExternalSystemAccountIDPoolEntryHelper::select = "SELECT id, external_system_type, data, parent, "
-                       "account_id, expires_at, binded_at, lastmodified, version FROM external_system_account_id_pool";
+           "is_deleted, account_id, expires_at, binded_at, lastmodified, version FROM external_system_account_id_pool";
 
     void ExternalSystemAccountIDPoolEntryHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
                                                                   LedgerEntry const &entry)
@@ -53,7 +53,8 @@ using xdr::operator<;
             st.exchange(use(poolEntry.externalSystemType, "ex_sys_type"));
             st.exchange(use(poolEntry.data, "data"));
             st.exchange(use(poolEntry.parent, "parent"));
-            st.exchange(use(poolEntry.isDeleted, "is_del"));
+            int isDeleted = poolEntry.isDeleted ? 1 : 0;
+            st.exchange(use(isDeleted, "is_del"));
 
             std::string actIDStrKey;
             if(poolEntry.accountID)
@@ -128,7 +129,7 @@ using xdr::operator<;
             "external_system_type INT         NOT NULL,"
             "data                 TEXT        NOT NULL,"
             "parent               INT         NOT NULL,"
-            "is_deleted           INT         NOT NULL,"
+            "is_deleted           BOOLEAN     NOT NULL,"
             "account_id           VARCHAR(56) NOT NULL,"
             "expires_at           BIGINT      NOT NULL,"
             "binded_at            BIGINT      NOT NULL,"
@@ -304,6 +305,7 @@ using xdr::operator<;
     {
         try
         {
+            int isDeleted;
             LedgerEntry le;
             le.data.type(LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY);
             auto& p = le.data.externalSystemAccountIDPoolEntry();
@@ -315,6 +317,7 @@ using xdr::operator<;
             st.exchange(into(p.externalSystemType));
             st.exchange(into(p.data));
             st.exchange(into(p.parent));
+            st.exchange(into(isDeleted));
             st.exchange(into(actIDStrKey));
             st.exchange(into(p.expiresAt));
             st.exchange(into(p.bindedAt));
@@ -325,6 +328,7 @@ using xdr::operator<;
 
             while (st.got_data())
             {
+                p.isDeleted = isDeleted > 0;
                 p.ext.v(static_cast<LedgerVersion>(version));
 
                 if (!actIDStrKey.empty())
@@ -348,7 +352,7 @@ using xdr::operator<;
                                                                    int32 externalSystemType)
     {
         string sql = select;
-        sql += +" WHERE external_system_type = :ex_sys_type AND expires_at < :time AND is_deleted = 0"
+        sql += +" WHERE external_system_type = :ex_sys_type AND expires_at < :time AND is_deleted = FALSE "
                 "ORDER BY account_id = '' DESC, expires_at, id LIMIT 1";
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();

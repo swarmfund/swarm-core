@@ -35,7 +35,6 @@ public:
     static pointer createNew(uint64 poolEntryID, int32 const externalSystemType,
                                 std::string const data, uint64 parent);
 
-    void markAsDeleted(ExternalSystemAccountIDPoolEntry externalSystemAccountIDPoolEntry);
     void markAsDeleted();
 
     ExternalSystemAccountIDPoolEntry const& getExternalSystemAccountIDPoolEntry() const

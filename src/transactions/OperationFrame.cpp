@@ -17,6 +17,7 @@
 #include "transactions/TransactionFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/payment/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpV2Frame.h"
 #include "transactions/SetOptionsOpFrame.h"
 #include "transactions/SetFeesOpFrame.h"
 #include "transactions/ManageAccountOpFrame.h"
@@ -95,6 +96,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateAMLAlertRequestOpFrame(op,res,tx));
 	case OperationType::CREATE_KYC_REQUEST:
 		return shared_ptr<OperationFrame>(new CreateUpdateKYCRequestOpFrame(op, res, tx));
+    case OperationType::PAYMENT_V2:
+        return shared_ptr<OperationFrame>(new PaymentOpV2Frame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

@@ -108,7 +108,7 @@ namespace stellar {
 
         auto transferResult = accountManager.processTransferV2(payer, chargeFrom, commissionBalance, totalFee,
                                                                ignoreStats);
-        if (transferResult.result != AccountManager::Result::SUCCESS) {
+        if (transferResult.result == AccountManager::Result::SUCCESS) {
             universalAmount += transferResult.universalAmount;
             return true;
         }
@@ -190,7 +190,7 @@ namespace stellar {
 
         // is transfer allowed by asset policy
         auto asset = AssetHelper::Instance()->mustLoadAsset(from->getAsset(), db);
-        if (asset->isPolicySet(AssetPolicy::TRANSFERABLE)) {
+        if (!asset->isPolicySet(AssetPolicy::TRANSFERABLE)) {
             innerResult().code(PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
             return false;
         }
@@ -289,7 +289,8 @@ namespace stellar {
         auto destAccount = AccountHelper::Instance()->mustLoadAccount(destBalance->getAccountID(), db);
         auto destFee = getActualFee(destAccount, sourceBalance->getAsset(), mPayment.amount, PaymentFeeType::INCOMING,
                                     db);
-        if (destFee.feeAsset != sourceBalance->getAsset()) {
+        if (destFee.feeAsset != sourceBalance->getAsset() ||
+            mPayment.feeData.destinationFee.feeAsset != sourceBalance->getAsset()) {
             innerResult().code(PaymentV2ResultCode::INVALID_DESTINATION_FEE_ASSET);
             return false;
         }
@@ -302,10 +303,15 @@ namespace stellar {
                 destFeePayerBalance = sourceBalance;
             }
 
+            uint64_t destFeeUniversalAmount = 0;
+
             if (!processTransferFee(accountManager, destFeePayer, destFeePayerBalance, mPayment.feeData.destinationFee,
-                                    destFee, app.getCommissionID(), db, delta, true, sourceSentUniversal)) {
+                                    destFee, app.getCommissionID(), db, delta, true, destFeeUniversalAmount)) {
                 return false;
             }
+
+            if (mPayment.feeData.sourcePaysForDest)
+                sourceSentUniversal += destFeeUniversalAmount;
         }
 
         uint64 paymentID = delta.getHeaderFrame().generateID(LedgerEntryType::PAYMENT_REQUEST);
@@ -326,8 +332,8 @@ namespace stellar {
         innerResult().paymentV2Response().asset = destBalance->getAsset();
         innerResult().paymentV2Response().sourceSentUniversal = sourceSentUniversal;
         innerResult().paymentV2Response().paymentID = paymentID;
-        innerResult().paymentV2Response().actualSourcePaymentFee = sourceFee.fixedFee + sourceFee.maxPaymentFee;
-        innerResult().paymentV2Response().actualDestinationPaymentFee = destFee.fixedFee + destFee.maxPaymentFee;
+        innerResult().paymentV2Response().actualSourcePaymentFee = sourceFee.maxPaymentFee;
+        innerResult().paymentV2Response().actualDestinationPaymentFee = destFee.maxPaymentFee;
 
         return true;
     }
@@ -336,13 +342,19 @@ namespace stellar {
         uint64_t totalDestinationFee;
         if (!safeSum(mPayment.feeData.destinationFee.fixedFee, mPayment.feeData.destinationFee.maxPaymentFee,
                      totalDestinationFee)) {
+            innerResult().code(PaymentV2ResultCode::INVALID_DESTINATION_FEE);
             return false;
         }
 
         if (mPayment.feeData.sourcePaysForDest)
             return true;
 
-        return mPayment.amount >= totalDestinationFee;
+        if (mPayment.amount < totalDestinationFee) {
+            innerResult().code(PaymentV2ResultCode::PAYMENT_AMOUNT_IS_LESS_THAN_DEST_FEE);
+            return false;
+        }
+
+        return true;
     }
 
     bool PaymentOpV2Frame::doCheckValid(Application &app) {
@@ -358,7 +370,6 @@ namespace stellar {
         }
 
         if (!isDestinationFeeValid()) {
-            innerResult().code(PaymentV2ResultCode::INVALID_DESTINATION_FEE);
             return false;
         }
 

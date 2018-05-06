@@ -59,6 +59,8 @@ public:
         }
     };
 
+    bool calculateUniversalAmount(AssetCode transferAsset, uint64_t amount, uint64_t& universalAmount);
+
     ProcessTransferResult processTransferV2(AccountFrame::pointer from, BalanceFrame::pointer fromBalance, BalanceFrame::pointer toBalance,
         uint64_t amount, bool noIncludeIntoStats = false);
 

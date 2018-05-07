@@ -17,7 +17,6 @@ namespace txtest
     TransactionFramePtr
     ManageExternalSystemAccountIDPoolEntryTestHelper::createManageExternalSystemAccountIDPoolEntryTx(Account &source,
                                                 ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t actionInput,
-                                                ManageExternalSystemAccountIdPoolEntryAction action,
                                                 Account *signer)
     {
         Operation op;
@@ -31,7 +30,6 @@ namespace txtest
     ManageExternalSystemAccountIdPoolEntryResult
     ManageExternalSystemAccountIDPoolEntryTestHelper::applyCreateExternalSystemAccountIDPoolEntryTx(Account &source,
                                                 ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t actionInput,
-                                                ManageExternalSystemAccountIdPoolEntryAction action,
                                                 ManageExternalSystemAccountIdPoolEntryResultCode expectedResultCode,
                                                 Account *signer)
     {
@@ -43,7 +41,7 @@ namespace txtest
         Database& db = mTestManager->getDB();
         pool = poolEntryHelper->loadPool(db);
 
-        txFrame = createManageExternalSystemAccountIDPoolEntryTx(source, actionInput, action, signer);
+        txFrame = createManageExternalSystemAccountIDPoolEntryTx(source, actionInput, signer);
 
         mTestManager->applyCheck(txFrame);
 
@@ -64,11 +62,6 @@ namespace txtest
         if (actualResultCode != ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS)
         {
             return opResult;
-        }
-
-        if (action != ManageExternalSystemAccountIdPoolEntryAction::CREATE)
-        {
-            throw std::runtime_error("Unexpected action on manage external system account id pool entry operation");
         }
 
         REQUIRE(pool.size() == poolAfter.size() - 1);
@@ -92,7 +85,6 @@ namespace txtest
     ManageExternalSystemAccountIdPoolEntryResult
     ManageExternalSystemAccountIDPoolEntryTestHelper::applyDeleteExternalSystemAccountIDPoolEntryTx(Account &source,
                                                 ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t actionInput,
-                                                ManageExternalSystemAccountIdPoolEntryAction action,
                                                 ManageExternalSystemAccountIdPoolEntryResultCode expectedResultCode,
                                                 Account *signer)
     {
@@ -104,7 +96,7 @@ namespace txtest
         Database& db = mTestManager->getDB();
         pool = poolEntryHelper->loadPool(db);
 
-        txFrame = createManageExternalSystemAccountIDPoolEntryTx(source, actionInput, action, signer);
+        txFrame = createManageExternalSystemAccountIDPoolEntryTx(source, actionInput, signer);
 
         mTestManager->applyCheck(txFrame);
 
@@ -125,11 +117,6 @@ namespace txtest
         if (actualResultCode != ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS)
         {
             return opResult;
-        }
-
-        if (action != ManageExternalSystemAccountIdPoolEntryAction::DELETE)
-        {
-            throw std::runtime_error("Unexpected action on manage external system account id pool entry operation");
         }
 
         auto poolEntryFrame = poolEntryHelper->load(opResult.success().poolEntryID, db);
@@ -165,9 +152,7 @@ namespace txtest
                 actionInput.createExternalSystemAccountIdPoolEntryActionInput();
         input.externalSystemType = type;
         input.data = data;
-        return applyCreateExternalSystemAccountIDPoolEntryTx(source, actionInput,
-                                                             ManageExternalSystemAccountIdPoolEntryAction::CREATE,
-                                                             expectedResultCode, signer);
+        return applyCreateExternalSystemAccountIDPoolEntryTx(source, actionInput, expectedResultCode, signer);
     }
 
     ManageExternalSystemAccountIdPoolEntryResult
@@ -181,9 +166,7 @@ namespace txtest
         DeleteExternalSystemAccountIdPoolEntryActionInput& input =
                 actionInput.deleteExternalSystemAccountIdPoolEntryActionInput();
         input.poolEntryID = poolEntryID;
-        return applyDeleteExternalSystemAccountIDPoolEntryTx(source, actionInput,
-                                                             ManageExternalSystemAccountIdPoolEntryAction::DELETE,
-                                                             expectedResultCode, signer);
+        return applyDeleteExternalSystemAccountIDPoolEntryTx(source, actionInput, expectedResultCode, signer);
     }
 
 

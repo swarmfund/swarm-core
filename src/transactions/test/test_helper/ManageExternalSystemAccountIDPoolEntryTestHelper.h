@@ -14,16 +14,12 @@ namespace txtest
         createManageExternalSystemAccountIDPoolEntryTx(Account &source,
                                                        ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t
                                                        actionInput,
-                                                       ManageExternalSystemAccountIdPoolEntryAction action =
-                                                       ManageExternalSystemAccountIdPoolEntryAction::CREATE,
                                                        Account *signer = nullptr);
 
         ManageExternalSystemAccountIdPoolEntryResult
         applyCreateExternalSystemAccountIDPoolEntryTx(Account &source,
                                                       ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t
                                                       actionInput,
-                                                      ManageExternalSystemAccountIdPoolEntryAction action =
-                                                      ManageExternalSystemAccountIdPoolEntryAction::CREATE,
                                                       ManageExternalSystemAccountIdPoolEntryResultCode expectedResultCode =
                                                       ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS,
                                                       Account *signer = nullptr);
@@ -32,8 +28,6 @@ namespace txtest
         applyDeleteExternalSystemAccountIDPoolEntryTx(Account &source,
                                                       ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t
                                                       actionInput,
-                                                      ManageExternalSystemAccountIdPoolEntryAction action =
-                                                      ManageExternalSystemAccountIdPoolEntryAction::DELETE,
                                                       ManageExternalSystemAccountIdPoolEntryResultCode expectedResultCode =
                                                       ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS,
                                                       Account *signer = nullptr);

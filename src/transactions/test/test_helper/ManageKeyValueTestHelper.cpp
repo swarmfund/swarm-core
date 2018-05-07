@@ -30,7 +30,7 @@ namespace stellar {
             return  this;
         }
 
-        void ManageKeyValueTestHelper::doAply(Application &app, ManageKVAction action, bool require)
+        void ManageKeyValueTestHelper::doApply(Application &app, ManageKVAction action, bool require)
         {
             LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(),mTestManager->getDB());
 

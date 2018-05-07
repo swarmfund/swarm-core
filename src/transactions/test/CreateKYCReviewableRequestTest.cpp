@@ -62,7 +62,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
         //store KV record into DB
         if (testManager->getLedgerManager().shouldUse(LedgerVersion::KYC_RULES)) {
             manageKVHelper.setKey(key)->setValue(30);
-            manageKVHelper.doAply(app, ManageKVAction::PUT, true);
+            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
         }
 
         SECTION("source master, create and approve") {
@@ -119,7 +119,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
 
             key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType,account->getKYCLevel(),
                         AccountType::GENERAL,kycLevel);
-            manageKVHelper.setKey(key)->doAply(app,ManageKVAction::PUT,true);
+            manageKVHelper.setKey(key)->doApply(app, ManageKVAction::PUT, true);
             
             testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0, updatedAccountID.getPublicKey(),
                                                              AccountType::GENERAL, kycData, kycLevel, nullptr);
@@ -136,7 +136,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
 
         if (testManager->getLedgerManager().shouldUse(LedgerVersion::KYC_RULES)) {
             manageKVHelper.setKey(key)->setValue(tasks);
-            manageKVHelper.doAply(app, ManageKVAction::PUT, true);
+            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
         }
 
         SECTION("double creating, request exists") {
@@ -175,13 +175,13 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                                                                  kycData, kycLevel,
                                                                                                  &tasks);
             manageKVHelper.setValue(tasks);
-            manageKVHelper.doAply(app, ManageKVAction::PUT, true);
+            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             requestID = createUpdateKYCRequestResult.success().requestID;
             uint32 newTasks = 1;
 
             manageKVHelper.setValue(newTasks);
-            manageKVHelper.doAply(app, ManageKVAction::PUT, true);
+            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             testKYCRequestHelper.applyCreateUpdateKYCRequest(master, requestID, updatedAccountID.getPublicKey(),
                                                              AccountType::GENERAL, kycData, kycLevel, &newTasks,

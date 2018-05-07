@@ -24,7 +24,7 @@ namespace stellar{
 
             ManageKeyValueTestHelper* setResult(ManageKeyValueResultCode resultCode);
 
-            void doAply(Application &app, ManageKVAction action, bool require);
+            void doApply(Application &app, ManageKVAction action, bool require);
 
         private:
 

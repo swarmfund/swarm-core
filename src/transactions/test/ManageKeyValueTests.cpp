@@ -30,7 +30,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
 
     SECTION("Can`t delete before create"){
         testHelper.setResult(ManageKeyValueResultCode::NOT_FOUND);
-        testHelper.doAply(app, ManageKVAction::DELETE, false);
+        testHelper.doApply(app, ManageKVAction::DELETE, false);
     }
 
     SECTION("Can`t load before create"){
@@ -40,7 +40,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
 
     SECTION("Can create new") {
         testHelper.setResult(ManageKeyValueResultCode::SUCCESS);
-        testHelper.doAply(app, ManageKVAction::PUT, false);
+        testHelper.doApply(app, ManageKVAction::PUT, false);
 
         SECTION("Can load after create") {
             auto kvFrame = keyValueHelper->loadKeyValue(key, testManager->getDB());
@@ -50,13 +50,13 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
         SECTION("Can update after create") {
             auto kvFrame = keyValueHelper->loadKeyValue(key, testManager->getDB());
             REQUIRE(!!kvFrame);
-            testHelper.doAply(app, ManageKVAction::PUT, false);
+            testHelper.doApply(app, ManageKVAction::PUT, false);
         }
 
         SECTION("Can delete after create") {
             auto kvFrame = keyValueHelper->loadKeyValue(key, testManager->getDB());
             REQUIRE(!!kvFrame);
-            testHelper.doAply(app, ManageKVAction::DELETE, false);
+            testHelper.doApply(app, ManageKVAction::DELETE, false);
 
 
             SECTION("Can`t load after delete") {
@@ -66,12 +66,12 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
 
             SECTION("Can`t delete after delete") {
                 testHelper.setResult(ManageKeyValueResultCode::NOT_FOUND);
-                testHelper.doAply(app, ManageKVAction::DELETE, false);
+                testHelper.doApply(app, ManageKVAction::DELETE, false);
             }
 
             SECTION("Can add again after delete") {
                 testHelper.setResult(ManageKeyValueResultCode::SUCCESS);
-                testHelper.doAply(app, ManageKVAction::PUT, false);
+                testHelper.doApply(app, ManageKVAction::PUT, false);
             }
         }
     }

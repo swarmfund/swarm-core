@@ -23,6 +23,8 @@ namespace stellar {
     }
 
     bool ManageKeyValueOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
+        innerResult().code(ManageKeyValueResultCode::SUCCESS);
+
         Database &db = ledgerManager.getDatabase();
         auto keyValueHelper = KeyValueHelper::Instance();
         auto keyValueFrame = keyValueHelper->loadKeyValue(this->mManageKeyValue.key, db, &delta);
@@ -35,7 +37,7 @@ namespace stellar {
 
             auto ledgerKey = keyValueFrame->getKey();
             keyValueHelper->storeDelete(delta, db, ledgerKey);
-            innerResult().code(ManageKeyValueResultCode::SUCCESS);
+
             return true;
         }
 
@@ -45,12 +47,12 @@ namespace stellar {
             mEntry.data.keyValue().key = mManageKeyValue.key;
             mEntry.data.keyValue().value = mManageKeyValue.action.value().value;
             keyValueHelper->storeAdd(delta, db, mEntry);
-            innerResult().code(ManageKeyValueResultCode::SUCCESS);
+
             return true;
         }
 
         keyValueHelper->storeChange(delta, db, keyValueFrame->mEntry);
-        innerResult().code(ManageKeyValueResultCode::SUCCESS);
+
         return true;
 
     }

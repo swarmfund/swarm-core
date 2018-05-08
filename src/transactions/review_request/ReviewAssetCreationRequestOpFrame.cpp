@@ -37,7 +37,7 @@ bool ReviewAssetCreationRequestOpFrame::handleApprove(Application & app, LedgerD
 	auto assetFrame = AssetFrame::create(assetCreationRequest, request->getRequestor());
 	EntryHelperProvider::storeAddEntry(delta, db, assetFrame->mEntry);
 
-    if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET))
+    if (assetFrame->isPolicySet(AssetPolicy::BASE_ASSET))
     {
         ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta);
     } else

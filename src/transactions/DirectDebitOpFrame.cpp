@@ -12,7 +12,7 @@
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
-#include "transactions/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpFrame.h"
 #include "util/Logging.h"
 #include <algorithm>
 

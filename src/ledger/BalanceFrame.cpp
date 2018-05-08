@@ -166,5 +166,14 @@ namespace stellar
         mBalance.locked -= amountToUnlock;
         return tryFundAccount(amountToUnlock);
     }
+    bool BalanceFrame::tryCharge(uint64_t amountToCharge)
+    {
+        if (mBalance.amount < amountToCharge) {
+            return false;
+        }
+
+        mBalance.amount -= amountToCharge;
+        return true;
+    }
 }
 

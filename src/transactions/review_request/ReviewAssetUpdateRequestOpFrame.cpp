@@ -41,14 +41,14 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 			"request id: " << request->getRequestID();
 		throw std::runtime_error("Received approval for update request not initiated by owner of asset.");
 	}
-    bool wasBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
+    bool wasBase = assetFrame->isPolicySet(AssetPolicy::BASE_ASSET);
     
 	AssetEntry& assetEntry = assetFrame->getAsset();
 	assetEntry.details = assetUpdateRequest.details;
 	assetEntry.policies = assetUpdateRequest.policies;
     
 	EntryHelperProvider::storeChangeEntry(delta, db, assetFrame->mEntry);
-    bool isBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
+    bool isBase = assetFrame->isPolicySet(AssetPolicy::BASE_ASSET);
     
     if (!wasBase && isBase)
         ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta);

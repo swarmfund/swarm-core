@@ -28,7 +28,7 @@ namespace stellar {
         FeeDataV2 getActualFee(AccountFrame::pointer accountFrame, AssetCode const &transferAsset, uint64_t amount,
                                PaymentFeeType feeType, Database &db);
 
-        bool processTransfer(AccountManager &accountManager, BalanceFrame::pointer from, BalanceFrame::pointer to,
+        bool processTransfer(AccountManager &accountManager, AccountFrame::pointer payer, BalanceFrame::pointer from, BalanceFrame::pointer to,
                              uint64_t amount, uint64_t& universalAmount, Database &db);
 
         bool processTransferFee(AccountManager &accountManager, AccountFrame::pointer payer,

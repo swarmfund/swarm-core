@@ -49,11 +49,10 @@ namespace stellar {
                              static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
     }
 
-    bool PaymentOpV2Frame::processTransfer(AccountManager &accountManager, BalanceFrame::pointer from,
-                                           BalanceFrame::pointer to, uint64_t amount, uint64_t &universalAmount,
-                                           Database &db) {
-        auto sourceAccount = AccountHelper::Instance()->mustLoadAccount(getSourceID(), db);
-        auto transferResult = accountManager.processTransferV2(sourceAccount, from, to, amount);
+    bool PaymentOpV2Frame::processTransfer(AccountManager &accountManager, AccountFrame::pointer payer,
+                                           BalanceFrame::pointer from, BalanceFrame::pointer to, uint64_t amount,
+                                           uint64_t &universalAmount, Database &db) {
+        auto transferResult = accountManager.processTransferV2(payer, from, to, amount);
         if (transferResult.result != AccountManager::Result::SUCCESS) {
             setErrorCode(transferResult.result);
             return false;
@@ -111,20 +110,7 @@ namespace stellar {
             throw std::runtime_error("Unexpected state. Expected commission balance to exist");
         }
 
-        auto transferResult = accountManager.processTransferV2(payer, chargeFrom, commissionBalance, totalFee,
-                                                               ignoreStats);
-        if (transferResult.result != AccountManager::Result::SUCCESS) {
-            setErrorCode(transferResult.result);
-            return false;
-        }
-
-
-        if (!safeSum(universalAmount, transferResult.universalAmount, universalAmount)) {
-            innerResult().code(PaymentV2ResultCode::STATS_OVERFLOW);
-            return false;
-        }
-
-        return true;
+        return processTransfer(accountManager, payer, chargeFrom, commissionBalance, totalFee, universalAmount, db);
     }
 
     void PaymentOpV2Frame::setErrorCode(AccountManager::Result transferResult) {
@@ -287,11 +273,12 @@ namespace stellar {
 
         AccountManager accountManager(app, db, delta, app.getLedgerManager());
         // process transfer from source to dest
-        if (!processTransfer(accountManager, sourceBalance, destBalance, mPayment.amount, sourceSentUniversal, db)) {
+        auto sourceAccount = AccountHelper::Instance()->mustLoadAccount(getSourceID(), db);
+
+        if (!processTransfer(accountManager, sourceAccount, sourceBalance, destBalance, mPayment.amount, sourceSentUniversal, db)) {
             return false;
         }
 
-        auto sourceAccount = AccountHelper::Instance()->loadAccount(getSourceID(), db);
         auto sourceFee = getActualFee(sourceAccount, sourceBalance->getAsset(), mPayment.amount,
                                       PaymentFeeType::OUTGOING, db);
 

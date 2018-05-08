@@ -83,6 +83,8 @@ namespace stellar {
     }
 
     bool AccountManager::calculateUniversalAmount(AssetCode transferAsset, uint64_t amount, uint64_t &universalAmount) {
+        universalAmount = 0;
+
         auto statsAssetFrame = AssetHelper::Instance()->loadStatsAsset(mDb);
         if (!statsAssetFrame) {
             return true;

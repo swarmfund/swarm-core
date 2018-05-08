@@ -36,7 +36,7 @@ namespace stellar {
                                 AccountID const &commissionID, Database &db, LedgerDelta &delta, bool ignoreStats,
                                 uint64_t& universalAmount);
 
-        bool checkTransferResult(AccountManager::Result transferResult);
+        void setErrorCode(AccountManager::Result transferResult);
 
     public:
         PaymentOpV2Frame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);

@@ -52,14 +52,19 @@ namespace stellar {
     bool PaymentOpV2Frame::processTransfer(AccountManager &accountManager, BalanceFrame::pointer from,
                                            BalanceFrame::pointer to, uint64_t amount, uint64_t &universalAmount,
                                            Database &db) {
-        auto sourceAccount = AccountHelper::Instance()->loadAccount(getSourceID(), db);
+        auto sourceAccount = AccountHelper::Instance()->mustLoadAccount(getSourceID(), db);
         auto transferResult = accountManager.processTransferV2(sourceAccount, from, to, amount);
-        if (transferResult.result == AccountManager::Result::SUCCESS) {
-            universalAmount += transferResult.universalAmount;
-            return true;
+        if (transferResult.result != AccountManager::Result::SUCCESS) {
+            setErrorCode(transferResult.result);
+            return false;
         }
 
-        return checkTransferResult(transferResult.result);
+        if (!safeSum(universalAmount, transferResult.universalAmount, universalAmount)) {
+            innerResult().code(PaymentV2ResultCode::STATS_OVERFLOW);
+            return false;
+        }
+
+        return true;
     }
 
     bool PaymentOpV2Frame::processTransferFee(AccountManager &accountManager, AccountFrame::pointer payer,
@@ -108,31 +113,37 @@ namespace stellar {
 
         auto transferResult = accountManager.processTransferV2(payer, chargeFrom, commissionBalance, totalFee,
                                                                ignoreStats);
-        if (transferResult.result == AccountManager::Result::SUCCESS) {
-            universalAmount += transferResult.universalAmount;
-            return true;
+        if (transferResult.result != AccountManager::Result::SUCCESS) {
+            setErrorCode(transferResult.result);
+            return false;
         }
 
-        return checkTransferResult(transferResult.result);
+
+        if (!safeSum(universalAmount, transferResult.universalAmount, universalAmount)) {
+            innerResult().code(PaymentV2ResultCode::STATS_OVERFLOW);
+            return false;
+        }
+
+        return true;
     }
 
-    bool PaymentOpV2Frame::checkTransferResult(AccountManager::Result transferResult) {
+    void PaymentOpV2Frame::setErrorCode(AccountManager::Result transferResult) {
         switch (transferResult) {
             case AccountManager::Result::UNDERFUNDED: {
                 innerResult().code(PaymentV2ResultCode::UNDERFUNDED);
-                return false;
+                return;
             }
             case AccountManager::Result::STATS_OVERFLOW: {
                 innerResult().code(PaymentV2ResultCode::STATS_OVERFLOW);
-                return false;
+                return;
             }
             case AccountManager::Result::LIMITS_EXCEEDED: {
                 innerResult().code(PaymentV2ResultCode::LIMITS_EXCEEDED);
-                return false;
+                return;
             }
             case AccountManager::Result::LINE_FULL: {
                 innerResult().code(PaymentV2ResultCode::LINE_FULL);
-                return false;
+                return;
             }
             default: {
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from process transfer v2: "

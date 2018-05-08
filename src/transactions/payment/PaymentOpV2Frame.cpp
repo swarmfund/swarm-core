@@ -200,8 +200,11 @@ namespace stellar {
             return true;
         }
 
+        auto &sourceAccount = getSourceAccount();
         auto destAccount = AccountHelper::Instance()->mustLoadAccount(to->getAccountID(), db);
-        if (destAccount->getAccountType() == AccountType::NOT_VERIFIED) {
+
+        if (sourceAccount.getAccountType() == AccountType::NOT_VERIFIED ||
+            destAccount->getAccountType() == AccountType::NOT_VERIFIED) {
             innerResult().code(PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
             return false;
         }

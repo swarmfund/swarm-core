@@ -119,7 +119,7 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
                                                                  PaymentV2ResultCode::MALFORMED);
         }
     }
-    SECTION("Amount is less then destination fee") {
+    SECTION("Amount is less than destination fee") {
         auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
                                                              destination, 3, paymentFeeData, "", "", nullptr,
                                                              PaymentV2ResultCode::PAYMENT_AMOUNT_IS_LESS_THAN_DEST_FEE);

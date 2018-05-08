@@ -99,25 +99,27 @@ namespace stellar {
             return false;
         }
 
-        if (mSetFees.fee->ext.v() == LedgerVersion::CROSS_ASSET_FEE &&
-            mSetFees.fee->asset != mSetFees.fee->ext.feeAsset()) {
-            if (!AssetHelper::Instance()->exists(db, mSetFees.fee->ext.feeAsset())) {
-                innerResult().code(SetFeesResultCode::FEE_ASSET_NOT_FOUND);
-                return false;
-            }
+        if (mSetFees.fee->ext.v() != LedgerVersion::CROSS_ASSET_FEE ||
+            mSetFees.fee->asset == mSetFees.fee->ext.feeAsset()) {
+            return true;
+        }
 
-            auto feeAssetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(mSetFees.fee->asset,
-                                                                                       mSetFees.fee->ext.feeAsset(),
-                                                                                       db);
-            if(!feeAssetPair) {
-                innerResult().code(SetFeesResultCode::ASSET_PAIR_NOT_FOUND);
-                return false;
-            }
+        if (!AssetHelper::Instance()->exists(db, mSetFees.fee->ext.feeAsset())) {
+            innerResult().code(SetFeesResultCode::FEE_ASSET_NOT_FOUND);
+            return false;
+        }
 
-            if (feeAssetPair->getCurrentPrice() <= 0) {
-                innerResult().code(SetFeesResultCode::INVALID_ASSET_PAIR_PRICE);
-                return false;
-            }
+        auto feeAssetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(mSetFees.fee->asset,
+                                                                                   mSetFees.fee->ext.feeAsset(),
+                                                                                   db);
+        if(!feeAssetPair) {
+            innerResult().code(SetFeesResultCode::ASSET_PAIR_NOT_FOUND);
+            return false;
+        }
+
+        if (feeAssetPair->getCurrentPrice() <= 0) {
+            innerResult().code(SetFeesResultCode::INVALID_ASSET_PAIR_PRICE);
+            return false;
         }
 
         return true;

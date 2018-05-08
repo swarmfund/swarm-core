@@ -333,9 +333,7 @@ namespace stellar {
         innerResult().paymentV2Response().sourceSentUniversal = sourceSentUniversal;
         innerResult().paymentV2Response().paymentID = paymentID;
         innerResult().paymentV2Response().actualSourcePaymentFee = sourceFee.maxPaymentFee;
-        innerResult().paymentV2Response().actualSourcePaymentFeeAssetCode = sourceFee.feeAsset;
         innerResult().paymentV2Response().actualDestinationPaymentFee = destFee.maxPaymentFee;
-        innerResult().paymentV2Response().actualDestPaymentFeeAssetCode = destFee.feeAsset;
 
         return true;
     }

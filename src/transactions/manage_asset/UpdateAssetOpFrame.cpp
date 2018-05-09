@@ -7,6 +7,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
+#include "ledger/ReviewableRequestHelper.h"
 
 #include "database/Database.h"
 
@@ -55,7 +56,13 @@ UpdateAssetOpFrame::UpdateAssetOpFrame(Operation const & op, OperationResult & r
 
 bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerManager & ledgerManager)
 {
-	Database& db = ledgerManager.getDatabase();
+    Database& db = ledgerManager.getDatabase();
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    bool isRequestReferenceCheckNeeded = mManageAsset.requestID == 0 && ledgerManager.shouldUse(LedgerVersion::ASSET_UPDATE_CHECK_REFERENCE_EXISTS);
+    if (isRequestReferenceCheckNeeded && reviewableRequestHelper->exists(db, getSourceID(), mAssetUpdateRequest.code)) {
+        innerResult().code(ManageAssetResultCode::REQUEST_ALREADY_EXISTS);
+        return false;
+    }
 
     auto request = getUpdatedOrCreateReviewableRequest(app, db, delta);
     if (!request) {

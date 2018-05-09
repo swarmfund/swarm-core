@@ -100,7 +100,25 @@ int64_t FeeFrame::calculatePercentFeeForPeriod(int64_t amount, int64_t periodPas
 	}
 
     
-    bool
+bool FeeFrame::isCrossAssetFee() const
+{
+    if (mFee.ext.v() != LedgerVersion::CROSS_ASSET_FEE) {
+        return false;
+    }
+
+    return !(mFee.asset == mFee.ext.feeAsset());
+}
+
+AssetCode FeeFrame::getFeeAsset() const
+{
+    if (mFee.ext.v() != LedgerVersion::CROSS_ASSET_FEE) {
+        return mFee.asset;
+    }
+
+    return mFee.ext.feeAsset();
+}
+
+bool
     FeeFrame::isValid(FeeEntry const& oe)
     {
         auto res = oe.fixedFee >= 0

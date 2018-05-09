@@ -6,6 +6,7 @@
 
 #include "transactions/OperationFrame.h"
 #include "ledger/InvoiceFrame.h"
+#include "ledger/BalanceHelper.h"
 
 namespace stellar
 {
@@ -29,8 +30,11 @@ class PaymentOpFrame : public OperationFrame
 	bool isRecipeintFeeNotRequired(Database& db);
 
 	bool isAllowedToTransfer(Database& db, AssetFrame::pointer asset);
+    bool processFees(Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db);
+    bool processFees_v1(Application& app, LedgerDelta& delta, Database& db);
+    bool processFees_v2(Application& app, LedgerDelta& delta, Database& db);
 
-  protected:
+protected:
 
       AccountFrame::pointer mDestAccount;
 	  BalanceFrame::pointer mSourceBalance;

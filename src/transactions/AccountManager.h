@@ -29,7 +29,6 @@ protected:
     LedgerDelta& mDelta;
     LedgerManager& mLm;
 
-private:
 public:
     void createStats(AccountFrame::pointer account);
 
@@ -45,10 +44,26 @@ public:
     AccountManager(Application& app, Database& db, LedgerDelta& delta,
                    LedgerManager& lm);
 
+    [[deprecated]]
     Result processTransfer(AccountFrame::pointer account,
                            BalanceFrame::pointer balance, int64 amount,
                            int64& universalAmount, bool requireReview = false,
                            bool ignoreLimits = false);
+
+    struct ProcessTransferResult {
+        Result result;
+        uint64_t universalAmount;
+
+        ProcessTransferResult(Result result, uint64_t universalAmount) {
+            this->result = result;
+            this->universalAmount = universalAmount;
+        }
+    };
+
+    bool calculateUniversalAmount(AssetCode transferAsset, uint64_t amount, uint64_t& universalAmount);
+
+    ProcessTransferResult processTransferV2(AccountFrame::pointer from, BalanceFrame::pointer fromBalance, BalanceFrame::pointer toBalance,
+        uint64_t amount, bool noIncludeIntoStats = false);
 
     bool revertRequest(AccountFrame::pointer account,
                        BalanceFrame::pointer balance, int64 amount,

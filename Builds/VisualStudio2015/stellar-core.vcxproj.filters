@@ -121,6 +121,12 @@
     <Filter Include="lib\coincore\hashfunc">
       <UniqueIdentifier>{91d7d631-0e93-40ce-bbd2-1bedd110bdfe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="transactions\kyc">
+      <UniqueIdentifier>{29e6bc01-600f-48ea-9bec-1442464f8b4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="transactions\payment">
+      <UniqueIdentifier>{4f0d87a5-983c-4b3a-82ba-82845fb2d834}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -253,9 +259,6 @@
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\TransactionFrame.cpp">
-      <Filter>transactions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\transactions\PaymentOpFrame.cpp">
       <Filter>transactions</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\SetOptionsOpFrame.cpp">
@@ -906,8 +909,44 @@
     <ClCompile Include="..\..\src\transactions\test\CrowdfundTests.cpp">
       <Filter>transactions\test</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\CreateAMLAlertRequestOpFrame.cpp">
+      <Filter>transactions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAMLAlertTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\AmlAlertTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.cpp">
       <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\AccountKYCFrame.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\AccountKYCHelper.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\kyc\CreateKYCReviewableRequestOpFrame.cpp">
+      <Filter>transactions\kyc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\payment\PaymentOpFrame.cpp">
+      <Filter>transactions\payment</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\payment\PaymentOpV2Frame.cpp">
+      <Filter>transactions\payment</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1020,9 +1059,6 @@
       <Filter>util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\TransactionFrame.h">
-      <Filter>transactions</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\transactions\PaymentOpFrame.h">
       <Filter>transactions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\SetOptionsOpFrame.h">
@@ -1775,8 +1811,41 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\CreateAMLAlertRequestOpFrame.h">
+      <Filter>transactions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAMLAlertTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.h">
       <Filter>transactions\manage_asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\AccountKYCFrame.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\AccountKYCHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\kyc\CreateKYCReviewableRequestOpFrame.h">
+      <Filter>transactions\kyc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\payment\PaymentOpFrame.h">
+      <Filter>transactions\payment</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\payment\PaymentOpV2Frame.h">
+      <Filter>transactions\payment</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1860,12 +1929,6 @@
     </None>
     <None Include="..\..\docs\learn\testnet.md">
       <Filter>docs</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-operation-create-aml-alert.x">
-      <Filter>xdr</Filter>
-    </None>
-    <None Include="..\..\src\xdr\Stellar-reviewable-request-aml-alert.x">
-      <Filter>xdr</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -2005,6 +2068,24 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-limits-update.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-AML-alert-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-AML-alert.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-KYC.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-KYC.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-KYC-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment-v2.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

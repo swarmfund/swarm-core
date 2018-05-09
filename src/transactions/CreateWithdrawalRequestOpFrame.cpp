@@ -37,7 +37,8 @@ const
                              AccountType::GENERAL, AccountType::SYNDICATE,
                              AccountType::OPERATIONAL, AccountType::EXCHANGE, AccountType::NOT_VERIFIED
                          }, mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t>(SignerType::BALANCE_MANAGER));
+                         static_cast<int32_t>(SignerType::BALANCE_MANAGER),
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
 }
 
 BalanceFrame::pointer CreateWithdrawalRequestOpFrame::tryLoadBalance(
@@ -145,7 +146,7 @@ ReviewableRequestFrame::pointer CreateWithdrawalRequestOpFrame::createRequest(Le
     auto request = ReviewableRequestFrame::createNew(delta, getSourceID(), assetFrame->getOwner(), nullptr,
                                                 ledgerManager.getCloseTime());
     ReviewableRequestEntry& requestEntry = request->getRequestEntry();
-    if (assetFrame->checkPolicy(AssetPolicy::TWO_STEP_WITHDRAWAL))
+    if (assetFrame->isPolicySet(AssetPolicy::TWO_STEP_WITHDRAWAL))
     {
         requestEntry.body.type(ReviewableRequestType::TWO_STEP_WITHDRAWAL);
         requestEntry.body.twoStepWithdrawalRequest() = mCreateWithdrawalRequest.request;
@@ -175,7 +176,7 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     }
 
     const auto assetFrame = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
-    if (!assetFrame->checkPolicy(AssetPolicy::WITHDRAWABLE))
+    if (!assetFrame->isPolicySet(AssetPolicy::WITHDRAWABLE))
     {
         innerResult().code(CreateWithdrawalRequestResultCode::ASSET_IS_NOT_WITHDRAWABLE);
         return false;

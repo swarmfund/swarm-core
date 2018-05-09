@@ -8,19 +8,6 @@ namespace stellar
 {
 namespace txtest
 {
-    class StateBeforeTxHelper
-    {
-        LedgerDelta::KeyEntryMap mState;
-    public:
-        explicit StateBeforeTxHelper(LedgerDelta::KeyEntryMap state);
-
-        AccountFrame::pointer getAccount(AccountID accountID);
-        SaleFrame::pointer getSale(uint64_t id);
-        AssetEntry getAssetEntry(AssetCode assetCode);
-        OfferEntry getOffer(uint64_t offerID, AccountID ownerID);
-        BalanceFrame::pointer getBalance(BalanceID balanceID);
-        std::vector<OfferEntry> getAllOffers();
-    };
 
     class CheckSaleStateHelper : public TxHelper
     {

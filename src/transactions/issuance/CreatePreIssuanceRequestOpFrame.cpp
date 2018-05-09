@@ -55,7 +55,7 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	if (!isSignatureValid(asset)) {
+	if (!isSignatureValid(asset, LedgerVersion(ledgerManager.getCurrentLedgerHeader().ledgerVersion))) {
 		innerResult().code(CreatePreIssuanceRequestResultCode::INVALID_SIGNATURE);
 		return false;
 	}
@@ -130,14 +130,14 @@ SourceDetails CreatePreIssuanceRequestOpFrame::getSourceAccountDetails(std::unor
 						 static_cast<int32_t>(SignerType::ISSUANCE_MANAGER));
 }
 
-bool CreatePreIssuanceRequestOpFrame::isSignatureValid(AssetFrame::pointer asset)
+bool CreatePreIssuanceRequestOpFrame::isSignatureValid(AssetFrame::pointer asset, LedgerVersion version)
 {
 	auto& request = mCreatePreIssuanceRequest.request;
 	auto signatureData = getSignatureData(mCreatePreIssuanceRequest.request.reference, request.amount, request.asset);
 	auto signatureValidator = SignatureValidator(signatureData, { request.signature });
 
 	const int VALID_SIGNATURES_REQUIRED = 1;
-	SignatureValidator::Result result = signatureValidator.check({ asset->getPreIssuedAssetSigner() }, VALID_SIGNATURES_REQUIRED);
+	SignatureValidator::Result result = signatureValidator.check({ asset->getPreIssuedAssetSigner() }, VALID_SIGNATURES_REQUIRED, version);
 	return result == SignatureValidator::Result::SUCCESS;
 }
 

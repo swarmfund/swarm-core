@@ -31,6 +31,9 @@ class ReviewableRequestFrame : public EntryFrame
 	static void ensureIssuanceValid(IssuanceRequest const& request);
 	static void ensureWithdrawalValid(WithdrawalRequest const& request);
 	static void ensureSaleCreationValid(SaleCreationRequest const& request);
+	static void ensureAMLAlertValid(AMLAlertRequest const& request);
+	static void ensureUpdateKYCValid(UpdateKYCRequest const &request);
+
 
   public:
     typedef std::shared_ptr<ReviewableRequestFrame> pointer;
@@ -109,7 +112,7 @@ class ReviewableRequestFrame : public EntryFrame
 	static uint256 calculateHash(ReviewableRequestEntry::_body_t const& body);
 
 	void recalculateHashRejectReason() {
-	        const auto newHash = calculateHash(mRequest.body);
+		const auto newHash = calculateHash(mRequest.body);
 		mRequest.hash = newHash;
 		mRequest.rejectReason = "";
 	}

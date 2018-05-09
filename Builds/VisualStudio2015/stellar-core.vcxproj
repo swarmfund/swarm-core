@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{916B91AB-A300-422C-B9C2-D683924DC109}</ProjectGuid>
     <RootNamespace>stellar-core</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -202,6 +202,8 @@
     <ClCompile Include="..\..\src\invariant\Invariants.cpp" />
     <ClCompile Include="..\..\src\ledger\AccountFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\AccountHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\AccountKYCFrame.cpp" />
+    <ClCompile Include="..\..\src\ledger\AccountKYCHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\AccountLimitsFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\AccountLimitsHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\AccountTypeLimitsFrame.cpp" />
@@ -322,6 +324,7 @@
     <ClCompile Include="..\..\src\transactions\AccountManager.cpp" />
     <ClCompile Include="..\..\src\transactions\CheckSaleStateOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateAccountOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\CreateAMLAlertRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateSaleCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\CreateOfferOpFrame.cpp" />
@@ -335,6 +338,7 @@
     <ClCompile Include="..\..\src\transactions\FeesManager.cpp" />
     <ClCompile Include="..\..\src\transactions\issuance\CreateIssuanceRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\issuance\CreatePreIssuanceRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\kyc\CreateKYCReviewableRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAccountOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAssetPairOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\CancelAssetRequestOpFrame.cpp" />
@@ -343,6 +347,7 @@
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\UpdateAssetOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewAssetCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewAssetUpdateRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewIssuanceCreationRequestOpFrame.cpp" />
@@ -353,8 +358,10 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\test\AccountManagerTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\AmlAlertTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CreateAccountTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CrowdfundTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\DirectDebitTests.cpp" />
@@ -368,16 +375,19 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAMLAlertTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetLimitsTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\WithdrawRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\WithdrawalTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\ManageInvoiceTests.cpp" />
@@ -492,6 +502,8 @@
     <ClInclude Include="..\..\src\invariant\InvariantDoesNotHold.h" />
     <ClInclude Include="..\..\src\invariant\Invariants.h" />
     <ClInclude Include="..\..\src\ledger\AccountHelper.h" />
+    <ClInclude Include="..\..\src\ledger\AccountKYCFrame.h" />
+    <ClInclude Include="..\..\src\ledger\AccountKYCHelper.h" />
     <ClInclude Include="..\..\src\ledger\AccountLimitsFrame.h" />
     <ClInclude Include="..\..\src\ledger\AccountLimitsHelper.h" />
     <ClInclude Include="..\..\src\ledger\AccountTypeLimitsFrame.h" />
@@ -595,6 +607,7 @@
     <ClInclude Include="..\..\src\transactions\CheckSaleStateOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CounterpartyDetails.h" />
     <ClInclude Include="..\..\src\transactions\CreateAccountOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\CreateAMLAlertRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CreateSaleCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CreateWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\CreateOfferOpFrame.h" />
@@ -608,6 +621,7 @@
     <ClInclude Include="..\..\src\transactions\FeesManager.h" />
     <ClInclude Include="..\..\src\transactions\issuance\CreateIssuanceRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\issuance\CreatePreIssuanceRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\kyc\CreateKYCReviewableRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAccountOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAssetPairOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\CancelAssetRequestOpFrame.h" />
@@ -616,6 +630,7 @@
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetHelper.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\UpdateAssetOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewAssetCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewAssetUpdateRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewIssuanceCreationRequestOpFrame.h" />
@@ -626,17 +641,20 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\Account.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\IssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAMLAlertTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPreIssuanceRequestHelper.h" />
@@ -647,6 +665,7 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetLimitsTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\TestManager.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\TxHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\WithdrawRequestHelper.h" />
@@ -1069,8 +1088,36 @@
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
-    <None Include="..\..\src\xdr\Stellar-operation-create-aml-alert.x" />
-    <None Include="..\..\src\xdr\Stellar-reviewable-request-aml-alert.x" />
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-AML-alert-request.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-AML-alert.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-account-KYC.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-KYC-request.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-KYC.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
     <None Include="libmedida\libmedida.vcxproj" />
   </ItemGroup>
   <ItemGroup>

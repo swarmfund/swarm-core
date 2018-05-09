@@ -163,9 +163,17 @@ struct LedgerEntryIdCmp
             auto const& bs = b.sale();
             return as.saleID < bs.saleID;
             }
+        case LedgerEntryType::ACCOUNT_KYC:
+            {
+            auto const &akyc = a.accountKYC();
+            auto const &bkyc = b.accountKYC();
+            return akyc.accountID < bkyc.accountID;
+            }
+        default:
+            {
+            throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");
+            }
         }
-
-        return false;
     }
 
     template <typename T>

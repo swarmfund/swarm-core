@@ -16,7 +16,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/StatisticsFrame.h"
-#include "transactions/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"

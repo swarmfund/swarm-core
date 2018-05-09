@@ -184,6 +184,14 @@ namespace stellar
 	}
 
 	BalanceFrame::pointer
+	BalanceHelper::loadBalance(AccountID accountID, BalanceID balanceID, Database &db, LedgerDelta *delta) {
+		auto balanceFrame = loadBalance(balanceID, db, delta);
+		if (!balanceFrame)
+			return nullptr;
+		return accountID == balanceFrame->getAccountID() ? balanceFrame : nullptr;
+	}
+
+	BalanceFrame::pointer
 	BalanceHelper::loadBalance(BalanceID balanceID, Database& db,
 			LedgerDelta* delta)
 	{
@@ -251,7 +259,7 @@ namespace stellar
 		BalanceEntry& oe = le.data.balance();
 		int32_t balanceVersion = 0;
 
-		// SELECT balance_id, asset, amount, locked, account_id, lastmodified 
+		// SELECT balance_id, asset, amount, locked, account_id, lastmodified
 
 		statement& st = prep.statement();
 		st.exchange(into(balanceID));

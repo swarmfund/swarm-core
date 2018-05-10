@@ -128,6 +128,11 @@ std::string OperationFrame::getInnerResultCodeAsStr() {
 	return "not_implemented";
 }
 
+std::unordered_map<AccountID, CounterpartyDetails>
+OperationFrame::getCounterpartyDetails(Database &db, LedgerDelta *delta, int32_t ledgerVersion) const {
+    return getCounterpartyDetails(db, delta);
+}
+
 SourceDetails OperationFrame::getSourceAccountDetails(
     std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
     int32_t ledgerVersion, Database& db) const
@@ -275,7 +280,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
         }
     }
 
-	auto counterpartiesDetails = getCounterpartyDetails(db, delta);
+	auto counterpartiesDetails = getCounterpartyDetails(db, delta, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion);
 	if (!checkCounterparties(app, counterpartiesDetails))
 	{
 		return false;

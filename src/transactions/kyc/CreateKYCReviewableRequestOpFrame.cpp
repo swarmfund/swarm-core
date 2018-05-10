@@ -41,8 +41,15 @@ namespace stellar {
             {
                 allowedSignerTypes |= static_cast<int32_t>(SignerType::ACCOUNT_MANAGER);
             }
-            return SourceDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED},
-                                 mSourceAccount->getHighThreshold(), allowedSignerTypes);
+
+            std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED};
+
+            if (ledgerVersion >= static_cast<int32_t>(LedgerVersion::ALLOW_SYNDICATE_TO_UPDATE_KYC))
+            {
+                allowedAccountTypes.push_back(AccountType::SYNDICATE);
+            }
+
+            return SourceDetails(allowedAccountTypes, mSourceAccount->getHighThreshold(), allowedSignerTypes);
         }
         return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t>(SignerType::KYC_ACC_MANAGER) |

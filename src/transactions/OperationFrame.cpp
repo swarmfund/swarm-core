@@ -35,6 +35,7 @@
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
+#include "transactions/ManageSaleOpFrame.h"
 #include "database/Database.h"
 
 #include "medida/meter.h"
@@ -98,6 +99,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
 		return shared_ptr<OperationFrame>(new CreateUpdateKYCRequestOpFrame(op, res, tx));
     case OperationType::PAYMENT_V2:
         return shared_ptr<OperationFrame>(new PaymentOpV2Frame(op, res, tx));
+    case OperationType::MANAGE_SALE:
+        return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

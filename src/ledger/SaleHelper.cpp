@@ -242,6 +242,14 @@ void SaleHelper::loadSales(Database& db, StatementContext& prep,
         throw_with_nested(runtime_error("Failed to load sale"));
     }
 }
+
+SaleFrame::pointer SaleHelper::loadSale(uint64_t saleID, AccountID ownerID, Database &db, LedgerDelta *delta) {
+    auto saleFrame = loadSale(saleID, db, delta);
+    if (!saleFrame)
+        return nullptr;
+    return ownerID == saleFrame->getOwnerID() ? saleFrame : nullptr;
+}
+
 SaleFrame::pointer SaleHelper::loadSale(uint64_t saleID, Database& db,
                                            LedgerDelta* delta)
 {

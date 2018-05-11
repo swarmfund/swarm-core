@@ -32,11 +32,11 @@ namespace stellar {
 
         void ManageKeyValueTestHelper::doApply(Application &app, ManageKVAction action, bool require)
         {
-            LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(),mTestManager->getDB());
+            LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(), mTestManager->getDB());
 
             ManageKeyValueTestBuilder builder(key, mTestManager, action, value);
 
-            REQUIRE(builder.kvManager->doApply(app,delta,mTestManager->getLedgerManager()) == require);
+            REQUIRE(builder.kvManager->doApply(app, delta, mTestManager->getLedgerManager()) == require);
             REQUIRE(builder.kvManager->getInnerCode(builder.kvManager->getResult()) == expectedResult);
         }
 

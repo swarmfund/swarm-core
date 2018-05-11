@@ -1,0 +1,51 @@
+- hosts: localhost
+  connection: local
+  tasks:
+
+  - set_fact:
+      core_docker_image: registry.gitlab.com/swarmfund/core
+      docker_network: core-network
+      config_volume: core-config
+      data_volume: core-data
+      pg_volume: core-pg-data
+
+  - name: start database
+    docker_container:
+      state: started
+      name: core_db
+      image: "postgres:9.6"
+      restart_policy: unless-stopped
+      volumes:
+        - "{{ pg_volume }}:/var/lib/postgresql/data"
+      networks:
+        - name: "{{ docker_network }}"
+      env:
+        POSTGRES_USER: "core"
+        POSTGRES_PASSWORD: "core"
+        POSTGRES_DB: "core"
+      log_driver: syslog
+      log_options:
+        tag: core_db
+
+  - name: wait for database to get up, hopefully
+    wait_for: timeout=5
+
+  - name: start container
+    docker_container:
+      name: core
+      image: "{{ core_docker_image }}:{{ core_revision }}"
+      state: started
+      recreate: yes
+      command: /config/config.ini start
+      restart_policy: unless-stopped
+      networks:
+        - name: "{{ docker_network }}"
+      volumes:
+        - "{{ data_volume }}:/data"
+        - "{{ config_volume }}:/config"
+      ports:
+        - "8090:8090"
+        - "8080:8080"
+      log_driver: syslog
+      log_options:
+        tag: core

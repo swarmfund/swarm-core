@@ -53,7 +53,7 @@ CreateIssuanceRequestOpFrame::doApply(Application& app,
         }
 
         auto reviewResultCode = ReviewRequestResultCode::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
-        if (!assetFrame->checkPolicy(AssetPolicy::ISSUANCE_MANUAL_REVIEW_REQUIRED))
+        if (!assetFrame->isPolicySet(AssetPolicy::ISSUANCE_MANUAL_REVIEW_REQUIRED))
         {
             reviewResultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta, request);
         }

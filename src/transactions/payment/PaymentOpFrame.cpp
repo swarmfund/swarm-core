@@ -2,7 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "transactions/PaymentOpFrame.h"
+#include "PaymentOpFrame.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
@@ -233,7 +233,7 @@ bool PaymentOpFrame::calculateSourceDestAmount()
 
 bool PaymentOpFrame::isAllowedToTransfer(Database& db, AssetFrame::pointer asset)
 {
-	return asset->checkPolicy(AssetPolicy::TRANSFERABLE);
+	return asset->isPolicySet(AssetPolicy::TRANSFERABLE);
 }
 
 bool PaymentOpFrame::processFees(Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db)

@@ -8,7 +8,7 @@
 #include "ledger/ReferenceFrame.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/PaymentRequestHelper.h"
-#include "transactions/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpFrame.h"
 #include "crypto/SHA.h"
 #include "test/test_marshaler.h"
 #include "ledger/AssetHelper.h"

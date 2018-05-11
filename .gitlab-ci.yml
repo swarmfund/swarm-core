@@ -9,6 +9,7 @@ variables:
   IMAGE_NAME: registry.gitlab.com/swarmfund/core
   BOOTSTRAP_IMAGE_NAME: $IMAGE_NAME/bootstrap
   IMAGE_BUILD_NAME: $IMAGE_NAME:$CI_COMMIT_SHA
+  BOOTSTRAP_BUILD_NAME: $BOOTSTRAP_IMAGE_NAME:latest
   DEPLOYMENT_DIR: /root/deployment
   DEPLOYMENT_INV: $DEPLOYMENT_DIR/$CI_COMMIT_REF_NAME.ini
   DEPLOYMENT_SECRETS: $DEPLOYMENT_DIR/secrets/$CI_COMMIT_REF_NAME.yml
@@ -40,8 +41,8 @@ build:
   script:
     # login to docker registry
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-    - docker build --pull $BOOTSTRAP_BUILD_IMAGE -f $BOOTSTRAP_DOCKERFILE .
-    - docker push $BOOTSTRAP_IMAGE_NAME:latest
+    - docker build --pull -t $BOOTSTRAP_BUILD_NAME -f $BOOTSTRAP_DOCKERFILE .
+    - docker push $BOOTSTRAP_BUILD_NAME
 
 deploy:
   image: williamyeh/ansible:ubuntu16.04

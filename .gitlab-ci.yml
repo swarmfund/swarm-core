@@ -41,7 +41,7 @@ build:
     # login to docker registry
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - docker build --pull $BOOTSTRAP_BUILD_IMAGE -f $BOOTSTRAP_DOCKERFILE .
-    - docker push $BOOTSTRAP_BUILD_NAME
+    - docker push $BOOTSTRAP_IMAGE_NAME:latest
 
 deploy:
   image: williamyeh/ansible:ubuntu16.04

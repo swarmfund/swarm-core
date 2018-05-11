@@ -96,6 +96,20 @@ bool SaleHelper::exists(Database& db, LedgerKey const& key)
     return exists != 0;
 }
 
+bool SaleHelper::exists(Database &db, uint64_t saleID)
+{
+    auto timer = db.getSelectTimer("sale_exists");
+    auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM sale WHERE id=:id)");
+    auto& st = prep.statement();
+    st.exchange(use(saleID));
+    auto exists = 0;
+    st.exchange(into(exists));
+    st.define_and_bind();
+    st.execute(true);
+
+    return exists != 0;
+}
+
 LedgerKey SaleHelper::getLedgerKey(LedgerEntry const& from)
 {
     LedgerKey ledgerKey;
@@ -347,4 +361,6 @@ EntryFrame::pointer SaleHelper::storeLoad(LedgerKey const& key, Database& db)
 {
     return loadSale(key.sale().saleID, db);
 }
+
+
 }

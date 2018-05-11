@@ -5,7 +5,9 @@ services:
 variables:
   # dockerfile for building artifact image
   BUILD_DOCKERFILE: build.dockerfile
+  BOOTSTRAP_DOCKERFILE: bootstrap.dockerfile
   IMAGE_NAME: registry.gitlab.com/swarmfund/core
+  BOOTSTRAP_IMAGE_NAME: $IMAGE_NAME/bootstrap
   IMAGE_BUILD_NAME: $IMAGE_NAME:$CI_COMMIT_SHA
   DEPLOYMENT_DIR: /root/deployment
   DEPLOYMENT_INV: $DEPLOYMENT_DIR/$CI_COMMIT_REF_NAME.ini
@@ -28,6 +30,18 @@ build:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - docker build --pull --build-arg RSA_KEY="$SSH_PRIVATE_KEY" -t $IMAGE_BUILD_NAME -f $BUILD_DOCKERFILE .
     - docker push $IMAGE_BUILD_NAME
+
+# build and publish bootstrap image
+build:
+  image: docker:latest
+  stage: build
+  only:
+    - master
+  script:
+    # login to docker registry
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    - docker build --pull $BOOTSTRAP_BUILD_IMAGE -f $BOOTSTRAP_DOCKERFILE .
+    - docker push $BOOTSTRAP_BUILD_NAME
 
 deploy:
   image: williamyeh/ansible:ubuntu16.04

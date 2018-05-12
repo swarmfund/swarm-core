@@ -30,6 +30,8 @@ namespace stellar {
             return false;
         }
 
+        checkRequestType(requestFrame);
+
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.updateSaleDetailsRequest().newDetails = mManageSaleOp.data.updateSaleDetailsData().newDetails;
 
@@ -116,7 +118,7 @@ namespace stellar {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected UPDATE_SALE_DETAILS, but got "
                                                    << xdr::xdr_traits<ReviewableRequestType>::enum_name(
                                                            request->getRequestType());
-            throw std::invalid_argument("Unexpected request type for review update sale details request");
+            throw std::invalid_argument("Unexpected request type");
         }
     }
 }

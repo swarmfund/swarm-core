@@ -40,11 +40,4 @@ namespace stellar {
         innerResult().code(ReviewRequestResultCode::SUCCESS);
         return true;
     }
-
-    bool ReviewUpdateSaleDetailsRequestOpFrame::handleReject(Application &app, LedgerDelta &delta,
-                                                             LedgerManager &ledgerManager,
-                                                             ReviewableRequestFrame::pointer request) {
-        innerResult().code(ReviewRequestResultCode::REJECT_NOT_ALLOWED);
-        return false;
-    }
 }

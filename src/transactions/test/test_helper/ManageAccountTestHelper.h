@@ -1,9 +1,4 @@
-//
-// Created by volodymyr on 26.01.18.
-//
-
-#ifndef STELLAR_MANAGEACCOUNTTESTHELPER_H
-#define STELLAR_MANAGEACCOUNTTESTHELPER_H
+#pragma once
 
 #include "TxHelper.h"
 
@@ -26,9 +21,5 @@ public:
                                            ManageAccountResultCode expectedResult = ManageAccountResultCode::SUCCESS);
 };
 
-
 }
 }
-
-
-#endif //STELLAR_MANAGEACCOUNTTESTHELPER_H

@@ -55,7 +55,7 @@ ExternalSystemAccountIDFrame& ExternalSystemAccountIDFrame::operator=(
 }
 
 ExternalSystemAccountIDFrame::pointer ExternalSystemAccountIDFrame::createNew(
-    AccountID const accountID, ExternalSystemType const externalSystemType,
+    AccountID const accountID, int32 const externalSystemType,
     string const data)
 {
     LedgerEntry le;
@@ -69,7 +69,7 @@ ExternalSystemAccountIDFrame::pointer ExternalSystemAccountIDFrame::createNew(
 
 bool ExternalSystemAccountIDFrame::isValid(ExternalSystemAccountID const& oe)
 {
-    return isValidEnumValue(oe.externalSystemType) && !oe.data.empty();
+    return !oe.data.empty();
 }
 
 bool ExternalSystemAccountIDFrame::isValid() const

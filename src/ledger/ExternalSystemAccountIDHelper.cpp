@@ -130,7 +130,7 @@ namespace stellar
 	}
 
 	bool ExternalSystemAccountIDHelper::exists(Database& db, AccountID rawAccountID,
-		ExternalSystemType externalSystemType)
+		int32 externalSystemType)
 	{
 		int exists = 0;
 		auto timer = db.getSelectTimer("external-system-account-id-exists");
@@ -179,7 +179,7 @@ namespace stellar
 
 	ExternalSystemAccountIDFrame::pointer 
 	ExternalSystemAccountIDHelper::	load(const AccountID rawAccountID,
-		const ExternalSystemType externalSystemType,
+		const int32 externalSystemType,
 		Database& db, LedgerDelta* delta)
 	{
 		std::string sql = select;
@@ -242,4 +242,18 @@ namespace stellar
 		}
 	}
 
+	std::vector<ExternalSystemAccountIDFrame::pointer>
+	ExternalSystemAccountIDHelper::loadAll(Database &db)
+	{
+		std::vector<ExternalSystemAccountIDFrame::pointer> retExternalSystemAccountIDs;
+		std::string sql = select;
+		auto prep = db.getPreparedStatement(sql);
+
+		auto timer = db.getSelectTimer("external system account id");
+		load(prep, [&retExternalSystemAccountIDs](LedgerEntry const& of)
+		{
+			retExternalSystemAccountIDs.emplace_back(make_shared<ExternalSystemAccountIDFrame>(of));
+		});
+		return retExternalSystemAccountIDs;
+	}
 }

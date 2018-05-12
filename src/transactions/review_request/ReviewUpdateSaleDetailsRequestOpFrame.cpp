@@ -28,8 +28,8 @@ namespace stellar {
         auto saleFrame = SaleHelper::Instance()->loadSale(updateSaleDetailsRequest.saleID, db, &delta);
 
         if (!saleFrame) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Requestor's sale not found.";
-            throw std::runtime_error("Unexpected state. Requestor's sale not found.");
+            innerResult().code(ReviewRequestResultCode::SALE_NOT_FOUND);
+            return false;
         }
 
         saleFrame->getSaleEntry().details = updateSaleDetailsRequest.newDetails;

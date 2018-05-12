@@ -1,13 +1,8 @@
-//
-// Created by volodymyr on 26.01.18.
-//
-
-#include <ledger/AccountHelper.h>
-#include <transactions/OperationFrame.h>
-#include <transactions/ManageAccountOpFrame.h>
 #include "ManageAccountTestHelper.h"
+#include "StateBeforeTxHelper.h"
+#include <transactions/ManageAccountOpFrame.h>
+#include <ledger/AccountHelper.h>
 #include "test/test_marshaler.h"
-#include "CheckSaleStateTestHelper.h"
 
 namespace stellar
 {

@@ -81,17 +81,6 @@ template <> struct type_conversion<stellar::uint64>
                         unsigned long long int& result, indicator& ind);
 };
 
-template <> struct type_conversion<ExternalSystemType>
-{
-    typedef int32_t base_type;
-
-    static void from_base(int32_t number, indicator ind,
-                          ExternalSystemType& result);
-
-    static void to_base(ExternalSystemType& number, int32_t& result,
-                        indicator& ind);
-};
-
 template <> struct type_conversion<PublicKey>
 {
     typedef std::string base_type;

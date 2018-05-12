@@ -4,6 +4,7 @@
 #include <transactions/test/test_helper/TestManager.h>
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
+#include <exsysidgen/Generator.h>
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
 #include "ledger/AccountHelper.h"
@@ -41,21 +42,21 @@ TEST_CASE("create account", "[tx][create_account]") {
         auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
         createAccountHelper.applyTx(createAccountTestBuilder);
         const auto btcKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
-                                                                ExternalSystemType::BITCOIN, app.getDatabase());
+                                                                BitcoinExternalSystemType, app.getDatabase());
         REQUIRE(!!btcKey);
 
         const auto ethKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
-                                                                ExternalSystemType::ETHEREUM, app.getDatabase());
+                                                                EthereumExternalSystemType, app.getDatabase());
         REQUIRE(!!ethKey);
 
         SECTION("Can update account, but ext keys will be the same") {
             createAccountHelper.applyTx(createAccountTestBuilder.setType(AccountType::GENERAL));
             const auto btcKeyAfterUpdate = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
-                                                                               ExternalSystemType::BITCOIN,
+                                                                               BitcoinExternalSystemType,
                                                                                app.getDatabase());
             REQUIRE(btcKey->getExternalSystemAccountID() == btcKeyAfterUpdate->getExternalSystemAccountID());
             const auto ethKeyAfterUpdate = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
-                                                                               ExternalSystemType::ETHEREUM,
+                                                                               EthereumExternalSystemType,
                                                                                app.getDatabase());
             REQUIRE(ethKey->getExternalSystemAccountID() == ethKeyAfterUpdate->getExternalSystemAccountID());
         }

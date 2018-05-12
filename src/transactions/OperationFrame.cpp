@@ -33,6 +33,7 @@
 #include "transactions/ManageInvoiceOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
+#include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 #include "transactions/ManageSaleOpFrame.h"
@@ -42,6 +43,7 @@
 #include "medida/metrics_registry.h"
 #include "dex/ManageOfferOpFrame.h"
 #include "CheckSaleStateOpFrame.h"
+#include "BindExternalSystemAccountIdOpFrame.h"
 
 namespace stellar
 {
@@ -93,6 +95,10 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::CHECK_SALE_STATE:
         return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
+    case OperationType::MANAGE_EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
+        return shared_ptr<OperationFrame>(ManageExternalSystemAccountIdPoolEntryOpFrame::makeHelper(op, res, tx));
+    case OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID:
+        return shared_ptr<OperationFrame>(new BindExternalSystemAccountIdOpFrame(op, res, tx));
     case OperationType::CREATE_AML_ALERT:
         return shared_ptr<OperationFrame>(new CreateAMLAlertRequestOpFrame(op,res,tx));
 	case OperationType::CREATE_KYC_REQUEST:

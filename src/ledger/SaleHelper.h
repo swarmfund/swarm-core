@@ -39,6 +39,9 @@ namespace stellar
         EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
         uint64_t countObjects(soci::session& sess) override;
 
+        bool exists(Database& db, uint64_t saleID);
+
+        SaleFrame::pointer loadSale(uint64_t saleID, AccountID ownerID, Database& db, LedgerDelta* delta = nullptr);
         SaleFrame::pointer loadSale(uint64_t saleID, Database& db, LedgerDelta* delta = nullptr);
         SaleFrame::pointer loadSale(uint64_t saleID, AssetCode const& base, AssetCode const& quote, Database& db, LedgerDelta* delta = nullptr);
 

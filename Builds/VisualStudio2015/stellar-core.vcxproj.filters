@@ -948,6 +948,9 @@
     <ClCompile Include="..\..\src\transactions\payment\PaymentOpV2Frame.cpp">
       <Filter>transactions\payment</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1841,11 +1844,15 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.h">
       <Filter>transactions\review_request</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\PaymentOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\payment\PaymentOpFrame.h">
       <Filter>transactions\payment</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\payment\PaymentOpV2Frame.h">
       <Filter>transactions\payment</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

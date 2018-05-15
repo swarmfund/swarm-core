@@ -16,7 +16,6 @@ variables:
 
 stages:
   - build
-  - deploy
 
 # build and publish docker image to the registry
 build:
@@ -26,30 +25,9 @@ build:
    - dev
    - staging
    - prod
+   - master
   script:
     # login to docker registry
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - docker build --pull --build-arg RSA_KEY="$SSH_PRIVATE_KEY" -t $IMAGE_BUILD_NAME -f $BUILD_DOCKERFILE .
     - docker push $IMAGE_BUILD_NAME
-
-# build and publish bootstrap image
-build:
-  image: docker:latest
-  stage: build
-  only:
-    - master
-  script:
-    # login to docker registry
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-    - docker build --pull -t $BOOTSTRAP_BUILD_NAME -f $BOOTSTRAP_DOCKERFILE .
-    - docker push $BOOTSTRAP_BUILD_NAME
-
-deploy:
-  image: williamyeh/ansible:ubuntu16.04
-  stage: deploy
-  only:
-    - staging
-    - dev
-  script:
-    # TODO add host fingerprint
-    - ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i $DEPLOYMENT_INV -e @$DEPLOYMENT_SECRETS -e core_revision=$CI_COMMIT_SHA $DEPLOYMENT_DIR/core.yml

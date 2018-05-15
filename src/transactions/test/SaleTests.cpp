@@ -18,12 +18,14 @@
 #include "test_helper/SaleRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ManageBalanceTestHelper.h"
+#include "test_helper/ManageSaleTestHelper.h"
 #include "test_helper/ParticipateInSaleTestHelper.h"
 #include "transactions/dex/OfferManager.h"
 #include "ledger/SaleHelper.h"
 #include "test_helper/CheckSaleStateTestHelper.h"
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test_helper/ReviewSaleRequestHelper.h"
+#include "test_helper/ReviewUpdateSaleDetailsRequestHelper.h"
 #include "test/test_marshaler.h"
 #include "ledger/OfferHelper.h"
 #include "test_helper/ManageAssetPairTestHelper.h"
@@ -159,6 +161,8 @@ TEST_CASE("Sale", "[tx][sale]")
     SaleRequestHelper saleRequestHelper(testManager);
     IssuanceRequestHelper issuanceHelper(testManager);
     CheckSaleStateHelper checkStateHelper(testManager);
+    ManageSaleTestHelper manageSaleTestHelper(testManager);
+    ReviewUpdateSaleDetailsRequestTestHelper reviewUpdateSaleDetailsRequestTestHelper(testManager);
 
     auto syndicate = Account{ SecretKey::random(), 0 };
     auto syndicatePubKey = syndicate.key.getPublicKey();
@@ -271,6 +275,42 @@ TEST_CASE("Sale", "[tx][sale]")
             testManager->advanceToTime(endTime + 1);
             auto checkRes = checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::SUCCESS);
             REQUIRE(checkRes.success().effect.effect() == CheckSaleStateEffect::CANCELED);
+        }
+
+        SECTION("Manage sale")
+        {
+            SECTION("Update sale details") {
+                std::string newDetails = "{\n \"a\": \"test string\" \n}";
+                auto manageSaleData = manageSaleTestHelper.createDataForUpdateSaleDetails(0, newDetails);
+                auto manageSaleResult = manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+
+                SECTION("Request already exists") {
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                           ManageSaleResultCode::UPDATE_DETAILS_REQUEST_ALREADY_EXISTS);
+                }
+
+                SECTION("Sale not found") {
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, 42, manageSaleData,
+                                                           ManageSaleResultCode::SALE_NOT_FOUND);
+                }
+
+                SECTION("Request to update not found") {
+                    manageSaleData.updateSaleDetailsData().requestID = 42;
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                           ManageSaleResultCode::UPDATE_DETAILS_REQUEST_NOT_FOUND);
+                }
+
+                auto requestID = manageSaleResult.success().response.requestID();
+
+                SECTION("Successful update") {
+                    manageSaleData.updateSaleDetailsData().requestID = requestID;
+                    manageSaleData.updateSaleDetailsData().newDetails = "{\n \"a\": \"updated string\" \n}";
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+                }
+
+                reviewUpdateSaleDetailsRequestTestHelper.applyReviewRequestTx(root, requestID,
+                                                                              ReviewRequestOpAction::APPROVE, "");
+            }
         }
     }
 

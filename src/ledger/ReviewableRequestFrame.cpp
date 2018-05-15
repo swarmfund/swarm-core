@@ -192,6 +192,12 @@ void ReviewableRequestFrame::ensureUpdateKYCValid(UpdateKYCRequest const &reques
 	}
 }
 
+void ReviewableRequestFrame::ensureUpdateSaleDetailsValid(UpdateSaleDetailsRequest const &request) {
+    if (!isValidJson(request.newDetails)) {
+        throw std::runtime_error("New sale details is invalid");
+    }
+}
+
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
 {
 	return sha256(xdr::xdr_to_opaque(body));
@@ -234,6 +240,9 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
 		case ReviewableRequestType::UPDATE_KYC:
             ensureUpdateKYCValid(oe.body.updateKYCRequest());
 			return;
+        case ReviewableRequestType::UPDATE_SALE_DETAILS:
+            ensureUpdateSaleDetailsValid(oe.body.updateSaleDetailsRequest());
+            return;
         default:
             throw runtime_error("Unexpected reviewable request type");
         }

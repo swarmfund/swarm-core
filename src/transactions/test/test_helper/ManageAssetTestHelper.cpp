@@ -280,7 +280,7 @@ void ManageAssetTestHelper::validateManageAssetEffect(
     auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
     REQUIRE(assetFrame);
     auto balanceHelper = BalanceHelper::Instance();
-    if (assetFrame->checkPolicy(AssetPolicy::BASE_ASSET))
+    if (assetFrame->isPolicySet(AssetPolicy::BASE_ASSET))
     {
         auto systemAccounts = mTestManager->getApp().getSystemAccounts();
         for (auto systemAccount : systemAccounts)

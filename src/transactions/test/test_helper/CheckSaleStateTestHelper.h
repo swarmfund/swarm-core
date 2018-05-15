@@ -1,6 +1,6 @@
-#ifndef STELLAR_CHECK_SALE_STATE_TEST_HELPER_H
-#define STELLAR_CHECK_SALE_STATE_TEST_HELPER_H
+#pragma once
 
+#include "StateBeforeTxHelper.h"
 #include "ManageOfferTestHelper.h"
 #include "ledger/SaleFrame.h"
 
@@ -27,6 +27,3 @@ namespace txtest
 }
 
 }
-
-
-#endif //STELLAR_CHECK_SALE_STATE_TEST_HELPER_H

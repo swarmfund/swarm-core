@@ -1,9 +1,9 @@
-#include <ledger/BalanceHelper.h>
-#include <ledger/AccountHelper.h>
-#include <transactions/FeesManager.h>
 #include "CheckSaleStateTestHelper.h"
-#include "ledger/OfferHelper.h"
-#include "ledger/AssetHelper.h"
+#include <transactions/FeesManager.h>
+#include <ledger/AssetHelper.h>
+#include <ledger/AccountHelper.h>
+#include <ledger/BalanceHelper.h>
+#include <ledger/OfferHelper.h>
 #include "test/test_marshaler.h"
 #include "ledger/SaleHelper.h"
 

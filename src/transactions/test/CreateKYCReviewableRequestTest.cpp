@@ -29,14 +29,17 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     auto testManager = TestManager::make(app);
 
     auto updatedAccountID = SecretKey::random();
-
     auto updatedAccount = Account{updatedAccountID, Salt(1)};
+
+    auto updatedSyndicateID = SecretKey::random();
+    auto updatedSyndicate = Account{updatedSyndicateID, Salt(1)};
 
     auto master = Account{getRoot(), Salt(1)};
 
     CreateAccountTestHelper accountTestHelper(testManager);
 
     accountTestHelper.applyCreateAccountTx(master, updatedAccountID.getPublicKey(), AccountType::GENERAL);
+    accountTestHelper.applyCreateAccountTx(master, updatedSyndicateID.getPublicKey(), AccountType::SYNDICATE);
 
 
     CreateKYCRequestTestHelper testKYCRequestHelper(testManager);
@@ -87,7 +90,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                                                                  kycData, kycLevel,
                                                                                                  &tasks);
         }
-        SECTION("source updatedAccount, create -> reject -> update -> approve") {
+        SECTION("source is general, create -> reject -> update -> approve") {
             auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
                                                                                                  updatedAccountID.getPublicKey(),
                                                                                                  AccountType::GENERAL,
@@ -112,6 +115,19 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                                                                  kycData, kycLevel,
                                                                                                  nullptr);
 
+            reviewKYCRequestTestHelper.applyReviewRequestTx(master, requestID, ReviewRequestOpAction::APPROVE, "");
+        }
+        SECTION("source is syndicate, create -> approve by master") {
+            auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
+                                                                                                 updatedAccountID.getPublicKey(),
+                                                                                                 AccountType::SYNDICATE,
+                                                                                                 kycData, kycLevel,
+                                                                                                 nullptr);
+
+            requestID = createUpdateKYCRequestResult.success().requestID;
+            auto request = ReviewableRequestHelper::Instance()->loadRequest(requestID, updatedAccountID.getPublicKey(),
+                                                                            ReviewableRequestType::UPDATE_KYC,
+                                                                            testManager->getDB());
             reviewKYCRequestTestHelper.applyReviewRequestTx(master, requestID, ReviewRequestOpAction::APPROVE, "");
         }
         SECTION("set the same type") {

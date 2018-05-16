@@ -35,6 +35,7 @@
 #include "ledger/InvoiceHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
+#include "ledger/EntityTypeHelper.h"
 #include "xdrpp/printer.h"
 #include "xdrpp/marshal.h"
 #include "crypto/Hex.h"
@@ -182,6 +183,7 @@ namespace stellar
 		{ LedgerEntryType::STATISTICS, StatisticsHelper::Instance() },
 		{ LedgerEntryType::TRUST, TrustHelper::Instance() },
         { LedgerEntryType::SALE, SaleHelper::Instance() },
-        { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance() }
+        { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance() },
+		{ LedgerEntryType::ENTITY_TYPE, EntityTypeHelper::Instance() }
 	};
 }

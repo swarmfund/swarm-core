@@ -39,7 +39,10 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
         transactions/test/test_helper/Account.h
-)
+        transactions/SetEntityTypeOpFrame.h
+        ledger/EntityTypeFrame.h
+        ledger/EntityTypeHelper.h
+        )
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

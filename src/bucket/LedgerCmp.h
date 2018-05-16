@@ -169,6 +169,15 @@ struct LedgerEntryIdCmp
             auto const &bkyc = b.accountKYC();
             return akyc.accountID < bkyc.accountID;
             }
+        case LedgerEntryType::ENTITY_TYPE:
+        {
+            auto const &aet = a.entityType();
+            auto const &bet = b.entityType();
+
+            if (aet.id == bet.id)
+                return aet.type < bet.type;
+            return aet.id < bet.id;
+        }
         default:
             {
             throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");

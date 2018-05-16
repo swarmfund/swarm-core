@@ -43,6 +43,7 @@
 #include "dex/ManageOfferOpFrame.h"
 #include "CheckSaleStateOpFrame.h"
 #include "BindExternalSystemAccountIdOpFrame.h"
+#include "ManageKeyValueOpFrame.h"
 
 namespace stellar
 {
@@ -104,6 +105,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
 		return shared_ptr<OperationFrame>(new CreateUpdateKYCRequestOpFrame(op, res, tx));
     case OperationType::PAYMENT_V2:
         return shared_ptr<OperationFrame>(new PaymentOpV2Frame(op, res, tx));
+    case OperationType::MANAGE_KEY_VALUE:
+        return shared_ptr<OperationFrame>(new ManageKeyValueOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

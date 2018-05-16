@@ -72,11 +72,12 @@ namespace stellar {
         auto prefix = getPrefix();
 
         if(strcmp(prefix.c_str(),kycRulesPrefix) == 0) {
-            return SourceDetails({AccountType::MASTER}, static_cast<int32_t >(ThresholdIndexes::HIGH),
+            return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                                  static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
         }
 
-        return SourceDetails({AccountType::MASTER}, static_cast<int32_t >(ThresholdIndexes::HIGH),0);
+        return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
+                             static_cast<int32_t>(SignerType::KEY_VALUE_MANAGER));
     }
 
     longstring

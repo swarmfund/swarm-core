@@ -30,15 +30,20 @@
 #include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
+#include "ledger/AccountKYCHelper.h"
+#include "ledger/SaleHelper.h"
+#include "ledger/ReferenceHelper.h"
+#include "ledger/ReferenceHelper.h"
+#include "ledger/LedgerHeaderFrame.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/EntityTypeHelper.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
 #include "main/ExternalQueue.h"
-#include "ledger/LedgerHeaderFrame.h"
 #include "transactions/TransactionFrame.h"
 #include "bucket/BucketManager.h"
 #include "herder/Herder.h"
-#include "ledger/AccountHelper.h"
 #include "medida/metrics_registry.h"
 #include "medida/timer.h"
 #include "medida/counter.h"
@@ -47,9 +52,7 @@
 #include <vector>
 #include <sstream>
 #include <thread>
-#include <ledger/AccountKYCHelper.h>
-#include "ledger/SaleHelper.h"
-#include "ledger/ReferenceHelper.h"
+
 
 extern "C" void register_factory_sqlite3();
 
@@ -76,7 +79,8 @@ enum databaseSchemaVersion : unsigned long {
     ADD_SALE_TYPE = 6,
 	USE_KYC_LEVEL = 7,
     ADD_ACCOUNT_KYC = 8,
-    ADD_FEE_ASSET = 9
+    ADD_FEE_ASSET = 9,
+    ADD_ENTITY_TYPE = 10
 };
 
 static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_FEE_ASSET;
@@ -158,6 +162,8 @@ Database::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::ADD_FEE_ASSET:
             FeeHelper::Instance()->addFeeAsset(*this);
             break;
+        case databaseSchemaVersion::ADD_ENTITY_TYPE:
+            EntityTypeHelper::Instance()->dropAll(*this);
         default:
             throw std::runtime_error("Unknown DB schema version");
             break;

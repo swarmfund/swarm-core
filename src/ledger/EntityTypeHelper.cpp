@@ -80,18 +80,19 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
     const int64_t typeID = entityTypeFrame->getEntityTypeID();
     const std::string typeName = entityTypeFrame->getEntityTypeName();
     const auto type = static_cast<int32_t>(entityTypeFrame->getEntityTypeValue());
+    const auto version = static_cast<int32_t>(entry.ext.v());
 
     std::string sql;
 
     if (insert)
     {
-        sql = std::string("INSERT INTO entity_types (id, type, name) "
-                          "VALUES (:id, :tp, :nm)");
+        sql = std::string("INSERT INTO entity_types (id, type, name, version, lastmodified) "
+                          "VALUES (:id, :tp, :nm, :v, :lm)");
     }
     else
     {
         sql = std::string("UPDATE entity_types "
-                          "SET    name=:nm "
+                          "SET    name=:nm, version=:v, lastmodified=:lm"
                           "WHERE  id=:id AND type=:tp");
     }
 
@@ -102,6 +103,8 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
         st.exchange(use(typeID, "id"));
         st.exchange(use(type, "tp"));
         st.exchange(use(typeName, "nm"));
+        st.exchange(use(version, "v"));
+        st.exchange(use(entry.lastModifiedLedgerSeq, "lm"));
 
         st.define_and_bind();
 
@@ -195,8 +198,11 @@ EntityTypeHelper::loadEntityType(uint64_t id, EntityType type, Database& db,
                                  LedgerDelta* delta)
 {
     auto typeInt32 = static_cast<int32_t>(type);
+    int32_t version;
     LedgerKey key;
     key.type(LedgerEntryType::ENTITY_TYPE);
+    LedgerEntry le;
+    le.data.type(LedgerEntryType::ENTITY_TYPE);
 
     auto& entityTypeKey = key.entityType();
     entityTypeKey.id = id;
@@ -209,13 +215,15 @@ EntityTypeHelper::loadEntityType(uint64_t id, EntityType type, Database& db,
     }
 
     std::string name;
-    auto prep = db.getPreparedStatement("SELECT name "
+    auto prep = db.getPreparedStatement("SELECT name, version, lastmodified "
                                         "FROM entity_types "
                                         "WHERE id =:id AND type=:tp");
     auto& st = prep.statement();
     st.exchange(use(id));
     st.exchange(use(typeInt32));
     st.exchange(into(name));
+    st.exchange(into(version));
+    st.exchange(into(le.lastModifiedLedgerSeq));
 
     st.define_and_bind();
     {
@@ -229,15 +237,13 @@ EntityTypeHelper::loadEntityType(uint64_t id, EntityType type, Database& db,
         return nullptr;
     }
 
-    LedgerEntry le;
-    le.data.type(LedgerEntryType::ENTITY_TYPE);
-
     auto result = make_shared<EntityTypeFrame>(le);
-    auto& entityType = result->getEntityType();
+    auto entityType = result->getEntityType();
 
     entityType.name = name;
     entityType.type = type;
     entityType.id = id;
+    entityType.ext.v(static_cast<LedgerVersion>(version));
 
     std::shared_ptr<LedgerEntry const> pEntry =
         std::make_shared<LedgerEntry const>(result->mEntry);

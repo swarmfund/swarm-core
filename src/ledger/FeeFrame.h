@@ -78,6 +78,10 @@ namespace stellar
         {
             return mFee.fixedFee;
         }
+
+        bool isCrossAssetFee() const;
+
+        AssetCode getFeeAsset() const;
         
         static bool isValid(FeeEntry const& oe);
         bool isValid() const;

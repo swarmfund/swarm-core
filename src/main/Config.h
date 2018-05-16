@@ -146,6 +146,8 @@ class Config : public std::enable_shared_from_this<Config>
     
     uint64 MAX_INVOICES_FOR_RECEIVER_ACCOUNT = 20;
 
+    int32 KYC_SUPER_ADMIN_MASK = 1;
+
     // overlay config
     unsigned short PEER_PORT;
     unsigned TARGET_PEER_CONNECTIONS;

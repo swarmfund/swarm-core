@@ -7,6 +7,7 @@
 #include "overlay/StellarXDR.h"
 #include "TxHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "StateBeforeTxHelper.h"
 
 namespace stellar
 {
@@ -17,6 +18,7 @@ class ReviewChecker
 protected:
     TestManager::pointer mTestManager;
     Operation mOperation;
+    StateBeforeTxHelper mStateBeforeTxHelper;
 public:
     ReviewChecker(TestManager::pointer testManager)
     {
@@ -39,6 +41,12 @@ public:
     void setOperation(Operation &op)
     {
         mOperation = op;
+    }
+
+    void setStateBeforeTxHelper(
+        const StateBeforeTxHelper stateBeforeTxHelper)
+    {
+        mStateBeforeTxHelper = stateBeforeTxHelper;
     }
 };
 

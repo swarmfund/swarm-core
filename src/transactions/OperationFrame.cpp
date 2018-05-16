@@ -16,7 +16,8 @@
 #include "ledger/AccountHelper.h"
 #include "transactions/TransactionFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
-#include "transactions/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpV2Frame.h"
 #include "transactions/SetOptionsOpFrame.h"
 #include "transactions/SetFeesOpFrame.h"
 #include "transactions/ManageAccountOpFrame.h"
@@ -32,13 +33,17 @@
 #include "transactions/ManageInvoiceOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
-
+#include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
+#include "transactions/CreateAMLAlertRequestOpFrame.h"
+#include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
+#include "transactions/ManageSaleOpFrame.h"
 #include "database/Database.h"
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "dex/ManageOfferOpFrame.h"
 #include "CheckSaleStateOpFrame.h"
+#include "BindExternalSystemAccountIdOpFrame.h"
 
 namespace stellar
 {
@@ -90,6 +95,18 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::CHECK_SALE_STATE:
         return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
+    case OperationType::MANAGE_EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
+        return shared_ptr<OperationFrame>(ManageExternalSystemAccountIdPoolEntryOpFrame::makeHelper(op, res, tx));
+    case OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID:
+        return shared_ptr<OperationFrame>(new BindExternalSystemAccountIdOpFrame(op, res, tx));
+    case OperationType::CREATE_AML_ALERT:
+        return shared_ptr<OperationFrame>(new CreateAMLAlertRequestOpFrame(op,res,tx));
+	case OperationType::CREATE_KYC_REQUEST:
+		return shared_ptr<OperationFrame>(new CreateUpdateKYCRequestOpFrame(op, res, tx));
+    case OperationType::PAYMENT_V2:
+        return shared_ptr<OperationFrame>(new PaymentOpV2Frame(op, res, tx));
+    case OperationType::MANAGE_SALE:
+        return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());
@@ -118,6 +135,11 @@ OperationFrame::apply(LedgerDelta& delta, Application& app)
 std::string OperationFrame::getInnerResultCodeAsStr() {
 	// Default implementation does nothing, make remove this implementation when all operations switched to it
 	return "not_implemented";
+}
+
+std::unordered_map<AccountID, CounterpartyDetails>
+OperationFrame::getCounterpartyDetails(Database &db, LedgerDelta *delta, int32_t ledgerVersion) const {
+    return getCounterpartyDetails(db, delta);
 }
 
 SourceDetails OperationFrame::getSourceAccountDetails(
@@ -267,7 +289,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
         }
     }
 
-	auto counterpartiesDetails = getCounterpartyDetails(db, delta);
+	auto counterpartiesDetails = getCounterpartyDetails(db, delta, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion);
 	if (!checkCounterparties(app, counterpartiesDetails))
 	{
 		return false;

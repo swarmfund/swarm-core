@@ -11,6 +11,7 @@
 #include "ReviewLimitsUpdateRequestOpFrame.h"
 #include "ReviewPreIssuanceCreationRequestOpFrame.h"
 #include "ReviewWithdrawalRequestOpFrame.h"
+#include "ReviewUpdateSaleDetailsRequestOpFrame.h"
 #include "util/Logging.h"
 #include "util/types.h"
 #include "database/Database.h"
@@ -21,12 +22,41 @@
 #include "ledger/ReferenceHelper.h"
 #include "main/Application.h"
 #include "ReviewSaleCreationRequestOpFrame.h"
+#include "ReviewAMLAlertRequestOpFrame.h"
+#include "ReviewUpdateKYCRequestOpFrame.h"
 
 namespace stellar
 {
 
 using namespace std;
 using xdr::operator==;
+
+bool ReviewRequestOpFrame::areBlockingRulesFulfilled(ReviewableRequestFrame::pointer request, LedgerManager& lm, Database & db, LedgerDelta & delta)
+{
+    auto requestorAccount = AccountHelper::Instance()->loadAccount(request->getRequestor(), db, &delta);
+    // just go through old flow
+    if (!lm.shouldUse(LedgerVersion::ALLOW_REJECT_REQUEST_OF_BLOCKED_REQUESTOR)) {
+        if (isSetFlag(requestorAccount->getBlockReasons(), BlockReasons::SUSPICIOUS_BEHAVIOR)) {
+            innerResult().code(ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
+            return false;
+        }
+
+        return true;
+    }
+
+    // we do not care about user state if it's not approval
+    if (mReviewRequest.action != ReviewRequestOpAction::APPROVE) {
+        return true;
+    }
+
+    if (isSetFlag(requestorAccount->getBlockReasons(), BlockReasons::SUSPICIOUS_BEHAVIOR)) {
+        innerResult().code(ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
+        return false;
+    }
+
+    return true;
+    
+}
 
 void ReviewRequestOpFrame::createReference(LedgerDelta & delta, Database & db, AccountID const & requestor, xdr::pointer<stellar::string64> reference)
 {
@@ -71,8 +101,14 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::LIMITS_UPDATE:
 		return new ReviewLimitsUpdateRequestOpFrame(op, res, parentTx);
-        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
-            return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
+    case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+        return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::AML_ALERT:
+		return new ReviewAMLAlertRequestOpFrame(op,res,parentTx);
+    case ReviewableRequestType::UPDATE_KYC:
+        return new ReviewUpdateKYCRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::UPDATE_SALE_DETAILS:
+		return new ReviewUpdateSaleDetailsRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}
@@ -112,11 +148,9 @@ ReviewRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	auto requestorAccount = AccountHelper::Instance()->loadAccount(request->getRequestor(), db, &delta);
-	if (isSetFlag(requestorAccount->getBlockReasons(), BlockReasons::SUSPICIOUS_BEHAVIOR)) {
-		innerResult().code(ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
-		return false;
-	}
+        if (!areBlockingRulesFulfilled(request, ledgerManager, db, delta)) {
+            return false;
+        }
 
 	if (!(request->getHash() == mReviewRequest.requestHash)) {
 		innerResult().code(ReviewRequestResultCode::HASH_MISMATCHED);

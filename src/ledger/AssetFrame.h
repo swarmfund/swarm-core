@@ -123,14 +123,14 @@ public:
         mAsset.availableForIssueance = availableForIssuance;
     }
 
-    bool checkPolicy(const AssetPolicy policy) const
+    bool isPolicySet(const AssetPolicy policy) const
     {
         return isSetFlag(mAsset.policies, policy);
     }
 
     bool isRequireKYC() const
     {
-        return checkPolicy(AssetPolicy::REQUIRES_KYC);
+        return isPolicySet(AssetPolicy::REQUIRES_KYC);
     }
 
     static bool isAssetCodeValid(AssetCode const& code);

@@ -10,7 +10,7 @@
 #include "lib/json/json.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/LedgerDelta.h"
-#include "transactions/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"

@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 
 // Copyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
@@ -34,7 +33,7 @@ namespace stellar
 			static AccountHelper singleton;
 			return &singleton;
 		}
-
+		void addKYCLevel(Database& db);
 		void dropAll(Database& db) override;
 
 		void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;

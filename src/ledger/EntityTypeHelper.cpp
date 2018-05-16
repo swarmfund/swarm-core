@@ -22,9 +22,11 @@ EntityTypeHelper::dropAll(Database& db)
     db.getSession() << "DROP TABLE IF EXISTS entity_types;";
     db.getSession() << "CREATE TABLE entity_types"
                        "("
-                       "id         INT64       NOT NULL,"
-                       "type       INT         NOT NULL,"
-                       "name       TEXT        NOT NULL,"
+                       "id             INT64   NOT NULL,"
+                       "type           INT     NOT NULL,"
+                       "name           TEXT    NOT NULL,"
+                       "lastmodified   INT     NOT NULL,"
+                       "version        INT     NOT NULL,"
                        "PRIMARY KEY(id, type)"
                        ");";
 }
@@ -49,16 +51,17 @@ EntityTypeHelper::storeDelete(LedgerDelta& delta, Database& db,
 {
     flushCachedEntry(key, db);
 
+    const auto type = static_cast<int32_t>(key.entityType().type);
     auto timer = db.getDeleteTimer("entity_type");
     auto prep = db.getPreparedStatement(
         "DELETE FROM entity_type WHERE id=:id AND type=:tp");
     auto& st = prep.statement();
 
     st.exchange(use(key.entityType().id));
-    st.exchange(use((int32_t)key.entityType().type));
-
+    st.exchange(use(type));
     st.define_and_bind();
     st.execute(true);
+
     delta.deleteEntry(key);
 }
 
@@ -76,7 +79,7 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
 
     const int64_t typeID = entityTypeFrame->getEntityTypeID();
     const std::string typeName = entityTypeFrame->getEntityTypeName();
-    const EntityType type = entityTypeFrame->getEntityTypeValue();
+    const auto type = static_cast<int32_t>(entityTypeFrame->getEntityTypeValue());
 
     std::string sql;
 
@@ -97,7 +100,7 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
     {
         soci::statement& st = prep.statement();
         st.exchange(use(typeID, "id"));
-        st.exchange(use((int32_t)type, "tp"));
+        st.exchange(use(type, "tp"));
         st.exchange(use(typeName, "nm"));
 
         st.define_and_bind();
@@ -125,6 +128,7 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
 bool
 EntityTypeHelper::exists(Database& db, LedgerKey const& key)
 {
+    const auto type = static_cast<int32_t>(key.entityType().type);
     int exists = 0;
     auto timer = db.getSelectTimer("entity-type-exists");
     auto prep =
@@ -132,7 +136,7 @@ EntityTypeHelper::exists(Database& db, LedgerKey const& key)
                                 "WHERE id=:id AND type=:tp)");
     auto& st = prep.statement();
     st.exchange(use(key.entityType().id));
-    st.exchange(use((int32_t)key.entityType().type));
+    st.exchange(use(type));
     st.exchange(into(exists));
 
     st.define_and_bind();
@@ -190,6 +194,7 @@ EntityTypeFrame::pointer
 EntityTypeHelper::loadEntityType(uint64_t id, EntityType type, Database& db,
                                  LedgerDelta* delta)
 {
+    auto typeInt32 = static_cast<int32_t>(type);
     LedgerKey key;
     key.type(LedgerEntryType::ENTITY_TYPE);
 
@@ -209,7 +214,7 @@ EntityTypeHelper::loadEntityType(uint64_t id, EntityType type, Database& db,
                                         "WHERE id =:id AND type=:tp");
     auto& st = prep.statement();
     st.exchange(use(id));
-    st.exchange(use((int32_t)type));
+    st.exchange(use(typeInt32));
     st.exchange(into(name));
 
     st.define_and_bind();

@@ -83,7 +83,7 @@ enum databaseSchemaVersion : unsigned long {
     ADD_ENTITY_TYPE = 10
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_FEE_ASSET;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ENTITY_TYPE;
 
 static void
 setSerializable(soci::session& sess)

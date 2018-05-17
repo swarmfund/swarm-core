@@ -33,8 +33,10 @@ void SaleReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(!!baseAssetBeforeTx);
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(saleCreationRequest->baseAsset, mTestManager->getDB());
     REQUIRE(!!baseAssetAfterTx);
-    // TODO: should be fixed 
-    uint64_t hardCapInBaseAsset = baseAssetBeforeTx->getMaxIssuanceAmount();
+    uint64_t hardCapInBaseAsset = saleCreationRequest->ext.v() ==
+                                  LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP
+                                  ? saleCreationRequest->ext.extV2().requiredBaseAssetForHardCap
+                                  : baseAssetBeforeTx->getMaxIssuanceAmount();
     const auto saleRequest = *saleCreationRequest;
     REQUIRE(baseAssetBeforeTx->getPendingIssuance() + hardCapInBaseAsset == baseAssetAfterTx->getPendingIssuance());
 

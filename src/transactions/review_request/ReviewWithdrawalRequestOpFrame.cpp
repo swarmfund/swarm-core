@@ -109,8 +109,7 @@ bool ReviewWithdrawalRequestOpFrame::doCheckValid(Application &app)
 {
     auto withdrawalRequest  = mReviewRequest.requestDetails.withdrawal();
 
-    if (!CreateWithdrawalRequestOpFrame::isExternalDetailsValid(app, withdrawalRequest.externalDetails,
-                                                                withdrawalRequest.ext.v())) {
+    if (!CreateWithdrawalRequestOpFrame::isExternalDetailsValid(app, withdrawalRequest.externalDetails)) {
         innerResult().code(ReviewRequestResultCode::INVALID_EXTERNAL_DETAILS);
         return false;
     }

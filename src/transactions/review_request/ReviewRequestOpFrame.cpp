@@ -202,10 +202,6 @@ bool ReviewRequestOpFrame::isRejectReasonValid(Application& app)
 		return false;
 	}
 
-	if (mReviewRequest.ext.v() < LedgerVersion::DETAILS_MAX_LENGTH_EXTENDED) {
-		return mReviewRequest.reason.length() <= 256;
-	}
-
 	return mReviewRequest.reason.length() <= app.getRejectReasonMaxLength();
 }
 

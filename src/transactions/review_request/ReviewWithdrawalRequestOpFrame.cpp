@@ -11,6 +11,7 @@
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "transactions/CreateWithdrawalRequestOpFrame.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
 
@@ -106,9 +107,10 @@ bool ReviewWithdrawalRequestOpFrame::handlePermanentReject(Application& app,
 
 bool ReviewWithdrawalRequestOpFrame::doCheckValid(Application &app)
 {
-    std::string externalDetails = mReviewRequest.requestDetails.withdrawal().externalDetails;
-    if (externalDetails.size() > app.getWithdrawalDetailsMaxLength() || !isValidJson(externalDetails))
-    {
+    auto withdrawalRequest  = mReviewRequest.requestDetails.withdrawal();
+
+    if (!CreateWithdrawalRequestOpFrame::isExternalDetailsValid(app, withdrawalRequest.externalDetails,
+                                                                withdrawalRequest.ext.v())) {
         innerResult().code(ReviewRequestResultCode::INVALID_EXTERNAL_DETAILS);
         return false;
     }

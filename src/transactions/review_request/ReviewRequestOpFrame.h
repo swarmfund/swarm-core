@@ -11,7 +11,7 @@ namespace stellar
 {
 class ReviewRequestOpFrame : public OperationFrame
 {
-	bool isRejectReasonValid();
+	bool isRejectReasonValid(Application& app);
 protected:
     ReviewRequestResult&
     innerResult()

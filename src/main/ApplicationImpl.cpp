@@ -231,6 +231,10 @@ namespace stellar {
 		return mConfig.ISSUANCE_DETAILS_MAX_LENGTH;
 	}
 
+	uint64 ApplicationImpl::getRejectReasonMaxLength() const {
+        return mConfig.REJECT_REASON_MAX_LENGTH;
+    }
+
     int32 ApplicationImpl::getKYCSuperAdminMask() const {
         return mConfig.KYC_SUPER_ADMIN_MASK;
     }

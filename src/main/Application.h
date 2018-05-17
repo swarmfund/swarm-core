@@ -262,6 +262,7 @@ class Application
     virtual uint64 getTxExpirationPeriod() const = 0;
     virtual uint64 getWithdrawalDetailsMaxLength() const = 0;
 	virtual uint64 getIssuanceDetailsMaxLength() const = 0;
+	virtual uint64 getRejectReasonMaxLength() const = 0;
     virtual int64 getMaxInvoicesForReceiverAccount() const = 0;
     virtual int32 getKYCSuperAdminMask() const = 0;
 

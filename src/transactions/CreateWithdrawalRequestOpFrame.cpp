@@ -219,14 +219,7 @@ bool CreateWithdrawalRequestOpFrame::doCheckValid(Application& app)
         innerResult().code(CreateWithdrawalRequestResultCode::INVALID_AMOUNT);
         return false;
     }
-
-    if (mCreateWithdrawalRequest.request.externalDetails.size() > app.getWithdrawalDetailsMaxLength()
-            || !isValidJson(mCreateWithdrawalRequest.request.externalDetails))
-    {
-        innerResult().code(CreateWithdrawalRequestResultCode::INVALID_EXTERNAL_DETAILS);
-        return false;
-    }
-
+    
     if (mCreateWithdrawalRequest.request.universalAmount != 0)
     {
         innerResult().code(CreateWithdrawalRequestResultCode::INVALID_UNIVERSAL_AMOUNT);
@@ -239,7 +232,24 @@ bool CreateWithdrawalRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
+    if (!isExternalDetailsValid(app, mCreateWithdrawalRequest.request.externalDetails,
+                                mCreateWithdrawalRequest.request.ext.v())) {
+        innerResult().code(CreateWithdrawalRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        return false;
+    }
+    
     return true;
+}
+
+bool CreateWithdrawalRequestOpFrame::isExternalDetailsValid(Application &app, const std::string &externalDetails,
+                                                            LedgerVersion requestVersion) {
+    if (!isValidJson(externalDetails))
+        return false;
+
+    if (requestVersion < LedgerVersion::DETAILS_MAX_LENGTH_EXTENDED)
+        return externalDetails.size() <= 1000;
+
+    return externalDetails.size() <= app.getWithdrawalDetailsMaxLength();
 }
 
 bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager, const BalanceFrame::pointer balance,
@@ -260,4 +270,6 @@ bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager,
             throw std::runtime_error("Unexpected state from accountManager when updating stats");
     }
 }
+
+    
 }

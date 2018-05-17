@@ -18,7 +18,6 @@ typedef std::unique_ptr<Application> appPtr;
 
 TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     Config cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
-    cfg.LEDGER_PROTOCOL_VERSION = 13;
 
     VirtualClock clock;
     Application::pointer appPtr = Application::create(clock, cfg);

@@ -257,7 +257,11 @@ namespace stellar {
             return false;
         }
 
-        defaultMask = kvEntry.get()->getKeyValue().value.defaultMask();
+        if (kvEntry.get()->getKeyValue().value.type() != KeyValueEntryType::UINT32){
+            return false;
+        }
+
+        defaultMask = kvEntry.get()->getKeyValue().value.ui32Value();
 
         return true;
     }

@@ -52,7 +52,7 @@ namespace stellar {
             if(kvAction == ManageKVAction::PUT)
             {
                 op.body.manageKeyValueOp().action.value().value.type(KeyValueEntryType::UINT32);
-                op.body.manageKeyValueOp().action.value().value.defaultMask() = value;
+                op.body.manageKeyValueOp().action.value().value.ui32Value() = value;
                 op.body.manageKeyValueOp().action.value().key = key;
             }
             return op;

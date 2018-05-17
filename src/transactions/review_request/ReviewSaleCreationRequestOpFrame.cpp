@@ -51,7 +51,11 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
 
     // TODO: at current stage we do not allow to issue tokens before the sale. Must be fixed
     // If you are fixing this make sure to apply fix to check sale state when we are unlocking pendingIssuance amount
-    const uint64_t requiredBaseAssetForHardCap = baseAsset->getMaxIssuanceAmount();
+    const uint64_t requiredBaseAssetForHardCap = saleCreationRequest.ext.v() ==
+                                                 LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP
+                                                 ? saleCreationRequest.ext.extV2().requiredBaseAssetForHardCap
+                                                 : baseAsset->getMaxIssuanceAmount();
+
     if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state, failed to lock issuance amount: " << request->getRequestID();

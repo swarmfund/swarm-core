@@ -163,6 +163,7 @@ TEST_CASE("Sale", "[tx][sale]")
     CheckSaleStateHelper checkStateHelper(testManager);
     ManageSaleTestHelper manageSaleTestHelper(testManager);
     ReviewUpdateSaleDetailsRequestTestHelper reviewUpdateSaleDetailsRequestTestHelper(testManager);
+    auto saleReviewer = ReviewSaleRequestHelper(testManager);
 
     auto syndicate = Account{ SecretKey::random(), 0 };
     auto syndicatePubKey = syndicate.key.getPublicKey();
@@ -170,14 +171,14 @@ TEST_CASE("Sale", "[tx][sale]")
     CreateAccountTestHelper(testManager).applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
     const AssetCode baseAsset = "BTC";
     // TODO: for now we need to keep maxIssuance = preIssuance to allow sale creation
-    const uint64_t maxIssuanceAmount = 2000 * ONE;
+    const uint64_t maxIssuanceAmount = 6000 * ONE;
     const uint64_t preIssuedAmount = maxIssuanceAmount;
     assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}",
                                                                       maxIssuanceAmount,0, preIssuedAmount);
     assetTestHelper.createApproveRequest(root, syndicate, assetCreationRequest);
     const uint64_t price = 2 * ONE;
-    const auto hardCap = static_cast<const uint64_t>(bigDivide(preIssuedAmount, price, ONE, ROUND_DOWN));
-    const uint64_t softCap = hardCap / 2;
+    auto hardCap = static_cast<const uint64_t>(bigDivide(preIssuedAmount, price, ONE, ROUND_DOWN));
+    uint64_t softCap = hardCap / 2;
     const auto currentTime = testManager->getLedgerManager().getCloseTime();
     const auto endTime = currentTime + 1000;
     auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
@@ -314,6 +315,35 @@ TEST_CASE("Sale", "[tx][sale]")
         }
     }
 
+    SECTION("Create sale with predefined required base asset amount for hard cap") {
+        auto basicSaleType = SaleType::BASIC_SALE;
+        SECTION("Insufficient preissued") {
+            auto requiredBaseAssetForHardCap = maxIssuanceAmount + (5 * ONE);
+            hardCap = static_cast<const uint64_t>(bigDivide(requiredBaseAssetForHardCap, price, ONE, ROUND_DOWN));
+            softCap = hardCap / 2;
+            saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
+                                                              endTime, softCap, hardCap, "{}",
+                                                              { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price)},
+                                                              &basicSaleType, &requiredBaseAssetForHardCap);
+            auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+            saleReviewer.applyReviewRequestTx(root, requestCreationResult.success().requestID,
+                                              ReviewRequestOpAction::APPROVE, "",
+                                              ReviewRequestResultCode::INSUFFICIENT_PREISSUED_FOR_HARD_CAP);
+        }
+        SECTION("Success") {
+            auto requiredBaseAssetForHardCap = maxIssuanceAmount - (5 * ONE);
+            hardCap = static_cast<const uint64_t>(bigDivide(requiredBaseAssetForHardCap, price, ONE, ROUND_DOWN));
+            softCap = hardCap / 2;
+            saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
+                                                              endTime, softCap, hardCap, "{}",
+                                                              { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price)},
+                                                              &basicSaleType, &requiredBaseAssetForHardCap);
+            auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+            saleReviewer.applyReviewRequestTx(root, requestCreationResult.success().requestID,
+                                              ReviewRequestOpAction::APPROVE, "");
+        }
+    }
+
     SECTION("Create SaleCreationRequest")
     {
         SECTION("Try to create sale with zero price")
@@ -358,8 +388,6 @@ TEST_CASE("Sale", "[tx][sale]")
             CreateSaleCreationRequestResultCode::REQUEST_OR_SALE_ALREADY_EXISTS);
         }
     }
-
-    auto saleReviewer = ReviewSaleRequestHelper(testManager);
 
     SECTION("Review SaleCreationRequest")
     {

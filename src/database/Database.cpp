@@ -48,6 +48,7 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
+#include <ledger/IdentityPolicyHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
 
@@ -76,10 +77,11 @@ enum databaseSchemaVersion : unsigned long {
     ADD_SALE_TYPE = 6,
 	USE_KYC_LEVEL = 7,
     ADD_ACCOUNT_KYC = 8,
-    ADD_FEE_ASSET = 9
+    ADD_FEE_ASSET = 9,
+    ADD_IDENTITY_POLICY = 10
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_FEE_ASSET;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_IDENTITY_POLICY;
 
 static void
 setSerializable(soci::session& sess)
@@ -157,6 +159,9 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_FEE_ASSET:
             FeeHelper::Instance()->addFeeAsset(*this);
+            break;
+        case databaseSchemaVersion::ADD_IDENTITY_POLICY:
+            IdentityPolicyHelper::Instance()->dropAll(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

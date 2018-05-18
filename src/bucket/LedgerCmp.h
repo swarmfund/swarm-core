@@ -175,6 +175,12 @@ struct LedgerEntryIdCmp
                 auto const& bpool = b.externalSystemAccountIDPoolEntry();
                 return apool.poolEntryID < bpool.poolEntryID;
             }
+        case LedgerEntryType::IDENTITY_POLICY:
+        {
+            auto const& aip = a.identityPolicy();
+            auto const& bip = b.identityPolicy();
+            return aip.id < bip.id;
+        }
         default:
             {
             throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");

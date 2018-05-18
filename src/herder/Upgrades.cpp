@@ -120,20 +120,32 @@ Upgrades::createUpgradesFor(LedgerHeader const &header, Application &app) const
 void
 Upgrades::applyTo(LedgerUpgrade const& upgrade, LedgerHeader& header)
 {
+    std::string logValue;
     switch (upgrade.type())
     {
     case LedgerUpgradeType::VERSION:
+    {
         header.ledgerVersion = upgrade.newLedgerVersion();
+        logValue = xdr::xdr_traits<LedgerVersion>::enum_name(LedgerVersion(upgrade.newLedgerVersion()));
         break;
+    }
     case LedgerUpgradeType::MAX_TX_SET_SIZE:
+    {
         header.maxTxSetSize = upgrade.newMaxTxSetSize();
+        logValue = std::to_string(upgrade.newMaxTxSetSize());
         break;
+    }
     case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
+    {
         header.txExpirationPeriod = upgrade.newTxExpirationPeriod();
+        logValue = std::to_string(upgrade.newTxExpirationPeriod());
         break;
+    }
     case LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR:
+    {
         header.externalSystemIDGenerators = upgrade.newExternalSystemIDGenerators();
         break;
+    }
     default:
     {
         std::string s;
@@ -142,6 +154,9 @@ Upgrades::applyTo(LedgerUpgrade const& upgrade, LedgerHeader& header)
         throw std::runtime_error(s);
     }
     }
+
+    CLOG(INFO, "Ledger") << "Applied ledger upgrade. Type:" << xdr::xdr_traits<LedgerUpgradeType>::enum_name(upgrade.type())
+                                                            << ". Value:" << logValue;
 }
 
 std::string

@@ -42,7 +42,11 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/SetEntityTypeOpFrame.h
         ledger/EntityTypeFrame.h
         ledger/EntityTypeHelper.h
-        transactions/test/test_helper/SetEntryEntityTypeTestHelper.cpp transactions/test/test_helper/SetEntryEntityTypeTestHelper.h transactions/test/SetEntryEntityTypeTest.cpp)
+        transactions/test/test_helper/SetEntryEntityTypeTestHelper.cpp
+        transactions/test/test_helper/SetEntryEntityTypeTestHelper.h
+        transactions/test/SetEntryEntityTypeTest.cpp
+        transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.cpp
+        transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.h)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

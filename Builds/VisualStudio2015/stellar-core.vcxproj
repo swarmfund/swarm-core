@@ -347,6 +347,8 @@
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\UpdateAssetOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\payment\PaymentOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\payment\PaymentOpV2Frame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewAssetCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewAssetUpdateRequestOpFrame.cpp" />
@@ -385,6 +387,7 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetLimitsTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.cpp" />
@@ -410,7 +413,6 @@
     <ClCompile Include="..\..\src\transactions\ManageBalanceOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageInvoiceOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\OperationFrame.cpp" />
-    <ClCompile Include="..\..\src\transactions\PaymentOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\SetFeesOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\SetLimitsOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\SetOptionsOpFrame.cpp" />
@@ -630,6 +632,8 @@
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetHelper.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\UpdateAssetOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\payment\PaymentOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\payment\PaymentOpV2Frame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewAssetCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewAssetUpdateRequestOpFrame.h" />
@@ -663,6 +667,7 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetLimitsTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.h" />
@@ -1113,6 +1118,12 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-KYC.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment-v2.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

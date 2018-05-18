@@ -18,12 +18,14 @@
 #include "test_helper/SaleRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ManageBalanceTestHelper.h"
+#include "test_helper/ManageSaleTestHelper.h"
 #include "test_helper/ParticipateInSaleTestHelper.h"
 #include "transactions/dex/OfferManager.h"
 #include "ledger/SaleHelper.h"
 #include "test_helper/CheckSaleStateTestHelper.h"
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test_helper/ReviewSaleRequestHelper.h"
+#include "test_helper/ReviewUpdateSaleDetailsRequestHelper.h"
 #include "test/test_marshaler.h"
 #include "ledger/OfferHelper.h"
 #include "test_helper/ManageAssetPairTestHelper.h"
@@ -159,6 +161,9 @@ TEST_CASE("Sale", "[tx][sale]")
     SaleRequestHelper saleRequestHelper(testManager);
     IssuanceRequestHelper issuanceHelper(testManager);
     CheckSaleStateHelper checkStateHelper(testManager);
+    ManageSaleTestHelper manageSaleTestHelper(testManager);
+    ReviewUpdateSaleDetailsRequestTestHelper reviewUpdateSaleDetailsRequestTestHelper(testManager);
+    auto saleReviewer = ReviewSaleRequestHelper(testManager);
 
     auto syndicate = Account{ SecretKey::random(), 0 };
     auto syndicatePubKey = syndicate.key.getPublicKey();
@@ -166,14 +171,14 @@ TEST_CASE("Sale", "[tx][sale]")
     CreateAccountTestHelper(testManager).applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
     const AssetCode baseAsset = "BTC";
     // TODO: for now we need to keep maxIssuance = preIssuance to allow sale creation
-    const uint64_t maxIssuanceAmount = 2000 * ONE;
+    const uint64_t maxIssuanceAmount = 6000 * ONE;
     const uint64_t preIssuedAmount = maxIssuanceAmount;
     assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}",
                                                                       maxIssuanceAmount,0, preIssuedAmount);
     assetTestHelper.createApproveRequest(root, syndicate, assetCreationRequest);
     const uint64_t price = 2 * ONE;
-    const auto hardCap = static_cast<const uint64_t>(bigDivide(preIssuedAmount, price, ONE, ROUND_DOWN));
-    const uint64_t softCap = hardCap / 2;
+    auto hardCap = static_cast<const uint64_t>(bigDivide(preIssuedAmount, price, ONE, ROUND_DOWN));
+    uint64_t softCap = hardCap / 2;
     const auto currentTime = testManager->getLedgerManager().getCloseTime();
     const auto endTime = currentTime + 1000;
     auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
@@ -272,6 +277,71 @@ TEST_CASE("Sale", "[tx][sale]")
             auto checkRes = checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::SUCCESS);
             REQUIRE(checkRes.success().effect.effect() == CheckSaleStateEffect::CANCELED);
         }
+
+        SECTION("Manage sale")
+        {
+            SECTION("Update sale details") {
+                std::string newDetails = "{\n \"a\": \"test string\" \n}";
+                auto manageSaleData = manageSaleTestHelper.createDataForUpdateSaleDetails(0, newDetails);
+                auto manageSaleResult = manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+
+                SECTION("Request already exists") {
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                           ManageSaleResultCode::UPDATE_DETAILS_REQUEST_ALREADY_EXISTS);
+                }
+
+                SECTION("Sale not found") {
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, 42, manageSaleData,
+                                                           ManageSaleResultCode::SALE_NOT_FOUND);
+                }
+
+                SECTION("Request to update not found") {
+                    manageSaleData.updateSaleDetailsData().requestID = 42;
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                           ManageSaleResultCode::UPDATE_DETAILS_REQUEST_NOT_FOUND);
+                }
+
+                auto requestID = manageSaleResult.success().response.requestID();
+
+                SECTION("Successful update") {
+                    manageSaleData.updateSaleDetailsData().requestID = requestID;
+                    manageSaleData.updateSaleDetailsData().newDetails = "{\n \"a\": \"updated string\" \n}";
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+                }
+
+                reviewUpdateSaleDetailsRequestTestHelper.applyReviewRequestTx(root, requestID,
+                                                                              ReviewRequestOpAction::APPROVE, "");
+            }
+        }
+    }
+
+    SECTION("Create sale with predefined required base asset amount for hard cap") {
+        auto basicSaleType = SaleType::BASIC_SALE;
+        SECTION("Insufficient preissued") {
+            auto requiredBaseAssetForHardCap = maxIssuanceAmount + (5 * ONE);
+            hardCap = static_cast<const uint64_t>(bigDivide(requiredBaseAssetForHardCap, price, ONE, ROUND_DOWN));
+            softCap = hardCap / 2;
+            saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
+                                                              endTime, softCap, hardCap, "{}",
+                                                              { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price)},
+                                                              &basicSaleType, &requiredBaseAssetForHardCap);
+            auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+            saleReviewer.applyReviewRequestTx(root, requestCreationResult.success().requestID,
+                                              ReviewRequestOpAction::APPROVE, "",
+                                              ReviewRequestResultCode::INSUFFICIENT_PREISSUED_FOR_HARD_CAP);
+        }
+        SECTION("Success") {
+            auto requiredBaseAssetForHardCap = maxIssuanceAmount - (5 * ONE);
+            hardCap = static_cast<const uint64_t>(bigDivide(requiredBaseAssetForHardCap, price, ONE, ROUND_DOWN));
+            softCap = hardCap / 2;
+            saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
+                                                              endTime, softCap, hardCap, "{}",
+                                                              { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price)},
+                                                              &basicSaleType, &requiredBaseAssetForHardCap);
+            auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+            saleReviewer.applyReviewRequestTx(root, requestCreationResult.success().requestID,
+                                              ReviewRequestOpAction::APPROVE, "");
+        }
     }
 
     SECTION("Create SaleCreationRequest")
@@ -318,8 +388,6 @@ TEST_CASE("Sale", "[tx][sale]")
             CreateSaleCreationRequestResultCode::REQUEST_OR_SALE_ALREADY_EXISTS);
         }
     }
-
-    auto saleReviewer = ReviewSaleRequestHelper(testManager);
 
     SECTION("Review SaleCreationRequest")
     {

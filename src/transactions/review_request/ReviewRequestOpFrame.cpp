@@ -11,6 +11,7 @@
 #include "ReviewLimitsUpdateRequestOpFrame.h"
 #include "ReviewPreIssuanceCreationRequestOpFrame.h"
 #include "ReviewWithdrawalRequestOpFrame.h"
+#include "ReviewUpdateSaleDetailsRequestOpFrame.h"
 #include "util/Logging.h"
 #include "util/types.h"
 #include "database/Database.h"
@@ -106,6 +107,8 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewAMLAlertRequestOpFrame(op,res,parentTx);
     case ReviewableRequestType::UPDATE_KYC:
         return new ReviewUpdateKYCRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::UPDATE_SALE_DETAILS:
+		return new ReviewUpdateSaleDetailsRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}

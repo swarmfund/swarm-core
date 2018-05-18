@@ -227,13 +227,26 @@ SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &own
         }
         sale.baseBalance = balances[request.baseAsset];
 
-        if (request.ext.v() == LedgerVersion::TYPED_SALE)
-        {
-            sale.ext.v(LedgerVersion::TYPED_SALE);
-            const auto saleType = request.ext.saleTypeExt().typedSale.saleType();
-            sale.ext.saleTypeExt().typedSale.saleType(saleType);
+        switch (request.ext.v()) {
+            case LedgerVersion::EMPTY_VERSION: {
+                break;
+            }
+            case LedgerVersion::TYPED_SALE: {
+                sale.ext.v(LedgerVersion::TYPED_SALE);
+                const auto saleType = request.ext.saleTypeExt().typedSale.saleType();
+                sale.ext.saleTypeExt().typedSale.saleType(saleType);
+                break;
+            }
+            case LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP: {
+                sale.ext.v(LedgerVersion::TYPED_SALE);
+                const auto saleType = request.ext.extV2().saleTypeExt.typedSale.saleType();
+                sale.ext.saleTypeExt().typedSale.saleType(saleType);
+                break;
+            }
+            default: {
+                throw std::runtime_error("Unexpected version of sale creation request");
+            }
         }
-
 
         return std::make_shared<SaleFrame>(entry);
     } catch (...)

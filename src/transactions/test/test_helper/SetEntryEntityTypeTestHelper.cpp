@@ -26,7 +26,7 @@ namespace stellar {
             return TxHelper::txFromOperation(source, op, nullptr);
         }
 
-        SetEntityTypeResult SetEntryEntityTypeTestHelper::applySetEntityTypeTx(txtest::Account &source,
+        void SetEntryEntityTypeTestHelper::applySetEntityTypeTx(txtest::Account &source,
                                                                                EntityTypeEntry entityType, bool isDelete,
                                                                                SetEntityTypeResultCode expectedResult)
         {
@@ -39,7 +39,7 @@ namespace stellar {
             REQUIRE(actualResult == expectedResult);
 
             if (actualResult != SetEntityTypeResultCode::SUCCESS) {
-                return SetEntityTypeResult{};
+                return;
             }
 
             auto entityTypeHelper = EntityTypeHelper::Instance();
@@ -48,7 +48,7 @@ namespace stellar {
 
             if (isDelete){
                 REQUIRE(!entityTypeHelper->exists(db, entityType.id, entityType.type));
-                return
+                return;
             }
 
             auto entityTypeFrame = entityTypeHelper->loadEntityType(entityType.id, entityType.type, db);
@@ -56,14 +56,14 @@ namespace stellar {
             REQUIRE(!!entityTypeFrame);
             REQUIRE(entityTypeFrame->getEntityTypeID() == entityType.id);
             REQUIRE(entityTypeFrame->getEntityTypeValue() == entityType.type);
-            return
+            return;
         }
 
         EntityTypeEntry
-        SetEntryEntityTypeTestHelper::createEntityTypeEntry(int32_t type, uint64_t id, std::string name)
+        SetEntryEntityTypeTestHelper::createEntityTypeEntry(EntityType type, uint64_t id, std::string name)
         {
             EntityTypeEntry entityTypeEntry;
-            entityTypeEntry.type = static_cast<EntityType>(type);
+            entityTypeEntry.type = type;
             entityTypeEntry.id = id;
             entityTypeEntry.name = name;
 

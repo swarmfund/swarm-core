@@ -48,177 +48,38 @@ TEST_CASE("Set entry entity type", "[tx][set_fees]") {
     auto entityTypeHelper = EntityTypeHelper::Instance();
 
     CreateAccountTestHelper createAccountTestHelper(testManager);
-    SetEntryEntityTypeTestHelper setEntityTypeEntryHelper(testManager);
+    SetEntryEntityTypeTestHelper setEntityTypeEntryTestHelper(testManager);
 
-    auto entityTypeEntry = setEntityTypeEntryHelper.createEntityTypeEntry(3, 10, "testType");
+    EntityType accountEntityType = EntityType::AccountType;
 
-    SECTION("Invalid asset") {
-        auto fee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, "", 0, 0);
-        setFeesTestHelper.applySetFeesTx(master, &fee, false, SetFeesResultCode::INVALID_ASSET);
-    }
-    SECTION("Invalid fee type") {
-        auto fee = setFeesTestHelper.createFeeEntry(FeeType(123), assetCode, 0, 0);
-        setFeesTestHelper.applySetFeesTx(master, &fee, false, SetFeesResultCode::INVALID_FEE_TYPE);
-    }
-    SECTION("Asset not found") {
-        auto fee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, "AETH", 0, 0);
-        setFeesTestHelper.applySetFeesTx(master, &fee, false, SetFeesResultCode::ASSET_NOT_FOUND);
+    SECTION("Invalid type") {
+        auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(EntityType(3), 7, "GENERAL");
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false, SetEntityTypeResultCode::INVALID_TYPE);
     }
 
-    // create account for further tests
-    auto account = SecretKey::random();
-    createAccountTestHelper.applyCreateAccountTx(master, account.getPublicKey(), AccountType::GENERAL);
-    auto accountFrame = AccountHelper::Instance()->loadAccount(account.getPublicKey(), db);
-
-    auto accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, assetCode, FeeFrame::SUBTYPE_ANY,
-                                                accountFrame, 0, db);
-    REQUIRE(!accountFee);
-
-    SECTION("AccountID is set") {
-        auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 1, 2);
-        setFeesTestHelper.applySetFeesTx(master, &feeEntry, false);
-        accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, assetCode, FeeFrame::SUBTYPE_ANY,
-                                               accountFrame, 0, db);
-        REQUIRE(accountFee->getFee() == feeEntry);
-    }
-    SECTION("AccountType is set") {
-        auto accountType = accountFrame->getAccountType();
-        auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 10, 20, nullptr,
-                                                         &accountType);
-        setFeesTestHelper.applySetFeesTx(master, &feeEntry, false);
-        accountFee = feeHelper->loadForAccount(FeeType::PAYMENT_FEE, assetCode, FeeFrame::SUBTYPE_ANY,
-                                               accountFrame, 0, db);
-        REQUIRE(accountFee->getFee() == feeEntry);
+    SECTION("Invalid name") {
+        auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType, 7533, "");
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false, SetEntityTypeResultCode::INVALID_NAME);
     }
 
-    SECTION("Both cannot be set") {
-        auto accountID = accountFrame->getID();
-        auto accountType = accountFrame->getAccountType();
-        auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, &accountID,
-                                                         &accountType);
-        setFeesTestHelper.applySetFeesTx(master, &feeEntry, false, SetFeesResultCode::MALFORMED);
+    SECTION("Malformed") {
+        EntityTypeEntry localEntityTypeEntry;
+        localEntityTypeEntry.type = accountEntityType;
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, localEntityTypeEntry, false, SetEntityTypeResultCode::MALFORMED);
     }
 
-    SECTION("Payment fee") {
-        SECTION("Success") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 1, 2 * ONE);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false);
-        }
-        SECTION("Success zero") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false);
-        }
-        SECTION("Invalid percent fee fee") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 101 * ONE);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false, SetFeesResultCode::INVALID_AMOUNT);
-        }
+    SECTION("Not_found") {
+        auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType, 7533, "GENERAL");
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, true, SetEntityTypeResultCode::NOT_FOUND);
     }
-    SECTION("Offer fee") {
-        SECTION("Success") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::OFFER_FEE, assetCode, 0, 2 * ONE);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false);
-        }
-        SECTION("Success zero") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::OFFER_FEE, assetCode, 0, 0);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false);
-        }
-        SECTION("Invalid fixed fee") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::OFFER_FEE, assetCode, 1, 2 * ONE);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false, SetFeesResultCode::INVALID_AMOUNT);
-        }
-        SECTION("Invalid percent fee") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::OFFER_FEE, assetCode, 0, 101 * ONE);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false, SetFeesResultCode::INVALID_AMOUNT);
-        }
-    }
-    SECTION("Withdrawal fee") {
-        SECTION("Success") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::WITHDRAWAL_FEE, assetCode, 1, 2 * ONE, nullptr,
-                                                        nullptr, 1);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false);
-            SECTION("update existing") {
-                fee = setFeesTestHelper.createFeeEntry(FeeType::WITHDRAWAL_FEE, assetCode, 0, 0, nullptr, nullptr, 1);
-                setFeesTestHelper.applySetFeesTx(master, &fee, false);
-            }
-            SECTION("Can delete") {
-                fee = setFeesTestHelper.createFeeEntry(FeeType::WITHDRAWAL_FEE, assetCode, 0, 0, nullptr, nullptr, 1);
-                setFeesTestHelper.applySetFeesTx(master, &fee, true);
-            }
 
-        }
-        SECTION("Success zero") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::WITHDRAWAL_FEE, assetCode, 0, 0);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false);
-        }
-        SECTION("Invalid percent fee") {
-            auto fee = setFeesTestHelper.createFeeEntry(FeeType::WITHDRAWAL_FEE, assetCode, 0, 101 * ONE);
-            setFeesTestHelper.applySetFeesTx(master, &fee, false, SetFeesResultCode::INVALID_AMOUNT);
-        }
-    }
-    SECTION("Cross asset fee") {
-        SECTION("Fee asset not allowed") {
-            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::WITHDRAWAL_FEE, assetCode, 0, 0, nullptr, nullptr,
-                                                             FeeFrame::SUBTYPE_ANY, 0, INT64_MAX, &assetCode);
-            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false, SetFeesResultCode::FEE_ASSET_NOT_ALLOWED);
-        }
-        SECTION("Invalid fee asset") {
-            AssetCode invalidAssetCode = "";
-            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,
-                                                             FeeFrame::SUBTYPE_ANY, 0, INT64_MAX, &invalidAssetCode);
-            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false, SetFeesResultCode::INVALID_FEE_ASSET);
-        }
-        SECTION("Fee asset not found") {
-            AssetCode code = "AETH";
-            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,
-                                                             static_cast<int64_t>(PaymentFeeType::OUTGOING), 0,
-                                                             INT64_MAX, &code);
-            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false, SetFeesResultCode::FEE_ASSET_NOT_FOUND);
-        }
-        SECTION("Cross asset not allowed for incoming payment") {
-            AssetCode code = "AETH";
-            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,
-                                                             static_cast<int64_t>(PaymentFeeType::INCOMING), 0,
-                                                             INT64_MAX, &code);
-            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false, SetFeesResultCode::CROSS_ASSET_FEE_NOT_ALLOWED);
-        }
+    SECTION("Happy path") {
+        auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType , 123321, "HappyPathTypeName");
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false);
 
-        // create additional asset for further tests
-        AssetCode usdt = "USDT";
-        assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(usdt, master.key.getPublicKey(),
-                                                                                "{}", UINT64_MAX,
-                                                                                uint32_t(AssetPolicy::BASE_ASSET),
-                                                                                1000000);
-        manageAssetTestHelper.applyManageAssetTx(master, 0, assetCreationRequest);
-
-        SECTION("Asset pair not found") {
-            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,
-                                                             static_cast<int64_t>(PaymentFeeType::OUTGOING), 0,
-                                                             INT64_MAX, &usdt);
-            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false, SetFeesResultCode::ASSET_PAIR_NOT_FOUND);
-        }
-        SECTION("Fee asset is the same as payment asset") {
-            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,
-                                                             static_cast<int64_t>(PaymentFeeType::OUTGOING), 0,
-                                                             INT64_MAX, &assetCode);
-            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false);
-
-            SECTION("Delete existing fee") {
-                setFeesTestHelper.applySetFeesTx(master, &feeEntry, true);
-            }
-        }
-        SECTION("Invalid asset pair price") {
-            manageAssetPairTestHelper.createAssetPair(master, assetCode, usdt, 0);
-            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,
-                                                             static_cast<int64_t>(PaymentFeeType::OUTGOING), 0,
-                                                             INT64_MAX, &usdt);
-            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false, SetFeesResultCode::INVALID_ASSET_PAIR_PRICE);
-        }
-        SECTION("Cross asset fee creation success") {
-            manageAssetPairTestHelper.createAssetPair(master, assetCode, usdt, 5);
-            auto feeEntry = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, assetCode, 0, 0, nullptr, nullptr,
-                                                             static_cast<int64_t>(PaymentFeeType::OUTGOING), 0,
-                                                             INT64_MAX, &usdt);
-            setFeesTestHelper.applySetFeesTx(master, &feeEntry, false);
+        SECTION("Successful delete"){
+            setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, true);
         }
     }
 }
+

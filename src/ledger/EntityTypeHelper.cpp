@@ -22,7 +22,7 @@ EntityTypeHelper::dropAll(Database& db)
     db.getSession() << "DROP TABLE IF EXISTS entity_types;";
     db.getSession() << "CREATE TABLE entity_types"
                        "("
-                       "id             INT64   NOT NULL,"
+                       "id             BIGINT  NOT NULL CHECK (id >= 0),"
                        "type           INT     NOT NULL,"
                        "name           TEXT    NOT NULL,"
                        "lastmodified   INT     NOT NULL,"

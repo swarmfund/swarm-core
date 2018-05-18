@@ -164,6 +164,7 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_ENTITY_TYPE:
             EntityTypeHelper::Instance()->dropAll(*this);
+            break;
         default:
             throw std::runtime_error("Unknown DB schema version");
             break;

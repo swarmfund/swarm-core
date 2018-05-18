@@ -44,7 +44,7 @@ namespace stellar {
 
             auto entityTypeHelper = EntityTypeHelper::Instance();
 
-            auto db = mTestManager->getDB();
+            Database& db = mTestManager->getDB();
 
             if (isDelete){
                 REQUIRE(!entityTypeHelper->exists(db, entityType.id, entityType.type));

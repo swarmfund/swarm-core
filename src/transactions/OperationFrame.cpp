@@ -36,11 +36,8 @@
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
-<<<<<<< HEAD
 #include "transactions/SetEntityTypeOpFrame.h"
-=======
 #include "transactions/ManageSaleOpFrame.h"
->>>>>>> master
 #include "database/Database.h"
 
 #include "medida/meter.h"

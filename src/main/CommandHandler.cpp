@@ -104,6 +104,8 @@ CommandHandler::CommandHandler(Application& app) : mApp(app)
     mServer->addRoute("tx", std::bind(&CommandHandler::tx, this, _1, _2));
     mServer->addRoute("unban",
                       std::bind(&CommandHandler::unban, this, _1, _2));
+    mServer->addRoute("upgrades",
+                      std::bind(&CommandHandler::upgrades, this, _1, _2));
 }
 
 void
@@ -291,6 +293,15 @@ CommandHandler::fileNotFound(std::string const& params, std::string& retStr)
         "returns a JSON object<br>"
         "wasReceived: boolean, true if transaction was queued properly<br>"
         "result: base64 encoded, XDR serialized 'TransactionResult'<br>"
+        "</p><p><h1> /upgrades?mode=(get|set|clear)&[upgradetime=DATETIME]&"
+        "&[protocolversion=NUM]"
+        "</h1>"
+        "gets, sets or clears upgrades.<br>"
+        "When mode=set, upgradetime is a required date in the ISO 8601 "
+        "date format (UTC) in the form 1970-01-01T00:00:00Z.<br>"
+        "protocolversion (uint32) defines the protocol version to upgrade to."
+        " When specified it must match the protocol version supported by the"
+        " node<br>"
         "</p><p><h1> /dropcursor?id=XYZ</h1> deletes the tracking cursor with "
         "identified by `id`. See `setcursor` for more information"
         "</p><p><h1> /setcursor?id=ID&cursor=N</h1> sets or creates a cursor "
@@ -350,6 +361,30 @@ parseOptionalNumParam(std::map<std::string, std::string> const& map,
         }
     }
     return true;
+}
+
+template <typename T>
+optional<T>
+maybeParseParam(std::map<std::string, std::string> const& map,
+                std::string const& key, T& defaultVal)
+{
+    auto i = map.find(key);
+    if (i != map.end())
+    {
+        std::stringstream str(i->second);
+        str >> defaultVal;
+
+        // Throw an error if not all bytes were loaded into `val`
+        if (str.fail() || !str.eof())
+        {
+            std::string errorMsg =
+                    fmt::format("Failed to parse '{}' argument", key);
+            throw std::runtime_error(errorMsg);
+        }
+        return make_optional<T>(defaultVal);
+    }
+
+    return nullopt<T>();
 }
 
 void
@@ -966,6 +1001,55 @@ CommandHandler::maintenance(std::string const& params, std::string& retStr)
     else
     {
         retStr = "No work performed";
+    }
+}
+
+void
+CommandHandler::upgrades(std::string const &params, std::string &retStr)
+{
+    std::map<std::string, std::string> retMap;
+    http::server::server::parseParams(params, retMap);
+    auto s = retMap["mode"];
+    if (s.empty())
+    {
+        retStr = "mode required";
+        return;
+    }
+    if (s == "get")
+    {
+        retStr = mApp.getHerder().getUpgradesJson();
+    }
+    else if (s == "set")
+    {
+        Upgrades::UpgradeParameters p;
+
+        auto upgradeTime = retMap["upgradetime"];
+        std::tm tm;
+        try
+        {
+            tm = VirtualClock::isoStringToTm(upgradeTime);
+        }
+        catch (std::exception)
+        {
+            retStr =
+                    fmt::format("could not parse upgradetime: '{}'", upgradeTime);
+            return;
+        }
+        p.mUpgradeTime = VirtualClock::tmToPoint(tm);
+
+        uint32 ledgerVersion;
+        p.mProtocolVersion = maybeParseParam(retMap, "protocolversion", ledgerVersion);
+
+        mApp.getHerder().setUpgrades(p);
+    }
+    else if (s == "clear")
+    {
+        Upgrades::UpgradeParameters p;
+        mApp.getHerder().setUpgrades(p);
+    }
+    else
+    {
+        retStr = fmt::format("Unknown mode: {}", s);
     }
 }
 }

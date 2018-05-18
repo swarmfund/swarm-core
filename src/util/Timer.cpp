@@ -429,7 +429,29 @@ VirtualClock::advanceToNext()
     return advanceTo(next());
 }
 
-VirtualClockEvent::VirtualClockEvent(
+std::tm
+VirtualClock::isoStringToTm(std::string const &iso)
+{
+    std::tm res;
+    int y, M, d, h, m, s;
+    if (std::sscanf(iso.c_str(), "%d-%d-%dT%d:%d:%dZ", &y, &M, &d, &h, &m,
+                    &s) != 6)
+    {
+        throw std::invalid_argument("Could not parse iso date");
+    }
+    res.tm_year = y - 1900;
+    res.tm_mon = M - 1;
+    res.tm_mday = d;
+    res.tm_hour = h;
+    res.tm_min = m;
+    res.tm_sec = s;
+    res.tm_isdst = 0;
+    res.tm_wday = 0;
+    res.tm_yday = 0;
+    return res;
+}
+
+    VirtualClockEvent::VirtualClockEvent(
     VirtualClock::time_point when,
     size_t seq,
     std::function<void(asio::error_code)> callback)

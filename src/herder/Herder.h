@@ -12,6 +12,7 @@
 #include "lib/json/json-forwards.h"
 #include "util/Timer.h"
 #include "TxSetFrame.h"
+#include "Upgrades.h"
 
 namespace stellar
 {
@@ -81,8 +82,8 @@ class Herder
 
     virtual void bootstrap() = 0;
 
-    // restores SCP state based on the last messages saved on disk
-    virtual void restoreSCPState() = 0;
+    // restores Herder's state from disk
+    virtual void restoreState() = 0;
 
     virtual void recvSCPQuorumSet(Hash const& hash,
                                   SCPQuorumSet const& qset) = 0;
@@ -105,6 +106,11 @@ class Herder
     virtual uint32_t getCurrentLedgerSeq() const = 0;
 
     virtual void triggerNextLedger(uint32_t ledgerSeqToTrigger) = 0;
+
+    // sets the upgrades that should be applied during consensus
+    virtual void setUpgrades(Upgrades::UpgradeParameters const& upgrades) = 0;
+    // gets the upgrades that are scheduled by this node
+    virtual std::string getUpgradesJson() = 0;
 
     // returns if the quorum set passes basic sanity checks
     // if extraChecks is set, performs additional checks

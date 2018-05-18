@@ -292,7 +292,7 @@ namespace stellar {
                     }
 
                     // restores the SCP state before starting overlay
-                    mHerder->restoreSCPState();
+                    mHerder->restoreState();
                     // perform maintenance tasks if configured to do so
                     // for now, we only perform it when CATCHUP_COMPLETE is not set
                     if (mConfig.MAINTENANCE_ON_STARTUP && !mConfig.CATCHUP_COMPLETE) {

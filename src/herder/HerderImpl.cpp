@@ -27,6 +27,8 @@
 #include "util/XDRStream.h"
 
 #include <ctime>
+#include <lib/util/format.h>
+#include <util/StatusManager.h>
 
 using namespace std;
 using namespace soci;
@@ -363,7 +365,7 @@ HerderImpl::verifyEnvelope(SCPEnvelope const& envelope)
 }
 
 SCPDriver::ValidationLevel
-HerderImpl::validateValue(uint64 slotIndex, Value const& value)
+HerderImpl::validateValue(uint64 slotIndex, Value const &value, bool nomination)
 {
     StellarValue b;
     try
@@ -379,12 +381,14 @@ HerderImpl::validateValue(uint64 slotIndex, Value const& value)
     SCPDriver::ValidationLevel res = validateValueHelper(slotIndex, b);
     if (res != SCPDriver::kInvalidValue)
     {
+        auto const& lcl = mLedgerManager.getLastClosedLedgerHeader();
+
         LedgerUpgradeType lastUpgradeType = LedgerUpgradeType::VERSION;
         // check upgrades
         for (size_t i = 0; i < b.upgrades.size(); i++)
         {
             LedgerUpgradeType thisUpgradeType;
-            if (!validateUpgradeStep(slotIndex, b.upgrades[i], thisUpgradeType))
+            if (!mUpgrades.isValid(b.upgrades[i], thisUpgradeType, nomination, lcl.header, mApp))
             {
                 CLOG(TRACE, "Herder")
                     << "HerderImpl::validateValue invalid step at index " << i;
@@ -427,12 +431,13 @@ HerderImpl::extractValidValue(uint64 slotIndex, Value const& value)
     Value res;
     if (validateValueHelper(slotIndex, b) == SCPDriver::kFullyValidatedValue)
     {
+        auto const& lcl = mLedgerManager.getLastClosedLedgerHeader();
+
         // remove the upgrade steps we don't like
         LedgerUpgradeType thisUpgradeType;
         for (auto it = b.upgrades.begin(); it != b.upgrades.end();)
         {
-
-            if (!validateUpgradeStep(slotIndex, *it, thisUpgradeType))
+            if (!mUpgrades.isValid(*it, thisUpgradeType, true, lcl.header, mApp))
             {
                 it = b.upgrades.erase(it);
             }
@@ -623,6 +628,13 @@ HerderImpl::valueExternalized(uint64 slotIndex, Value const& value)
 
     // save the SCP messages in the database
     saveSCPHistory(slotIndex);
+
+    // reflect upgrades with the ones included in this SCP round
+    bool updated;
+    auto newUpgrades = mUpgrades.removeUpgrades(b.upgrades.begin(), b.upgrades.end(), updated);
+    if (updated) {
+        setUpgrades(newUpgrades);
+    }
 
     // tell the LedgerManager that this value got externalized
     // LedgerManager will perform the proper action based on its internal
@@ -1350,39 +1362,8 @@ HerderImpl::triggerNextLedger(uint32_t ledgerSeqToTrigger)
     StellarValue newProposedValue(txSetHash, nextCloseTime, emptyUpgradeSteps,
 		StellarValue::_ext_t(LedgerVersion::EMPTY_VERSION));
 
-    std::vector<LedgerUpgrade> upgrades;
-
     // see if we need to include some upgrades
-    if (lcl.header.txExpirationPeriod != mApp.getConfig().TX_EXPIRATION_PERIOD)
-    {
-        upgrades.emplace_back(LedgerUpgradeType::TX_EXPIRATION_PERIOD);
-        upgrades.back().newTxExpirationPeriod() =
-            mApp.getConfig().TX_EXPIRATION_PERIOD;
-    }
-
-    if (lcl.header.ledgerVersion != mApp.getConfig().LEDGER_PROTOCOL_VERSION)
-    {
-        upgrades.emplace_back(LedgerUpgradeType::VERSION);
-        upgrades.back().newLedgerVersion() =
-            mApp.getConfig().LEDGER_PROTOCOL_VERSION;
-    }
-    if (lcl.header.maxTxSetSize != mApp.getConfig().DESIRED_MAX_TX_PER_LEDGER)
-    {
-        upgrades.emplace_back(LedgerUpgradeType::MAX_TX_SET_SIZE);
-        upgrades.back().newMaxTxSetSize() =
-            mApp.getConfig().DESIRED_MAX_TX_PER_LEDGER;
-    }
-
-    xdr::xvector<ExternalSystemIDGeneratorType> generators;
-    auto avaialbeGenerators = mApp.getAvailableExternalSystemGenerator();
-    copy(avaialbeGenerators.begin(), avaialbeGenerators.end(), back_inserter(generators));
-    sort(generators.begin(), generators.end());
-    if (lcl.header.externalSystemIDGenerators != generators)
-    {
-        upgrades.emplace_back(LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR);
-        upgrades.back().newExternalSystemIDGenerators() = generators;
-    }
-
+    std::vector<LedgerUpgrade> upgrades = mUpgrades.createUpgradesFor(lcl.header, mApp);
     for (auto const& upgrade : upgrades)
     {
         Value v(xdr::xdr_to_opaque(upgrade));
@@ -1800,6 +1781,70 @@ HerderImpl::saveSCPHistory(uint64 index)
 
         txscope.commit();
     }
+}
+
+void HerderImpl::setUpgrades(Upgrades::UpgradeParameters const &upgrades)
+{
+
+    mUpgrades.setParameters(upgrades, mApp.getConfig());
+    persistUpgrades();
+
+    auto desc = mUpgrades.toString();
+
+    if (!desc.empty())
+    {
+        auto message = fmt::format("Armed with network upgrades: {}", desc);
+        auto prev = mApp.getStatusManager().getStatusMessage(StatusCategory::REQUIRES_UPGRADES);
+        if (prev != message)
+        {
+            CLOG(INFO, "Herder") << message;
+            mApp.getStatusManager().setStatusMessage(
+                    StatusCategory::REQUIRES_UPGRADES, message);
+        }
+    }
+    else
+    {
+        CLOG(INFO, "Herder") << "Network upgrades cleared";
+        mApp.getStatusManager().removeStatusMessage(
+                StatusCategory::REQUIRES_UPGRADES);
+    }
+}
+
+void HerderImpl::persistUpgrades()
+{
+    auto s = mUpgrades.getParameters().toJson();
+    mApp.getPersistentState().setState(PersistentState::kLedgerUpgrades, s);
+}
+
+std::string HerderImpl::getUpgradesJson()
+{
+    return mUpgrades.getParameters().toJson();
+}
+
+void HerderImpl::restoreUpgrades()
+{
+    std::string s = mApp.getPersistentState().getState(PersistentState::kLedgerUpgrades);
+    if (!s.empty())
+    {
+        Upgrades::UpgradeParameters p;
+        p.fromJson(s);
+        try
+        {
+            // use common code to set status
+            setUpgrades(p);
+        }
+        catch (std::exception e)
+        {
+            CLOG(INFO, "Herder") << "Error restoring upgrades '" << e.what()
+                                 << "' with upgrades '" << s << "'";
+        }
+    }
+}
+
+void HerderImpl::restoreState()
+{
+    restoreSCPState();
+    restoreUpgrades();
 }
 
 size_t

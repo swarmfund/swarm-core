@@ -17,7 +17,8 @@ enum class StatusCategory
 {
     HISTORY,
     NTP,
-    NUM
+    NUM,
+    REQUIRES_UPGRADES
 };
 
 /*

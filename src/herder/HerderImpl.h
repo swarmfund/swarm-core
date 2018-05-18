@@ -13,6 +13,7 @@
 #include "util/Timer.h"
 #include <overlay/ItemFetcher.h>
 #include "PendingEnvelopes.h"
+#include "Upgrades.h"
 
 namespace medida
 {
@@ -49,8 +50,12 @@ class HerderImpl : public Herder, public SCPDriver
     // Bootstraps the HerderImpl if we're creating a new Network
     void bootstrap() override;
 
+    void restoreState() override;
+
     // restores SCP state based on the last messages saved on disk
-    void restoreSCPState() override;
+    void restoreSCPState();
+    // restores ledger upgrades state
+    void restoreUpgrades();
 
     SCP&
     getSCP()
@@ -62,8 +67,7 @@ class HerderImpl : public Herder, public SCPDriver
     void signEnvelope(SCPEnvelope& envelope) override;
     bool verifyEnvelope(SCPEnvelope const& envelope) override;
 
-    SCPDriver::ValidationLevel validateValue(uint64 slotIndex,
-                                             Value const& value) override;
+    SCPDriver::ValidationLevel validateValue(uint64 slotIndex, Value const &value, bool nomination) override;
 
     Value extractValidValue(uint64 slotIndex, Value const& value) override;
 
@@ -115,6 +119,12 @@ class HerderImpl : public Herder, public SCPDriver
 
 
     void triggerNextLedger(uint32_t ledgerSeqToTrigger) override;
+
+    void setUpgrades(Upgrades::UpgradeParameters const &upgrades) override;
+    std::string getUpgradesJson() override;
+
+    // saves upgrade parameters
+    void persistUpgrades();
 
     bool isQuorumSetSane(SCPQuorumSet const& qSet, bool extraChecks) override;
 
@@ -225,6 +235,9 @@ class HerderImpl : public Herder, public SCPDriver
     // ensures that if we don't hear from the network, we throw the herder into
     // indeterminate mode
     void trackingHeartBeat();
+
+    // ledger upgrades helper
+    Upgrades mUpgrades;
 
     VirtualClock::time_point mLastTrigger;
     VirtualTimer mTriggerTimer;

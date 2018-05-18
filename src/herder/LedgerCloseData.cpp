@@ -5,6 +5,7 @@
 #include <xdrpp/marshal.h>
 #include "util/Logging.h"
 #include "LedgerCloseData.h"
+#include "Upgrades.h"
 
 using namespace std;
 
@@ -43,23 +44,7 @@ stellarValueToString(StellarValue const& sv)
             {
                 LedgerUpgrade lupgrade;
                 xdr::xdr_from_opaque(upgrade, lupgrade);
-                switch (lupgrade.type())
-                {
-                case LedgerUpgradeType::VERSION:
-                    res << "VERSION=" << lupgrade.newLedgerVersion();
-                    break;
-                case LedgerUpgradeType::MAX_TX_SET_SIZE:
-                    res << "MAX_TX_SET_SIZE=" << lupgrade.newMaxTxSetSize();
-                    break;
-                case LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR:
-                    res << "EXTERNAL_SYSTEM_ID_GENERATOR=" << lupgrade.newExternalSystemIDGenerators().size();
-                    break;
-                case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
-                    res << "TX_EXPIRATION_PERIOD=" << lupgrade.newTxExpirationPeriod();
-                    break;
-                default:
-                    res << "<unsupported>";
-                }
+                res << Upgrades::toString(lupgrade);
             }
             catch (std::exception&)
             {

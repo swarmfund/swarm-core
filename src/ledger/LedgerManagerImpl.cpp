@@ -742,33 +742,12 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const& ledgerData)
         try
         {
             xdr::xdr_from_opaque(sv.upgrades[i], lupgrade);
+            Upgrades::applyTo(lupgrade, ledgerDelta.getHeader());
         }
         catch (xdr::xdr_runtime_error)
         {
             CLOG(FATAL, "Ledger") << "Unknown upgrade step at index " << i;
             throw;
-        }
-        switch (lupgrade.type())
-        {
-        case LedgerUpgradeType::VERSION:
-            ledgerDelta.getHeader().ledgerVersion = lupgrade.newLedgerVersion();
-            break;
-        case LedgerUpgradeType::MAX_TX_SET_SIZE:
-            ledgerDelta.getHeader().maxTxSetSize = lupgrade.newMaxTxSetSize();
-            break;
-        case LedgerUpgradeType::EXTERNAL_SYSTEM_ID_GENERATOR:
-            ledgerDelta.getHeader().externalSystemIDGenerators = lupgrade.newExternalSystemIDGenerators();
-            break;
-        case LedgerUpgradeType::TX_EXPIRATION_PERIOD:
-            ledgerDelta.getHeader().txExpirationPeriod = lupgrade.newTxExpirationPeriod();
-            break;
-        default:
-        {
-            string s;
-            s = "Unknown upgrade type: ";
-            s += std::to_string(static_cast<int32_t >(lupgrade.type()));
-            throw std::runtime_error(s);
-        }
         }
     }
 

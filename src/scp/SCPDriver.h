@@ -57,8 +57,8 @@ class SCPDriver
         kFullyValidatedValue, // value is valid for sure
         kMaybeValidValue      // value may be valid
     };
-    virtual ValidationLevel
-    validateValue(uint64 slotIndex, Value const& value)
+    virtual SCPDriver::ValidationLevel
+    validateValue(uint64 slotIndex, Value const &value, bool nomination)
     {
         return kMaybeValidValue;
     }

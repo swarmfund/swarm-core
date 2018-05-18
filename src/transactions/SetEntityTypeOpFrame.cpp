@@ -34,12 +34,12 @@ SetEntityTypeOpFrame::doApply(Application& app, LedgerDelta& delta,
 bool
 SetEntityTypeOpFrame::doCheckValid(Application& app)
 {
-    if (EntityTypeFrame::isNameValid(mSetEntityType.entityType.name))
+    if (!EntityTypeFrame::isNameValid(mSetEntityType.entityType.name))
     {
         innerResult().code(SetEntityTypeResultCode::INVALID_NAME);
         return false;
     }
-    if (EntityTypeFrame::isTypeValid(mSetEntityType.entityType.type))
+    if (!EntityTypeFrame::isTypeValid(mSetEntityType.entityType.type))
     {
         innerResult().code(SetEntityTypeResultCode::INVALID_TYPE);
         return false;

@@ -26,7 +26,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("Set entry entity type", "[tx][set_fees]") {
+TEST_CASE("Set entry entity type", "[tx][set_entity_type]") {
     Config const &cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
 
     VirtualClock clock;
@@ -54,31 +54,38 @@ TEST_CASE("Set entry entity type", "[tx][set_fees]") {
 
     SECTION("Invalid type") {
         auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(EntityType(3), 7, "GENERAL");
-        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false, SetEntityTypeResultCode::INVALID_TYPE);
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false,
+                                                          SetEntityTypeResultCode::INVALID_TYPE);
     }
 
     SECTION("Invalid name") {
         auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType, 7533, "");
-        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false, SetEntityTypeResultCode::INVALID_NAME);
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false,
+                                                          SetEntityTypeResultCode::INVALID_NAME);
     }
 
     SECTION("Malformed") {
         EntityTypeEntry localEntityTypeEntry;
         localEntityTypeEntry.type = accountEntityType;
-        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, localEntityTypeEntry, false, SetEntityTypeResultCode::MALFORMED);
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, localEntityTypeEntry, false,
+                                                          SetEntityTypeResultCode::MALFORMED);
     }
 
     SECTION("Not_found") {
         auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType, 7533, "GENERAL");
-        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, true, SetEntityTypeResultCode::NOT_FOUND);
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, true,
+                                                          SetEntityTypeResultCode::NOT_FOUND);
     }
 
     SECTION("Happy path") {
-        auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType , 123321, "HappyPathTypeName");
-        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false);
+        auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType , 123321,
+                                                                                  "HappyPathTypeName");
+        setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false,
+                                                          SetEntityTypeResultCode::SUCCESS);
 
         SECTION("Successful delete"){
-            setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, true);
+            setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, true,
+                                                              SetEntityTypeResultCode::SUCCESS);
         }
     }
 }

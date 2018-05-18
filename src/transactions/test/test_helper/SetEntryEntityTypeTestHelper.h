@@ -14,7 +14,7 @@ class SetEntryEntityTypeTestHelper : public TxHelper
         explicit SetEntryEntityTypeTestHelper(TestManager::pointer testManager);
 
         void applySetEntityTypeTx(Account &source, EntityTypeEntry entityType, bool isDelete,
-                             SetEntityTypeResultCode  expectedResult = SetEntityTypeResultCode::SUCCESS);
+                             SetEntityTypeResultCode expectedResult = SetEntityTypeResultCode::SUCCESS);
 
         EntityTypeEntry createEntityTypeEntry(EntityType type, uint64_t id, std::string name);
 

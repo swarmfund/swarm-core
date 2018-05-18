@@ -3,6 +3,7 @@
 #include <ledger/EntityTypeHelper.h>
 #include "SetEntryEntityTypeTestHelper.h"
 #include "TxHelper.h"
+#include "test/test_marshaler.h"
 
 
 namespace stellar {
@@ -56,7 +57,6 @@ namespace stellar {
             REQUIRE(!!entityTypeFrame);
             REQUIRE(entityTypeFrame->getEntityTypeID() == entityType.id);
             REQUIRE(entityTypeFrame->getEntityTypeValue() == entityType.type);
-            return;
         }
 
         EntityTypeEntry

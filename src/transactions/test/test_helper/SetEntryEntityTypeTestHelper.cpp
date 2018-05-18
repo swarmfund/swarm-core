@@ -1,5 +1,6 @@
 #include <transactions/SetEntityTypeOpFrame.h>
 #include <lib/catch.hpp>
+#include <ledger/EntityTypeHelper.h>
 #include "SetEntryEntityTypeTestHelper.h"
 #include "TxHelper.h"
 
@@ -41,49 +42,32 @@ namespace stellar {
                 return SetEntityTypeResult{};
             }
 
-            if (EntityType::) {
-               // auto storedFee = FeeHelper::Instance()->loadFee(fee->feeType, fee->asset,
-                                                                fee->accountID.get(), fee->accountType.get(),
-                                                                fee->subtype, fee->lowerBound, fee->upperBound,
-                                                                mTestManager->getDB());
-                if (isDelete)
-                    REQUIRE(!storedFee);
-                else {
-                    REQUIRE(storedFee);
-                    REQUIRE(storedFee->getFee() == *fee);
-                }
+            auto entityTypeHelper = EntityTypeHelper::Instance();
+
+            auto db = mTestManager->getDB();
+
+            if (isDelete){
+                REQUIRE(!entityTypeHelper->exists(db, entityType.id, entityType.type));
+                return
             }
+
+            auto entityTypeFrame = entityTypeHelper->loadEntityType(entityType.id, entityType.type, db);
+
+            REQUIRE(!!entityTypeFrame);
+            REQUIRE(entityTypeFrame->getEntityTypeID() == entityType.id);
+            REQUIRE(entityTypeFrame->getEntityTypeValue() == entityType.type);
+            return
         }
 
-        FeeEntry
-        SetEntryEntityTypeTestHelper::createFeeEntry(FeeType type, AssetCode asset, int64_t fixed, int64_t percent,
-                                          AccountID *accountID, AccountType *accountType, int64_t subtype,
-                                          int64_t lowerBound, int64_t upperBound, AssetCode *feeAsset) {
-            FeeEntry fee;
-            fee.feeType = type;
-            fee.asset = asset;
-            fee.fixedFee = fixed;
-            fee.percentFee = percent;
-            fee.subtype = subtype;
+        EntityTypeEntry
+        SetEntryEntityTypeTestHelper::createEntityTypeEntry(int32_t type, uint64_t id, std::string name)
+        {
+            EntityTypeEntry entityTypeEntry;
+            entityTypeEntry.type = static_cast<EntityType>(type);
+            entityTypeEntry.id = id;
+            entityTypeEntry.name = name;
 
-            if (accountID) {
-                fee.accountID.activate() = *accountID;
-            }
-            if (accountType) {
-                fee.accountType.activate() = *accountType;
-            }
-
-            fee.lowerBound = lowerBound;
-            fee.upperBound = upperBound;
-
-            fee.hash = FeeFrame::calcHash(type, asset, accountID, accountType, subtype);
-
-            if (feeAsset != nullptr) {
-                fee.ext.v(LedgerVersion::CROSS_ASSET_FEE);
-                fee.ext.feeAsset() = *feeAsset;
-            }
-
-            return fee;
+            return entityTypeEntry;
         }
     }
 }

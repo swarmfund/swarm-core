@@ -21,6 +21,9 @@ class SetEntryEntityTypeTestHelper : public TxHelper
         applySetEntityTypeTx(Account &source, EntityTypeEntry entityType, bool isDelete,
                              SetEntityTypeResultCode  expectedResult = SetEntityTypeResultCode::SUCCESS);
 
+        EntityTypeEntry
+        SetEntryEntityTypeTestHelper::createEntityTypeEntry(int32_t type, uint64_t id, std::string name);
+
 
         TransactionFramePtr createSetEntityTypeTx(Account& source,EntityTypeEntry entityType, bool isDelete);
 };

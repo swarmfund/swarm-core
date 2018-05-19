@@ -39,7 +39,17 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
         transactions/test/test_helper/Account.h
-        transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.cpp transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.h)
+        ledger/KeyValueEntryFrame.cpp
+        ledger/KeyValueEntryFrame.h
+        ledger/KeyValueHelper.cpp
+        ledger/KeyValueHelper.h
+        transactions/ManageKeyValueOpFrame.cpp
+        transactions/ManageKeyValueOpFrame.h
+        transactions/test/test_helper/ManageKeyValueTestHelper.cpp
+        transactions/test/test_helper/ManageKeyValueTestHelper.h
+        transactions/test/ManageKeyValueTests.cpp
+        transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.cpp
+        transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.h)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

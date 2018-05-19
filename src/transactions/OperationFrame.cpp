@@ -45,6 +45,7 @@
 #include "dex/ManageOfferOpFrame.h"
 #include "CheckSaleStateOpFrame.h"
 #include "BindExternalSystemAccountIdOpFrame.h"
+#include "ManageKeyValueOpFrame.h"
 
 namespace stellar
 {
@@ -108,6 +109,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new PaymentOpV2Frame(op, res, tx));
     case OperationType::SET_ENTITY_TYPE:
         return shared_ptr<OperationFrame>(new SetEntityTypeOpFrame(op, res, tx));
+    case OperationType::MANAGE_KEY_VALUE:
+        return shared_ptr<OperationFrame>(new ManageKeyValueOpFrame(op, res, tx));
     case OperationType::MANAGE_SALE:
         return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
     default:

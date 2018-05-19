@@ -45,6 +45,15 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/test/test_helper/SetEntryEntityTypeTestHelper.cpp
         transactions/test/test_helper/SetEntryEntityTypeTestHelper.h
         transactions/test/SetEntryEntityTypeTest.cpp
+        ledger/KeyValueEntryFrame.cpp
+        ledger/KeyValueEntryFrame.h
+        ledger/KeyValueHelper.cpp
+        ledger/KeyValueHelper.h
+        transactions/ManageKeyValueOpFrame.cpp
+        transactions/ManageKeyValueOpFrame.h
+        transactions/test/test_helper/ManageKeyValueTestHelper.cpp
+        transactions/test/test_helper/ManageKeyValueTestHelper.h
+        transactions/test/ManageKeyValueTests.cpp
         transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.cpp
         transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.h)
 

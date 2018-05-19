@@ -58,6 +58,12 @@ namespace stellar {
     }
 
     bool ManageKeyValueOpFrame::doCheckValid(Application &app) {
+        auto prefix = getPrefix();
+
+        if(strcmp(prefix.c_str(), kycRulesPrefix) == 0) {
+            return mManageKeyValue.action.value().value.type() == KeyValueEntryType::UINT32;
+        }
+
         return true;
     }
 

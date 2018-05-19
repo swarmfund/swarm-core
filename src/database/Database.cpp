@@ -30,7 +30,7 @@
 #include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
-#include "ledger\ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"

@@ -67,6 +67,7 @@ TEST_CASE("Set entry entity type", "[tx][set_entity_type]") {
     SECTION("Malformed") {
         EntityTypeEntry localEntityTypeEntry;
         localEntityTypeEntry.type = accountEntityType;
+        localEntityTypeEntry.name = "GENERAL";
         setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, localEntityTypeEntry, false,
                                                           SetEntityTypeResultCode::MALFORMED);
     }
@@ -79,7 +80,7 @@ TEST_CASE("Set entry entity type", "[tx][set_entity_type]") {
 
     SECTION("Happy path") {
         auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType , 123321,
-                                                                                  "HappyPathTypeName");
+                                                                                  "GENERAL");
         setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false,
                                                           SetEntityTypeResultCode::SUCCESS);
 

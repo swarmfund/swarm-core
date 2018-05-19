@@ -16,11 +16,13 @@ namespace stellar
 
 using xdr::operator<;
 
+    const char* EntityTypeHelper::select = "SELECT id, type, name, lastmodified, version FROM entity_type ";
+
 void
 EntityTypeHelper::dropAll(Database& db)
 {
-    db.getSession() << "DROP TABLE IF EXISTS entity_types;";
-    db.getSession() << "CREATE TABLE entity_types"
+    db.getSession() << "DROP TABLE IF EXISTS entity_type;";
+    db.getSession() << "CREATE TABLE entity_type"
                        "("
                        "id             BIGINT  NOT NULL CHECK (id >= 0),"
                        "type           INT     NOT NULL,"
@@ -57,8 +59,8 @@ EntityTypeHelper::storeDelete(LedgerDelta& delta, Database& db,
         "DELETE FROM entity_type WHERE id=:id AND type=:tp");
     auto& st = prep.statement();
 
-    st.exchange(use(key.entityType().id));
-    st.exchange(use(type));
+    st.exchange(use(key.entityType().id, "id"));
+    st.exchange(use(type, "tp"));
     st.define_and_bind();
     st.execute(true);
 
@@ -70,6 +72,7 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
                               LedgerEntry const& entry)
 {
     const auto entityTypeFrame = make_shared<EntityTypeFrame>(entry);
+    auto entityTypeEntry = entityTypeFrame->getEntityType();
 
     entityTypeFrame->ensureValid();
     entityTypeFrame->touch(delta);
@@ -77,22 +80,17 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
     LedgerKey const& key = entityTypeFrame->getKey();
     flushCachedEntry(key, db);
 
-    const int64_t typeID = entityTypeFrame->getEntityTypeID();
-    const std::string typeName = entityTypeFrame->getEntityTypeName();
-    const auto type = static_cast<int32_t>(entityTypeFrame->getEntityTypeValue());
-    const auto version = static_cast<int32_t>(entry.ext.v());
-
     std::string sql;
 
     if (insert)
     {
-        sql = std::string("INSERT INTO entity_types (id, type, name, version, lastmodified) "
-                          "VALUES (:id, :tp, :nm, :v, :lm)");
+        sql = std::string("INSERT INTO entity_type (id, type, name, lastmodified, version) "
+                          "VALUES (:id, :tp, :nm, :lm, :v)");
     }
     else
     {
-        sql = std::string("UPDATE entity_types "
-                          "SET    name=:nm, version=:v, lastmodified=:lm"
+        sql = std::string("UPDATE entity_type "
+                          "SET    name=:nm, lastmodified=:lm, version=:v"
                           "WHERE  id=:id AND type=:tp");
     }
 
@@ -100,11 +98,15 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
 
     {
         soci::statement& st = prep.statement();
-        st.exchange(use(typeID, "id"));
+        st.exchange(use(entityTypeEntry.id, "id"));
+
+        auto type = static_cast<int32_t>(entityTypeEntry.type);
         st.exchange(use(type, "tp"));
-        st.exchange(use(typeName, "nm"));
+        st.exchange(use(entityTypeEntry.name, "nm"));
+        st.exchange(use(entityTypeFrame->mEntry.lastModifiedLedgerSeq, "lm"));
+
+        const auto version = static_cast<int32_t>(entry.ext.v());
         st.exchange(use(version, "v"));
-        st.exchange(use(entry.lastModifiedLedgerSeq, "lm"));
 
         st.define_and_bind();
 
@@ -135,11 +137,11 @@ EntityTypeHelper::exists(Database& db, LedgerKey const& key)
     int exists = 0;
     auto timer = db.getSelectTimer("entity-type-exists");
     auto prep =
-        db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM entity_types "
+        db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM entity_type "
                                 "WHERE id=:id AND type=:tp)");
     auto& st = prep.statement();
-    st.exchange(use(key.entityType().id));
-    st.exchange(use(type));
+    st.exchange(use(key.entityType().id, "id"));
+    st.exchange(use(type, "tp"));
     st.exchange(into(exists));
 
     st.define_and_bind();
@@ -164,7 +166,7 @@ uint64_t
 EntityTypeHelper::countObjects(soci::session& sess)
 {
     uint64_t count = 0;
-    sess << "SELECT COUNT(*) FROM entity_types;", into(count);
+    sess << "SELECT COUNT(*) FROM entity_type;", into(count);
 
     return count;
 }
@@ -198,34 +200,35 @@ EntityTypeHelper::loadEntityType(uint64_t id, EntityType type, Database& db,
                                  LedgerDelta* delta)
 {
     auto typeInt32 = static_cast<int32_t>(type);
-    int32_t version;
-    LedgerKey key;
-    key.type(LedgerEntryType::ENTITY_TYPE);
-    LedgerEntry le;
-    le.data.type(LedgerEntryType::ENTITY_TYPE);
-
-    auto& entityTypeKey = key.entityType();
-    entityTypeKey.id = id;
-    entityTypeKey.type = type;
-
-    if (cachedEntryExists(key, db))
-    {
-        auto p = getCachedEntry(key, db);
-        return p ? std::make_shared<EntityTypeFrame>(*p) : nullptr;
-    }
+    std::string sql = select;
+    sql += "WHERE id = :id AND type = :tp";
+    auto prep = db.getPreparedStatement(sql);
 
     std::string name;
-    auto prep = db.getPreparedStatement("SELECT name, version, lastmodified "
-                                        "FROM entity_types "
-                                        "WHERE id =:id AND type=:tp");
     auto& st = prep.statement();
-    st.exchange(use(id));
-    st.exchange(use(typeInt32));
-    st.exchange(into(name));
-    st.exchange(into(version));
-    st.exchange(into(le.lastModifiedLedgerSeq));
+    st.exchange(use(id, "id"));
+    st.exchange(use(typeInt32, "tp"));
 
-    st.define_and_bind();
+    EntityTypeFrame::pointer result;
+    auto timer = db.getSelectTimer("entity_type");
+    loadEntityType(prep, [&result](LedgerEntry const& entry)
+    {
+        result = make_shared<EntityTypeFrame>(entry);
+    });
+
+    if (!result)
+    {
+        return nullptr;
+    }
+
+    if (delta)
+    {
+        delta->recordEntry(*result);
+    }
+
+    return result;
+
+    /*st.define_and_bind();
     {
         auto timer = db.getSelectTimer("entity_types");
         st.execute(true);
@@ -245,11 +248,43 @@ EntityTypeHelper::loadEntityType(uint64_t id, EntityType type, Database& db,
     entityType.id = id;
     entityType.ext.v(static_cast<LedgerVersion>(version));
 
-    std::shared_ptr<LedgerEntry const> pEntry =
-        std::make_shared<LedgerEntry const>(result->mEntry);
+    std::shared_ptr<LedgerEntry const> pEntry = std::make_shared<LedgerEntry const>(result->mEntry);
     putCachedEntry(key, pEntry, db);
+    if (delta)
+    {
+        delta->recordEntry(*result);
+    }
 
-    return result;
+    return result;*/
 }
+
+    void EntityTypeHelper::loadEntityType(StatementContext& prep, const function<void(LedgerEntry const&)> processor)
+    {
+        LedgerEntry le;
+        le.data.type(LedgerEntryType::ENTITY_TYPE);
+        auto& oe = le.data.entityType();
+        int version;
+        int32_t typeInt32;
+
+        statement& st = prep.statement();
+        st.exchange(into(oe.id));
+        st.exchange(into(typeInt32));
+        st.exchange(into(oe.name));
+        st.exchange(into(le.lastModifiedLedgerSeq));
+        st.exchange(into(version));
+        st.define_and_bind();
+        st.execute(true);
+
+        while (st.got_data())
+        {
+            oe.ext.v(static_cast<LedgerVersion>(version));
+            oe.type = static_cast<EntityType>(typeInt32);
+
+            EntityTypeFrame::ensureValid(oe);
+
+            processor(le);
+            st.fetch();
+        }
+    }
 
 } // namespace stellar

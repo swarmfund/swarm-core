@@ -51,8 +51,11 @@ class EntityTypeHelper : public EntryHelper
   private:
     EntityTypeHelper() = default;
 
+    static const char* select;
+
     void storeUpdate(LedgerDelta& delta, Database& db, bool insert,
                      LedgerEntry const& entry);
+    void loadEntityType(StatementContext& prep, const std::function<void(LedgerEntry const&)> processor);
 };
 
 } // namespace stellar

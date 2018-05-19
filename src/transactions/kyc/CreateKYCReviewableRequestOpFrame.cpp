@@ -258,7 +258,7 @@ namespace stellar {
         }
 
         if (kvEntry.get()->getKeyValue().value.type() != KeyValueEntryType::UINT32){
-            return false;
+            throw std::runtime_error("Unexpected database state, expected kyc rule to be UINT32");
         }
 
         defaultMask = kvEntry.get()->getKeyValue().value.ui32Value();

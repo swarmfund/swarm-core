@@ -11,8 +11,6 @@ namespace stellar{
     KeyValueEntryFrame::KeyValueEntryFrame(LedgerEntry const &from) : EntryFrame(from),
                                                             mKeyEntry(mEntry.data.keyValue())
     {
-        if(mKeyEntry.value.type() != KeyValueEntryType::UINT32)
-            throw new std::exception();
     }
 
     KeyValueEntryFrame::KeyValueEntryFrame(KeyValueEntryFrame const &from) : KeyValueEntryFrame(from.mEntry)

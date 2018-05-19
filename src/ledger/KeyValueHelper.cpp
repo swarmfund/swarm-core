@@ -38,7 +38,8 @@ namespace stellar {
         auto timer = db.getDeleteTimer("key_value_entry");
         auto prep = db.getPreparedStatement("DELETE FROM key_value_entry WHERE key=:key");
         auto& st = prep.statement();
-        st.exchange(use(key.keyValue().key));
+        auto keyStr = key.keyValue().key;
+        st.exchange(use(keyStr));
         st.define_and_bind();
         st.execute(true);
         delta.deleteEntry(key);
@@ -53,7 +54,8 @@ namespace stellar {
         auto prep =
                 db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM key_value_entry WHERE key=:key)");
         auto& st = prep.statement();
-        st.exchange(use(key.keyValue().key));
+        auto keyStr = key.keyValue().key;
+        st.exchange(use(keyStr));
         int exists = 0;
         st.exchange(into(exists));
         st.define_and_bind();

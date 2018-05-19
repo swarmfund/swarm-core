@@ -40,7 +40,6 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     accountTestHelper.applyCreateAccountTx(master, updatedAccountID.getPublicKey(), AccountType::GENERAL);
     accountTestHelper.applyCreateAccountTx(master, updatedSyndicateID.getPublicKey(), AccountType::SYNDICATE);
 
-
     CreateKYCRequestTestHelper testKYCRequestHelper(testManager);
     ManageKeyValueTestHelper manageKVHelper(testManager);
 
@@ -59,13 +58,15 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     //make KYC_RULE key
     longstring key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType, account->getKYCLevel(),
                                                            AccountType::GENERAL, kycLevel);
+    longstring syndicateKey = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType, account->getKYCLevel(),
+                                                           AccountType::SYNDICATE, kycLevel);
 
     SECTION("success") {
         //store KV record into DB
-        if (testManager->getLedgerManager().shouldUse(LedgerVersion::KYC_RULES)) {
-            manageKVHelper.setKey(key)->setValue(30);
-            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
-        }
+        manageKVHelper.setKey(key)->setValue(30);
+        manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+        manageKVHelper.setKey(syndicateKey)->setValue(30);
+        manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
         SECTION("source master, create and approve") {
 
@@ -142,17 +143,14 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     }
     SECTION("failed") {
         SECTION("kyc rule not found") {
-            if (testManager->getLedgerManager().shouldUse(LedgerVersion::KYC_RULES)) {
-                testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
-                                                                 AccountType::GENERAL, kycData, kycLevel, nullptr,
-                                                                 CreateUpdateKYCRequestResultCode::KYC_RULE_NOT_FOUND);
-            }
+            testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
+                                                             AccountType::GENERAL, kycData, kycLevel, nullptr,
+                                                             CreateUpdateKYCRequestResultCode::KYC_RULE_NOT_FOUND);
         }
 
-        if (testManager->getLedgerManager().shouldUse(LedgerVersion::KYC_RULES)) {
-            manageKVHelper.setKey(key)->setValue(tasks);
-            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
-        }
+        manageKVHelper.setKey(key)->setValue(tasks);
+        manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+
 
         SECTION("double creating, request exists") {
             testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),

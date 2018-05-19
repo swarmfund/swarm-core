@@ -59,9 +59,10 @@ namespace stellar {
 
     bool ManageKeyValueOpFrame::doCheckValid(Application &app) {
         auto prefix = getPrefix();
+        bool isKycRule = strcmp(prefix.c_str(), kycRulesPrefix) == 0;
 
-        if(strcmp(prefix.c_str(), kycRulesPrefix) == 0) {
-            return mManageKeyValue.action.value().value.type() == KeyValueEntryType::UINT32;
+        if (isKycRule && (mManageKeyValue.action.value().value.type() != KeyValueEntryType::UINT32)){
+            innerResult().code(ManageKeyValueResultCode::INVALID_TYPE);
         }
 
         return true;

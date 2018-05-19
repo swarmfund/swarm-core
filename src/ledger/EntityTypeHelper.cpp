@@ -227,35 +227,6 @@ EntityTypeHelper::loadEntityType(uint64_t id, EntityType type, Database& db,
     }
 
     return result;
-
-    /*st.define_and_bind();
-    {
-        auto timer = db.getSelectTimer("entity_types");
-        st.execute(true);
-    }
-
-    if (!st.got_data())
-    {
-        putCachedEntry(key, nullptr, db);
-        return nullptr;
-    }
-
-    auto result = make_shared<EntityTypeFrame>(le);
-    auto entityType = result->getEntityType();
-
-    entityType.name = name;
-    entityType.type = type;
-    entityType.id = id;
-    entityType.ext.v(static_cast<LedgerVersion>(version));
-
-    std::shared_ptr<LedgerEntry const> pEntry = std::make_shared<LedgerEntry const>(result->mEntry);
-    putCachedEntry(key, pEntry, db);
-    if (delta)
-    {
-        delta->recordEntry(*result);
-    }
-
-    return result;*/
 }
 
     void EntityTypeHelper::loadEntityType(StatementContext& prep, const function<void(LedgerEntry const&)> processor)

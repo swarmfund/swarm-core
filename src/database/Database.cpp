@@ -37,6 +37,7 @@
 #include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/EntityTypeHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -80,10 +81,17 @@ enum databaseSchemaVersion : unsigned long {
 	USE_KYC_LEVEL = 7,
     ADD_ACCOUNT_KYC = 8,
     ADD_FEE_ASSET = 9,
+<<<<<<< HEAD
     ADD_ENTITY_TYPE = 10
 };
 
 static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ENTITY_TYPE;
+=======
+    EXTERNAL_POOL_FIX_DB_TYPES = 10
+};
+
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::EXTERNAL_POOL_FIX_DB_TYPES;
+>>>>>>> master
 
 static void
 setSerializable(soci::session& sess)
@@ -162,8 +170,13 @@ Database::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::ADD_FEE_ASSET:
             FeeHelper::Instance()->addFeeAsset(*this);
             break;
+<<<<<<< HEAD
         case databaseSchemaVersion::ADD_ENTITY_TYPE:
             EntityTypeHelper::Instance()->dropAll(*this);
+=======
+        case databaseSchemaVersion::EXTERNAL_POOL_FIX_DB_TYPES:
+            ExternalSystemAccountIDPoolEntryHelper::Instance()->fixTypes(*this);
+>>>>>>> master
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

@@ -157,6 +157,12 @@ struct LedgerEntryIdCmp
                 auto const &bkyc = b.accountKYC();
                 return akyc.accountID < bkyc.accountID;
             }
+            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
+            {
+                auto const& apool = a.externalSystemAccountIDPoolEntry();
+                auto const& bpool = b.externalSystemAccountIDPoolEntry();
+                return apool.poolEntryID < bpool.poolEntryID;
+            }
             case LedgerEntryType::ENTITY_TYPE:
             {
                 auto const &aet = a.entityType();
@@ -165,12 +171,6 @@ struct LedgerEntryIdCmp
                 if (aet.id == bet.id)
                     return aet.type < bet.type;
                 return aet.id < bet.id;
-            }
-            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
-            {
-                auto const& apool = a.externalSystemAccountIDPoolEntry();
-                auto const& bpool = b.externalSystemAccountIDPoolEntry();
-                return apool.poolEntryID < bpool.poolEntryID;
             }
             default:
             {

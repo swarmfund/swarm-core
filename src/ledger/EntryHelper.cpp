@@ -188,7 +188,6 @@ namespace stellar
 		{ LedgerEntryType::TRUST, TrustHelper::Instance() },
 		{ LedgerEntryType::ENTITY_TYPE, EntityTypeHelper::Instance() },
 		{ LedgerEntryType::KEY_VALUE, KeyValueHelper::Instance()},
-        { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance()},
 		{ LedgerEntryType::SALE, SaleHelper::Instance() },
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY, ExternalSystemAccountIDPoolEntryHelper::Instance() },
         { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance() }

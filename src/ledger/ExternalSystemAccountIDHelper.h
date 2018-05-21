@@ -34,11 +34,13 @@ namespace stellar
 		EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
 		uint64_t countObjects(soci::session& sess) override;
 
-		bool exists(Database& db, AccountID accountID, ExternalSystemType externalSystemType);
+		bool exists(Database& db, AccountID accountID, int32 externalSystemType);
+
+        std::vector<ExternalSystemAccountIDFrame::pointer> loadAll(Database& db);
 
 		// load - loads external system account ID by accountID and externalSystemType. If not found returns nullptr.
 		ExternalSystemAccountIDFrame::pointer
-			load(const AccountID accountID, const ExternalSystemType externalSystemType, Database& db, LedgerDelta* delta = nullptr);
+			load(const AccountID accountID, const int32 externalSystemType, Database& db, LedgerDelta* delta = nullptr);
 
 	private:
 		ExternalSystemAccountIDHelper() { ; }

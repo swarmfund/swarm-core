@@ -20,9 +20,9 @@ namespace stellar {
         {
         }
 
-        ExternalSystemType getExternalSystemType() const override
+        int32 getExternalSystemType() const override
         {
-            return ExternalSystemType::ETHEREUM;
+            return EthereumExternalSystemType;
         }
     };
 }

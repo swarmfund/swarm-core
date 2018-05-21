@@ -1,8 +1,10 @@
 #include "StateBeforeTxHelper.h"
+
 #include "WithdrawRequestHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "transactions/CreateWithdrawalRequestOpFrame.h"
 #include "test/test_marshaler.h"
+
 
 namespace stellar
 {
@@ -94,6 +96,7 @@ BalanceFrame::pointer StateBeforeTxHelper::getBalance(BalanceID balanceID) {
 
         return std::make_shared<AccountFrame>(mState[key]->mEntry);
     }
+
 
     ReviewableRequestFrame::pointer StateBeforeTxHelper::getReviewableRequest(uint64 requestID) {
         LedgerKey key;

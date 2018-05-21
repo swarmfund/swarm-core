@@ -36,7 +36,7 @@ public:
         return EntryFrame::pointer(new ExternalSystemAccountIDFrame(*this));
     }
 
-    static pointer createNew(AccountID const accountID, ExternalSystemType const externalSystemType, std::string const data);
+    static pointer createNew(AccountID const accountID, int32 const externalSystemType, std::string const data);
 
     ExternalSystemAccountID const& getExternalSystemAccountID() const
     {

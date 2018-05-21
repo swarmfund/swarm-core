@@ -10,6 +10,9 @@
 
 namespace stellar {
 
+    const int32 BitcoinExternalSystemType = 1;
+    const int32 EthereumExternalSystemType = 2;
+
     class Database;
     class Application;
     class LedgerDelta;
@@ -28,7 +31,7 @@ namespace stellar {
 
         // tryGenerateNewID - generates new id, if it does not exist for specified account in external system 
         ExternalSystemAccountIDFrame::pointer tryGenerateNewID(AccountID const& accountID, uint64_t id);
-        virtual ExternalSystemType getExternalSystemType() const = 0;
+        virtual int32 getExternalSystemType() const = 0;
     };
 }
 

@@ -1,3 +1,5 @@
+#include <transactions/test/test_helper/ManageKeyValueTestHelper.h>
+#include <arpa/nameser_compat.h>
 #include "test_helper/TxHelper.h"
 #include "test_helper/CreateKYCReviewableRequestTestHelper.h"
 #include "test/test_marshaler.h"
@@ -15,7 +17,7 @@ using namespace stellar::txtest;
 typedef std::unique_ptr<Application> appPtr;
 
 TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
-    Config const &cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
+    Config cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
 
     VirtualClock clock;
     Application::pointer appPtr = Application::create(clock, cfg);
@@ -39,13 +41,35 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     accountTestHelper.applyCreateAccountTx(master, updatedSyndicateID.getPublicKey(), AccountType::SYNDICATE);
 
     CreateKYCRequestTestHelper testKYCRequestHelper(testManager);
+    ManageKeyValueTestHelper manageKVHelper(testManager);
+
     longstring kycData = "{}";
     uint32 kycLevel = 2;
     uint64 requestID = 0;
     uint32 tasks = 0;
     ReviewKYCRequestTestHelper reviewKYCRequestTestHelper(testManager);
+
+    LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(),testManager->getDB());
+
+
+    auto account = AccountHelper::Instance()->loadAccount(updatedAccountID.getPublicKey(),
+                                                          testManager->getDB());
+
+    //make KYC_RULE key
+    longstring key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType, account->getKYCLevel(),
+                                                           AccountType::GENERAL, kycLevel);
+    longstring syndicateKey = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType, account->getKYCLevel(),
+                                                           AccountType::SYNDICATE, kycLevel);
+
     SECTION("success") {
+        //store KV record into DB
+        manageKVHelper.setKey(key)->setValue(30);
+        manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+        manageKVHelper.setKey(syndicateKey)->setValue(30);
+        manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+
         SECTION("source master, create and approve") {
+
             auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0,
                                                                                                  updatedAccountID.getPublicKey(),
                                                                                                  AccountType::GENERAL,
@@ -109,11 +133,24 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
         SECTION("set the same type") {
             kycLevel = 0;
 
+            key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType,account->getKYCLevel(),
+                        AccountType::GENERAL,kycLevel);
+            manageKVHelper.setKey(key)->doApply(app, ManageKVAction::PUT, true);
+            
             testKYCRequestHelper.applyCreateUpdateKYCRequest(master, 0, updatedAccountID.getPublicKey(),
                                                              AccountType::GENERAL, kycData, kycLevel, nullptr);
         }
     }
     SECTION("failed") {
+        SECTION("kyc rule not found") {
+            testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
+                                                             AccountType::GENERAL, kycData, kycLevel, nullptr,
+                                                             CreateUpdateKYCRequestResultCode::KYC_RULE_NOT_FOUND);
+        }
+
+        manageKVHelper.setKey(key)->setValue(tasks);
+        manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+
 
         SECTION("double creating, request exists") {
             testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
@@ -150,8 +187,15 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                                                                  AccountType::GENERAL,
                                                                                                  kycData, kycLevel,
                                                                                                  &tasks);
+            manageKVHelper.setValue(tasks);
+            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+
             requestID = createUpdateKYCRequestResult.success().requestID;
             uint32 newTasks = 1;
+
+            manageKVHelper.setValue(newTasks);
+            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+
             testKYCRequestHelper.applyCreateUpdateKYCRequest(master, requestID, updatedAccountID.getPublicKey(),
                                                              AccountType::GENERAL, kycData, kycLevel, &newTasks,
                                                              CreateUpdateKYCRequestResultCode::NOT_ALLOWED_TO_UPDATE_REQUEST);

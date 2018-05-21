@@ -57,6 +57,7 @@ namespace stellar {
             REQUIRE(!!entityTypeFrame);
             REQUIRE(entityTypeFrame->getEntityTypeID() == entityType.id);
             REQUIRE(entityTypeFrame->getEntityTypeValue() == entityType.type);
+            REQUIRE(entityTypeFrame->getEntityTypeName() == entityType.name);
         }
 
         EntityTypeEntry

@@ -42,6 +42,9 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/SetEntityTypeOpFrame.h
         ledger/EntityTypeFrame.h
         ledger/EntityTypeHelper.h
+        transactions/test/test_helper/SetEntryEntityTypeTestHelper.cpp
+        transactions/test/test_helper/SetEntryEntityTypeTestHelper.h
+        transactions/test/SetEntryEntityTypeTest.cpp
         ledger/KeyValueEntryFrame.cpp
         ledger/KeyValueEntryFrame.h
         ledger/KeyValueHelper.cpp

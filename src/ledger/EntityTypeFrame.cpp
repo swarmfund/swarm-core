@@ -32,11 +32,11 @@ EntityTypeFrame::EntityTypeFrame(EntityTypeFrame const& from)
 void
 EntityTypeFrame::ensureValid(const EntityTypeEntry& mTypeEntry)
 {
-    if (EntityTypeFrame::isNameValid(mTypeEntry.name))
+    if (!EntityTypeFrame::isNameValid(mTypeEntry.name))
     {
         throw std::runtime_error("Entity types name invalid");
     }
-    if (EntityTypeFrame::isTypeValid(mTypeEntry.type))
+    if (!EntityTypeFrame::isTypeValid(mTypeEntry.type))
     {
         throw std::runtime_error("Entity types type invalid");
     }

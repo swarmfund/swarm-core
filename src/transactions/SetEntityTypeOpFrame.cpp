@@ -34,14 +34,18 @@ SetEntityTypeOpFrame::doApply(Application& app, LedgerDelta& delta,
 bool
 SetEntityTypeOpFrame::doCheckValid(Application& app)
 {
-    if (EntityTypeFrame::isNameValid(mSetEntityType.entityType.name))
+    if (!EntityTypeFrame::isNameValid(mSetEntityType.entityType.name))
     {
         innerResult().code(SetEntityTypeResultCode::INVALID_NAME);
         return false;
     }
-    if (EntityTypeFrame::isTypeValid(mSetEntityType.entityType.type))
+    if (!EntityTypeFrame::isTypeValid(mSetEntityType.entityType.type))
     {
         innerResult().code(SetEntityTypeResultCode::INVALID_TYPE);
+        return false;
+    }
+    if(mSetEntityType.entityType.id == 0){
+        innerResult().code(SetEntityTypeResultCode::MALFORMED);
         return false;
     }
 
@@ -64,9 +68,8 @@ SetEntityTypeOpFrame::trySetEntityType(Database& db, LedgerDelta& delta)
             innerResult().code(SetEntityTypeResultCode::NOT_FOUND);
             return false;
         }
+        entityTypeHelper->storeDelete(delta, db, entityTypeFrame->getKey());
 
-        EntryHelperProvider::storeDeleteEntry(delta, db,
-                                              entityTypeFrame->getKey());
         return true;
     }
 
@@ -76,8 +79,8 @@ SetEntityTypeOpFrame::trySetEntityType(Database& db, LedgerDelta& delta)
         auto& entityType = entityTypeFrame->getEntityType();
         entityType.id = mSetEntityType.entityType.id;
         entityType.type = mSetEntityType.entityType.type;
-        EntryHelperProvider::storeChangeEntry(delta, db,
-                                              entityTypeFrame->mEntry);
+        entityTypeHelper->storeChange(delta, db, entityTypeFrame->mEntry);
+
         return true;
     }
 
@@ -86,7 +89,7 @@ SetEntityTypeOpFrame::trySetEntityType(Database& db, LedgerDelta& delta)
     le.data.type(LedgerEntryType::ENTITY_TYPE);
     le.data.entityType() = mSetEntityType.entityType;
     entityTypeFrame = make_shared<EntityTypeFrame>(le);
-    EntryHelperProvider::storeAddEntry(delta, db, entityTypeFrame->mEntry);
+    entityTypeHelper->storeAdd(delta, db, entityTypeFrame->mEntry);
 
     return true;
 }

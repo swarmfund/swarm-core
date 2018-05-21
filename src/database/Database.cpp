@@ -165,7 +165,7 @@ Database::applySchemaUpgrade(unsigned long vers)
             FeeHelper::Instance()->addFeeAsset(*this);
             break;
         case databaseSchemaVersion::ADD_ENTITY_TYPE:
-            EntityTypeHelper::Instance()->dropAll(*this)
+            EntityTypeHelper::Instance()->dropAll(*this);
             break;
         case databaseSchemaVersion::EXTERNAL_POOL_FIX_DB_TYPES:
             ExternalSystemAccountIDPoolEntryHelper::Instance()->fixTypes(*this);

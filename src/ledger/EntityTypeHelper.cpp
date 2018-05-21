@@ -90,7 +90,7 @@ EntityTypeHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
     else
     {
         sql = std::string("UPDATE entity_type "
-                          "SET    name=:nm, lastmodified=:lm, version=:v"
+                          "SET    name=:nm, lastmodified=:lm, version=:v "
                           "WHERE  id=:id AND type=:tp");
     }
 

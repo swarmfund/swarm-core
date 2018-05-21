@@ -79,6 +79,7 @@ SetEntityTypeOpFrame::trySetEntityType(Database& db, LedgerDelta& delta)
         auto& entityType = entityTypeFrame->getEntityType();
         entityType.id = mSetEntityType.entityType.id;
         entityType.type = mSetEntityType.entityType.type;
+        entityType.name = mSetEntityType.entityType.name;
         entityTypeHelper->storeChange(delta, db, entityTypeFrame->mEntry);
 
         return true;

@@ -85,7 +85,7 @@ TEST_CASE("Set entry entity type", "[tx][set_entity_type]") {
                                                           SetEntityTypeResultCode::SUCCESS);
 
         SECTION("Successful update"){
-            auto entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType , 123321,
+            entityTypeEntry = setEntityTypeEntryTestHelper.createEntityTypeEntry(accountEntityType , 123321,
                                                                                       "USUAL");
             setEntityTypeEntryTestHelper.applySetEntityTypeTx(master, entityTypeEntry, false,
                                                               SetEntityTypeResultCode::SUCCESS);
@@ -97,4 +97,3 @@ TEST_CASE("Set entry entity type", "[tx][set_entity_type]") {
         }
     }
 }
-

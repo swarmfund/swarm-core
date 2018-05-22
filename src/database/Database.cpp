@@ -30,6 +30,7 @@
 #include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
+#include "ledger/ExternalSystemAccountIDHelper.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -76,10 +77,11 @@ enum databaseSchemaVersion : unsigned long {
     ADD_SALE_TYPE = 6,
 	USE_KYC_LEVEL = 7,
     ADD_ACCOUNT_KYC = 8,
-    ADD_FEE_ASSET = 9
+    ADD_FEE_ASSET = 9,
+    EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY = 10,
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_FEE_ASSET;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY;
 
 static void
 setSerializable(soci::session& sess)
@@ -157,6 +159,9 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_FEE_ASSET:
             FeeHelper::Instance()->addFeeAsset(*this);
+            break;
+        case databaseSchemaVersion::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
+            ExternalSystemAccountIDHelper::Instance()->dropAll(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

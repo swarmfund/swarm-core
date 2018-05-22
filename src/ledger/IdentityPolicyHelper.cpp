@@ -24,10 +24,11 @@ IdentityPolicyHelper::dropAll(Database& db)
         << "CREATE TABLE identity_policies"
            "("
            "id             BIGINT                 NOT NULL CHECK (id >= 0),"
-           "priority       BIGINT                 NOT NULL CHECK (priority >= "
-           "0),"
+           "priority       BIGINT                 NOT NULL CHECK (priority >= 0),"
            "resource       TEXT                   NOT NULL,"
-           "effect         ENUM('ALLOW', 'DENY')  NOT NULL,"
+           "action         TEXT                   NOT NULL,"
+           "effect         INT                    NOT NULL, CHECK (effect >= 1) CHECK (effect <= 2)"
+           "ownerid        VARCHAR(56)            NOT NULL,"
            "lastmodified   INT                    NOT NULL,"
            "version        INT                    NOT NULL,"
            "PRIMARY KEY(id)"
@@ -81,6 +82,8 @@ IdentityPolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
     const uint64_t id = identityPolicyFrame->getID();
     const uint64_t priority = identityPolicyFrame->getPriority();
     const std::string resource = identityPolicyFrame->getResource();
+    const std::string action = identityPolicyFrame->getAction();
+    const std::string ownerIDStrKey = PubKeyUtils::toStrKey(identityPolicyFrame->getOwnerID());
     const auto effect = static_cast<int32_t>(identityPolicyFrame->getEffect());
     const auto version = static_cast<int32_t>(entry.ext.v());
 
@@ -89,13 +92,14 @@ IdentityPolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
     if (insert)
     {
         sql = std::string("INSERT INTO identity_policies (id, priority, "
-                          "resource, effect, version, lastmodified) "
-                          "VALUES (:id, :pt, :rs, :ef, :v, :lm)");
+                          "resource, action, effect, ownerid, version, lastmodified) "
+                          "VALUES (:id, :pt, :rs, :ac, :ef, oi, :v, :lm)");
     }
     else
     {
+        // TODO check ownerid == sourceid
         sql = std::string("UPDATE identity_policies "
-                          "SET    priority=:pt, resource=:rs, effect=:ef, "
+                          "SET    priority=:pt, action=:ac, resource=:rs, effect=:ef, "
                           "version=:v, lastmodified=:lm"
                           "WHERE  id=:id");
     }
@@ -107,7 +111,9 @@ IdentityPolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
         st.exchange(use(id, "id"));
         st.exchange(use(priority, "pt"));
         st.exchange(use(resource, "rs"));
+        st.exchange(use(action, "ac"));
         st.exchange(use(effect, "ef"));
+        st.exchange(use(ownerIDStrKey, "oi"));
         st.exchange(use(version, "v"));
         st.exchange(use(entry.lastModifiedLedgerSeq, "lm"));
 
@@ -200,7 +206,9 @@ IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, Database& db,
 {
     uint64_t priority;
     std::string resource;
+    std::string action;
     int32_t effect;
+    AccountID ownerIDStrKey;
     int32_t version;
 
     LedgerEntry le;
@@ -218,14 +226,16 @@ IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, Database& db,
 
     std::string name;
     auto prep = db.getPreparedStatement(
-        "SELECT priority, resource, effect, version, lastmodified "
+        "SELECT priority, resource, action, effect, ownerid, version, lastmodified "
         "FROM identity_policies "
         "WHERE id =:id");
     auto& st = prep.statement();
     st.exchange(use(id));
     st.exchange(into(priority));
     st.exchange(into(resource));
+    st.exchange(into(action));
     st.exchange(into(effect));
+    st.exchange(into(ownerIDStrKey));
     st.exchange(into(version));
     st.exchange(into(le.lastModifiedLedgerSeq));
 
@@ -242,13 +252,15 @@ IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, Database& db,
     }
 
     auto result = make_shared<IdentityPolicyFrame>(le);
-    auto entityType = result->getIdentityPolicy();
+    auto policyEntry = result->getIdentityPolicy();
 
-    entityType.id = id;
-    entityType.priority = priority;
-    entityType.resource = resource;
-    entityType.effect = static_cast<Effect>(effect);
-    entityType.ext.v(static_cast<LedgerVersion>(version));
+    policyEntry.id = id;
+    policyEntry.priority = priority;
+    policyEntry.resource = resource;
+    policyEntry.action = action;
+    policyEntry.effect = static_cast<Effect>(effect);
+    policyEntry.ownerID = ownerIDStrKey;
+    policyEntry.ext.v(static_cast<LedgerVersion>(version));
 
     std::shared_ptr<LedgerEntry const> pEntry =
         std::make_shared<LedgerEntry const>(result->mEntry);

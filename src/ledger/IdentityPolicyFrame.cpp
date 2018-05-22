@@ -7,12 +7,13 @@
 #include "util/types.h"
 
 #include <exception>
-#include <regex>
 
 namespace stellar
 {
 
 using xdr::operator<;
+
+const std::regex IdentityPolicyFrame::resourceRegEx = std::regex(R"(^resource_type:[a-zA-Z]*:[a-zA-Z]*:[a-zA-Z0-9]*$)");
 
 IdentityPolicyFrame::IdentityPolicyFrame()
     : EntryFrame(LedgerEntryType::IDENTITY_POLICY)
@@ -31,13 +32,8 @@ IdentityPolicyFrame::IdentityPolicyFrame(IdentityPolicyFrame const& from)
 }
 
 void
-IdentityPolicyFrame::ensureValid(
-    const IdentityPolicyEntry& mIdentityPolicyEntry)
+IdentityPolicyFrame::ensureValid(const IdentityPolicyEntry& mIdentityPolicyEntry)
 {
-    if (IdentityPolicyFrame::isResourceValid(mIdentityPolicyEntry.resource))
-    {
-        throw std::runtime_error("Identity policy resource invalid");
-    }
     if (IdentityPolicyFrame::isEffectValid(mIdentityPolicyEntry.effect))
     {
         throw std::runtime_error("Identity policy effect invalid");
@@ -52,9 +48,7 @@ IdentityPolicyFrame::ensureValid() const
 
 bool IdentityPolicyFrame::isResourceValid(std::string const& resource)
 {
-    const std::regex resourceRegEx{R"(^resource_type:.+:.+:.+$)"};
-
-    return std::regex_match(resource, resourceRegEx);
+    return std::regex_match(resource, IdentityPolicyFrame::resourceRegEx);
 }
 
 bool IdentityPolicyFrame::isEffectValid(Effect const effect)

@@ -119,6 +119,8 @@ namespace stellar {
         return exists != 0;
     }
 
+    // TODO: write exists for pollID, acc type and acc id as params
+
     LedgerKey stellar::PolicyAttachmentHelper::getLedgerKey(LedgerEntry const &from) {
         LedgerKey ledgerKey;
         ledgerKey.type(from.data.type());

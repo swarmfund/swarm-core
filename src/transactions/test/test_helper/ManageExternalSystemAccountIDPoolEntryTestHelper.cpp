@@ -147,7 +147,7 @@ namespace txtest
                                                  Account *signer)
     {
         ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t actionInput;
-        actionInput.action(ManageExternalSystemAccountIdPoolEntryAction::CREATE);
+        actionInput.action(ManageExternalSystemAccountIdPoolEntryAction::CREATE_POOL_ENTRY);
         CreateExternalSystemAccountIdPoolEntryActionInput& input =
                 actionInput.createExternalSystemAccountIdPoolEntryActionInput();
         input.externalSystemType = type;
@@ -162,7 +162,7 @@ namespace txtest
                                            Account *signer)
     {
         ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t actionInput;
-        actionInput.action(ManageExternalSystemAccountIdPoolEntryAction::DELETE);
+        actionInput.action(ManageExternalSystemAccountIdPoolEntryAction::DELETE_POOL_ENTRY);
         DeleteExternalSystemAccountIdPoolEntryActionInput& input =
                 actionInput.deleteExternalSystemAccountIdPoolEntryActionInput();
         input.poolEntryID = poolEntryID;

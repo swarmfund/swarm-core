@@ -175,7 +175,13 @@ struct LedgerEntryIdCmp
                 auto const& bpool = b.externalSystemAccountIDPoolEntry();
                 return apool.poolEntryID < bpool.poolEntryID;
             }
-            case LedgerEntryType::POLICY_ATTACHMENT:
+        case LedgerEntryType::IDENTITY_POLICY:
+            {
+                auto const& aip = a.identityPolicy();
+                auto const& bip = b.identityPolicy();
+                return aip.id < bip.id;
+            }
+        case LedgerEntryType::POLICY_ATTACHMENT:
             {
                 auto const& apa = a.policyAttachment();
                 auto const& bpa = b.policyAttachment();

@@ -49,6 +49,7 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
+#include <ledger/IdentityPolicyHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
 
@@ -78,7 +79,8 @@ enum databaseSchemaVersion : unsigned long {
 	USE_KYC_LEVEL = 7,
     ADD_ACCOUNT_KYC = 8,
     ADD_FEE_ASSET = 9,
-    ADD_POLICY_ATTACHMENT = 10
+    ADD_IDENTITY_POLICY = 10,
+    ADD_POLICY_ATTACHMENT = 11
 };
 
 static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_POLICY_ATTACHMENT;
@@ -159,6 +161,9 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_FEE_ASSET:
             FeeHelper::Instance()->addFeeAsset(*this);
+            break;
+        case databaseSchemaVersion::ADD_IDENTITY_POLICY:
+            IdentityPolicyHelper::Instance()->dropAll(*this);
             break;
         case databaseSchemaVersion::ADD_POLICY_ATTACHMENT:
             PolicyAttachmentHelper::Instance()->dropAll(*this);

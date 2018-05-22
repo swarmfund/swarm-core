@@ -25,6 +25,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
 
     ManageKeyValueTestHelper testHelper(testManager);
     testHelper.setKey(key);
+    testHelper.setValue(30);
 
     auto keyValueHelper = KeyValueHelper::Instance();
 
@@ -36,6 +37,13 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
     SECTION("Can`t load before create"){
         auto kvFrame = keyValueHelper->loadKeyValue(key,testManager->getDB());
         REQUIRE(!kvFrame);
+    }
+
+    SECTION("Invalid type"){
+        testHelper.setResult(ManageKeyValueResultCode::INVALID_TYPE);
+        auto kvFrame = keyValueHelper->loadKeyValue(key,testManager->getDB());
+        REQUIRE(!kvFrame);
+        testHelper.doApply(app, ManageKVAction::PUT, false, KeyValueEntryType(2));
     }
 
     SECTION("Can create new") {
@@ -50,6 +58,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
         SECTION("Can update after create") {
             auto kvFrame = keyValueHelper->loadKeyValue(key, testManager->getDB());
             REQUIRE(!!kvFrame);
+            testHelper.setValue(40);
             testHelper.doApply(app, ManageKVAction::PUT, true);
         }
 

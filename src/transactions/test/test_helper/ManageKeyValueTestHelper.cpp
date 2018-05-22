@@ -30,16 +30,37 @@ namespace stellar {
             return  this;
         }
 
-        void ManageKeyValueTestHelper::doApply(Application &app, ManageKVAction action, bool require)
+        void ManageKeyValueTestHelper::doApply(Application &app, ManageKVAction action, bool require,
+                                               KeyValueEntryType type)
         {
             LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(), mTestManager->getDB());
 
-            ManageKeyValueTestBuilder builder(key, mTestManager, action, value);
+            ManageKeyValueTestBuilder builder(key, mTestManager, action, value, type);
 
             REQUIRE(builder.kvManager->doApply(app, delta, mTestManager->getLedgerManager()) == require);
             REQUIRE(builder.kvManager->getInnerCode(builder.kvManager->getResult()) == expectedResult);
         }
 
+
+        Operation ManageKeyValueTestBuilder::buildOp(KeyValueEntryType type)
+        {
+            Operation op;
+            op.body.type(OperationType::MANAGE_KEY_VALUE);
+            op.body.manageKeyValueOp() = ManageKeyValueOp();
+            op.body.manageKeyValueOp().key = key;
+            op.body.manageKeyValueOp().action.action(kvAction);
+
+            if(kvAction == ManageKVAction::PUT)
+            {
+                op.body.manageKeyValueOp().action.value().value.type(type);
+                if (type == KeyValueEntryType::UINT32)
+                {
+                    op.body.manageKeyValueOp().action.value().value.ui32Value() = value;
+                }
+                op.body.manageKeyValueOp().action.value().key = key;
+            }
+            return op;
+        }
 
         Operation ManageKeyValueTestBuilder::buildOp()
         {
@@ -59,14 +80,15 @@ namespace stellar {
         }
 
         ManageKeyValueTestBuilder::ManageKeyValueTestBuilder(string256 key, TestManager::pointer &testManager,
-                                                                     ManageKVAction action, uint32 value)
+                                                             ManageKVAction action, uint32 value, KeyValueEntryType type)
                 :key(key),
                  kvAction(action),
-                 value(value)
+                 value(value),
+                 type(type)
         {
             auto txFrame = this->buildTx(testManager);
             tx = txFrame.get();
-            op = buildOp();
+            op = buildOp(type);
             res = OperationResult(OperationResultCode::opINNER);
             res.tr().type(OperationType::MANAGE_KEY_VALUE);
             kvManager = new ManageKeyValueOpFrame(op,res,*tx);

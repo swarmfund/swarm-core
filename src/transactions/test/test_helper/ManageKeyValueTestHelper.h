@@ -24,7 +24,8 @@ namespace stellar{
 
             ManageKeyValueTestHelper* setResult(ManageKeyValueResultCode resultCode);
 
-            void doApply(Application &app, ManageKVAction action, bool require);
+            void doApply(Application &app, ManageKVAction action, bool require, KeyValueEntryType type =
+                                                                                KeyValueEntryType::UINT32);
 
         private:
 
@@ -38,17 +39,21 @@ namespace stellar{
         public:
 
             ManageKeyValueTestBuilder(string256 key, TestManager::pointer &testManager,
-                                                  ManageKVAction action, uint32 value);
+                                                    ManageKVAction action, uint32 value,
+                                                    KeyValueEntryType type = KeyValueEntryType::UINT32);
 
             ManageKeyValueTestBuilder copy() override
             {
                 return *this;
             }
 
-            Operation buildOp() override ;
+            Operation buildOp() override;
+
+            Operation buildOp(KeyValueEntryType type) ;
 
             longstring key;
             uint32 value;
+            KeyValueEntryType type;
             ManageKVAction kvAction;
             ManageKeyValueOpFrame* kvManager;
             Operation op;

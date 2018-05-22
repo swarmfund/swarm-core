@@ -951,6 +951,12 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -1854,6 +1860,12 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -2093,6 +2105,21 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment-v2.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-sale-details.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-external-system-id-pool-entry.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-external-system-id-pool-entry.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-bind-external-system-id.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-sale.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

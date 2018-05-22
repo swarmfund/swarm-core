@@ -1,3 +1,4 @@
+#include <transactions/ManageKeyValueOpFrame.h>
 #include "CreateKYCReviewableRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
 #include "main/Application.h"
@@ -7,6 +8,7 @@
 #include "ledger/LedgerDelta.h"
 #include "transactions/review_request/ReviewRequestHelper.h"
 #include "transactions/review_request/ReviewUpdateKYCRequestOpFrame.h"
+#include "ledger/KeyValueHelper.h"
 
 namespace stellar {
     using namespace std;
@@ -161,7 +163,17 @@ namespace stellar {
 
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.type(ReviewableRequestType::UPDATE_KYC);
-        createRequest(requestEntry);
+
+        uint32 defaultMask;
+
+        if(!getDefaultKYCMask(db, ledgerManager, mCreateUpdateKYCRequest.updateKYCRequestData,
+                                                    accountFrame, defaultMask))
+        {
+            innerResult().code(CreateUpdateKYCRequestResultCode::KYC_RULE_NOT_FOUND);
+            return false;
+        }
+
+        createRequest(requestEntry, defaultMask);
 
         requestFrame->recalculateHashRejectReason();
 
@@ -209,18 +221,49 @@ namespace stellar {
         return binToHex(hash);
     }
 
-    void CreateUpdateKYCRequestOpFrame::createRequest(ReviewableRequestEntry &requestEntry) {
+    void
+    CreateUpdateKYCRequestOpFrame::createRequest(ReviewableRequestEntry &requestEntry, uint32 defaultMask) {
         requestEntry.body.updateKYCRequest().accountToUpdateKYC = mCreateUpdateKYCRequest.updateKYCRequestData.accountToUpdateKYC;
         requestEntry.body.updateKYCRequest().accountTypeToSet = mCreateUpdateKYCRequest.updateKYCRequestData.accountTypeToSet;
         requestEntry.body.updateKYCRequest().kycLevel = mCreateUpdateKYCRequest.updateKYCRequestData.kycLevelToSet;
         requestEntry.body.updateKYCRequest().kycData = mCreateUpdateKYCRequest.updateKYCRequestData.kycData;
 
         requestEntry.body.updateKYCRequest().allTasks = !!mCreateUpdateKYCRequest.updateKYCRequestData.allTasks
-                                                        ? mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate()
-                                                        : CreateUpdateKYCRequestOpFrame::defaultTasks;
+                                                        ?mCreateUpdateKYCRequest.updateKYCRequestData.allTasks.activate()
+                                                        :defaultMask;
 
         requestEntry.body.updateKYCRequest().pendingTasks = requestEntry.body.updateKYCRequest().allTasks;
         requestEntry.body.updateKYCRequest().sequenceNumber = 0;
+    }
+
+    bool
+    CreateUpdateKYCRequestOpFrame::getDefaultKYCMask(Database &db, LedgerManager &ledgerManager,
+                                                     UpdateKYCRequestData kycRequestData,
+                                                     AccountFrame::pointer account, uint32 &defaultMask)
+    {
+        if(!ledgerManager.shouldUse(LedgerVersion::KYC_RULES))
+        {
+            defaultMask = CreateUpdateKYCRequestOpFrame::defaultTasks;
+            return true;
+        }
+
+        auto  key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType,account->getKYCLevel(),
+                                                          kycRequestData.accountTypeToSet,kycRequestData.kycLevelToSet);
+
+        auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key,db);
+
+        if (!kvEntry)
+        {
+            return false;
+        }
+
+        if (kvEntry.get()->getKeyValue().value.type() != KeyValueEntryType::UINT32){
+            throw std::runtime_error("Unexpected database state, expected kyc rule to be UINT32");
+        }
+
+        defaultMask = kvEntry.get()->getKeyValue().value.ui32Value();
+
+        return true;
     }
 
     void CreateUpdateKYCRequestOpFrame::updateRequest(ReviewableRequestEntry &requestEntry) {

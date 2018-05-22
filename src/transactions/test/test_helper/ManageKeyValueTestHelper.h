@@ -49,15 +49,13 @@ namespace stellar{
 
             Operation buildOp() override;
 
-            Operation buildOp(KeyValueEntryType type) ;
-
             longstring key;
             uint32 value;
             KeyValueEntryType type;
             ManageKVAction kvAction;
             ManageKeyValueOpFrame* kvManager;
             Operation op;
-            TransactionFrame* tx;
+            TransactionFramePtr tx;
             OperationResult res;
         };
     }

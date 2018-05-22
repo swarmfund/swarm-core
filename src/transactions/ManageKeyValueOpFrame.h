@@ -54,7 +54,7 @@ namespace stellar {
 
         static longstring makeKYCRuleKey(AccountType accountType, uint32 kycLevel, AccountType accountTypeToSet, uint32 kycLevelToSet);
 
-        static constexpr char* kycRulesPrefix = "kyc_lvlup_rules";
+        static const char * kycRulesPrefix;
     };
 
 }

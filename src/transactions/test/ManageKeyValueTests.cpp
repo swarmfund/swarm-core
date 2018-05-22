@@ -5,6 +5,7 @@
 #include "main/test.h"
 #include "ledger/KeyValueHelper.h"
 #include "test/test_marshaler.h"
+#include "TxTests.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -43,8 +44,12 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
         testHelper.setResult(ManageKeyValueResultCode::INVALID_TYPE);
         auto kvFrame = keyValueHelper->loadKeyValue(key,testManager->getDB());
         REQUIRE(!kvFrame);
-        testHelper.doApply(app, ManageKVAction::PUT, false, KeyValueEntryType(2));
+        longstring localKey = ManageKeyValueOpFrame::makeKYCRuleKey(AccountType::MASTER, 3, AccountType::GENERAL, 5);
+        testHelper.setKey(localKey);
+        testHelper.doApply(app, ManageKVAction::PUT, false, KeyValueEntryType::STRING);
     }
+
+    testHelper.setKey(key);
 
     SECTION("Can create new") {
         testHelper.setResult(ManageKeyValueResultCode::SUCCESS);

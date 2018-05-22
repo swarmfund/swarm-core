@@ -13,8 +13,6 @@ namespace stellar
 
 using xdr::operator<;
 
-const std::regex IdentityPolicyFrame::resourceRegEx = std::regex(R"(^resource_type:[a-zA-Z]*:[a-zA-Z]*:[a-zA-Z0-9]*$)");
-
 IdentityPolicyFrame::IdentityPolicyFrame()
     : EntryFrame(LedgerEntryType::IDENTITY_POLICY)
     , mIdentityPolicyEntry(mEntry.data.identityPolicy())
@@ -44,11 +42,6 @@ void
 IdentityPolicyFrame::ensureValid() const
 {
     ensureValid(mIdentityPolicyEntry);
-}
-
-bool IdentityPolicyFrame::isResourceValid(std::string const& resource)
-{
-    return std::regex_match(resource, IdentityPolicyFrame::resourceRegEx);
 }
 
 bool IdentityPolicyFrame::isEffectValid(Effect const effect)

@@ -8,7 +8,6 @@
 #include <functional>
 #include <stdio.h>
 #include <unordered_map>
-#include <regex>
 
 namespace stellar
 {
@@ -23,8 +22,6 @@ class IdentityPolicyFrame : public EntryFrame
     explicit IdentityPolicyFrame(LedgerEntry const& from);
 
     using pointer = std::shared_ptr<IdentityPolicyFrame>;
-
-    static const std::regex resourceRegEx;
 
     IdentityPolicyEntry&
     getIdentityPolicy() const
@@ -70,7 +67,6 @@ class IdentityPolicyFrame : public EntryFrame
 
     EntryFrame::pointer copy() const override;
 
-    static bool isResourceValid(std::string const& resource);
     static bool isEffectValid(Effect const effect);
 
     static void ensureValid(IdentityPolicyEntry const& oeEntry);

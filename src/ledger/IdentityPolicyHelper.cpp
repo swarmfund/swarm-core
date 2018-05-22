@@ -97,7 +97,6 @@ IdentityPolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
     }
     else
     {
-        // TODO check ownerid == sourceid
         sql = std::string("UPDATE identity_policies "
                           "SET    priority=:pt, action=:ac, resource=:rs, effect=:ef, "
                           "version=:v, lastmodified=:lm"

@@ -137,6 +137,8 @@ using xdr::operator<;
             "version              INT         NOT NULL DEFAULT 0,"
             "PRIMARY KEY (id)"
             ");";
+
+        fixTypes(db);
     }
 
     void ExternalSystemAccountIDPoolEntryHelper::fixTypes(Database & db)

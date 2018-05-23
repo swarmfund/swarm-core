@@ -43,7 +43,9 @@ class IdentityPolicyHelper : public EntryHelper
     EntryFrame::pointer storeLoad(LedgerKey const& key, Database& db) override;
 
     IdentityPolicyFrame::pointer
-    loadIdentityPolicy(uint64_t id, Database& db, LedgerDelta* delta = nullptr);
+    loadIdentityPolicy(uint64_t id, AccountID ownerID, Database& db, LedgerDelta* delta = nullptr);
+
+    uint64_t countObjectsForOwner(const AccountID &ownerID, soci::session& sess);
 
   private:
     IdentityPolicyHelper() = default;

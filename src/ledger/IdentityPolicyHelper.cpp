@@ -24,14 +24,14 @@ IdentityPolicyHelper::dropAll(Database& db)
         << "CREATE TABLE identity_policies"
            "("
            "id             BIGINT                 NOT NULL CHECK (id >= 0),"
+           "ownerid        VARCHAR(56)            NOT NULL,"
            "priority       BIGINT                 NOT NULL CHECK (priority >= 0),"
            "resource       TEXT                   NOT NULL,"
            "action         TEXT                   NOT NULL,"
            "effect         INT                    NOT NULL, CHECK (effect >= 1) CHECK (effect <= 2)"
-           "ownerid        VARCHAR(56)            NOT NULL,"
            "lastmodified   INT                    NOT NULL,"
            "version        INT                    NOT NULL,"
-           "PRIMARY KEY(id)"
+           "PRIMARY KEY(id, ownerid)"
            ");";
 }
 
@@ -93,14 +93,14 @@ IdentityPolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
     {
         sql = std::string("INSERT INTO identity_policies (id, priority, "
                           "resource, action, effect, ownerid, version, lastmodified) "
-                          "VALUES (:id, :pt, :rs, :ac, :ef, oi, :v, :lm)");
+                          "VALUES (:id, :pt, :rs, :ac, :ef, ow, :v, :lm)");
     }
     else
     {
         sql = std::string("UPDATE identity_policies "
                           "SET    priority=:pt, action=:ac, resource=:rs, effect=:ef, "
                           "version=:v, lastmodified=:lm"
-                          "WHERE  id=:id");
+                          "WHERE  id=:id AND ownerid=:ow");
     }
 
     auto prep = db.getPreparedStatement(sql);
@@ -112,7 +112,7 @@ IdentityPolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
         st.exchange(use(resource, "rs"));
         st.exchange(use(action, "ac"));
         st.exchange(use(effect, "ef"));
-        st.exchange(use(ownerIDStrKey, "oi"));
+        st.exchange(use(ownerIDStrKey, "ow"));
         st.exchange(use(version, "v"));
         st.exchange(use(entry.lastModifiedLedgerSeq, "lm"));
 
@@ -145,7 +145,7 @@ IdentityPolicyHelper::exists(Database& db, LedgerKey const& key)
     auto timer = db.getSelectTimer("identity_policy-exists");
     auto prep = db.getPreparedStatement(
         "SELECT EXISTS (SELECT NULL FROM identity_policies "
-        "WHERE id=:id)");
+        "WHERE id=:id AND ownerid =:ow)");
     auto& st = prep.statement();
     st.exchange(use(key.identityPolicy().id));
     st.exchange(into(exists));
@@ -176,6 +176,15 @@ IdentityPolicyHelper::countObjects(soci::session& sess)
     return count;
 }
 
+uint64_t
+IdentityPolicyHelper::countObjectsForOwner(const AccountID &ownerID, soci::session& sess)
+{
+    uint64_t count = 0;
+    sess << "SELECT COUNT(*) FROM identity_policies WHERE ownerid = :ow", use(ownerID), into(count);
+
+    return count;
+}
+
 LedgerKey
 IdentityPolicyHelper::getLedgerKey(LedgerEntry const& from)
 {
@@ -196,18 +205,17 @@ IdentityPolicyHelper::fromXDR(LedgerEntry const& from)
 EntryFrame::pointer
 IdentityPolicyHelper::storeLoad(LedgerKey const& key, Database& db)
 {
-    return loadIdentityPolicy(key.identityPolicy().id, db);
+    return loadIdentityPolicy(key.identityPolicy().id, key.identityPolicy().ownerID, db);
 }
 
 IdentityPolicyFrame::pointer
-IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, Database& db,
+IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, AccountID ownerID, Database& db,
                                          LedgerDelta* delta)
 {
     uint64_t priority;
     std::string resource;
     std::string action;
     int32_t effect;
-    AccountID ownerIDStrKey;
     int32_t version;
 
     LedgerEntry le;
@@ -225,16 +233,16 @@ IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, Database& db,
 
     std::string name;
     auto prep = db.getPreparedStatement(
-        "SELECT priority, resource, action, effect, ownerid, version, lastmodified "
+        "SELECT priority, resource, action, effect, version, lastmodified "
         "FROM identity_policies "
-        "WHERE id =:id");
+        "WHERE id =:id AND ownerid =:ow");
     auto& st = prep.statement();
     st.exchange(use(id));
+    st.exchange(use(ownerID));
     st.exchange(into(priority));
     st.exchange(into(resource));
     st.exchange(into(action));
     st.exchange(into(effect));
-    st.exchange(into(ownerIDStrKey));
     st.exchange(into(version));
     st.exchange(into(le.lastModifiedLedgerSeq));
 
@@ -258,7 +266,7 @@ IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, Database& db,
     policyEntry.resource = resource;
     policyEntry.action = action;
     policyEntry.effect = static_cast<Effect>(effect);
-    policyEntry.ownerID = ownerIDStrKey;
+    policyEntry.ownerID = ownerID;
     policyEntry.ext.v(static_cast<LedgerVersion>(version));
 
     std::shared_ptr<LedgerEntry const> pEntry =

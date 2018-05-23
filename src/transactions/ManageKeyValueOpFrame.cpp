@@ -32,7 +32,7 @@ namespace stellar {
         auto keyValueHelper = KeyValueHelper::Instance();
         auto keyValueFrame = keyValueHelper->loadKeyValue(this->mManageKeyValue.key, db, &delta);
 
-        if (mManageKeyValue.action.action() == ManageKVAction::DELETE) {
+        if (mManageKeyValue.action.action() == ManageKVAction::REMOVE) {
             if (!keyValueFrame) {
                 innerResult().code(ManageKeyValueResultCode::NOT_FOUND);
                 return false;

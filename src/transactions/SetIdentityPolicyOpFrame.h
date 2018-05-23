@@ -10,24 +10,22 @@
 
 static const uint64_t priority_max =
     static_cast<uint64_t>(std::numeric_limits<uint64_t>::max());
-static const constexpr uint64_t priority_space = (priority_max - 3 * 1024) / 2;
+static const constexpr uint64_t reserved_priority_space =
+    (priority_max / 3) - 2048 - 2;
 
-#define PRIORITY_USER_MIN 1024
-#define PRIORITY_USER_MAX (priority_space + 1024)
-#define PRIORITY_ADMIN_MIN (PRIORITY_USER_MAX + 1024 + priority_space)
-#define PRIORITY_ADMIN_MAX (priority_limits.max() - 1024)
+#define PRIORITY_USER_MIN reserved_priority_space + 1
+#define PRIORITY_USER_MAX (PRIORITY_USER_MIN + 1024)
+#define PRIORITY_ADMIN_MIN (PRIORITY_USER_MAX + reserved_priority_space + 1)
+#define PRIORITY_ADMIN_MAX (PRIORITY_ADMIN_MIN + 1024)
 
 namespace stellar
 {
 
 class SetIdentityPolicyOpFrame : public OperationFrame
 {
-  private:
-    std::vector<std::string> allowedResources = {"sale"};
-    std::unordered_map<std::string, std::vector<std::string>>
-        allowedResourceProperties = {{allowedResources[0], {"id"}}};
-
   public:
+    static const uint64_t policiesAmountLimit;
+
     SetIdentityPolicyOpFrame(Operation const& op, OperationResult& res,
                              TransactionFrame& parentTx);
 
@@ -56,19 +54,15 @@ class SetIdentityPolicyOpFrame : public OperationFrame
     }
 
   private:
+    SetIdentityPolicyOp const& mSetIdentityPolicy;
+
     SetIdentityPolicyResult&
     innerResult()
     {
         return mResult.tr().setIdentityPolicyResult();
     }
 
-    SetIdentityPolicyOp const& mSetIdentityPolicy;
-
     bool trySetIdentityPolicy(Database& db, LedgerDelta& delta);
-
-    bool checkResourceValue();
-    std::tuple<std::string, std::string, std::string>
-    getResourceFields();
 };
 
 } // namespace stellar

@@ -17,6 +17,8 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
+const uint64_t SetIdentityPolicyOpFrame::policiesAmountLimit = 100;
+
 SetIdentityPolicyOpFrame::SetIdentityPolicyOpFrame(const Operation& op,
                                                    OperationResult& res,
                                                    TransactionFrame& parentTx)
@@ -38,7 +40,33 @@ SetIdentityPolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
 bool
 SetIdentityPolicyOpFrame::doCheckValid(Application& app)
 {
-    return checkResourceValue();
+    const auto countOfOwnerPolicies =
+        IdentityPolicyHelper::Instance()->countObjectsForOwner(mSourceAccount->getID(),
+                                                               app.getDatabase().getSession());
+    if (countOfOwnerPolicies >= policiesAmountLimit)
+    {
+        innerResult().code(SetIdentityPolicyResultCode::POLICIES_LIMIT_EXCEED);
+        return false;
+    }
+
+    if (mSetIdentityPolicy.resource.empty() || mSetIdentityPolicy.action.empty())
+    {
+        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
+        return false;
+    }
+
+    if (
+        mSetIdentityPolicy.priority < PRIORITY_USER_MIN      ||
+        (mSetIdentityPolicy.priority > PRIORITY_USER_MAX &&
+         mSetIdentityPolicy.priority < PRIORITY_ADMIN_MIN)   ||
+        mSetIdentityPolicy.priority > PRIORITY_ADMIN_MAX
+        )
+    {
+        innerResult().code(SetIdentityPolicyResultCode::INVALID_PRIORITY);
+        return false;
+    }
+
+    return true;
 }
 
 bool
@@ -46,7 +74,8 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
 {
     auto identityPolicyHelper = IdentityPolicyHelper::Instance();
     auto identityPolicyFrame = identityPolicyHelper->loadIdentityPolicy(
-        mSetIdentityPolicy.id, db, &delta);
+        mSetIdentityPolicy.id, mSourceAccount->getID(), db, &delta);
+
 
     // delete
     if (mSetIdentityPolicy.isDelete)
@@ -79,6 +108,7 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
     le.data.identityPolicy().priority = mSetIdentityPolicy.priority;
     le.data.identityPolicy().resource = mSetIdentityPolicy.resource;
     le.data.identityPolicy().effect = mSetIdentityPolicy.effect;
+    le.data.identityPolicy().ownerID = getSourceAccount().getID();
 
     identityPolicyFrame = make_shared<IdentityPolicyFrame>(le);
     EntryHelperProvider::storeAddEntry(delta, db, identityPolicyFrame->mEntry);
@@ -91,61 +121,37 @@ SetIdentityPolicyOpFrame::getSourceAccountDetails(
     std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
     int32_t ledgerVersion) const
 {
+
+    if (mSetIdentityPolicy.priority >= PRIORITY_USER_MIN &&
+        mSetIdentityPolicy.priority <= PRIORITY_USER_MAX)
+    {
+        // allow for any user
+        return SourceDetails(
+            {AccountType::MASTER, AccountType::COMMISSION,
+             AccountType::EXCHANGE, AccountType::GENERAL,
+             AccountType::OPERATIONAL, AccountType::SYNDICATE,
+             AccountType::NOT_VERIFIED},
+            mSourceAccount->getMediumThreshold(),
+            static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
+    }
+    else if (mSetIdentityPolicy.priority >= PRIORITY_ADMIN_MIN &&
+             mSetIdentityPolicy.priority <= PRIORITY_ADMIN_MAX)
+    {
+        return SourceDetails(
+            {AccountType::MASTER}, mSourceAccount->getMediumThreshold(),
+            static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
+    }
+    // allow for no one
     return SourceDetails(
-        {
-            AccountType::MASTER,
-        },
-        mSourceAccount->getMediumThreshold(),
+        {}, mSourceAccount->getMediumThreshold(),
         static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
 }
+
 std::unordered_map<AccountID, CounterpartyDetails>
 SetIdentityPolicyOpFrame::getCounterpartyDetails(Database& db,
                                                  LedgerDelta* delta) const
 {
     return {};
-}
-
-bool
-SetIdentityPolicyOpFrame::checkResourceValue()
-{
-    auto fields = getResourceFields();
-
-    auto resourceNameIter =
-        std::find(allowedResources.cbegin(), allowedResources.cend(),
-                  std::get<0>(fields));
-    if (resourceNameIter == allowedResources.cend())
-    {
-        return false;
-    }
-
-    auto resourcePropertiesKeyIter =
-        allowedResourceProperties.find(*resourceNameIter);
-    if (resourcePropertiesKeyIter == allowedResourceProperties.cend())
-    {
-        return false;
-    }
-
-    auto resourcePropIter = std::find(
-        resourcePropertiesKeyIter->second.cbegin(),
-        resourcePropertiesKeyIter->second.cend(), std::get<1>(fields));
-    if (resourcePropIter == resourcePropertiesKeyIter->second.cend())
-    {
-        return false;
-    }
-
-    return true;
-}
-
-std::tuple<std::string, std::string, std::string>
-SetIdentityPolicyOpFrame::getResourceFields()
-{
-    const std::regex resourceRegEx{R"(^resource_type:(.+):(*+):(*+)$)"};
-    auto fields = make_tuple(
-        std::regex_replace(mSetIdentityPolicy.resource, resourceRegEx, "$1"),
-        std::regex_replace(mSetIdentityPolicy.resource, resourceRegEx, "$2"),
-        std::regex_replace(mSetIdentityPolicy.resource, resourceRegEx, "$3"));
-
-    return fields;
 }
 
 } // namespace stellar

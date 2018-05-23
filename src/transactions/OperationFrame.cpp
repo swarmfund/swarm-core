@@ -152,6 +152,10 @@ SourceDetails OperationFrame::getSourceAccountDetails(
     return getSourceAccountDetails(counterpartiesDetails, ledgerVersion);
 }
 
+PolicyDetails OperationFrame::getPolicyDetails(Database &db, LedgerDelta *delta) const {
+    return {};
+}
+
 bool OperationFrame::isAllowed() const
 {
 	// by default all operations are allowed
@@ -162,7 +166,7 @@ int64_t OperationFrame::getPaidFee() const {
 	// default fee for all operations is 0, finantial operations must override this function
     return 0;
 }
-    
+
 bool
 OperationFrame::doCheckSignature(Application& app, Database& db, SourceDetails& sourceDetails)
 {
@@ -203,7 +207,6 @@ OperationFrame::getSourceID() const
                                     : mParentTx.getEnvelope().tx.sourceAccount;
 }
 
-
 bool
 OperationFrame::loadAccount(LedgerDelta* delta, Database& db)
 {
@@ -230,12 +233,14 @@ OperationFrame::createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, 
     entry.createdAt = createdAt;
     if (invoiceID)
         entry.invoiceID.activate() = *invoiceID;
-    
+
     auto paymentRequestFrame = std::make_shared<PaymentRequestFrame>(le);
     EntryHelperProvider::storeAddEntry(delta, db, paymentRequestFrame->mEntry);
 
     return entry;
 }
+
+
 
 [[deprecated]]
 void
@@ -251,13 +256,11 @@ OperationFrame::createReferenceEntry(string reference, LedgerDelta* delta, Datab
 }
 
 
-
 OperationResultCode
 OperationFrame::getResultCode() const
 {
     return mResult.code();
 }
-
 
 // called when determining if we should accept this operation.
 // called when determining if we should flood
@@ -313,13 +316,25 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 
     mResult.code(OperationResultCode::opINNER);
     mResult.tr().type(mOperation.body.type());
-    
+
     bool isValid = doCheckValid(app);
 	if (!isValid) {
 		app.getMetrics().NewMeter({ "operation", "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
+        return isValid;
 	}
 
-	return isValid;
+    const auto &policyDetails = getPolicyDetails(db, delta);
+	if (!policyDetails.empty())
+    {
+        const bool isAllow = IdentityPolicyChecker::doCheckPolicies(app.getMasterID(), policyDetails, db, delta);
+
+        if (!isAllow)
+            app.getMetrics().NewMeter({ "operation", "rejected", "due-to-policy" }, "operation").Mark();
+
+        return isAllow;
+    }
+
+    return true;
 }
 
 bool
@@ -364,6 +379,5 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
 
     return true;
 }
-
 
 }

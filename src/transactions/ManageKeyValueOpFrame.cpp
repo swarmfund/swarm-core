@@ -15,6 +15,8 @@ namespace stellar {
     using namespace std;
     using xdr::operator==;
 
+    char const * ManageKeyValueOpFrame::kycRulesPrefix = "kyc_lvlup_rules";
+
     ManageKeyValueOpFrame::ManageKeyValueOpFrame(const stellar::Operation &op, stellar::OperationResult &res,
                                                  stellar::TransactionFrame &parentTx)
             : OperationFrame(op, res, parentTx),
@@ -58,6 +60,14 @@ namespace stellar {
     }
 
     bool ManageKeyValueOpFrame::doCheckValid(Application &app) {
+        auto prefix = getPrefix();
+        bool isKycRule = strcmp(prefix.c_str(), kycRulesPrefix) == 0;
+
+        if (isKycRule && (mManageKeyValue.action.value().value.type() != KeyValueEntryType::UINT32)){
+            innerResult().code(ManageKeyValueResultCode::INVALID_TYPE);
+            return false;
+        }
+
         return true;
     }
 

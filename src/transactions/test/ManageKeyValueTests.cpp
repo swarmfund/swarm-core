@@ -5,6 +5,7 @@
 #include "main/test.h"
 #include "ledger/KeyValueHelper.h"
 #include "test/test_marshaler.h"
+#include "TxTests.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -25,6 +26,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
 
     ManageKeyValueTestHelper testHelper(testManager);
     testHelper.setKey(key);
+    testHelper.setValue(30);
 
     auto keyValueHelper = KeyValueHelper::Instance();
 
@@ -38,6 +40,17 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
         REQUIRE(!kvFrame);
     }
 
+    SECTION("Invalid type"){
+        testHelper.setResult(ManageKeyValueResultCode::INVALID_TYPE);
+        auto kvFrame = keyValueHelper->loadKeyValue(key,testManager->getDB());
+        REQUIRE(!kvFrame);
+        longstring localKey = ManageKeyValueOpFrame::makeKYCRuleKey(AccountType::MASTER, 3, AccountType::GENERAL, 5);
+        testHelper.setKey(localKey);
+        testHelper.doApply(app, ManageKVAction::PUT, false, KeyValueEntryType::STRING);
+    }
+
+    testHelper.setKey(key);
+
     SECTION("Can create new") {
         testHelper.setResult(ManageKeyValueResultCode::SUCCESS);
         testHelper.doApply(app, ManageKVAction::PUT, true);
@@ -50,6 +63,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
         SECTION("Can update after create") {
             auto kvFrame = keyValueHelper->loadKeyValue(key, testManager->getDB());
             REQUIRE(!!kvFrame);
+            testHelper.setValue(40);
             testHelper.doApply(app, ManageKVAction::PUT, true);
         }
 

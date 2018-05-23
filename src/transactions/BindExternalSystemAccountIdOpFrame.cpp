@@ -131,7 +131,10 @@ BindExternalSystemAccountIdOpFrame::getExpiresAt(Database &db, LedgerManager &le
         return dayInSeconds;
     }
 
-    if (kvEntry.get()->getKeyValue().value.type() != KeyValueEntryType::UINT32){
+    if (kvEntry.get()->getKeyValue().value.type() != KeyValueEntryType::UINT32)
+    {
+        CLOG(WARNING, "BindExternalSystemAccountId") << "KeyValueEntryType: "
+                                            << to_string(static_cast<int32>(kvEntry.get()->getKeyValue().value.type()));
         return dayInSeconds;
     }
 

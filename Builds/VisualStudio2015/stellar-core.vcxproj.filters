@@ -1017,6 +1017,24 @@
     <ClCompile Include="..\..\src\transactions\manage_external_system_account_id_pool\ManageExternalSystemAccountIDPoolEntryOpFrame.cpp">
       <Filter>transactions\manage_external_system_account_id_pool</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\BindExternalSystemAccountIdTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\CreateKYCReviewableRequestTest.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\LimitsUpdateTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\ManageExternalSystemAccountIDPoolEntryTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\ManageKeyValueTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\PaymentV2Tests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">

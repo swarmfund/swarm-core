@@ -1,3 +1,4 @@
+#include <ledger/KeyValueHelper.h>
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
@@ -6,6 +7,7 @@
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "database/Database.h"
 #include "main/Application.h"
+#include "ManageKeyValueOpFrame.h"
 
 namespace stellar
 {
@@ -83,7 +85,10 @@ BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta
     }
 
     poolEntryToBind.accountID.activate() = mSourceAccount->getID();
-    poolEntryToBind.expiresAt = ledgerManager.getCloseTime() + dayInSeconds;
+
+    int expiresAt = getExpiresAt(db, ledgerManager, mBindExternalSystemAccountId.externalSystemType);
+    poolEntryToBind.expiresAt = ledgerManager.getCloseTime() + expiresAt;
+
     poolEntryToBind.bindedAt = ledgerManager.getCloseTime();
 
     auto externalSystemAccountIDFrame = ExternalSystemAccountIDFrame::createNew(mSourceAccount->getID(),
@@ -108,4 +113,32 @@ BindExternalSystemAccountIdOpFrame::doCheckValid(Application &app)
 
     return true;
 }
+
+int
+BindExternalSystemAccountIdOpFrame::getExpiresAt(Database &db, LedgerManager &ledgerManager, int32 externalSystemType)
+{
+    if(!ledgerManager.shouldUse(LedgerVersion::KEY_VALUE_POOL_ENTRY_EXPIRES_AT))
+    {
+        return dayInSeconds;
+    }
+
+    auto key = ManageKeyValueOpFrame::makeExternalSystemExpirationPeriodKey(externalSystemType);
+
+    auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key, db);
+
+    if (!kvEntry)
+    {
+        return dayInSeconds;
+    }
+
+    if (kvEntry.get()->getKeyValue().value.type() != KeyValueEntryType::UINT32)
+    {
+        CLOG(WARNING, "BindExternalSystemAccountId") << "KeyValueEntryType: "
+                                            << to_string(static_cast<int32>(kvEntry.get()->getKeyValue().value.type()));
+        return dayInSeconds;
+    }
+
+    return kvEntry.get()->getKeyValue().value.ui32Value();
+}
+
 }

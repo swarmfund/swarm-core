@@ -54,7 +54,10 @@ namespace stellar {
 
         static longstring makeKYCRuleKey(AccountType accountType, uint32 kycLevel, AccountType accountTypeToSet, uint32 kycLevelToSet);
 
+        static longstring makeExternalSystemExpirationPeriodKey(int32 externalSystemType);
+
         static const char * kycRulesPrefix;
+        static const char * externalSystemPrefix;
     };
 
 }

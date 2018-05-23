@@ -74,7 +74,7 @@ namespace txtest
                         actionInput.createExternalSystemAccountIdPoolEntryActionInput().externalSystemType);
         REQUIRE(poolEntry.data ==
                         actionInput.createExternalSystemAccountIdPoolEntryActionInput().data);
-        REQUIRE(poolEntry.accountID == nullptr);
+        REQUIRE(!poolEntry.accountID);
         REQUIRE(poolEntry.expiresAt == 0);
         REQUIRE(poolEntry.bindedAt == 0);
         REQUIRE(!poolEntry.isDeleted);
@@ -162,7 +162,7 @@ namespace txtest
                                            Account *signer)
     {
         ManageExternalSystemAccountIdPoolEntryOp::_actionInput_t actionInput;
-        actionInput.action(ManageExternalSystemAccountIdPoolEntryAction::DELETE);
+        actionInput.action(ManageExternalSystemAccountIdPoolEntryAction::REMOVE);
         DeleteExternalSystemAccountIdPoolEntryActionInput& input =
                 actionInput.deleteExternalSystemAccountIdPoolEntryActionInput();
         input.poolEntryID = poolEntryID;

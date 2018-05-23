@@ -181,8 +181,9 @@ TEST_CASE("Sale", "[tx][sale]")
     uint64_t softCap = hardCap / 2;
     const auto currentTime = testManager->getLedgerManager().getCloseTime();
     const auto endTime = currentTime + 1000;
+    auto mainSaleMaxBaseAsset = maxIssuanceAmount / 2;
     auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
-                                                           endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price)});
+        endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price) });
     SECTION("Happy path")
     {
         //set offer fee for sale owner and participants
@@ -385,7 +386,7 @@ TEST_CASE("Sale", "[tx][sale]")
         {
             auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
             requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest,
-            CreateSaleCreationRequestResultCode::REQUEST_OR_SALE_ALREADY_EXISTS);
+            CreateSaleCreationRequestResultCode::SUCCESS);
         }
     }
 

@@ -54,13 +54,13 @@ namespace stellar {
 
             auto actualKeyValue = KeyValueHelper::Instance()->loadKeyValue(key, app.getDatabase());
             switch (action) {
-                case ManageKVAction ::PUT:
+                case ManageKVAction::PUT:
                 {
                     REQUIRE(!!actualKeyValue);
                     REQUIRE(actualKeyValue->getKeyValue().value == value);
                     break;
                 }
-                case ManageKVAction ::DELETE:
+                case ManageKVAction::REMOVE:
                 {
                     REQUIRE(!actualKeyValue);
                     break;

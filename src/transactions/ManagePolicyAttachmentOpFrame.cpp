@@ -1,4 +1,7 @@
 #include "ManagePolicyAttachmentOpFrame.h"
+#include "ledger/LedgerDelta.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/IdentityPolicyHelper.h"
 #include "ledger/PolicyAttachmentHelper.h"
 
 namespace stellar {
@@ -27,7 +30,7 @@ namespace stellar {
     bool ManagePolicyAttachmentOpFrame::deletePolicyAttachment(Application &app, LedgerDelta &delta, Database &db) {
         auto policyAttachmentHelper = PolicyAttachmentHelper::Instance();
         auto policyAttachmentFrame = policyAttachmentHelper->loadPolicyAttachment(
-                mManagePolicyAttachment.opInput.deletionData().policyAttachmentID, db, &delta);
+                mManagePolicyAttachment.opInput.deletionData().policyAttachmentID, getSourceID(), db, &delta);
 
         if (!policyAttachmentFrame) {
             innerResult().code(ManagePolicyAttachmentResultCode::POLICY_ATTACHMENT_NOT_FOUND);
@@ -41,7 +44,6 @@ namespace stellar {
         return true;
     }
 
-    // check policy presence -> if actor is account_id ? check account presence -> check duplication ->
     bool ManagePolicyAttachmentOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
         Database &db = ledgerManager.getDatabase();
 
@@ -49,6 +51,47 @@ namespace stellar {
             return deletePolicyAttachment(app, delta, db);
         }
 
+        // create
+        auto policyFrame = IdentityPolicyHelper::Instance()->loadIdentityPolicy(
+                mManagePolicyAttachment.opInput.creationData().policyID, getSourceID(), db, &delta
+        );
+        if (!policyFrame) {
+            innerResult().code(ManagePolicyAttachmentResultCode::POLICY_NOT_FOUND);
+            return false;
+        }
+
+        auto actor = mManagePolicyAttachment.opInput.creationData().actor;
+
+        if (actor.type() == PolicyAttachmentType::FOR_ACCOUNT_ID
+            && !AccountHelper::Instance()->exists(actor.accountID(), db)) {
+            innerResult().code(ManagePolicyAttachmentResultCode::DESTINATION_ACCOUNT_NOT_FOUND);
+            return false;
+        }
+
+        auto policyAttachmentHelper = PolicyAttachmentHelper::Instance();
+
+        if (policyAttachmentHelper->exists(db, mManagePolicyAttachment.opInput.creationData().policyID, getSourceID(),
+                                           actor)) {
+            innerResult().code(ManagePolicyAttachmentResultCode::ATTACHMENT_ALREADY_EXISTS);
+            return false;
+        }
+
+        if (policyAttachmentHelper->countObjects(db, getSourceID()) ==
+            ManagePolicyAttachmentOpFrame::sPolicyAttachmentsLimit) {
+            innerResult().code(ManagePolicyAttachmentResultCode::POLICY_ATTACHMENTS_LIMIT_EXCEEDED);
+            return false;
+        }
+
+        auto newPolicyAttachmentID = delta.getHeaderFrame().generateID(LedgerEntryType::POLICY_ATTACHMENT);
+
+        auto policyAttachmentFrame = PolicyAttachmentFrame::createNew(newPolicyAttachmentID, getSourceID(),
+                                                                      mManagePolicyAttachment.opInput.creationData(),
+                                                                      delta);
+
+        policyAttachmentHelper->storeAdd(delta, db, policyAttachmentFrame->mEntry);
+
+        innerResult().code(ManagePolicyAttachmentResultCode::SUCCESS);
+        innerResult().managePolicyAttachmentSuccess().policyAttachmentID = newPolicyAttachmentID;
         return true;
     }
 

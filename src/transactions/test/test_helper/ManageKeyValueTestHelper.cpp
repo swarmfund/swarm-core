@@ -80,7 +80,6 @@ namespace stellar {
             if(kvAction == ManageKVAction::PUT) {
                 op.body.manageKeyValueOp().action.value().value.type(this->type);
                 op.body.manageKeyValueOp().action.value().value = value;
-                op.body.manageKeyValueOp().action.value().key = key;
             }
             return op;
         }

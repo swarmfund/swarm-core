@@ -53,6 +53,7 @@ namespace stellar {
             return true;
         }
 
+        keyValueFrame->mEntry.data.keyValue().value = mManageKeyValue.action.value().value;
         keyValueHelper->storeChange(delta, db, keyValueFrame->mEntry);
 
         return true;

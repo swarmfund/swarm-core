@@ -46,6 +46,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
         REQUIRE(!kvFrame);
         longstring localKey = ManageKeyValueOpFrame::makeKYCRuleKey(AccountType::MASTER, 3, AccountType::GENERAL, 5);
         testHelper.setKey(localKey);
+        testHelper.setValue("smth");
         testHelper.doApply(app, ManageKVAction::PUT, false, KeyValueEntryType::STRING);
     }
 

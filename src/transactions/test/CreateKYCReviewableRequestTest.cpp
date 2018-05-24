@@ -1,5 +1,4 @@
 #include <transactions/test/test_helper/ManageKeyValueTestHelper.h>
-#include <arpa/nameser_compat.h>
 #include "test_helper/TxHelper.h"
 #include "test_helper/CreateKYCReviewableRequestTestHelper.h"
 #include "test/test_marshaler.h"

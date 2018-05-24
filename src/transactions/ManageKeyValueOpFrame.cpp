@@ -16,6 +16,7 @@ namespace stellar {
     using xdr::operator==;
 
     char const * ManageKeyValueOpFrame::kycRulesPrefix = "kyc_lvlup_rules";
+    char const * ManageKeyValueOpFrame::externalSystemPrefix = "ext_sys_exp_period";
 
     ManageKeyValueOpFrame::ManageKeyValueOpFrame(const stellar::Operation &op, stellar::OperationResult &res,
                                                  stellar::TransactionFrame &parentTx)
@@ -31,7 +32,7 @@ namespace stellar {
         auto keyValueHelper = KeyValueHelper::Instance();
         auto keyValueFrame = keyValueHelper->loadKeyValue(this->mManageKeyValue.key, db, &delta);
 
-        if (mManageKeyValue.action.action() == ManageKVAction::DELETE) {
+        if (mManageKeyValue.action.action() == ManageKVAction::REMOVE) {
             if (!keyValueFrame) {
                 innerResult().code(ManageKeyValueResultCode::NOT_FOUND);
                 return false;
@@ -97,6 +98,15 @@ namespace stellar {
         longstring key;
         key = key + kycRulesPrefix + ":" + to_string(static_cast<uint32 >(accountType)) + ":" + to_string(kycLevel) + ":"
             + to_string(static_cast<uint32>(accountTypeToSet)) + ":" + to_string(kycLevelToSet);
+
+        return key;
+    }
+
+    longstring
+    ManageKeyValueOpFrame::makeExternalSystemExpirationPeriodKey(int32 externalSystemType)
+    {
+        longstring key;
+        key = key + externalSystemPrefix + ":" + to_string(externalSystemType);
 
         return key;
     }

@@ -30,8 +30,7 @@ namespace stellar{
 
         private:
 
-            uint32 ui32Value;
-            std::string strValue;
+            KeyValueEntry::_value_t value;
             longstring key;
             ManageKeyValueResultCode expectedResult = ManageKeyValueResultCode ::SUCCESS;
         };
@@ -42,7 +41,7 @@ namespace stellar{
 
 
             ManageKeyValueTestBuilder(string256 key, TestManager::pointer &testManager,
-                                                    ManageKVAction action, uint32 ui32Value = 0, std::string strValue = "",
+                                                    ManageKVAction action, KeyValueEntry::_value_t value,
                                                     KeyValueEntryType type = KeyValueEntryType::UINT32);
 
             ManageKeyValueTestBuilder copy() override
@@ -53,8 +52,7 @@ namespace stellar{
             Operation buildOp() override;
 
             longstring key;
-            uint32 ui32Value;
-            std::string strValue;
+            KeyValueEntry::_value_t value;
             KeyValueEntryType type;
             ManageKVAction kvAction;
             ManageKeyValueOpFrame* kvManager;

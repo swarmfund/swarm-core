@@ -22,12 +22,14 @@ namespace stellar {
         }
 
         txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(uint32 value) {
-            this->ui32Value = value;
+            this->value.type(KeyValueEntryType::UINT32);
+            this->value.ui32Value() = value;
             return this;
         }
 
         txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(std::string value) {
-            this->strValue = value;
+            this->value.type(KeyValueEntryType::STRING);
+            this->value.stringValue() = value;
             return this;
         }
 
@@ -42,7 +44,7 @@ namespace stellar {
         {
             LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(), mTestManager->getDB());
 
-            ManageKeyValueTestBuilder builder(key, mTestManager, action, ui32Value,  strValue, type);
+            ManageKeyValueTestBuilder builder(key, mTestManager, action, value, type);
 
             bool isApplied = builder.kvManager->doApply(app, delta, mTestManager->getLedgerManager());
             bool isValid = builder.kvManager->doCheckValid(app);
@@ -55,17 +57,7 @@ namespace stellar {
                 case ManageKVAction ::PUT:
                 {
                     REQUIRE(!!actualKeyValue);
-
-                    switch (actualKeyValue->getKeyValue().value.type()){
-                        case KeyValueEntryType::UINT32: {
-                            REQUIRE(actualKeyValue->getKeyValue().value.ui32Value() == ui32Value);
-                            break;
-                        }
-                        case KeyValueEntryType::STRING: {
-                            REQUIRE(actualKeyValue->getKeyValue().value.stringValue() == strValue);
-                            break;
-                        }
-                    }
+                    REQUIRE(actualKeyValue->getKeyValue().value == value);
                     break;
                 }
                 case ManageKVAction ::DELETE:
@@ -87,29 +79,19 @@ namespace stellar {
 
             if(kvAction == ManageKVAction::PUT) {
                 op.body.manageKeyValueOp().action.value().value.type(this->type);
-                switch (this->type){
-                    case KeyValueEntryType::UINT32: {
-                        op.body.manageKeyValueOp().action.value().value.ui32Value() = this->ui32Value;
-                        break;
-                    }
-                    case KeyValueEntryType::STRING: {
-                        op.body.manageKeyValueOp().action.value().value.stringValue() = this->strValue;
-                        break;
-                    }
-                }
+                op.body.manageKeyValueOp().action.value().value = value;
                 op.body.manageKeyValueOp().action.value().key = key;
             }
             return op;
         }
 
         ManageKeyValueTestBuilder::ManageKeyValueTestBuilder(string256 key, TestManager::pointer &testManager,
-                                                             ManageKVAction action, uint32 ui32Value,
-                                                             std::string strValue, KeyValueEntryType type)
+                                                             ManageKVAction action, KeyValueEntry::_value_t value,
+                                                             KeyValueEntryType type)
                 :key(key),
                  kvAction(action)
         {
-            this->ui32Value = ui32Value;
-            this->strValue = strValue;
+            this->value = value;
             this->type = type;
             tx = this->buildTx(testManager);
             op = buildOp();

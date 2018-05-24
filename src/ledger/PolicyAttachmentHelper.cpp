@@ -9,7 +9,7 @@ namespace stellar {
 
     const int32_t EMPTY_VALUE = -1;
 
-    static const char *policyAttachmentColumnSelector = "SELECT policy_attachment_id, policy_id, "
+    static const char *policyAttachmentColumnSelector = "SELECT policy_attachment_id, policy_id, owner_id, "
                                                         "account_type, account_id, lastmodified, version "
                                                         "FROM policy_attachment";
 
@@ -19,6 +19,7 @@ namespace stellar {
                            "("
                            "policy_attachment_id    BIGINT      NOT NULL CHECK (policy_attachment_id >= 0), "
                            "policy_id               BIGINT      NOT NULL CHECK (policy_id >= 0), "
+                           "owner_id                VARCHAR(56) NOT NULL, "
                            "account_type            INT, "
                            "account_id              VARCHAR(56), "
                            "lastmodified            INT         NOT NULL, "
@@ -39,23 +40,25 @@ namespace stellar {
         string sql;
 
         if (insert) {
-            sql = "INSERT INTO policy_attachment (policy_attachment_id, policy_id, account_type, account_id, "
-                  "lastmodified, version) VALUES (:paid, :pid, :at, :aid, :lm, :v)";
+            sql = "INSERT INTO policy_attachment (policy_attachment_id, policy_id, owner_id, account_type, account_id, "
+                  "lastmodified, version) VALUES (:paid, :pid, :oid, :at, :aid, :lm, :v)";
         } else {
             sql = "UPDATE policy_attachment "
-                  "SET policy_id = :pid, account_type = :at, account_id = :aid, lastmodified = :lm, version = :v "
+                  "SET policy_id = :pid, owner_id = :oid, account_type = :at, account_id = :aid, lastmodified = :lm, version = :v "
                   "WHERE policy_attachment_id = :paid";
         }
 
         auto prep = db.getPreparedStatement(sql);
         auto &st = prep.statement();
 
-        uint64_t policy_attachment_id = policyAttachmentFrame->getID();
-        uint64_t policy_id = policyAttachmentFrame->getPolicyID();
+        uint64_t policyAttachmentID = policyAttachmentFrame->getID();
+        uint64_t policyID = policyAttachmentFrame->getPolicyID();
+        string ownerID = PubKeyUtils::toStrKey(policyAttachmentFrame->getOwnerID());
         auto policyAttachmentVersion = static_cast<int32_t>(policyAttachmentFrame->getPolicyAttachment().ext.v());
 
-        st.exchange(use(policy_attachment_id, "paid"));
-        st.exchange(use(policy_id, "pid"));
+        st.exchange(use(policyAttachmentID, "paid"));
+        st.exchange(use(policyID, "pid"));
+        st.exchange(use(ownerID, "oid"));
 
         int32_t accountType = EMPTY_VALUE;
         if (policyAttachmentEntry.actor.type() == PolicyAttachmentType::FOR_ACCOUNT_TYPE) {
@@ -119,7 +122,44 @@ namespace stellar {
         return exists != 0;
     }
 
-    // TODO: write exists for pollID, acc type and acc id as params
+    bool
+    PolicyAttachmentHelper::exists(Database &db, uint64_t policyID, AccountID const &ownerID,
+                                   CreatePolicyAttachment::_actor_t const &actor) {
+        int exists = 0;
+        auto timer = db.getSelectTimer("policy-attachment-exists");
+        auto prep = db.getPreparedStatement(
+                "SELECT EXISTS (SELECT NULL FROM policy_attachment WHERE policy_id = :pid AND owner_id = :oid "
+                "AND account_type = :at AND account_id = :aid)");
+        auto &st = prep.statement();
+
+        int32_t accType = EMPTY_VALUE;
+        string accIDStrKey;
+
+        switch (actor.type()) {
+            case PolicyAttachmentType::FOR_ACCOUNT_ID: {
+                accIDStrKey = PubKeyUtils::toStrKey(actor.accountID());
+                break;
+            }
+            case PolicyAttachmentType::FOR_ACCOUNT_TYPE: {
+                accType = static_cast<int32_t>(actor.accountType());
+                break;
+            }
+            case PolicyAttachmentType::FOR_ANY_ACCOUNT:
+                break;
+            default:
+                throw runtime_error("Unexpected actor's policy attachment type");
+        }
+
+        st.exchange(use(policyID, "pid"));
+        st.exchange(use(ownerID, "oid"));
+        st.exchange(use(accType, "at"));
+        st.exchange(use(accIDStrKey, "aid"));
+        st.exchange(into(exists));
+        st.define_and_bind();
+        st.execute(true);
+
+        return exists != 0;
+    }
 
     LedgerKey stellar::PolicyAttachmentHelper::getLedgerKey(LedgerEntry const &from) {
         LedgerKey ledgerKey;
@@ -143,6 +183,21 @@ namespace stellar {
         return count;
     }
 
+    uint64_t PolicyAttachmentHelper::countObjects(Database &db, AccountID const &ownerID) {
+        uint64_t count = 0;
+
+        auto timer = db.getSelectTimer("policy-attachment-count-objects");
+        auto prep = db.getPreparedStatement("SELECT COUNT(*) FROM policy_attachment WHERE owner_id = :oid");
+        auto &st = prep.statement();
+        auto ownerIDStrKey = PubKeyUtils::toStrKey(ownerID);
+        st.exchange(use(ownerIDStrKey, "oid"));
+        st.exchange(into(count));
+        st.define_and_bind();
+        st.execute(true);
+
+        return count;
+    }
+
     PolicyAttachmentFrame::pointer
     PolicyAttachmentHelper::loadPolicyAttachment(uint64_t policyAttachmentID, Database &db, LedgerDelta *delta) {
         PolicyAttachmentFrame::pointer retPolicyAttachment;
@@ -163,6 +218,15 @@ namespace stellar {
         }
 
         return retPolicyAttachment;
+    }
+
+    PolicyAttachmentFrame::pointer
+    PolicyAttachmentHelper::loadPolicyAttachment(uint64_t policyAttachmentID, AccountID const &ownerID,
+                                                 Database &db, LedgerDelta *delta) {
+        auto policyAttachmentFrame = loadPolicyAttachment(policyAttachmentID, db, delta);
+        if (!policyAttachmentFrame)
+            return nullptr;
+        return policyAttachmentFrame->getOwnerID() == ownerID ? policyAttachmentFrame : nullptr;
     }
 
     void PolicyAttachmentHelper::loadPolicyAttachments(StatementContext &prep, std::function<void(

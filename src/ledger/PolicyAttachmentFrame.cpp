@@ -37,4 +37,20 @@ namespace stellar {
     void PolicyAttachmentFrame::ensureValid() const {
         return ensureValid(mPolicyAttachment);
     }
+
+    PolicyAttachmentFrame::pointer
+    PolicyAttachmentFrame::createNew(uint64_t policyAttachmentID, AccountID const &ownerID,
+                                     CreatePolicyAttachment const &creationData, LedgerDelta &delta) {
+        LedgerEntry entry;
+        entry.data.type(LedgerEntryType::POLICY_ATTACHMENT);
+        auto &policyAttachment = entry.data.policyAttachment();
+        policyAttachment.policyAttachmentID = policyAttachmentID;
+        policyAttachment.policyID = creationData.policyID;
+        policyAttachment.ownerID = ownerID;
+        policyAttachment.actor.type(creationData.actor.type());
+        policyAttachment.actor.accountType() = creationData.actor.accountType();
+        policyAttachment.actor.accountID() = creationData.actor.accountID();
+
+        return make_shared<PolicyAttachmentFrame>(entry);
+    }
 }

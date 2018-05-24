@@ -39,8 +39,16 @@ namespace stellar {
             return mPolicyAttachment.policyID;
         }
 
+        AccountID const &getOwnerID() const {
+            return mPolicyAttachment.ownerID;
+        }
+
         static void ensureValid(PolicyAttachmentEntry const &entry);
 
         void ensureValid() const;
+
+        static pointer
+        createNew(uint64_t policyAttachmentID, AccountID const &ownerID,
+                  CreatePolicyAttachment const &creationData, LedgerDelta &delta);
     };
 }

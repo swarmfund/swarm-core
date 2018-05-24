@@ -52,6 +52,12 @@ class IdentityPolicyFrame : public EntryFrame
         return mIdentityPolicyEntry.effect;
     }
 
+    AccountID
+    getOwnerID() const
+    {
+        return mIdentityPolicyEntry.ownerID;
+    }
+
     EntryFrame::pointer copy() const override;
 
     static bool isResourceValid(std::string const& resource);

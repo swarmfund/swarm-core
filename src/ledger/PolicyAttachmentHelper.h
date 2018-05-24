@@ -32,6 +32,9 @@ namespace stellar {
 
         bool exists(Database &db, LedgerKey const &key) override;
 
+        bool exists(Database &db, uint64_t policyID, AccountID const &ownerID,
+                    CreatePolicyAttachment::_actor_t const &actor);
+
         LedgerKey getLedgerKey(LedgerEntry const &from) override;
 
         EntryFrame::pointer storeLoad(LedgerKey const &key, Database &db) override;
@@ -40,8 +43,14 @@ namespace stellar {
 
         uint64_t countObjects(soci::session &sess) override;
 
+        uint64_t countObjects(Database &db, AccountID const& ownerID);
+
         PolicyAttachmentFrame::pointer
         loadPolicyAttachment(uint64_t policyAttachmentID, Database &db, LedgerDelta *delta = nullptr);
+
+        PolicyAttachmentFrame::pointer
+        loadPolicyAttachment(uint64_t policyAttachmentID, AccountID const& ownerID,
+                             Database &db, LedgerDelta *delta = nullptr);
 
         void
         loadPolicyAttachments(AccountType const &accountType,

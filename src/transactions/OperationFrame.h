@@ -8,6 +8,7 @@
 #include "transactions/AccountManager.h"
 #include "transactions/CounterpartyDetails.h"
 #include "transactions/SourceDetails.h"
+#include "transactions/IdentityPolicyChecker.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AssetFrame.h"
@@ -59,6 +60,7 @@ class OperationFrame
                                                       int32_t ledgerVersion) const = 0;
     virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
         int32_t ledgerVersion, Database& db) const;
+    virtual PolicyDetails getPolicyDetails(Database& db, LedgerDelta* delta) const;
 
 	// returns true if operation is allowed in the system
 	virtual bool isAllowed() const;

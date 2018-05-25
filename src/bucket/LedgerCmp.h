@@ -176,6 +176,7 @@ struct LedgerEntryIdCmp
                 return apool.poolEntryID < bpool.poolEntryID;
             }
         case LedgerEntryType::IDENTITY_POLICY:
+<<<<<<< HEAD
             {
                 auto const& aip = a.identityPolicy();
                 auto const& bip = b.identityPolicy();
@@ -187,6 +188,18 @@ struct LedgerEntryIdCmp
                 auto const& bpa = b.policyAttachment();
                 return apa.policyAttachmentID < bpa.policyAttachmentID;
             }
+=======
+        {
+            auto const& aip = a.identityPolicy();
+            auto const& bip = b.identityPolicy();
+
+            if (aip.id == bip.id) {
+                return aip.ownerID < bip.ownerID;
+            }
+
+            return aip.id < bip.id;
+        }
+>>>>>>> feature/identity-policy
         default:
             {
             throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");

@@ -239,6 +239,11 @@ namespace stellar {
         return mConfig.KYC_SUPER_ADMIN_MASK;
     }
 
+    uint64 ApplicationImpl::getMaxIdentityPoliciesPerAccount() const {
+        // TODO make configurable by config file
+        return 100;
+    }
+
     ApplicationImpl::~ApplicationImpl() {
         LOG(INFO) << "Application destructing";
         if (mNtpSynchronizationChecker) {

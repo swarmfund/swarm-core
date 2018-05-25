@@ -4,6 +4,7 @@
 #include "ledger/AccountFrame.h"
 #include "ledger/EntryFrame.h"
 #include "util/types.h"
+
 #include <functional>
 #include <stdio.h>
 #include <unordered_map>
@@ -46,6 +47,12 @@ class IdentityPolicyFrame : public EntryFrame
         return mIdentityPolicyEntry.resource;
     }
 
+    std::string
+    getAction() const
+    {
+        return mIdentityPolicyEntry.action;
+    }
+
     Effect
     getEffect() const
     {
@@ -60,7 +67,6 @@ class IdentityPolicyFrame : public EntryFrame
 
     EntryFrame::pointer copy() const override;
 
-    static bool isResourceValid(std::string const& resource);
     static bool isEffectValid(Effect const effect);
 
     static void ensureValid(IdentityPolicyEntry const& oeEntry);

@@ -4,7 +4,7 @@
 #include "IdentityPolicyFrame.h"
 #include "ledger/EntryHelper.h"
 #include "map"
-#include "xdr/Stellar-ledger-entries-account.h"
+#include "xdr/Stellar-types.h"
 #include <functional>
 #include <unordered_map>
 
@@ -42,9 +42,10 @@ class IdentityPolicyHelper : public EntryHelper
     EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
     EntryFrame::pointer storeLoad(LedgerKey const& key, Database& db) override;
 
-    IdentityPolicyFrame::pointer loadIdentityPolicy(uint64_t id,
-                                            Database& db,
-                                            LedgerDelta* delta = nullptr);
+    IdentityPolicyFrame::pointer
+    loadIdentityPolicy(uint64_t id, AccountID ownerID, Database& db, LedgerDelta* delta = nullptr);
+
+    uint64_t countObjectsForOwner(const AccountID &ownerID, soci::session& sess);
 
     IdentityPolicyFrame::pointer loadIdentityPolicy(uint64_t policyID, AccountID ownerID, Database& db,
                                                     LedgerDelta* delta = nullptr);

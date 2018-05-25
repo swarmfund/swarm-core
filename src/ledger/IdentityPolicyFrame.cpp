@@ -7,7 +7,6 @@
 #include "util/types.h"
 
 #include <exception>
-#include <regex>
 
 namespace stellar
 {
@@ -31,14 +30,9 @@ IdentityPolicyFrame::IdentityPolicyFrame(IdentityPolicyFrame const& from)
 }
 
 void
-IdentityPolicyFrame::ensureValid(
-    const IdentityPolicyEntry& mIdentityPolicyEntry)
+IdentityPolicyFrame::ensureValid(const IdentityPolicyEntry& mIdentityPolicyEntry)
 {
-    if (IdentityPolicyFrame::isResourceValid(mIdentityPolicyEntry.resource))
-    {
-        throw std::runtime_error("Identity policy resource invalid");
-    }
-    if (IdentityPolicyFrame::isEffectValid(mIdentityPolicyEntry.effect))
+    if (!IdentityPolicyFrame::isEffectValid(mIdentityPolicyEntry.effect))
     {
         throw std::runtime_error("Identity policy effect invalid");
     }
@@ -48,13 +42,6 @@ void
 IdentityPolicyFrame::ensureValid() const
 {
     ensureValid(mIdentityPolicyEntry);
-}
-
-bool IdentityPolicyFrame::isResourceValid(std::string const& resource)
-{
-    const std::regex resourceRegEx{R"(^resource_type:.+:.+:.+$)"};
-
-    return std::regex_match(resource, resourceRegEx);
 }
 
 bool IdentityPolicyFrame::isEffectValid(Effect const effect)

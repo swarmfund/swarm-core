@@ -17,6 +17,8 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
+const uint64_t SetIdentityPolicyOpFrame::policiesAmountLimit = 100;
+
 SetIdentityPolicyOpFrame::SetIdentityPolicyOpFrame(const Operation& op,
                                                    OperationResult& res,
                                                    TransactionFrame& parentTx)
@@ -38,19 +40,72 @@ SetIdentityPolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
 bool
 SetIdentityPolicyOpFrame::doCheckValid(Application& app)
 {
-    return checkResourceValue();
+    auto const sourceID = getSourceID();
+
+    if (!(sourceID == app.getMasterID()))
+    {
+        const auto countOfOwnerPolicies =
+                IdentityPolicyHelper::Instance()->countObjectsForOwner(sourceID,
+                                                                       app.getDatabase().getSession());
+        if (countOfOwnerPolicies >= policiesAmountLimit)
+        {
+            innerResult().code(SetIdentityPolicyResultCode::POLICIES_LIMIT_EXCEED);
+            return false;
+        }
+    }
+
+    // if delete action then do not check other fields
+    if (mSetIdentityPolicy.data.get() == nullptr)
+    {
+        return true;
+    }
+
+    if (mSetIdentityPolicy.data->resource.empty() || mSetIdentityPolicy.data->action.empty())
+    {
+        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
+        return false;
+    }
+
+    // Priority checks
+    const auto priority = mSetIdentityPolicy.data->priority;
+
+    if (priority >= PRIORITY_USER_MIN &&
+        priority <= PRIORITY_USER_MAX &&
+        getSourceID() == app.getMasterID())
+    {
+        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
+        return false;
+    }// High priority allowed only for master account
+    else if (priority >= PRIORITY_ADMIN_MIN &&
+             priority <= PRIORITY_ADMIN_MAX &&
+            !(getSourceID() == app.getMasterID()))
+    {
+        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
+        return false;
+    }
+
+    // Invalide priority (goes beyond borders)
+    if (priority < PRIORITY_USER_MIN      ||
+        (priority > PRIORITY_USER_MAX   &&
+         priority < PRIORITY_ADMIN_MIN)   ||
+        priority > PRIORITY_ADMIN_MAX)
+    {
+        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
+        return false;
+    }
+
+    return true;
 }
 
 bool
 SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
 {
-    auto identityPolicyHelper = IdentityPolicyHelper::Instance();
-    auto identityPolicyFrame = identityPolicyHelper->loadIdentityPolicy(
-        mSetIdentityPolicy.id, db, &delta);
-
     // delete
-    if (mSetIdentityPolicy.isDelete)
+    if (mSetIdentityPolicy.data.get() == nullptr)
     {
+        auto identityPolicyFrame = IdentityPolicyHelper::Instance()->loadIdentityPolicy(
+                mSetIdentityPolicy.id, getSourceID(), db, &delta);
+
         if (!identityPolicyFrame)
         {
             innerResult().code(SetIdentityPolicyResultCode::NOT_FOUND);
@@ -62,26 +117,18 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
         return true;
     }
 
-    // update
-    if (identityPolicyFrame)
-    {
-        auto& entityType = identityPolicyFrame->getIdentityPolicy();
-        entityType.id = mSetIdentityPolicy.id;
-        EntryHelperProvider::storeChangeEntry(delta, db,
-                                              identityPolicyFrame->mEntry);
-        return true;
-    }
-
-    // create
+    // create or update
     LedgerEntry le;
     le.data.type(LedgerEntryType::IDENTITY_POLICY);
     le.data.identityPolicy().id = mSetIdentityPolicy.id;
-    le.data.identityPolicy().priority = mSetIdentityPolicy.priority;
-    le.data.identityPolicy().resource = mSetIdentityPolicy.resource;
-    le.data.identityPolicy().effect = mSetIdentityPolicy.effect;
+    le.data.identityPolicy().priority = mSetIdentityPolicy.data->priority;
+    le.data.identityPolicy().resource = mSetIdentityPolicy.data->resource;
+    le.data.identityPolicy().action = mSetIdentityPolicy.data->action;
+    le.data.identityPolicy().effect = mSetIdentityPolicy.data->effect;
+    le.data.identityPolicy().ownerID = getSourceID();
+    le.lastModifiedLedgerSeq = ++mSourceAccount->getLastModified();
 
-    identityPolicyFrame = make_shared<IdentityPolicyFrame>(le);
-    EntryHelperProvider::storeAddEntry(delta, db, identityPolicyFrame->mEntry);
+    EntryHelperProvider::storeAddOrChangeEntry(delta, db, le);
 
     return true;
 }
@@ -91,61 +138,21 @@ SetIdentityPolicyOpFrame::getSourceAccountDetails(
     std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
     int32_t ledgerVersion) const
 {
+    // allow for any user
     return SourceDetails(
-        {
-            AccountType::MASTER,
-        },
+        {AccountType::MASTER, AccountType::COMMISSION,
+         AccountType::EXCHANGE, AccountType::GENERAL,
+         AccountType::OPERATIONAL, AccountType::SYNDICATE,
+         AccountType::NOT_VERIFIED},
         mSourceAccount->getMediumThreshold(),
         static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
 }
+
 std::unordered_map<AccountID, CounterpartyDetails>
 SetIdentityPolicyOpFrame::getCounterpartyDetails(Database& db,
                                                  LedgerDelta* delta) const
 {
     return {};
-}
-
-bool
-SetIdentityPolicyOpFrame::checkResourceValue()
-{
-    auto fields = getResourceFields();
-
-    auto resourceNameIter =
-        std::find(allowedResources.cbegin(), allowedResources.cend(),
-                  std::get<0>(fields));
-    if (resourceNameIter == allowedResources.cend())
-    {
-        return false;
-    }
-
-    auto resourcePropertiesKeyIter =
-        allowedResourceProperties.find(*resourceNameIter);
-    if (resourcePropertiesKeyIter == allowedResourceProperties.cend())
-    {
-        return false;
-    }
-
-    auto resourcePropIter = std::find(
-        resourcePropertiesKeyIter->second.cbegin(),
-        resourcePropertiesKeyIter->second.cend(), std::get<1>(fields));
-    if (resourcePropIter == resourcePropertiesKeyIter->second.cend())
-    {
-        return false;
-    }
-
-    return true;
-}
-
-std::tuple<std::string, std::string, std::string>
-SetIdentityPolicyOpFrame::getResourceFields()
-{
-    const std::regex resourceRegEx{R"(^resource_type:(.+):(*+):(*+)$)"};
-    auto fields = make_tuple(
-        std::regex_replace(mSetIdentityPolicy.resource, resourceRegEx, "$1"),
-        std::regex_replace(mSetIdentityPolicy.resource, resourceRegEx, "$2"),
-        std::regex_replace(mSetIdentityPolicy.resource, resourceRegEx, "$3"));
-
-    return fields;
 }
 
 } // namespace stellar

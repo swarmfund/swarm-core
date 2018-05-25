@@ -152,6 +152,8 @@ namespace stellar {
 
         virtual int32 getKYCSuperAdminMask() const override;
 
+        virtual uint64 getMaxIdentityPoliciesPerAccount() const;
+
     private:
         VirtualClock &mVirtualClock;
         Config mConfig;

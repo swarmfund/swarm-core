@@ -32,7 +32,7 @@ IdentityPolicyFrame::IdentityPolicyFrame(IdentityPolicyFrame const& from)
 void
 IdentityPolicyFrame::ensureValid(const IdentityPolicyEntry& mIdentityPolicyEntry)
 {
-    if (IdentityPolicyFrame::isEffectValid(mIdentityPolicyEntry.effect))
+    if (!IdentityPolicyFrame::isEffectValid(mIdentityPolicyEntry.effect))
     {
         throw std::runtime_error("Identity policy effect invalid");
     }

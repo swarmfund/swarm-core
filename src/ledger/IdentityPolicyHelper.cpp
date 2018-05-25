@@ -290,12 +290,4 @@ IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, AccountID ownerID, Databas
     return result;
 }
 
-    IdentityPolicyFrame::pointer
-    IdentityPolicyHelper::loadIdentityPolicy(uint64_t policyID, AccountID ownerID, Database &db, LedgerDelta *delta) {
-        auto identityPolicyFrame = loadIdentityPolicy(policyID, db, delta);
-        if (!identityPolicyFrame)
-            return nullptr;
-        return identityPolicyFrame->getOwnerID() == ownerID ? identityPolicyFrame : nullptr;
-    }
-
 } // namespace stellar

@@ -47,8 +47,6 @@ class IdentityPolicyHelper : public EntryHelper
 
     uint64_t countObjectsForOwner(const AccountID &ownerID, soci::session& sess);
 
-    IdentityPolicyFrame::pointer loadIdentityPolicy(uint64_t policyID, AccountID ownerID, Database& db,
-                                                    LedgerDelta* delta = nullptr);
 
   private:
     IdentityPolicyHelper() = default;

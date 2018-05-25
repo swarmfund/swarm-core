@@ -81,10 +81,11 @@ enum databaseSchemaVersion : unsigned long {
     ADD_FEE_ASSET = 9,
     EXTERNAL_POOL_FIX_DB_TYPES = 10,
     EXTERNAL_POOL_FIX_MIGRATION = 11,
-    KEY_VALUE_FIX_MIGRATION = 12
+    KEY_VALUE_FIX_MIGRATION = 12,
+    EXTERNAL_POOL_FIX_PARENT_DB_TYPE = 13
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::KEY_VALUE_FIX_MIGRATION;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE;
 
 static void
 setSerializable(soci::session& sess)
@@ -170,6 +171,9 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::KEY_VALUE_FIX_MIGRATION:
             KeyValueHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE:
+            ExternalSystemAccountIDPoolEntryHelper::Instance()->parentToNumeric(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

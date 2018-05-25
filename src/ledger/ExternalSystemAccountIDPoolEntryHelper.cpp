@@ -147,6 +147,11 @@ using xdr::operator<;
         db.getSession() << "ALTER TABLE external_system_account_id_pool ALTER external_system_type SET DATA TYPE BIGINT;";
     }
 
+    void ExternalSystemAccountIDPoolEntryHelper::parentToNumeric(Database & db)
+    {
+        db.getSession() << "ALTER TABLE external_system_account_id_pool ALTER parent SET DATA TYPE NUMERIC(20, 0);";
+    }
+
     bool ExternalSystemAccountIDPoolEntryHelper::exists(Database &db, LedgerKey const &key)
     {
         auto const &poolEntry = key.externalSystemAccountIDPoolEntry();

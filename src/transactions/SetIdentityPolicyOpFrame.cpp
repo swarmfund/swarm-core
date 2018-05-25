@@ -34,12 +34,6 @@ SetIdentityPolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
     Database& db = ledgerManager.getDatabase();
     innerResult().code(SetIdentityPolicyResultCode::SUCCESS);
 
-    return trySetIdentityPolicy(db, delta);
-}
-
-bool
-SetIdentityPolicyOpFrame::doCheckValid(Application& app)
-{
     auto const sourceID = getSourceID();
 
     if (!(sourceID == app.getMasterID()))
@@ -54,6 +48,12 @@ SetIdentityPolicyOpFrame::doCheckValid(Application& app)
         }
     }
 
+    return trySetIdentityPolicy(db, delta);
+}
+
+bool
+SetIdentityPolicyOpFrame::doCheckValid(Application& app)
+{
     // if delete action then do not check other fields
     if (mSetIdentityPolicy.data.get() == nullptr)
     {

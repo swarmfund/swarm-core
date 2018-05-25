@@ -1,5 +1,6 @@
 #include <transactions/test/TxTests.h>
 #include "ManageKeyValueTestHelper.h"
+#include "ledger/KeyValueHelper.h"
 #include "test/test_marshaler.h"
 
 namespace stellar {
@@ -21,7 +22,14 @@ namespace stellar {
         }
 
         txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(uint32 value) {
-            this->value = value;
+            this->value.type(KeyValueEntryType::UINT32);
+            this->value.ui32Value() = value;
+            return this;
+        }
+
+        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(std::string value) {
+            this->value.type(KeyValueEntryType::STRING);
+            this->value.stringValue() = value;
             return this;
         }
 
@@ -43,6 +51,21 @@ namespace stellar {
 
             REQUIRE((isApplied && isValid) == require);
             REQUIRE(builder.kvManager->getInnerCode(builder.kvManager->getResult()) == expectedResult);
+
+            auto actualKeyValue = KeyValueHelper::Instance()->loadKeyValue(key, app.getDatabase());
+            switch (action) {
+                case ManageKVAction::PUT:
+                {
+                    REQUIRE(!!actualKeyValue);
+                    REQUIRE(actualKeyValue->getKeyValue().value == value);
+                    break;
+                }
+                case ManageKVAction::REMOVE:
+                {
+                    REQUIRE(!actualKeyValue);
+                    break;
+                }
+            }
         }
 
 
@@ -54,24 +77,20 @@ namespace stellar {
             op.body.manageKeyValueOp().key = key;
             op.body.manageKeyValueOp().action.action(kvAction);
 
-            if(kvAction == ManageKVAction::PUT)
-            {
+            if(kvAction == ManageKVAction::PUT) {
                 op.body.manageKeyValueOp().action.value().value.type(this->type);
-                if (this->type == KeyValueEntryType::UINT32)
-                {
-                    op.body.manageKeyValueOp().action.value().value.ui32Value() = value;
-                }
-                op.body.manageKeyValueOp().action.value().key = key;
+                op.body.manageKeyValueOp().action.value().value = value;
             }
             return op;
         }
 
         ManageKeyValueTestBuilder::ManageKeyValueTestBuilder(string256 key, TestManager::pointer &testManager,
-                                                             ManageKVAction action, uint32 value, KeyValueEntryType type)
+                                                             ManageKVAction action, KeyValueEntry::_value_t value,
+                                                             KeyValueEntryType type)
                 :key(key),
-                 kvAction(action),
-                 value(value)
+                 kvAction(action)
         {
+            this->value = value;
             this->type = type;
             tx = this->buildTx(testManager);
             op = buildOp();

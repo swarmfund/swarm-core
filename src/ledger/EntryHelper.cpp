@@ -43,6 +43,7 @@
 #include "database/Database.h"
 #include "SaleHelper.h"
 #include "AccountKYCHelper.h"
+#include "IdentityPolicyHelper.h"
 
 namespace stellar
 {
@@ -186,5 +187,6 @@ namespace stellar
 		{ LedgerEntryType::SALE, SaleHelper::Instance() },
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY, ExternalSystemAccountIDPoolEntryHelper::Instance() },
         { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance() },
+		{ LedgerEntryType::IDENTITY_POLICY, IdentityPolicyHelper::Instance() },
 	};
 }

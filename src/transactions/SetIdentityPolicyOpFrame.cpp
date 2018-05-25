@@ -40,29 +40,57 @@ SetIdentityPolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
 bool
 SetIdentityPolicyOpFrame::doCheckValid(Application& app)
 {
-    const auto countOfOwnerPolicies =
-        IdentityPolicyHelper::Instance()->countObjectsForOwner(mSourceAccount->getID(),
-                                                               app.getDatabase().getSession());
-    if (countOfOwnerPolicies >= policiesAmountLimit)
+    auto const sourceID = getSourceID();
+
+    if (!(sourceID == app.getMasterID()))
     {
-        innerResult().code(SetIdentityPolicyResultCode::POLICIES_LIMIT_EXCEED);
-        return false;
+        const auto countOfOwnerPolicies =
+                IdentityPolicyHelper::Instance()->countObjectsForOwner(sourceID,
+                                                                       app.getDatabase().getSession());
+        if (countOfOwnerPolicies >= policiesAmountLimit)
+        {
+            innerResult().code(SetIdentityPolicyResultCode::POLICIES_LIMIT_EXCEED);
+            return false;
+        }
     }
 
-    if (mSetIdentityPolicy.resource.empty() || mSetIdentityPolicy.action.empty())
+    // if delete action then do not check other fields
+    if (mSetIdentityPolicy.data.get() == nullptr)
+    {
+        return true;
+    }
+
+    if (mSetIdentityPolicy.data->resource.empty() || mSetIdentityPolicy.data->action.empty())
     {
         innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
         return false;
     }
 
-    if (
-        mSetIdentityPolicy.priority < PRIORITY_USER_MIN      ||
-        (mSetIdentityPolicy.priority > PRIORITY_USER_MAX &&
-         mSetIdentityPolicy.priority < PRIORITY_ADMIN_MIN)   ||
-        mSetIdentityPolicy.priority > PRIORITY_ADMIN_MAX
-        )
+    // Priority checks
+    const auto priority = mSetIdentityPolicy.data->priority;
+
+    if (priority >= PRIORITY_USER_MIN &&
+        priority <= PRIORITY_USER_MAX &&
+        getSourceID() == app.getMasterID())
     {
-        innerResult().code(SetIdentityPolicyResultCode::INVALID_PRIORITY);
+        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
+        return false;
+    }// High priority allowed only for master account
+    else if (priority >= PRIORITY_ADMIN_MIN &&
+             priority <= PRIORITY_ADMIN_MAX &&
+            !(getSourceID() == app.getMasterID()))
+    {
+        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
+        return false;
+    }
+
+    // Invalide priority (goes beyond borders)
+    if (priority < PRIORITY_USER_MIN      ||
+        (priority > PRIORITY_USER_MAX   &&
+         priority < PRIORITY_ADMIN_MIN)   ||
+        priority > PRIORITY_ADMIN_MAX)
+    {
+        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
         return false;
     }
 
@@ -72,14 +100,12 @@ SetIdentityPolicyOpFrame::doCheckValid(Application& app)
 bool
 SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
 {
-    auto identityPolicyHelper = IdentityPolicyHelper::Instance();
-    auto identityPolicyFrame = identityPolicyHelper->loadIdentityPolicy(
-        mSetIdentityPolicy.id, mSourceAccount->getID(), db, &delta);
-
-
     // delete
-    if (mSetIdentityPolicy.isDelete)
+    if (mSetIdentityPolicy.data.get() == nullptr)
     {
+        auto identityPolicyFrame = IdentityPolicyHelper::Instance()->loadIdentityPolicy(
+                mSetIdentityPolicy.id, getSourceID(), db, &delta);
+
         if (!identityPolicyFrame)
         {
             innerResult().code(SetIdentityPolicyResultCode::NOT_FOUND);
@@ -91,27 +117,18 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
         return true;
     }
 
-    // update
-    if (identityPolicyFrame)
-    {
-        auto& entityType = identityPolicyFrame->getIdentityPolicy();
-        entityType.id = mSetIdentityPolicy.id;
-        EntryHelperProvider::storeChangeEntry(delta, db,
-                                              identityPolicyFrame->mEntry);
-        return true;
-    }
-
-    // create
+    // create or update
     LedgerEntry le;
     le.data.type(LedgerEntryType::IDENTITY_POLICY);
     le.data.identityPolicy().id = mSetIdentityPolicy.id;
-    le.data.identityPolicy().priority = mSetIdentityPolicy.priority;
-    le.data.identityPolicy().resource = mSetIdentityPolicy.resource;
-    le.data.identityPolicy().effect = mSetIdentityPolicy.effect;
-    le.data.identityPolicy().ownerID = getSourceAccount().getID();
+    le.data.identityPolicy().priority = mSetIdentityPolicy.data->priority;
+    le.data.identityPolicy().resource = mSetIdentityPolicy.data->resource;
+    le.data.identityPolicy().action = mSetIdentityPolicy.data->action;
+    le.data.identityPolicy().effect = mSetIdentityPolicy.data->effect;
+    le.data.identityPolicy().ownerID = getSourceID();
+    le.lastModifiedLedgerSeq = ++mSourceAccount->getLastModified();
 
-    identityPolicyFrame = make_shared<IdentityPolicyFrame>(le);
-    EntryHelperProvider::storeAddEntry(delta, db, identityPolicyFrame->mEntry);
+    EntryHelperProvider::storeAddOrChangeEntry(delta, db, le);
 
     return true;
 }
@@ -121,29 +138,13 @@ SetIdentityPolicyOpFrame::getSourceAccountDetails(
     std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
     int32_t ledgerVersion) const
 {
-
-    if (mSetIdentityPolicy.priority >= PRIORITY_USER_MIN &&
-        mSetIdentityPolicy.priority <= PRIORITY_USER_MAX)
-    {
-        // allow for any user
-        return SourceDetails(
-            {AccountType::MASTER, AccountType::COMMISSION,
-             AccountType::EXCHANGE, AccountType::GENERAL,
-             AccountType::OPERATIONAL, AccountType::SYNDICATE,
-             AccountType::NOT_VERIFIED},
-            mSourceAccount->getMediumThreshold(),
-            static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
-    }
-    else if (mSetIdentityPolicy.priority >= PRIORITY_ADMIN_MIN &&
-             mSetIdentityPolicy.priority <= PRIORITY_ADMIN_MAX)
-    {
-        return SourceDetails(
-            {AccountType::MASTER}, mSourceAccount->getMediumThreshold(),
-            static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
-    }
-    // allow for no one
+    // allow for any user
     return SourceDetails(
-        {}, mSourceAccount->getMediumThreshold(),
+        {AccountType::MASTER, AccountType::COMMISSION,
+         AccountType::EXCHANGE, AccountType::GENERAL,
+         AccountType::OPERATIONAL, AccountType::SYNDICATE,
+         AccountType::NOT_VERIFIED},
+        mSourceAccount->getMediumThreshold(),
         static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
 }
 

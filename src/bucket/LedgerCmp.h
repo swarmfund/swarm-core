@@ -179,6 +179,11 @@ struct LedgerEntryIdCmp
         {
             auto const& aip = a.identityPolicy();
             auto const& bip = b.identityPolicy();
+
+            if (aip.id == bip.id) {
+                return aip.ownerID < bip.ownerID;
+            }
+
             return aip.id < bip.id;
         }
         default:

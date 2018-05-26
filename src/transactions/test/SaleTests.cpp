@@ -121,7 +121,7 @@ TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
     uint64_t xaauUSDPrice = (hardCap / maxIssuanceAmount) * ONE;
     uint64_t xaauBTCPrice = (xaauUSDPrice / btcUSDPrice) * ONE;
     uint64_t xaauETHPrice = (xaauUSDPrice / ethUSDPrice) * ONE;
-    auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
+    auto saleRequest = SaleRequestHelper::createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
         endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAssetBTC, xaauBTCPrice),
             saleRequestHelper.createSaleQuoteAsset(quoteAssetETH, xaauETHPrice) });
     saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
@@ -163,6 +163,7 @@ TEST_CASE("Sale", "[tx][sale]")
     CheckSaleStateHelper checkStateHelper(testManager);
     ManageSaleTestHelper manageSaleTestHelper(testManager);
     ReviewUpdateSaleDetailsRequestTestHelper reviewUpdateSaleDetailsRequestTestHelper(testManager);
+    CreateAccountTestHelper accountTestHelper(testManager);
     auto saleReviewer = ReviewSaleRequestHelper(testManager);
 
     auto syndicate = Account{ SecretKey::random(), 0 };
@@ -177,13 +178,15 @@ TEST_CASE("Sale", "[tx][sale]")
                                                                       maxIssuanceAmount,0, preIssuedAmount);
     assetTestHelper.createApproveRequest(root, syndicate, assetCreationRequest);
     const uint64_t price = 2 * ONE;
-    auto hardCap = static_cast<const uint64_t>(bigDivide(preIssuedAmount, price, ONE, ROUND_DOWN));
+    auto hardCap = static_cast<const uint64_t>(bigDivide(preIssuedAmount / 2, price, ONE, ROUND_DOWN));
     uint64_t softCap = hardCap / 2;
     const auto currentTime = testManager->getLedgerManager().getCloseTime();
     const auto endTime = currentTime + 1000;
-    auto mainSaleMaxBaseAsset = maxIssuanceAmount / 2;
-    auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, quoteAsset, currentTime,
-        endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price) });
+    const auto requiredBaseAssetForHardCap = (hardCap / price) * ONE;
+    auto basicSaleType = SaleType::BASIC_SALE;
+    auto saleRequest = SaleRequestHelper::createSaleRequest(baseAsset, quoteAsset, currentTime,
+        endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price) }, &basicSaleType,
+                                                            &requiredBaseAssetForHardCap);
     SECTION("Happy path")
     {
         //set offer fee for sale owner and participants
@@ -200,10 +203,23 @@ TEST_CASE("Sale", "[tx][sale]")
         IssuanceRequestHelper(testManager).authorizePreIssuedAmount(root, root.key, quoteAsset, quotePreIssued, root);
 
         saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
-        auto accountTestHelper = CreateAccountTestHelper(testManager);
+
         auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
         REQUIRE(sales.size() == 1);
         const auto saleID = sales[0]->getID();
+        SECTION("Create several sales for the same base asset") {
+            auto createSecondSaleRequestResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+            auto createThirdSaleRequestResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+
+            saleReviewer.applyReviewRequestTx(root, createSecondSaleRequestResult.success().requestID,
+                                              ReviewRequestOpAction::APPROVE, "");
+            saleReviewer.applyReviewRequestTx(root, createThirdSaleRequestResult.success().requestID,
+                                              ReviewRequestOpAction::APPROVE, "",
+                                              ReviewRequestResultCode::INSUFFICIENT_PREISSUED_FOR_HARD_CAP);
+
+            sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
+            REQUIRE(sales.size() == 2);
+        }
         SECTION("Try to cancel sale offer as regular one")
         {
             auto account = Account{ SecretKey::random(), 0 };
@@ -278,6 +294,8 @@ TEST_CASE("Sale", "[tx][sale]")
             auto checkRes = checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::SUCCESS);
             REQUIRE(checkRes.success().effect.effect() == CheckSaleStateEffect::CANCELED);
         }
+
+
 
         SECTION("Manage sale")
         {

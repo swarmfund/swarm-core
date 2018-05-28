@@ -53,6 +53,8 @@ public:
         return res.tr().createWithdrawalRequestResult().code();
     }
 
+    static bool isExternalDetailsValid(Application &app, const std::string &externalDetails);
+
     std::string getInnerResultCodeAsStr() override {
         return xdr::xdr_traits<CreateWithdrawalRequestResultCode>::enum_name(innerResult().code());
     }

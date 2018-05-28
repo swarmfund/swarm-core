@@ -141,8 +141,6 @@ class Config : public std::enable_shared_from_this<Config>
     std::string BASE_EXCHANGE_NAME;
     int64 TX_EXPIRATION_PERIOD;
     int64 TX_EXPIRATION_PERIOD_WINDOW = 60*60;
-    uint64 WITHDRAWAL_DETAILS_MAX_LENGTH = 1000;
-	uint64 ISSUANCE_DETAILS_MAX_LENGTH = 1000;
     
     uint64 MAX_INVOICES_FOR_RECEIVER_ACCOUNT = 20;
 

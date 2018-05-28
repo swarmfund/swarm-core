@@ -224,12 +224,16 @@ namespace stellar {
 
 
     uint64 ApplicationImpl::getWithdrawalDetailsMaxLength() const {
-        return mConfig.WITHDRAWAL_DETAILS_MAX_LENGTH;
+        return this->mLedgerManager->shouldUse(LedgerVersion::DETAILS_MAX_LENGTH_EXTENDED) ? 20000 : 1000;
     }
 
 	uint64 ApplicationImpl::getIssuanceDetailsMaxLength() const {
-		return mConfig.ISSUANCE_DETAILS_MAX_LENGTH;
+		return 1000;
 	}
+
+	uint64 ApplicationImpl::getRejectReasonMaxLength() const {
+        return this->mLedgerManager->shouldUse(LedgerVersion::DETAILS_MAX_LENGTH_EXTENDED) ? 2000 : 256;
+    }
 
     int32 ApplicationImpl::getKYCSuperAdminMask() const {
         return mConfig.KYC_SUPER_ADMIN_MASK;

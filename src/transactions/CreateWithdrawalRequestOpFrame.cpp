@@ -220,13 +220,6 @@ bool CreateWithdrawalRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    if (mCreateWithdrawalRequest.request.externalDetails.size() > app.getWithdrawalDetailsMaxLength()
-            || !isValidJson(mCreateWithdrawalRequest.request.externalDetails))
-    {
-        innerResult().code(CreateWithdrawalRequestResultCode::INVALID_EXTERNAL_DETAILS);
-        return false;
-    }
-
     if (mCreateWithdrawalRequest.request.universalAmount != 0)
     {
         innerResult().code(CreateWithdrawalRequestResultCode::INVALID_UNIVERSAL_AMOUNT);
@@ -239,7 +232,19 @@ bool CreateWithdrawalRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
+    if (!isExternalDetailsValid(app, mCreateWithdrawalRequest.request.externalDetails)) {
+        innerResult().code(CreateWithdrawalRequestResultCode::INVALID_EXTERNAL_DETAILS);
+        return false;
+    }
+
     return true;
+}
+
+bool CreateWithdrawalRequestOpFrame::isExternalDetailsValid(Application &app, const std::string &externalDetails) {
+    if (!isValidJson(externalDetails))
+        return false;
+
+    return externalDetails.size() <= app.getWithdrawalDetailsMaxLength();
 }
 
 bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager, const BalanceFrame::pointer balance,
@@ -260,4 +265,6 @@ bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager,
             throw std::runtime_error("Unexpected state from accountManager when updating stats");
     }
 }
+
+
 }

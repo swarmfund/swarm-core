@@ -183,7 +183,7 @@ ReviewRequestOpFrame::doCheckValid(Application& app)
 		return false;
 	}
 
-	if (!isRejectReasonValid()) {
+	if (!isRejectReasonValid(app)) {
 		innerResult().code(ReviewRequestResultCode::INVALID_REASON);
 		return false;
 	}
@@ -192,13 +192,17 @@ ReviewRequestOpFrame::doCheckValid(Application& app)
     return true;
 }
 
-bool ReviewRequestOpFrame::isRejectReasonValid()
+bool ReviewRequestOpFrame::isRejectReasonValid(Application& app)
 {
 	if (mReviewRequest.action == ReviewRequestOpAction::APPROVE) {
 		return mReviewRequest.reason.empty();
 	}
 
-	return !mReviewRequest.reason.empty();
+	if (mReviewRequest.reason.empty()) {
+		return false;
+	}
+
+	return mReviewRequest.reason.length() <= app.getRejectReasonMaxLength();
 }
 
 uint64_t ReviewRequestOpFrame::getTotalFee(uint64_t requestID, Fee fee)

@@ -78,7 +78,7 @@ class ReviewableRequestFrame : public EntryFrame
 		mRequest.requestID = requestID;
 	}
 
-	stellar::string256 const& getRejectReason() const {
+	stellar::longstring const& getRejectReason() const {
 		return mRequest.rejectReason;
 	}
 
@@ -106,7 +106,7 @@ class ReviewableRequestFrame : public EntryFrame
         return mRequest.createdAt;
     }
 
-	void setRejectReason(stellar::string256 rejectReason) {
+	void setRejectReason(stellar::longstring rejectReason) {
 		mRequest.rejectReason = rejectReason;
 	}
 

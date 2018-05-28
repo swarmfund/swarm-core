@@ -30,6 +30,7 @@
 #include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -48,6 +49,7 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
+#include <ledger/KeyValueHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
 
@@ -76,10 +78,14 @@ enum databaseSchemaVersion : unsigned long {
     ADD_SALE_TYPE = 6,
 	USE_KYC_LEVEL = 7,
     ADD_ACCOUNT_KYC = 8,
-    ADD_FEE_ASSET = 9
+    ADD_FEE_ASSET = 9,
+    EXTERNAL_POOL_FIX_DB_TYPES = 10,
+    EXTERNAL_POOL_FIX_MIGRATION = 11,
+    KEY_VALUE_FIX_MIGRATION = 12,
+    EXTERNAL_POOL_FIX_PARENT_DB_TYPE = 13
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_FEE_ASSET;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE;
 
 static void
 setSerializable(soci::session& sess)
@@ -157,6 +163,17 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_FEE_ASSET:
             FeeHelper::Instance()->addFeeAsset(*this);
+            break;
+        case databaseSchemaVersion::EXTERNAL_POOL_FIX_DB_TYPES:
+            break;
+        case databaseSchemaVersion::EXTERNAL_POOL_FIX_MIGRATION:
+            ExternalSystemAccountIDPoolEntryHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::KEY_VALUE_FIX_MIGRATION:
+            KeyValueHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE:
+            ExternalSystemAccountIDPoolEntryHelper::Instance()->parentToNumeric(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

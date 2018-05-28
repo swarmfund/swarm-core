@@ -137,6 +137,19 @@ using xdr::operator<;
             "version              INT         NOT NULL DEFAULT 0,"
             "PRIMARY KEY (id)"
             ");";
+
+        fixTypes(db);
+    }
+
+    void ExternalSystemAccountIDPoolEntryHelper::fixTypes(Database & db)
+    {
+        db.getSession() << "ALTER TABLE external_system_account_id_pool ALTER parent SET DATA TYPE BIGINT;";
+        db.getSession() << "ALTER TABLE external_system_account_id_pool ALTER external_system_type SET DATA TYPE BIGINT;";
+    }
+
+    void ExternalSystemAccountIDPoolEntryHelper::parentToNumeric(Database & db)
+    {
+        db.getSession() << "ALTER TABLE external_system_account_id_pool ALTER parent SET DATA TYPE NUMERIC(20, 0);";
     }
 
     bool ExternalSystemAccountIDPoolEntryHelper::exists(Database &db, LedgerKey const &key)

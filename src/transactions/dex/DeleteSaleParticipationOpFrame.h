@@ -27,5 +27,7 @@ public:
         LedgerManager& ledgerManager, OfferFrame::pointer offer, TransactionFrame& parentTx);
 
     void doNotCheckSaleState();
+
+    BalanceID getQuoteBalanceID(OfferFrame::pointer offer, LedgerManager& lm);
 };
 }

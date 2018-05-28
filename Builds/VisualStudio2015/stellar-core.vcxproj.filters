@@ -127,6 +127,9 @@
     <Filter Include="transactions\payment">
       <UniqueIdentifier>{4f0d87a5-983c-4b3a-82ba-82845fb2d834}</UniqueIdentifier>
     </Filter>
+    <Filter Include="transactions\manage_external_system_account_id_pool">
+      <UniqueIdentifier>{6aec5968-a2d4-45ca-9415-9be83be0841c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -950,6 +953,87 @@
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\KeyValueEntryFrame.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\KeyValueHelper.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\ManageKeyValueOpFrame.cpp">
+      <Filter>transactions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\BindExternalSystemAccountIdTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\CreateKYCReviewableRequestTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\LimitsUpdateRequestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageExternalSystemAccountIDPoolEntryTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageKeyValueTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageSaleTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\PaymentV2TestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewLimitsUpdateRequestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateKYCRequestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleDetailsRequestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateSaleDetailsRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\ManageSaleOpFrame.cpp">
+      <Filter>transactions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\BindExternalSystemAccountIdOpFrame.cpp">
+      <Filter>transactions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\manage_external_system_account_id_pool\CreateExternalSystemAccountIDPoolEntryOpFrame.cpp">
+      <Filter>transactions\manage_external_system_account_id_pool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\manage_external_system_account_id_pool\DeleteExternalSystemAccountIDPoolEntryOpFrame.cpp">
+      <Filter>transactions\manage_external_system_account_id_pool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\manage_external_system_account_id_pool\ManageExternalSystemAccountIDPoolEntryOpFrame.cpp">
+      <Filter>transactions\manage_external_system_account_id_pool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\BindExternalSystemAccountIdTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\CreateKYCReviewableRequestTest.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\LimitsUpdateTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\ManageExternalSystemAccountIDPoolEntryTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\ManageKeyValueTests.cpp">
+      <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\PaymentV2Tests.cpp">
+      <Filter>transactions\test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1854,6 +1938,69 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\KeyValueEntryFrame.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\KeyValueHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\ManageKeyValueOpFrame.h">
+      <Filter>transactions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\BindExternalSystemAccountIdTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\CreateKYCReviewableRequestTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\LimitsUpdateRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageExternalSystemAccountIDPoolEntryTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageKeyValueTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageSaleTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\PaymentV2TestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewLimitsUpdateRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateKYCRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleDetailsRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateSaleDetailsRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\ManageSaleOpFrame.h">
+      <Filter>transactions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\BindExternalSystemAccountIdOpFrame.h">
+      <Filter>transactions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\manage_external_system_account_id_pool\CreateExternalSystemAccountIDPoolEntryOpFrame.h">
+      <Filter>transactions\manage_external_system_account_id_pool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\manage_external_system_account_id_pool\DeleteExternalSystemAccountIDPoolEntryOpFrame.h">
+      <Filter>transactions\manage_external_system_account_id_pool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\manage_external_system_account_id_pool\ManageExternalSystemAccountIDPoolEntryOpFrame.h">
+      <Filter>transactions\manage_external_system_account_id_pool</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -2093,6 +2240,27 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment-v2.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-sale-details.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-external-system-id-pool-entry.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-external-system-id-pool-entry.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-bind-external-system-id.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-sale.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-key-value.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-key-value.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

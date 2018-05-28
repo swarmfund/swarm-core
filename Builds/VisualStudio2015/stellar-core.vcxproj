@@ -217,10 +217,14 @@
     <ClCompile Include="..\..\src\ledger\BalanceHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\EntryHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.cpp" />
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\InvoiceFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\InvoiceHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\KeyValueEntryFrame.cpp" />
+    <ClCompile Include="..\..\src\ledger\KeyValueHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\LedgerDelta.cpp" />
     <ClCompile Include="..\..\src\ledger\EntryFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\LedgerDeltaTests.cpp" />
@@ -322,6 +326,7 @@
     <ClCompile Include="..\..\src\simulation\Simulation.cpp" />
     <ClCompile Include="..\..\src\simulation\Topologies.cpp" />
     <ClCompile Include="..\..\src\transactions\AccountManager.cpp" />
+    <ClCompile Include="..\..\src\transactions\BindExternalSystemAccountIdOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CheckSaleStateOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateAccountOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\CreateAMLAlertRequestOpFrame.cpp" />
@@ -341,12 +346,17 @@
     <ClCompile Include="..\..\src\transactions\kyc\CreateKYCReviewableRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAccountOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAssetPairOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\ManageKeyValueOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\ManageSaleOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\CancelAssetRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\CreateAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\UpdateAssetOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\manage_external_system_account_id_pool\CreateExternalSystemAccountIDPoolEntryOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\manage_external_system_account_id_pool\DeleteExternalSystemAccountIDPoolEntryOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\manage_external_system_account_id_pool\ManageExternalSystemAccountIDPoolEntryOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\payment\PaymentOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\payment\PaymentOpV2Frame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.cpp" />
@@ -361,30 +371,47 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateSaleDetailsRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\test\AccountManagerTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\AmlAlertTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\BindExternalSystemAccountIdTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CreateAccountTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\CreateKYCReviewableRequestTest.cpp" />
     <ClCompile Include="..\..\src\transactions\test\CrowdfundTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\DirectDebitTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\FlexibleFeesTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\LimitsUpdateTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\ManageAccountTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\ManageAssetPairTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\ManageAssetTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\ManageBalanceTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\IssuanceTest.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\ManageExternalSystemAccountIDPoolEntryTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\ManageKeyValueTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\PaymentV2Tests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\SaleTests.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\BindExternalSystemAccountIdTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\CreateKYCReviewableRequestTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\LimitsUpdateRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAMLAlertTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageExternalSystemAccountIDPoolEntryTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageKeyValueTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ManageSaleTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\PaymentV2TestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewLimitsUpdateRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateKYCRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleDetailsRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.cpp" />
@@ -519,10 +546,14 @@
     <ClInclude Include="..\..\src\ledger\BalanceHelper.h" />
     <ClInclude Include="..\..\src\ledger\EntryHelper.h" />
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelper.h" />
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.h" />
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.h" />
     <ClInclude Include="..\..\src\ledger\FeeFrame.h" />
     <ClInclude Include="..\..\src\ledger\FeeHelper.h" />
     <ClInclude Include="..\..\src\ledger\InvoiceFrame.h" />
     <ClInclude Include="..\..\src\ledger\InvoiceHelper.h" />
+    <ClInclude Include="..\..\src\ledger\KeyValueEntryFrame.h" />
+    <ClInclude Include="..\..\src\ledger\KeyValueHelper.h" />
     <ClInclude Include="..\..\src\ledger\LedgerTestUtils.h" />
     <ClInclude Include="..\..\src\ledger\OfferFrame.h" />
     <ClInclude Include="..\..\src\ledger\OfferHelper.h" />
@@ -606,6 +637,7 @@
     <ClInclude Include="..\..\src\simulation\Simulation.h" />
     <ClInclude Include="..\..\src\simulation\Topologies.h" />
     <ClInclude Include="..\..\src\transactions\AccountManager.h" />
+    <ClInclude Include="..\..\src\transactions\BindExternalSystemAccountIdOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CheckSaleStateOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\CounterpartyDetails.h" />
     <ClInclude Include="..\..\src\transactions\CreateAccountOpFrame.h" />
@@ -626,12 +658,17 @@
     <ClInclude Include="..\..\src\transactions\kyc\CreateKYCReviewableRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAccountOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAssetPairOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\ManageKeyValueOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\ManageSaleOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\CancelAssetRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\CreateAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetHelper.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\UpdateAssetOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\manage_external_system_account_id_pool\CreateExternalSystemAccountIDPoolEntryOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\manage_external_system_account_id_pool\DeleteExternalSystemAccountIDPoolEntryOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\manage_external_system_account_id_pool\ManageExternalSystemAccountIDPoolEntryOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\payment\PaymentOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\payment\PaymentOpV2Frame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewAMLAlertRequestOpFrame.h" />
@@ -646,25 +683,36 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateSaleDetailsRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\Account.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\BindExternalSystemAccountIdTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\CreateAccountTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\CreateKYCReviewableRequestTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\IssuanceRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\LimitsUpdateRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAccountTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAMLAlertTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetPairTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageAssetTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageBalanceTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageExternalSystemAccountIDPoolEntryTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageKeyValueTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ManageOfferTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ManageSaleTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ParticipateInSaleTestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\PaymentV2TestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewAssetRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewLimitsUpdateRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPreIssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateKYCRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleDetailsRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.h" />
@@ -1124,6 +1172,48 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-payment-v2.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-external-system-id-pool-entry.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-bind-external-system-id.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-external-system-id-pool-entry.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-sale.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-sale-details.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-key-value.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-key-value.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

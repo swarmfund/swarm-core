@@ -21,7 +21,7 @@ namespace txtest
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
 
     // TODO: at current stage we do not allow to issue tokens before the sale. Must be fixed
-    auto hardCapBaseAssetAmount = baseAssetBeforeTx.maxIssuanceAmount;
+    auto hardCapBaseAssetAmount = sale->getSaleEntry().maxAmountToBeSold;
     REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + hardCapBaseAssetAmount);
     REQUIRE(baseAssetBeforeTx.availableForIssueance + hardCapBaseAssetAmount == baseAssetAfterTx->getAvailableForIssuance());
 
@@ -56,7 +56,7 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
 
     // always unlock hard cap
-    auto hardCapBaseAsset = baseAssetBeforeTx.maxIssuanceAmount;
+    auto hardCapBaseAsset = sale->getSaleEntry().maxAmountToBeSold;
     REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + hardCapBaseAsset);
 
     // can't issue after sale is closed

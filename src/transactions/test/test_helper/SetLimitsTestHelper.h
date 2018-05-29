@@ -20,7 +20,7 @@ namespace txtest
         AccountType* accountType, Limits limits);
 
         void applySetLimitsTx(Account& source, AccountID* account, AccountType* accountType,
-        Limits limits, SetLimitsResultCode expectedResult = SetLimitsResultCode::SUCCESS);
+        Limits limits, ManageLimitsResultCode expectedResult = ManageLimitsResultCode::SUCCESS);
     };
 }
 }

@@ -10,7 +10,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountLimitsHelper.h"
-#include "transactions/SetLimitsOpFrame.h"
+#include "transactions/ManageLimitsOpFrame.h"
 #include "main/Application.h"
 
 namespace stellar {
@@ -40,14 +40,14 @@ namespace stellar {
 
         Operation op;
         op.body.type(OperationType::SET_LIMITS);
-        SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
+        ManageLimitsOp& setLimitsOp = op.body.manageLimitsOp();
         setLimitsOp.account.activate() = requestorID;
         setLimitsOp.limits = mReviewRequest.requestDetails.limitsUpdate().newLimits;
 
         OperationResult opRes;
         opRes.code(OperationResultCode::opINNER);
         opRes.tr().type(OperationType::SET_LIMITS);
-        SetLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
+        ManageLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
 
         auto accountHelper = AccountHelper::Instance();
         auto master = accountHelper->mustLoadAccount(app.getMasterID(), db);

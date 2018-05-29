@@ -69,10 +69,10 @@ TEST_CASE("set limits", "[dep_tx][set_limits]")
 
     SECTION("malformed")
     {
-        setLimitsTestHelper.applySetLimitsTx(root, nullptr, nullptr, limits, SetLimitsResultCode::MALFORMED);
-        setLimitsTestHelper.applySetLimitsTx(root, &account, &accountType, limits, SetLimitsResultCode::MALFORMED);
+        setLimitsTestHelper.applySetLimitsTx(root, nullptr, nullptr, limits, ManageLimitsResultCode::MALFORMED);
+        setLimitsTestHelper.applySetLimitsTx(root, &account, &accountType, limits, ManageLimitsResultCode::MALFORMED);
         limits.annualOut = 0;
-        setLimitsTestHelper.applySetLimitsTx(root, &account, nullptr, limits, SetLimitsResultCode::MALFORMED);
+        setLimitsTestHelper.applySetLimitsTx(root, &account, nullptr, limits, ManageLimitsResultCode::MALFORMED);
     }
     SECTION("success account limits setting")
     {

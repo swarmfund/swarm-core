@@ -2,7 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "transactions/SetLimitsOpFrame.h"
+#include "transactions/ManageLimitsOpFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/AccountTypeLimitsHelper.h"
 #include "ledger/AccountLimitsFrame.h"
@@ -16,31 +16,31 @@ namespace stellar
 {
 using xdr::operator==;
 
-SetLimitsOpFrame::SetLimitsOpFrame(Operation const& op, OperationResult& res,
+ManageLimitsOpFrame::ManageLimitsOpFrame(Operation const& op, OperationResult& res,
                                      TransactionFrame& parentTx)
     : OperationFrame(op, res, parentTx)
-    , mSetLimits(mOperation.body.setLimitsOp())
+    , mManageLimits(mOperation.body.manageLimitsOp())
 {
 }
 
 
-std::unordered_map<AccountID, CounterpartyDetails> SetLimitsOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
+std::unordered_map<AccountID, CounterpartyDetails> ManageLimitsOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
-	if (!mSetLimits.account)
+	if (!mManageLimits.accountID)
 		return{};
 	return{
-		{ *mSetLimits.account , CounterpartyDetails(getAllAccountTypes(), true, true) }
+		{ *mManageLimits.accountID , CounterpartyDetails(getAllAccountTypes(), true, true) }
 	};
 }
 
-SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+SourceDetails ManageLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                                         int32_t ledgerVersion) const
 {
 	int32_t signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
 	int32_t threshold = mSourceAccount->getHighThreshold();
-	if (mSetLimits.account)
+	if (mManageLimits.accountID)
 	{
-		auto account = counterpartiesDetails.find(*mSetLimits.account);
+		auto account = counterpartiesDetails.find(*mManageLimits.accountID);
 		if (account == counterpartiesDetails.end() || !account->second.mAccount)
 			throw std::invalid_argument("Unexpected counterpartiesDetails. Expected counterparty to be included");
 
@@ -62,42 +62,42 @@ SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<Accou
 }
 
 std::string
-SetLimitsOpFrame::getInnerResultCodeAsStr()
+ManageLimitsOpFrame::getInnerResultCodeAsStr()
 {
     const auto result = getResult();
     const auto code = getInnerCode(result);
-    return xdr::xdr_traits<SetLimitsResultCode>::enum_name(code);
+    return xdr::xdr_traits<ManageLimitsResultCode>::enum_name(code);
 }
 
 bool
-SetLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
+ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-    if (mSetLimits.account)
+    if (mManageLimits.accountID)
     {
 		auto accountLimitsHelper = AccountLimitsHelper::Instance();
-        auto accountLimitsFrame = accountLimitsHelper->loadLimits(*mSetLimits.account, db);
+        auto accountLimitsFrame = accountLimitsHelper->loadLimits(*mManageLimits.account, db);
         if (accountLimitsFrame)
         {
-            accountLimitsFrame->setLimits(mSetLimits.limits);
+            accountLimitsFrame->manageLimits(mManageLimits.limits);
             EntryHelperProvider::storeChangeEntry(delta, db, accountLimitsFrame->mEntry);
         }
         else
         {
-            accountLimitsFrame = AccountLimitsFrame::createNew(*mSetLimits.account,
-                mSetLimits.limits);
+            accountLimitsFrame = AccountLimitsFrame::createNew(*mManageLimits.account,
+                mManageLimits.limits);
             EntryHelperProvider::storeAddEntry(delta, db, accountLimitsFrame->mEntry);
         }
     }
     else
     {
-        assert(mSetLimits.accountType);
+        assert(mManageLimits.accountType);
 		auto accountTypeLimitsHelper = AccountTypeLimitsHelper::Instance();
-        auto accountTypeLimits = accountTypeLimitsHelper->loadLimits(*mSetLimits.accountType, db, &delta);
+        auto accountTypeLimits = accountTypeLimitsHelper->loadLimits(*mManageLimits.accountType, db, &delta);
         if (accountTypeLimits)
         {
-            accountTypeLimits->setLimits(mSetLimits.limits);
+            accountTypeLimits->manageLimits(mManageLimits.limits);
             EntryHelperProvider::storeChangeEntry(delta, db, accountTypeLimits->mEntry);
         }
         else
@@ -106,8 +106,8 @@ SetLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
             le.data.type(LedgerEntryType::ACCOUNT_TYPE_LIMITS);
             AccountTypeLimitsEntry& entry = le.data.accountTypeLimits();
 
-            entry.accountType = *mSetLimits.accountType;
-            entry.limits = mSetLimits.limits;
+            entry.accountType = *mManageLimits.accountType;
+            entry.limits = mManageLimits.limits;
             auto accountTypeLimitsFrame = std::make_shared<AccountTypeLimitsFrame>(le);
 			EntryHelperProvider::storeAddEntry(delta, db, accountTypeLimitsFrame->mEntry);
         }
@@ -115,28 +115,28 @@ SetLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     app.getMetrics().NewMeter({"op-set-limits", "success", "apply"}, "operation")
         .Mark();
-    innerResult().code(SetLimitsResultCode::SUCCESS);
+    innerResult().code(ManageLimitsResultCode::SUCCESS);
     return true;
 }
 
 bool
-SetLimitsOpFrame::doCheckValid(Application& app)
+ManageLimitsOpFrame::doCheckValid(Application& app)
 {
-    if (mSetLimits.account && mSetLimits.accountType)
+    if (mManageLimits.account && mManageLimits.accountType)
     {
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},
                     "operation").Mark();
-        innerResult().code(SetLimitsResultCode::MALFORMED);
+        innerResult().code(ManageLimitsResultCode::MALFORMED);
         return false;
     }
 
-    if (!mSetLimits.account && !mSetLimits.accountType)
+    if (!mManageLimits.account && !mManageLimits.accountType)
     {
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},
                     "operation").Mark();
-        innerResult().code(SetLimitsResultCode::MALFORMED);
+        innerResult().code(ManageLimitsResultCode::MALFORMED);
         return false;
     }
     
@@ -145,16 +145,16 @@ SetLimitsOpFrame::doCheckValid(Application& app)
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},
                     "operation").Mark();
-        innerResult().code(SetLimitsResultCode::MALFORMED);
+        innerResult().code(ManageLimitsResultCode::MALFORMED);
         return false;
     }
 
     return true;
 }
 
-bool SetLimitsOpFrame::isValidLimits()
+bool ManageLimitsOpFrame::isValidLimits()
 {
-    auto& limits = mSetLimits.limits;
+    auto& limits = mManageLimits.limits;
 	return AccountFrame::isLimitsValid(limits);
 }
 

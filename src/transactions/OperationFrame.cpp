@@ -27,7 +27,7 @@
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
 #include "transactions/issuance/CreatePreIssuanceRequestOpFrame.h"
 #include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
-#include "transactions/SetLimitsOpFrame.h"
+#include "transactions/ManageLimitsOpFrame.h"
 #include "transactions/ManageAssetPairOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
@@ -81,7 +81,7 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
     case OperationType::CREATE_PREISSUANCE_REQUEST:
 		return shared_ptr<OperationFrame>(new CreatePreIssuanceRequestOpFrame(op, res, tx));
     case OperationType::SET_LIMITS:
-		return shared_ptr<OperationFrame>(new SetLimitsOpFrame(op, res, tx));
+		return shared_ptr<OperationFrame>(new ManageLimitsOpFrame(op, res, tx));
 	case OperationType::MANAGE_ASSET_PAIR:
 		return shared_ptr<OperationFrame>(new ManageAssetPairOpFrame(op, res, tx));
     case OperationType::DIRECT_DEBIT:

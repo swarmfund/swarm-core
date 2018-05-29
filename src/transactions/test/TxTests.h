@@ -179,7 +179,7 @@ TransactionFramePtr createSetLimits(Hash const& networkID, SecretKey& source,
 
 void applySetLimits(Application& app, SecretKey& source, Salt seq,
     AccountID* account, AccountType* accountType, Limits limits,  
-    SetLimitsResultCode targetResult = SetLimitsResultCode::SUCCESS);
+    ManageLimitsResultCode targetResult = ManageLimitsResultCode::SUCCESS);
 
 /*TransactionFramePtr createUploadPreemissions(Hash const& networkID, SecretKey& source, Salt seq,
 	std::vector<PreEmission> preEmissions);

@@ -1,5 +1,5 @@
 #include "SetLimitsTestHelper.h"
-#include "transactions/SetLimitsOpFrame.h"
+#include "transactions/ManageLimitsOpFrame.h"
 #include "test/test_marshaler.h"
 
 namespace stellar
@@ -17,7 +17,7 @@ namespace txtest
         Operation op;
         op.body.type(OperationType::SET_LIMITS);
 
-        SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
+        ManageLimitsOp& setLimitsOp = op.body.manageLimitsOp();
 
         if (account)
             setLimitsOp.account.activate() = *account;
@@ -30,12 +30,12 @@ namespace txtest
 
     void
     SetLimitsTestHelper::applySetLimitsTx(Account &source, AccountID *account, AccountType *accountType,
-                                          Limits limits, SetLimitsResultCode expectedResult)
+                                          Limits limits, ManageLimitsResultCode expectedResult)
     {
         TransactionFramePtr txFrame;
         txFrame = createSetLimitsTx(source, account, accountType, limits);
         mTestManager->applyCheck(txFrame);
-        REQUIRE(SetLimitsOpFrame::getInnerCode(
+        REQUIRE(ManageLimitsOpFrame::getInnerCode(
                 txFrame->getResult().result.results()[0]) == expectedResult);
     }
 

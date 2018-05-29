@@ -22,7 +22,7 @@
 #include "transactions/SetOptionsOpFrame.h"
 #include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
-#include "transactions/SetLimitsOpFrame.h"
+#include "transactions/ManageLimitsOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
 #include "ledger/InvoiceFrame.h"
 #include "ledger/AccountHelper.h"
@@ -862,7 +862,7 @@ createSetLimits(Hash const& networkID, SecretKey& source, Salt seq,
     Operation op;
     op.body.type(OperationType::SET_LIMITS);
 
-    SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
+    ManageLimitsOp& setLimitsOp = op.body.manageLimitsOp();
 
     if (account)
         setLimitsOp.account.activate() = *account;
@@ -876,7 +876,7 @@ createSetLimits(Hash const& networkID, SecretKey& source, Salt seq,
 void
 applySetLimits(Application& app, SecretKey& source, Salt seq,
                 AccountID* account, AccountType* accountType, Limits limits,
-                SetLimitsResultCode result)
+                ManageLimitsResultCode result)
 {
     TransactionFramePtr txFrame;
 
@@ -888,7 +888,7 @@ applySetLimits(Application& app, SecretKey& source, Salt seq,
     applyCheck(txFrame, delta, app);
 
     checkTransaction(*txFrame);
-    REQUIRE(SetLimitsOpFrame::getInnerCode(
+    REQUIRE(ManageLimitsOpFrame::getInnerCode(
                 txFrame->getResult().result.results()[0]) == result);
 }
 

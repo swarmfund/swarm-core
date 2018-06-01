@@ -23,7 +23,7 @@ IdentityPolicyHelper::dropAll(Database& db)
     db.getSession()
         << "CREATE TABLE identity_policies"
            "("
-           "id             BIGINT                 NOT NULL CHECK (id >= 0),"
+           "id             BIGINT                 NOT NULL CHECK (id > 0),"
            "ownerid        VARCHAR(56)            NOT NULL,"
            "priority       BIGINT                 NOT NULL CHECK (priority >= 0),"
            "resource       TEXT                   NOT NULL,"

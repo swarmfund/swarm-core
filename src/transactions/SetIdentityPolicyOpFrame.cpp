@@ -17,8 +17,6 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
-const uint64_t SetIdentityPolicyOpFrame::policiesAmountLimit = 100;
-
 SetIdentityPolicyOpFrame::SetIdentityPolicyOpFrame(const Operation& op,
                                                    OperationResult& res,
                                                    TransactionFrame& parentTx)
@@ -41,7 +39,7 @@ SetIdentityPolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
         const auto countOfOwnerPolicies =
                 IdentityPolicyHelper::Instance()->countObjectsForOwner(sourceID,
                                                                        app.getDatabase().getSession());
-        if (countOfOwnerPolicies >= policiesAmountLimit)
+        if (countOfOwnerPolicies >= app.getMaxIdentityPoliciesPerAccount())
         {
             innerResult().code(SetIdentityPolicyResultCode::POLICIES_LIMIT_EXCEED);
             return false;
@@ -120,13 +118,17 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
     // create or update
     LedgerEntry le;
     le.data.type(LedgerEntryType::IDENTITY_POLICY);
-    le.data.identityPolicy().id = mSetIdentityPolicy.id;
+    if (mSetIdentityPolicy.id == 0) {
+        le.data.identityPolicy().id = delta.getHeaderFrame().generateID(LedgerEntryType::IDENTITY_POLICY);
+    }
     le.data.identityPolicy().priority = mSetIdentityPolicy.data->priority;
     le.data.identityPolicy().resource = mSetIdentityPolicy.data->resource;
     le.data.identityPolicy().action = mSetIdentityPolicy.data->action;
     le.data.identityPolicy().effect = mSetIdentityPolicy.data->effect;
     le.data.identityPolicy().ownerID = getSourceID();
-    le.lastModifiedLedgerSeq = ++mSourceAccount->getLastModified();
+    // Test didn't passed if comment this line
+    // Maybe lastModifiedLedgerSeq somewhere doesn't setted
+     le.lastModifiedLedgerSeq = ++mSourceAccount->getLastModified();
 
     EntryHelperProvider::storeAddOrChangeEntry(delta, db, le);
 

@@ -66,6 +66,9 @@ AccountFrame::normalize()
 bool
 AccountFrame::isValid()
 {
+    if (mAccountEntry.accountType == AccountType::ANY)
+        return false;
+
     auto const& a = mAccountEntry;
     return std::is_sorted(a.signers.begin(), a.signers.end(),
                           &AccountFrame::signerCompare);

@@ -45,6 +45,9 @@ bool SignatureValidator::isAccountTypeAllowed(AccountFrame& account,
                                               vector<AccountType>
                                               allowedAccountTypes)
 {
+    if (allowedAccountTypes.size() == 1 && allowedAccountTypes[0] == AccountType::ANY)
+        return true;
+
     auto sourceAccountType = account.getAccountType();
     for (auto allowedAccountType : allowedAccountTypes)
     {

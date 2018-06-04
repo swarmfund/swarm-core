@@ -23,7 +23,7 @@ namespace stellar {
 
     SourceDetails ManagePolicyAttachmentOpFrame::getSourceAccountDetails(
             std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const {
-        return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
+        return SourceDetails({AccountType::ANY}, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
     }
 

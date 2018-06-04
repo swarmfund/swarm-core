@@ -126,10 +126,6 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
     le.data.identityPolicy().action = mSetIdentityPolicy.data->action;
     le.data.identityPolicy().effect = mSetIdentityPolicy.data->effect;
     le.data.identityPolicy().ownerID = getSourceID();
-#error "Review this line"
-    // Test didn't passed if comment this line
-    // Maybe lastModifiedLedgerSeq somewhere doesn't missed
-    le.lastModifiedLedgerSeq = ++mSourceAccount->getLastModified();
 
     EntryHelperProvider::storeAddOrChangeEntry(delta, db, le);
 

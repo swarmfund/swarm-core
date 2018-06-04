@@ -150,8 +150,10 @@ namespace stellar {
                 throw runtime_error("Unexpected actor's policy attachment type");
         }
 
+        auto ownerIDStrKey = PubKeyUtils::toStrKey(ownerID);
+
         st.exchange(use(policyID, "pid"));
-        st.exchange(use(ownerID, "oid"));
+        st.exchange(use(ownerIDStrKey, "oid"));
         st.exchange(use(accType, "at"));
         st.exchange(use(accIDStrKey, "aid"));
         st.exchange(into(exists));
@@ -236,11 +238,13 @@ namespace stellar {
 
         int32_t accountType;
         string accIDStrKey;
+        string ownerIDStrKey;
         int32_t policyAttachmentVersion = 0;
 
         statement &st = prep.statement();
         st.exchange(into(le.data.policyAttachment().policyAttachmentID));
         st.exchange(into(le.data.policyAttachment().policyID));
+        st.exchange(into(ownerIDStrKey));
         st.exchange(into(accountType));
         st.exchange(into(accIDStrKey));
         st.exchange(into(le.lastModifiedLedgerSeq));
@@ -250,19 +254,24 @@ namespace stellar {
         st.execute(true);
         while (st.got_data()) {
             le.data.policyAttachment().ext.v((LedgerVersion) policyAttachmentVersion);
+            le.data.policyAttachment().ownerID = PubKeyUtils::fromStrKey(ownerIDStrKey);
 
-            if (!accIDStrKey.empty() && accountType != EMPTY_VALUE)
-                throw runtime_error(
-                        "Unexpected state. Policy cannot be attached to account type and account id within one attachment");
-
-            if (accountType != EMPTY_VALUE) {
+            if (accIDStrKey.empty() && accountType == EMPTY_VALUE)
+            {
+                le.data.policyAttachment().actor.type(PolicyAttachmentType::FOR_ANY_ACCOUNT);
+            }
+            else if (accountType == EMPTY_VALUE) {
+                le.data.policyAttachment().actor.type(PolicyAttachmentType::FOR_ACCOUNT_ID);
+                le.data.policyAttachment().actor.accountID() = PubKeyUtils::fromStrKey(accIDStrKey);
+            }
+            else if (accIDStrKey.empty()) {
                 le.data.policyAttachment().actor.type(PolicyAttachmentType::FOR_ACCOUNT_TYPE);
                 le.data.policyAttachment().actor.accountType() = AccountType(accountType);
             }
-
-            if (!accIDStrKey.empty()) {
-                le.data.policyAttachment().actor.type(PolicyAttachmentType::FOR_ACCOUNT_ID);
-                le.data.policyAttachment().actor.accountID() = PubKeyUtils::fromStrKey(accIDStrKey);
+            else
+            {
+                throw runtime_error("Unexpected state: policy can't be attached "
+                                    "to account type and account id within one attachment");
             }
 
             PolicyAttachmentFrame::ensureValid(le.data.policyAttachment());

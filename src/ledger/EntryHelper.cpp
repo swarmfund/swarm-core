@@ -37,6 +37,7 @@
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntry.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/PolicyAttachmentHelper.h"
 #include "xdrpp/printer.h"
 #include "xdrpp/marshal.h"
 #include "crypto/Hex.h"
@@ -188,5 +189,6 @@ namespace stellar
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY, ExternalSystemAccountIDPoolEntryHelper::Instance() },
         { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance() },
 		{ LedgerEntryType::IDENTITY_POLICY, IdentityPolicyHelper::Instance() },
+		{ LedgerEntryType::POLICY_ATTACHMENT, PolicyAttachmentHelper::Instance() },
 	};
 }

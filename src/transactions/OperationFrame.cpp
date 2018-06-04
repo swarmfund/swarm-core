@@ -38,6 +38,7 @@
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 #include "transactions/ManageSaleOpFrame.h"
 #include "transactions/SetIdentityPolicyOpFrame.h"
+#include "transactions/ManagePolicyAttachmentOpFrame.h"
 #include "database/Database.h"
 
 #include "medida/meter.h"
@@ -110,6 +111,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
     case OperationType::SET_IDENTITY_POLICY:
         return shared_ptr<OperationFrame>(new SetIdentityPolicyOpFrame(op, res, tx));
+    case OperationType::MANAGE_POLICY_ATTACHMENT:
+        return shared_ptr<OperationFrame>(new ManagePolicyAttachmentOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

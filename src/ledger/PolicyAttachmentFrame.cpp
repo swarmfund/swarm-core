@@ -48,8 +48,20 @@ namespace stellar {
         policyAttachment.policyID = creationData.policyID;
         policyAttachment.ownerID = ownerID;
         policyAttachment.actor.type(creationData.actor.type());
-        policyAttachment.actor.accountType() = creationData.actor.accountType();
-        policyAttachment.actor.accountID() = creationData.actor.accountID();
+
+        switch (policyAttachment.actor.type())
+        {
+            case PolicyAttachmentType::FOR_ACCOUNT_TYPE:
+                policyAttachment.actor.accountType() = creationData.actor.accountType();
+                break;
+            case PolicyAttachmentType::FOR_ACCOUNT_ID:
+                policyAttachment.actor.accountID() = creationData.actor.accountID();
+                break;
+            case PolicyAttachmentType::FOR_ANY_ACCOUNT:
+                break;
+            default:
+                throw runtime_error("bad policy attachment actor type");
+        }
 
         return make_shared<PolicyAttachmentFrame>(entry);
     }

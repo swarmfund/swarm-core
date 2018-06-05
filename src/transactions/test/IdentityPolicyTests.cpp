@@ -134,13 +134,11 @@ TEST_CASE("Set identity policy", "[tx][set_identity_policy]") {
                                                                       &data);
         for (int i = 0; i < app.getMaxIdentityPoliciesPerAccount(); i++)
         {
-            policyEntry.id = i;
             setIdentityPolicyTestHelper.applySetIdentityPolicyTx(account,
                                                                  policyEntry,
                                                                  false,
                                                                  SetIdentityPolicyResultCode::SUCCESS);
         }
-        policyEntry.id += 1;
         setIdentityPolicyTestHelper.applySetIdentityPolicyTx(account,
                                                              policyEntry,
                                                              false,
@@ -167,6 +165,8 @@ TEST_CASE("Set identity policy", "[tx][set_identity_policy]") {
                                                              false,
                                                              SetIdentityPolicyResultCode::SUCCESS);
         // delete
+        // assign 1 due to ids increases linear from 1 to uint64_max
+        policyEntry.id = 1;
         setIdentityPolicyTestHelper.applySetIdentityPolicyTx(account,
                                                              policyEntry,
                                                              true,
@@ -183,6 +183,7 @@ TEST_CASE("Set identity policy", "[tx][set_identity_policy]") {
                                                              false,
                                                              SetIdentityPolicyResultCode::SUCCESS);
         // delete
+        policyEntry.id = 1;
         setIdentityPolicyTestHelper.applySetIdentityPolicyTx(account,
                                                              policyEntry,
                                                              true,

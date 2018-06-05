@@ -17,7 +17,7 @@ public:
                                                   bool isDelete);
 
     void applySetIdentityPolicyTx(Account &source,
-                                  IdentityPolicyEntry &policyEntry,
+                                  IdentityPolicyEntry policyEntry,
                                   bool isDelete,
                                   SetIdentityPolicyResultCode expectedResult = SetIdentityPolicyResultCode::SUCCESS);
 

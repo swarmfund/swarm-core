@@ -35,7 +35,7 @@ TransactionFramePtr SetIdentityPolicyTestHelper::createSetIdentityPolicyTx(Accou
 }
 
 void SetIdentityPolicyTestHelper::applySetIdentityPolicyTx(Account &source,
-                                                           IdentityPolicyEntry &policyEntry,
+                                                           IdentityPolicyEntry policyEntry,
                                                            bool isDelete,
                                                            SetIdentityPolicyResultCode expectedResult)
 {
@@ -52,12 +52,21 @@ void SetIdentityPolicyTestHelper::applySetIdentityPolicyTx(Account &source,
         return;
     }
 
+    SetIdentityPolicyResult setIdentityPolicyResult = txResult.result.results()[0].tr().setIdentityPolicyResult();
+
     auto storedIdentityPolicy =
-            IdentityPolicyHelper::Instance()->loadIdentityPolicy(policyEntry.id, policyEntry.ownerID, mTestManager->getDB());
+            IdentityPolicyHelper::Instance()->loadIdentityPolicy(setIdentityPolicyResult.success().identityPolicyID, policyEntry.ownerID, mTestManager->getDB());
     if (isDelete)
+    {
         REQUIRE(!storedIdentityPolicy);
+    }
     else
+    {
+        // update auto generated id of identity policy
+        policyEntry.id = storedIdentityPolicy->getIdentityPolicy().id;
+
         REQUIRE(storedIdentityPolicy->getIdentityPolicy() == policyEntry);
+    }
 }
 
 IdentityPolicyEntry SetIdentityPolicyTestHelper::createIdentityPolicyEntry(uint64_t id,

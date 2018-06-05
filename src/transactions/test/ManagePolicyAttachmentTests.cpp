@@ -56,7 +56,7 @@ TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]") {
                                       SetIdentityPolicyData::_ext_t{});
 
     auto policyEntry =
-            setIdentityPolicyHelper.createIdentityPolicyEntry(1,
+            setIdentityPolicyHelper.createIdentityPolicyEntry(0,
                                                               accountKey.getPublicKey(),
                                                               &data);
     setIdentityPolicyHelper.applySetIdentityPolicyTx(account,
@@ -145,7 +145,7 @@ TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]") {
         int i = 2;
         for (; i <= 100; ++i) {
             auto policyEntry =
-                    setIdentityPolicyHelper.createIdentityPolicyEntry(i,
+                    setIdentityPolicyHelper.createIdentityPolicyEntry(0,
                                                                       accountKey.getPublicKey(),
                                                                       &data);
             setIdentityPolicyHelper.applySetIdentityPolicyTx(account,
@@ -159,7 +159,7 @@ TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]") {
         }
         // trying to create one more policy attachment with new identity policy
         auto actorWithAnyAccount = managePAHelper.createActorForAnyAccount();
-        auto creationOpInput = managePAHelper.createCreationOpInput(--i, actorWithAnyAccount);
+        auto creationOpInput = managePAHelper.createCreationOpInput(i - 1, actorWithAnyAccount);
 
         managePAHelper.applyManagePolicyAttachment(account,
                                                    creationOpInput,

@@ -101,6 +101,8 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
     // delete
     if (mSetIdentityPolicy.data.get() == nullptr)
     {
+        innerResult().success().identityPolicyID = mSetIdentityPolicy.id;
+
         auto identityPolicyFrame = IdentityPolicyHelper::Instance()->loadIdentityPolicy(
                 mSetIdentityPolicy.id, getSourceID(), db, &delta);
 
@@ -115,7 +117,7 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
         return true;
     }
 
-    // create or update
+    // construct ledger entry for creating or updating identity policy
     LedgerEntry le;
     le.data.type(LedgerEntryType::IDENTITY_POLICY);
     le.data.identityPolicy().id = mSetIdentityPolicy.id == 0
@@ -126,6 +128,8 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
     le.data.identityPolicy().action = mSetIdentityPolicy.data->action;
     le.data.identityPolicy().effect = mSetIdentityPolicy.data->effect;
     le.data.identityPolicy().ownerID = getSourceID();
+
+    innerResult().success().identityPolicyID = le.data.identityPolicy().id;
 
     EntryHelperProvider::storeAddOrChangeEntry(delta, db, le);
 

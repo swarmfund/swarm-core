@@ -1,7 +1,9 @@
 #include "ManageSaleOpFrame.h"
+#include "OfferManager.h"
 #include <ledger/SaleHelper.h>
 #include <ledger/ReviewableRequestFrame.h>
 #include <ledger/ReviewableRequestHelper.h>
+#include <ledger/OfferHelper.h>
 
 namespace stellar {
     ManageSaleOpFrame::ManageSaleOpFrame(Operation const &op, OperationResult &opRes, TransactionFrame &parentTx)
@@ -17,7 +19,13 @@ namespace stellar {
     SourceDetails
     ManageSaleOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                                int32_t ledgerVersion) const {
-        return SourceDetails({AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
+        std::vector<AccountType> allowedSourceAccountTypes = { AccountType::SYNDICATE };
+
+        if (ledgerVersion >= static_cast<int32_t>(LedgerVersion::ALLOW_MASTER_TO_MANAGE_SALE)) {
+            allowedSourceAccountTypes.push_back(AccountType::MASTER);
+        }
+
+        return SourceDetails(allowedSourceAccountTypes, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t>(SignerType::ASSET_MANAGER));
     }
 
@@ -74,9 +82,31 @@ namespace stellar {
         return true;
     }
 
+    void ManageSaleOpFrame::cancelSale(SaleFrame::pointer sale, LedgerDelta &delta, Database &db, LedgerManager &lm) {
+        for (auto &saleQuoteAsset : sale->getSaleEntry().quoteAssets) {
+            cancelAllOffersForQuoteAsset(sale, saleQuoteAsset, delta, db);
+        }
+        AccountManager::unlockPendingIssuanceForSale(sale, delta, db, lm);
+        SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
+    }
+
+    void ManageSaleOpFrame::cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,
+                                                         LedgerDelta &delta, Database &db) {
+        auto orderBookID = sale->getID();
+        const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(),
+                                                                                   saleQuoteAsset.quoteAsset,
+                                                                                   &orderBookID, nullptr, db);
+        OfferManager::deleteOffers(offersToCancel, db, delta);
+    }
+
     bool ManageSaleOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
         Database &db = app.getDatabase();
-        if (!SaleHelper::Instance()->exists(db, mManageSaleOp.saleID)) {
+
+        auto saleFrame = getSourceAccount().getAccountType() == AccountType::MASTER
+                         ? SaleHelper::Instance()->loadSale(mManageSaleOp.saleID, db, &delta)
+                         : SaleHelper::Instance()->loadSale(mManageSaleOp.saleID, getSourceID(), db, &delta);
+
+        if (!saleFrame) {
             innerResult().code(ManageSaleResultCode::SALE_NOT_FOUND);
             return false;
         }
@@ -88,11 +118,18 @@ namespace stellar {
                 }
                 return createUpdateSaleDetailsRequest(app, delta, ledgerManager, db);
             }
+            case ManageSaleAction::CANCEL: {
+                cancelSale(saleFrame, delta, db, ledgerManager);
+                break;
+            }
             default:
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected action from manage sale op: "
                                                        << xdr::xdr_to_string(mManageSaleOp.data.action());
                 throw std::runtime_error("Unexpected action from manage sale op");
         }
+
+        innerResult().code(ManageSaleResultCode::SUCCESS);
+        return true;
     }
 
     bool ManageSaleOpFrame::doCheckValid(Application &app) {

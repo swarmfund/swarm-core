@@ -4,6 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/SaleFrame.h>
 #include "overlay/StellarXDR.h"
 #include "ledger/StatisticsFrame.h"
 #include "ledger/AccountFrame.h"
@@ -91,5 +92,8 @@ public:
     static BalanceFrame::pointer loadOrCreateBalanceFrameForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
 
     static bool isAllowedToReceive(BalanceID receivingBalance, Database& db);
+
+    static void unlockPendingIssuanceForSale(const SaleFrame::pointer sale, LedgerDelta &delta, Database &db,
+                                             LedgerManager &lm);
 };
 }

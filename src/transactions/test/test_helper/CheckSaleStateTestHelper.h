@@ -11,7 +11,6 @@ namespace txtest
 
     class CheckSaleStateHelper : public TxHelper
     {
-        void ensureCancel(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
         void ensureClose(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
         void ensureUpdated(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
         void ensureNoOffersLeft(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
@@ -19,6 +18,8 @@ namespace txtest
             SaleQuoteAsset const& saleQuoteAsset, CheckSubSaleClosedResult result) const;
     public:
         explicit CheckSaleStateHelper(TestManager::pointer testManager);
+
+        void ensureCancel(uint64_t saleID, StateBeforeTxHelper& stateBeforeTx) const;
 
         TransactionFramePtr createCheckSaleStateTx(Account& source, uint64_t saleID);
         CheckSaleStateResult applyCheckSaleStateTx(Account& source, uint64_t saleID, CheckSaleStateResultCode code = CheckSaleStateResultCode::SUCCESS);

@@ -29,7 +29,7 @@ operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
     // non configurable
     FORCE_SCP = false;
-    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::DETAILS_MAX_LENGTH_EXTENDED);
+    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::ALLOW_MASTER_TO_MANAGE_SALE);
     OVERLAY_PROTOCOL_MIN_VERSION = 5;
     OVERLAY_PROTOCOL_VERSION = 5;
 

@@ -120,6 +120,8 @@ namespace stellar {
             }
             case ManageSaleAction::CANCEL: {
                 cancelSale(saleFrame, delta, db, ledgerManager);
+                innerResult().code(ManageSaleResultCode::SUCCESS);
+                innerResult().success().response.action(ManageSaleAction::CANCEL);
                 break;
             }
             default:
@@ -128,8 +130,6 @@ namespace stellar {
                 throw std::runtime_error("Unexpected action from manage sale op");
         }
 
-        innerResult().code(ManageSaleResultCode::SUCCESS);
-        innerResult().success().response.action(ManageSaleAction::CANCEL);
         return true;
     }
 

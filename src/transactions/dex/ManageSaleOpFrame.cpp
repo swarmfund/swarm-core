@@ -129,6 +129,7 @@ namespace stellar {
         }
 
         innerResult().code(ManageSaleResultCode::SUCCESS);
+        innerResult().success().response.action(ManageSaleAction::CANCEL);
         return true;
     }
 

@@ -43,7 +43,9 @@ namespace stellar {
 
         std::vector<AccountType> allowedAccountTypes = {AccountType::NOT_VERIFIED, AccountType::GENERAL,
                                                         AccountType::OPERATIONAL, AccountType::COMMISSION,
-                                                        AccountType::SYNDICATE, AccountType::EXCHANGE};
+                                                        AccountType::SYNDICATE, AccountType::EXCHANGE,
+                                                        AccountType::ACCREDITED_INVESTOR,
+                                                        AccountType::INSTITUTIONAL_INVESTOR};
 
         return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType,
                              static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));

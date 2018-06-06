@@ -77,7 +77,8 @@ const
         allowedBlockedReasons = getAnyBlockReason();
     return SourceDetails({
                              AccountType::GENERAL, AccountType::NOT_VERIFIED,
-                             AccountType::SYNDICATE, AccountType::EXCHANGE
+                             AccountType::SYNDICATE, AccountType::EXCHANGE,
+                             AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
                          },
                          mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER),

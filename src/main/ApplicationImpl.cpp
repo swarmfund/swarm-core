@@ -63,8 +63,19 @@ namespace stellar {
         mStopSignals.add(SIGTERM);
 #endif
 
-        ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::BITCOIN_BASIC);
-        ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::ETHEREUM_BASIC);
+        if (mConfig.BTC_ADDRESS_ROOT != "") {
+            ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::BITCOIN_BASIC);
+        }
+        else {
+            CLOG(WARNING, Logging::OPERATION_LOGGER) << "BTC ID Generator is not available as BTC_ADDRESS_ROOT is empty";
+        }
+
+        if (mConfig.ETH_ADDRESS_ROOT != "") {
+            ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::ETHEREUM_BASIC);
+        }
+        else {
+            CLOG(WARNING, Logging::OPERATION_LOGGER) << "BTC ID Generator is not available as ETH_ADDRESS_ROOT is empty";
+        }
 
         std::srand(static_cast<uint32>(clock.now().time_since_epoch().count()));
 

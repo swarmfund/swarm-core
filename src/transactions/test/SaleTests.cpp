@@ -219,6 +219,10 @@ TEST_CASE("Sale", "[tx][sale]")
 
             sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
             REQUIRE(sales.size() == 2);
+
+            // close one of two sales to check that right base amount was unlocked
+            auto data = manageSaleTestHelper.createDataForAction(ManageSaleAction::CANCEL);
+            manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, data);
         }
         SECTION("Try to cancel sale offer as regular one")
         {
@@ -300,8 +304,10 @@ TEST_CASE("Sale", "[tx][sale]")
         SECTION("Manage sale")
         {
             SECTION("Update sale details") {
+                uint64_t requestID = 0;
                 std::string newDetails = "{\n \"a\": \"test string\" \n}";
-                auto manageSaleData = manageSaleTestHelper.createDataForUpdateSaleDetails(0, newDetails);
+                auto manageSaleData = manageSaleTestHelper.createDataForAction(
+                        ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST, &requestID, &newDetails);
                 auto manageSaleResult = manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
 
                 SECTION("Request already exists") {
@@ -320,7 +326,7 @@ TEST_CASE("Sale", "[tx][sale]")
                                                            ManageSaleResultCode::UPDATE_DETAILS_REQUEST_NOT_FOUND);
                 }
 
-                auto requestID = manageSaleResult.success().response.requestID();
+                requestID = manageSaleResult.success().response.requestID();
 
                 SECTION("Successful update") {
                     manageSaleData.updateSaleDetailsData().requestID = requestID;

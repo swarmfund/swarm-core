@@ -1,11 +1,13 @@
 #include <ledger/SaleHelper.h>
 #include <ledger/ReviewableRequestHelper.h>
 #include <lib/catch.hpp>
-#include <transactions/ManageSaleOpFrame.h>
+#include <transactions/dex/ManageSaleOpFrame.h>
 #include "ManageAssetTestHelper.h"
 #include "ManageSaleTestHelper.h"
 #include "TestManager.h"
 #include "TxHelper.h"
+#include "StateBeforeTxHelper.h"
+#include "CheckSaleStateTestHelper.h"
 
 class pointer;
 namespace stellar {
@@ -15,12 +17,30 @@ namespace stellar {
 
         }
 
-        ManageSaleOp::_data_t
-        txtest::ManageSaleTestHelper::createDataForUpdateSaleDetails(uint64_t requestID, std::string newDetails) {
+        ManageSaleOp::_data_t ManageSaleTestHelper::createDataForAction(ManageSaleAction action, uint64_t *requestID,
+                                                                        std::string *newDetails) {
             ManageSaleOp::_data_t data;
-            data.action(ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST);
-            data.updateSaleDetailsData().requestID = requestID;
-            data.updateSaleDetailsData().newDetails = newDetails;
+
+            switch (action) {
+                case ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST: {
+                    if (!requestID || !newDetails) {
+                        throw std::runtime_error("Request ID and new details string cannot be nullptr "
+                                                 "while creating update sale details request");
+                    }
+                    data.action(ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST);
+                    data.updateSaleDetailsData().requestID = *requestID;
+                    data.updateSaleDetailsData().newDetails = *newDetails;
+                    break;
+                }
+                case ManageSaleAction::CANCEL: {
+                    data.action(ManageSaleAction::CANCEL);
+                    break;
+                }
+                default: {
+                    throw std::runtime_error("Unexpected ManageSaleAction type");
+                }
+            }
+
             return data;
         }
 
@@ -39,15 +59,19 @@ namespace stellar {
                                                 ManageSaleResultCode expectedResultCode) {
             auto &db = mTestManager->getDB();
             auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+            auto saleHelper = SaleHelper::Instance();
+
+            auto saleBeforeOp = saleHelper->loadSale(saleID, db);
 
             ReviewableRequestFrame::pointer requestBeforeTx;
             if (data.action() == ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST) {
                 requestBeforeTx = reviewableRequestHelper->loadRequest(data.updateSaleDetailsData().requestID, db);
             }
 
+            std::vector<LedgerDelta::KeyEntryMap> stateBeforeOp;
             TransactionFramePtr txFrame;
             txFrame = createManageSaleTx(source, saleID, data);
-            mTestManager->applyCheck(txFrame);
+            mTestManager->applyCheck(txFrame, stateBeforeOp);
 
             auto txResult = txFrame->getResult();
             auto actualResultCode = ManageSaleOpFrame::getInnerCode(txResult.result.results()[0]);
@@ -62,24 +86,39 @@ namespace stellar {
             if (actualResultCode != ManageSaleResultCode::SUCCESS)
                 return manageSaleResult;
 
-            auto requestAfterTx = reviewableRequestHelper->loadRequest(manageSaleResult.success().response.requestID(),
-                                                                       db);
-            REQUIRE(!!requestAfterTx);
+            auto saleAfterOp = saleHelper->loadSale(saleID, db);
 
-            auto requestAfterTxEntry = requestAfterTx->getRequestEntry();
+            switch (data.action()) {
+                case ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST: {
+                    auto requestAfterTx = reviewableRequestHelper->loadRequest(
+                            manageSaleResult.success().response.requestID(), db);
+                    REQUIRE(!!requestAfterTx);
 
-            REQUIRE(requestAfterTxEntry.body.updateSaleDetailsRequest().saleID == saleID);
-            REQUIRE(requestAfterTxEntry.body.updateSaleDetailsRequest().newDetails ==
-                    data.updateSaleDetailsData().newDetails);
+                    auto requestAfterTxEntry = requestAfterTx->getRequestEntry();
 
-            if (!!requestBeforeTx) {
-                auto requestBeforeTxEntry = requestBeforeTx->getRequestEntry();
+                    REQUIRE(requestAfterTxEntry.body.updateSaleDetailsRequest().saleID == saleID);
+                    REQUIRE(requestAfterTxEntry.body.updateSaleDetailsRequest().newDetails ==
+                            data.updateSaleDetailsData().newDetails);
 
-                REQUIRE(requestBeforeTxEntry.body.updateSaleDetailsRequest().saleID ==
-                        requestAfterTxEntry.body.updateSaleDetailsRequest().saleID);
+                    if (!!requestBeforeTx) {
+                        auto requestBeforeTxEntry = requestBeforeTx->getRequestEntry();
 
-                REQUIRE(requestBeforeTxEntry.body.updateSaleDetailsRequest().newDetails !=
-                        requestAfterTxEntry.body.updateSaleDetailsRequest().newDetails);
+                        REQUIRE(requestBeforeTxEntry.body.updateSaleDetailsRequest().saleID ==
+                                requestAfterTxEntry.body.updateSaleDetailsRequest().saleID);
+
+                        REQUIRE(requestBeforeTxEntry.body.updateSaleDetailsRequest().newDetails !=
+                                requestAfterTxEntry.body.updateSaleDetailsRequest().newDetails);
+                    }
+
+                    break;
+                }
+                case ManageSaleAction::CANCEL: {
+                    REQUIRE(!saleAfterOp);
+                    REQUIRE(stateBeforeOp.size() == 1);
+                    StateBeforeTxHelper stateBeforeTxHelper(stateBeforeOp[0]);
+                    CheckSaleStateHelper(mTestManager).ensureCancel(saleID, stateBeforeTxHelper);
+                    break;
+                }
             }
 
             return manageSaleResult;

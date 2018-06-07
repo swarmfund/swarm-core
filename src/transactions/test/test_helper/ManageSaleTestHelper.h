@@ -8,7 +8,8 @@ namespace stellar {
         public:
             explicit ManageSaleTestHelper(TestManager::pointer testManager);
 
-            ManageSaleOp::_data_t createDataForUpdateSaleDetails(uint64_t requestID, std::string newDetails);
+            ManageSaleOp::_data_t createDataForAction(ManageSaleAction action, uint64_t *requestID = nullptr,
+                                                      std::string *newDetails = nullptr);
 
             TransactionFramePtr createManageSaleTx(Account &source, uint64_t saleID, ManageSaleOp::_data_t data);
 

@@ -22,6 +22,9 @@ namespace stellar {
         Secp256k1IDGenerator(Application& app, Database& db, std::string extendedPublicKey)
                 : Generator(app, db)
         {
+            if (extendedPublicKey == "") {
+                throw std::runtime_error("Unexpected action. Trying to create Secp256k1IDGenerator with empty extendedPublicKey");
+            }
             mHdKeychain = HDKeychain::fromExtendedPublicKey(extendedPublicKey);
         }
 

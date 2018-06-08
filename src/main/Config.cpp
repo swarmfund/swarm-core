@@ -720,17 +720,6 @@ Config::validateConfig()
 		throw std::invalid_argument("BASE_EXCHANGE_NAME must not be empty");
 	}
 
-        if (ETH_ADDRESS_ROOT.empty())
-        {
-            throw std::invalid_argument("ETH_ADDRESS_ROOT must not be empty");
-        }
-
-        if (BTC_ADDRESS_ROOT.empty())
-        {
-            throw std::invalid_argument("BTC_ADDRESS_ROOT must not be empty");
-        }
-
-
 	if (TX_EXPIRATION_PERIOD_WINDOW == 0)
 		throw std::invalid_argument("TX_EXPIRATION_PERIOD_WINDOW must be set");
 

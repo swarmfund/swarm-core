@@ -80,7 +80,9 @@ TEST_CASE("Asset issuer migration", "[tx][asset_issuer_migration]")
 
 TEST_CASE("manage asset", "[tx][manage_asset]")
 {
-    auto const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
+    auto& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
+    auto updateMaxIssuanceTxHash = "1096aef9c1847621e7ce3e6e1c1568932a65ec1b91ba6532086d8e98193ed63d";
+    cfg.TX_SKIP_SIG_CHECK.emplace(updateMaxIssuanceTxHash);
     VirtualClock clock;
     const auto appPtr = Application::create(clock, cfg);
     auto& app = *appPtr;
@@ -92,6 +94,39 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
 	auto assetHelper = AssetHelper::Instance();
     CreateAccountTestHelper createAccountTestHelper(testManager);
 
+    SECTION("Given valid asset") 
+    {
+        auto manageAssetHelper = ManageAssetTestHelper(testManager);
+        auto assetCode = "USD681";
+        auto request = manageAssetHelper.createAssetCreationRequest(assetCode, root.key.getPublicKey(), "{}", UINT64_MAX, 0);
+        manageAssetHelper.applyManageAssetTx(root, 0,
+            request);
+        auto assetFrame = AssetHelper::Instance()->loadAsset(assetCode, testManager->getDB());
+        REQUIRE(!!assetFrame);
+        SECTION("Not able to update max issuance") 
+        {
+            auto updateIssuanceRequest = manageAssetHelper.updateMaxAmount(assetCode, 1);
+            manageAssetHelper.applyManageAssetTx(root, 0,
+                updateIssuanceRequest, ManageAssetResultCode::SUCCESS, OperationResultCode::opNOT_ALLOWED);
+
+        }
+        SECTION("Able to change max issuance with fork") {
+            auto maxIssuanceAmount = 0;
+            auto updateIssuanceRequest = manageAssetHelper.updateMaxAmount(assetCode, maxIssuanceAmount);
+            auto txFrame = manageAssetHelper.createManageAssetTx(root, 0, updateIssuanceRequest);
+
+            std::string txIDString(binToHex(txFrame->getContentsHash()));
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "tx must go throug even with invalid sigs: " << txIDString;
+            REQUIRE(updateMaxIssuanceTxHash == txIDString);
+            LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                app.getDatabase());
+            applyCheck(txFrame, delta, app);
+
+            assetFrame = AssetHelper::Instance()->loadAsset(assetCode, testManager->getDB());
+            REQUIRE(!!assetFrame);
+            REQUIRE(assetFrame->getMaxIssuanceAmount() == maxIssuanceAmount);
+        }
+    }
     SECTION("Syndicate happy path")
     {
         auto syndicate = Account{SecretKey::random(), Salt(0)};

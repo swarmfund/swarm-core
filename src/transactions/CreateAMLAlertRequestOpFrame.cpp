@@ -32,7 +32,8 @@ CreateAMLAlertRequestOpFrame::getCounterpartyDetails(
         {
             balanceFrame->getAccountID(), CounterpartyDetails({
                 AccountType::GENERAL, AccountType::SYNDICATE,
-                AccountType::EXCHANGE,AccountType::NOT_VERIFIED
+                AccountType::EXCHANGE,AccountType::NOT_VERIFIED,
+                AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
             }, true, true)
         }
     };

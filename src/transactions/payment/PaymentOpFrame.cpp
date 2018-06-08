@@ -79,7 +79,8 @@ std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpar
 		return{};
 	return{
 		{ targetBalance->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
-                                                               AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE },
+                                                               AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE,
+                                                               AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR },
                                                              true, false) }
 	};
 }
@@ -103,7 +104,8 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
     if (ledgerVersion >= int32_t(LedgerVersion::USE_KYC_LEVEL))
     {
         allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
-            AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE };
+                                AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE,
+                                AccountType::ACCREDITED_INVESTOR, AccountType ::INSTITUTIONAL_INVESTOR};
     }
 	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType,
 						 static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));

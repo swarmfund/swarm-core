@@ -29,7 +29,9 @@ namespace stellar {
 
     std::unordered_map<AccountID, CounterpartyDetails>
     CreateUpdateKYCRequestOpFrame::getCounterpartyDetails(Database &db, LedgerDelta *delta, int32_t ledgerVersion) const {
-        std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED};
+        std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED,
+                                                        AccountType::ACCREDITED_INVESTOR,
+                                                        AccountType::INSTITUTIONAL_INVESTOR};
         if (ledgerVersion >= static_cast<int32_t>(LedgerVersion::ALLOW_SYNDICATE_TO_UPDATE_KYC)) {
             allowedAccountTypes.push_back(AccountType::SYNDICATE);
         }
@@ -53,7 +55,9 @@ namespace stellar {
                 allowedSignerTypes |= static_cast<int32_t>(SignerType::ACCOUNT_MANAGER);
             }
 
-            std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED};
+            std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED,
+                                                            AccountType::ACCREDITED_INVESTOR,
+                                                            AccountType::INSTITUTIONAL_INVESTOR};
 
             if (ledgerVersion >= static_cast<int32_t>(LedgerVersion::ALLOW_SYNDICATE_TO_UPDATE_KYC))
             {

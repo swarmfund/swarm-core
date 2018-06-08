@@ -44,7 +44,10 @@ SourceDetails SetLimitsOpFrame::getSourceAccountDetails(std::unordered_map<Accou
 		if (account == counterpartiesDetails.end() || !account->second.mAccount)
 			throw std::invalid_argument("Unexpected counterpartiesDetails. Expected counterparty to be included");
 
-		if (account->second.mAccount->getAccountType() == AccountType::GENERAL)
+		auto accountType = account->second.mAccount->getAccountType();
+		if (accountType == AccountType::GENERAL ||
+            accountType == AccountType::ACCREDITED_INVESTOR ||
+            accountType == AccountType::INSTITUTIONAL_INVESTOR)
 		{
 			signerType |= static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
 			threshold = mSourceAccount->getLowThreshold();

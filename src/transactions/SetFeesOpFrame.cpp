@@ -112,7 +112,7 @@ namespace stellar {
         auto feeAssetPair = AssetPairHelper::Instance()->tryLoadAssetPairForAssets(mSetFees.fee->asset,
                                                                                    mSetFees.fee->ext.feeAsset(),
                                                                                    db);
-        if(!feeAssetPair) {
+        if (!feeAssetPair) {
             innerResult().code(SetFeesResultCode::ASSET_PAIR_NOT_FOUND);
             return false;
         }
@@ -230,6 +230,23 @@ namespace stellar {
         return true;
     }
 
+    bool SetFeesOpFrame::isInvestFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
+        if (fee.feeType != FeeType::INVEST_FEE) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected fee type. Expected: "
+                                                   << xdr::xdr_traits<FeeType>::enum_name(FeeType::INVEST_FEE)
+                                                   << " but was: "
+                                                   << xdr::xdr_traits<FeeType>::enum_name(fee.feeType);
+            throw std::runtime_error("Unexpected fee type");
+        }
+
+        if (!mustValidFeeAmounts(fee, metrics))
+            return false;
+
+        if (!mustEmptyFixed(fee, metrics))
+            return false;
+
+        return mustDefaultSubtype(fee, metrics);
+    }
 
     std::unordered_map<AccountID, CounterpartyDetails>
     SetFeesOpFrame::getCounterpartyDetails(Database &db, LedgerDelta *delta) const {
@@ -322,6 +339,9 @@ namespace stellar {
                 break;
             case FeeType::ISSUANCE_FEE:
                 isValidFee = isEmissionFeeValid(*mSetFees.fee, app.getMetrics());
+                break;
+            case FeeType::INVEST_FEE:
+                isValidFee = isInvestFeeValid(*mSetFees.fee, app.getMetrics());
                 break;
             default:
                 innerResult().code(SetFeesResultCode::INVALID_FEE_TYPE);

@@ -52,6 +52,7 @@
 #include <ledger/KeyValueHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
+#include "ledger/SaleAnteHelper.h"
 
 extern "C" void register_factory_sqlite3();
 
@@ -82,7 +83,8 @@ enum databaseSchemaVersion : unsigned long {
     EXTERNAL_POOL_FIX_DB_TYPES = 10,
     EXTERNAL_POOL_FIX_MIGRATION = 11,
     KEY_VALUE_FIX_MIGRATION = 12,
-    EXTERNAL_POOL_FIX_PARENT_DB_TYPE = 13
+    EXTERNAL_POOL_FIX_PARENT_DB_TYPE = 13,
+    ADD_SALE_ANTE = 14
 };
 
 static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE;
@@ -175,9 +177,11 @@ Database::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE:
             ExternalSystemAccountIDPoolEntryHelper::Instance()->parentToNumeric(*this);
             break;
+        case databaseSchemaVersion::ADD_SALE_ANTE:
+            SaleAnteHelper::Instance()->dropAll(*this);
+            break;
         default:
             throw std::runtime_error("Unknown DB schema version");
-            break;
     }
 }
 

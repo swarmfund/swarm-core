@@ -80,7 +80,7 @@ TEST_CASE("Asset issuer migration", "[tx][asset_issuer_migration]")
 
 TEST_CASE("manage asset", "[tx][manage_asset]")
 {
-    auto& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
+    auto cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     auto updateMaxIssuanceTxHash = "1096aef9c1847621e7ce3e6e1c1568932a65ec1b91ba6532086d8e98193ed63d";
     cfg.TX_SKIP_SIG_CHECK.emplace(updateMaxIssuanceTxHash);
     VirtualClock clock;

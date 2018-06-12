@@ -42,5 +42,7 @@ namespace stellar {
         uint64_t getAmount() const {
             return mSaleAnte.amount;
         }
+
+        static pointer createNew(uint64_t saleID, BalanceID const &participantBalanceID, uint64_t amount);
     };
 }

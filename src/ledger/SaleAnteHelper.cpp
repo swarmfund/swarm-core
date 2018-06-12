@@ -202,4 +202,22 @@ namespace stellar {
         sess << "SELECT COUNT(*) FROM sale_ante;", into(count);
         return count;
     }
+
+    std::vector<SaleAnteFrame::pointer> SaleAnteHelper::loadSaleAntesForSale(uint64_t saleID, Database &db) {
+        string sql = saleAnteSelector;
+        sql += " WHERE sale_id = :sale_id";
+        auto prep = db.getPreparedStatement(sql);
+        auto &st = prep.statement();
+        st.exchange(use(saleID, "sale_id"));
+
+        vector<SaleAnteFrame::pointer> result;
+        auto timer = db.getSelectTimer("sale_ante");
+        loadSaleAntes(db, prep, [&result](LedgerEntry const &entry) {
+            SaleAnteFrame::pointer retSaleAnte;
+            retSaleAnte = make_shared<SaleAnteFrame>(entry);
+            result.push_back(retSaleAnte);
+        });
+
+        return result;
+    }
 }

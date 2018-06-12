@@ -50,5 +50,7 @@ namespace stellar {
 
         SaleAnteFrame::pointer loadSaleAnte(uint64 saleID, BalanceID const &participantBalanceID,
                                             Database &db, LedgerDelta *delta = nullptr);
+
+        std::vector<SaleAnteFrame::pointer> loadSaleAntesForSale(uint64_t saleID, Database &db);
     };
 }

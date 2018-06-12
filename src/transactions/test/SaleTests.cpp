@@ -220,7 +220,7 @@ TEST_CASE("Sale", "[tx][sale]")
             sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
             REQUIRE(sales.size() == 2);
 
-            // close one of two sales to check that right base amount was unlocked
+            // cancel one of two sales to check that right base amount was unlocked
             auto data = manageSaleTestHelper.createDataForAction(ManageSaleAction::CANCEL);
             manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, data);
         }

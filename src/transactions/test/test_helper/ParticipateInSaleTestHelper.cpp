@@ -1,3 +1,7 @@
+#include <ledger/SaleAnteHelper.h>
+#include <ledger/FeeHelper.h>
+#include <ledger/AccountHelper.h>
+#include <ledger/BalanceHelper.h>
 #include "ParticipateInSaleTestHelper.h"
 #include "transactions/test/TxTests.h"
 #include "ledger/OfferHelper.h"
@@ -43,7 +47,9 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
                                                       const ManageOfferOp op, ManageOfferSuccessResult success,
     LedgerDelta::KeyEntryMap& stateBeforeTx)
 {
-    auto saleAfterTx = SaleHelper::Instance()->loadSale(op.orderBookID, mTestManager->getDB());
+    auto &db = mTestManager->getDB();
+
+    auto saleAfterTx = SaleHelper::Instance()->loadSale(op.orderBookID, db);
     auto sale = stateBeforeTx.find(saleAfterTx->getKey());
     REQUIRE(sale != stateBeforeTx.end());
     SaleFrame saleBeforeTx(sale->second->mEntry);
@@ -55,6 +61,20 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
     {
         REQUIRE(saleBeforeTx.getSaleEntry().currentCapInBase + op.amount == saleAfterTx->getSaleEntry().currentCapInBase);
     }
+
+    auto sourceAccountFrame = AccountHelper::Instance()->loadAccount(source.key.getPublicKey(), db);
+    auto investFee = FeeHelper::Instance()->loadForAccount(FeeType::INVEST_FEE, balanceBeforeTx.asset, 0,
+                                                           sourceAccountFrame, op.amount, db);
+    if (!!investFee) {
+        auto saleAnteAfterTx = SaleAnteHelper::Instance()->loadSaleAnte(saleAfterTx->getID(),
+                                                                        balanceBeforeTx.balanceID, db);
+        REQUIRE(!!saleAnteAfterTx);
+
+        auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(balanceBeforeTx.balanceID, db);
+        REQUIRE(balanceAfterTx->getLocked() - success.offer.offer().quoteAmount ==
+                balanceBeforeTx.locked + saleAnteAfterTx->getAmount());
+    }
+
     return ManageOfferTestHelper::ensureCreateSuccess(source, op, success, stateBeforeTx);
 }
 }

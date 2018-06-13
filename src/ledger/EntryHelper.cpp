@@ -45,6 +45,7 @@
 #include "database/Database.h"
 #include "SaleHelper.h"
 #include "AccountKYCHelper.h"
+#include "SaleAnteHelper.h"
 
 namespace stellar
 {
@@ -185,10 +186,11 @@ namespace stellar
 		{ LedgerEntryType::REVIEWABLE_REQUEST, ReviewableRequestHelper::Instance() },
 		{ LedgerEntryType::STATISTICS, StatisticsHelper::Instance() },
 		{ LedgerEntryType::TRUST, TrustHelper::Instance() },
-		{ LedgerEntryType ::KEY_VALUE, KeyValueHelper::Instance()},
+		{ LedgerEntryType::KEY_VALUE, KeyValueHelper::Instance()},
         { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance()},
 		{ LedgerEntryType::SALE, SaleHelper::Instance() },
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY, ExternalSystemAccountIDPoolEntryHelper::Instance() },
-        { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance() }
+        { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance() },
+		{ LedgerEntryType::SALE_ANTE, SaleAnteHelper::Instance()}
 	};
 }

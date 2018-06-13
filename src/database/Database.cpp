@@ -87,7 +87,7 @@ enum databaseSchemaVersion : unsigned long {
     ADD_SALE_ANTE = 14
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_SALE_ANTE;
 
 static void
 setSerializable(soci::session& sess)

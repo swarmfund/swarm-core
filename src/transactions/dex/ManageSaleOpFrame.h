@@ -45,6 +45,8 @@ namespace stellar {
         static void cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,
                                                  LedgerDelta &delta, Database &db);
 
+        static void deleteAllAntesForSale(uint64_t saleID, LedgerDelta &delta, Database &db);
+
         std::string getUpdateSaleDetailsRequestReference() const {
             const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::UPDATE_SALE_DETAILS,
                                                         mManageSaleOp.saleID));

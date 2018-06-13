@@ -9,8 +9,12 @@
 #include "main/Application.h"
 #include "ledger/OfferHelper.h"
 #include "OfferManager.h"
+#include "ledger/AccountHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/FeeHelper.h"
+#include "ledger/SaleAnteFrame.h"
+#include "ledger/SaleAnteHelper.h"
 #include "transactions/CheckSaleStateOpFrame.h"
 #include "xdrpp/printer.h"
 
@@ -130,6 +134,70 @@ bool CreateSaleParticipationOpFrame::isSaleActive(Database& db, LedgerManager& l
     }
 }
 
+bool
+CreateSaleParticipationOpFrame::tryCreateSaleAnte(Database &db, LedgerDelta &delta, LedgerManager &ledgerManager,
+                                                  BalanceFrame::pointer sourceBalanceFrame, uint64_t saleID)
+{
+    auto sourceAccountFrame = AccountHelper::Instance()->mustLoadAccount(getSourceID(), db);
+    auto investFeeFrame = FeeHelper::Instance()->loadForAccount(FeeType::INVEST_FEE, sourceBalanceFrame->getAsset(), 0,
+                                                                sourceAccountFrame, mManageOffer.amount, db);
+    if (!investFeeFrame) {
+        return true;
+    }
+
+    uint64_t amountToLock;
+    if (!investFeeFrame->calculatePercentFee(static_cast<uint64_t>(mManageOffer.amount), amountToLock, ROUND_UP)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate invest percent fee - overflow, asset code: "
+                                               << investFeeFrame->getAsset();
+        throw std::runtime_error("Failed to calculate invest percent fee - overflow");
+    }
+
+    auto prevSaleAnte = SaleAnteHelper::Instance()->loadSaleAnte(saleID, sourceBalanceFrame->getBalanceID(), db, &delta);
+    if (!prevSaleAnte) {
+        auto saleAnte = SaleAnteFrame::createNew(saleID, sourceBalanceFrame->getBalanceID(), amountToLock);
+
+        auto lockingResult = sourceBalanceFrame->tryLock(amountToLock);
+        if (lockingResult != BalanceFrame::Result::SUCCESS) {
+            setErrorCode(lockingResult);
+            return false;
+        }
+
+        EntryHelperProvider::storeChangeEntry(delta, db, sourceBalanceFrame->mEntry);
+        EntryHelperProvider::storeAddEntry(delta, db, saleAnte->mEntry);
+        return true;
+    }
+
+    if (prevSaleAnte->getAmount() >= amountToLock) {
+        return true;
+    }
+
+    auto lockingResult = sourceBalanceFrame->tryLock(amountToLock - prevSaleAnte->getAmount());
+    if (lockingResult != BalanceFrame::Result::SUCCESS) {
+        setErrorCode(lockingResult);
+        return false;
+    }
+
+    EntryHelperProvider::storeChangeEntry(delta, db, sourceBalanceFrame->mEntry);
+    EntryHelperProvider::storeChangeEntry(delta, db, prevSaleAnte->mEntry);
+}
+
+void CreateSaleParticipationOpFrame::setErrorCode(BalanceFrame::Result lockingResult)
+{
+    switch (lockingResult) {
+        case BalanceFrame::Result::UNDERFUNDED: {
+            innerResult().code(ManageOfferResultCode::SOURCE_UNDERFUNDED);
+            return;
+        }
+        case BalanceFrame::Result::LINE_FULL: {
+            innerResult().code(ManageOfferResultCode::SOURCE_BALANCE_LOCK_OVERFLOW);
+            return;
+        }
+        default:
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from try lock: " << lockingResult;
+            throw std::runtime_error("Unexpected result code from try lock");
+    }
+}
+
 bool CreateSaleParticipationOpFrame::doApply(Application& app,
                                              LedgerDelta& delta,
                                              LedgerManager& ledgerManager)
@@ -173,8 +241,13 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
         return false;
     }
 
-    const auto isApplied = CreateOfferOpFrame::doApply(app, delta,
-                                                       ledgerManager);
+    if (ledgerManager.shouldUse(LedgerVersion::USE_SALE_ANTE)) {
+        if (!tryCreateSaleAnte(db, delta, ledgerManager, quoteBalance, sale->getID())) {
+            return false;
+        }
+    }
+
+    const auto isApplied = CreateOfferOpFrame::doApply(app, delta, ledgerManager);
     if (!isApplied)
     {
         return false;
@@ -205,7 +278,7 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
 bool CreateSaleParticipationOpFrame::getSaleCurrentCap(const SaleFrame::pointer sale,
     Database& db, uint64_t& totalCurrentCapInDefaultQuote)
 {
-    
+
     totalCurrentCapInDefaultQuote = 0;
     auto const& saleEntry = sale->getSaleEntry();
     for (auto const& quoteAsset : saleEntry.quoteAssets)
@@ -241,7 +314,6 @@ bool CreateSaleParticipationOpFrame::getSaleCurrentCap(const SaleFrame::pointer 
 
     return true;
 }
-
 
 SaleFrame::State CreateSaleParticipationOpFrame::getSaleState(const SaleFrame::pointer sale, Database& db, const uint64_t currentTime)
 {

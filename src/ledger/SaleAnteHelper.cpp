@@ -43,7 +43,10 @@ namespace stellar {
         auto &st = prep.statement();
 
         st.exchange(use(saleAnteEntry.saleID, "sale_id"));
-        st.exchange(use(saleAnteEntry.participantBalanceID, "pbid"));
+
+        string strParticipantBalance = BalanceKeyUtils::toStrKey(saleAnteEntry.participantBalanceID);
+        st.exchange(use(strParticipantBalance, "pbid"));
+
         st.exchange(use(saleAnteEntry.amount, "amount"));
         st.exchange(use(saleAnteFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.exchange(use(version, "v"));
@@ -83,7 +86,10 @@ namespace stellar {
                                             "participant_balance_id = :pbid");
         auto &st = prep.statement();
         st.exchange(use(key.saleAnte().saleID, "sale_id"));
-        st.exchange(use(key.saleAnte().participantBalanceID, "pbid"));
+
+        string strParticipantBalance = BalanceKeyUtils::toStrKey(key.saleAnte().participantBalanceID);
+        st.exchange(use(strParticipantBalance, "pbid"));
+
         st.execute(true);
         delta.deleteEntry(key);
     }
@@ -98,7 +104,10 @@ namespace stellar {
                                             "participant_balance_id = :pbid)");
         auto &st = prep.statement();
         st.exchange(use(key.saleAnte().saleID, "sale_id"));
-        st.exchange(use(key.saleAnte().participantBalanceID, "pbid"));
+
+        string strParticipantBalance = BalanceKeyUtils::toStrKey(key.saleAnte().participantBalanceID);
+        st.exchange(use(strParticipantBalance, "pbid"));
+
         auto exists = 0;
         st.exchange(into(exists));
         st.define_and_bind();
@@ -166,7 +175,9 @@ namespace stellar {
         auto prep = db.getPreparedStatement(sql);
         auto &st = prep.statement();
         st.exchange(use(saleID, "sale_id"));
-        st.exchange(use(participantBalanceID, "pbid"));
+
+        string strParticipantBalance = BalanceKeyUtils::toStrKey(participantBalanceID);
+        st.exchange(use(strParticipantBalance, "pbid"));
 
         SaleAnteFrame::pointer retSaleAnte;
         auto timer = db.getSelectTimer("sale_ante");

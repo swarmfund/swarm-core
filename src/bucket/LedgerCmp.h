@@ -163,6 +163,17 @@ struct LedgerEntryIdCmp
                 auto const& bpool = b.externalSystemAccountIDPoolEntry();
                 return apool.poolEntryID < bpool.poolEntryID;
             }
+            case LedgerEntryType::SALE_ANTE: {
+                auto const& asa = a.saleAnte();
+                auto const& bsa = b.saleAnte();
+                if (asa.saleID < bsa.saleID) {
+                    return true;
+                }
+                if (bsa.saleID < asa.saleID) {
+                    return false;
+                }
+                return asa.participantBalanceID < bsa.participantBalanceID;
+            }
             default:
             {
                 throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");

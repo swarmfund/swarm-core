@@ -145,8 +145,15 @@ CreateSaleParticipationOpFrame::tryCreateSaleAnte(Database &db, LedgerDelta &del
         return true;
     }
 
-    uint64_t amountToLock;
-    if (!investFeeFrame->calculatePercentFee(static_cast<uint64_t>(mManageOffer.amount), amountToLock, ROUND_UP)) {
+    int64_t quoteAssetAmount = 0; // required for calculating amount of sale ante
+    if (!bigDivide(quoteAssetAmount, mManageOffer.amount, mManageOffer.price, ONE, ROUND_UP)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate quote asset amount - overflow, asset code: "
+                                               << investFeeFrame->getAsset();
+        throw std::runtime_error("Failed to calculate quote asset amount - overflow");
+    }
+
+    uint64_t amountToLock = 0;
+    if (!investFeeFrame->calculatePercentFee(static_cast<uint64_t>(quoteAssetAmount), amountToLock, ROUND_UP)) {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate invest percent fee - overflow, asset code: "
                                                << investFeeFrame->getAsset();
         throw std::runtime_error("Failed to calculate invest percent fee - overflow");

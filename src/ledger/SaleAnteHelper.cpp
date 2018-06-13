@@ -86,10 +86,9 @@ namespace stellar {
                                             "participant_balance_id = :pbid");
         auto &st = prep.statement();
         st.exchange(use(key.saleAnte().saleID, "sale_id"));
-
         string strParticipantBalance = BalanceKeyUtils::toStrKey(key.saleAnte().participantBalanceID);
         st.exchange(use(strParticipantBalance, "pbid"));
-
+        st.define_and_bind();
         st.execute(true);
         delta.deleteEntry(key);
     }

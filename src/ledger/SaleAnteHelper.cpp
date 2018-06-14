@@ -230,4 +230,22 @@ namespace stellar {
 
         return result;
     }
+
+    std::unordered_map<BalanceID, SaleAnteFrame::pointer>
+    SaleAnteHelper::loadSaleAntes(uint64_t saleID, Database &db) {
+        std::unordered_map<BalanceID, SaleAnteFrame::pointer> retSaleAntes;
+
+        string sql = saleAnteSelector;
+        sql += " WHERE sale_id = :sale_id";
+        auto prep = db.getPreparedStatement(sql);
+        auto &st = prep.statement();
+        st.exchange(use(saleID, "sale_id"));
+
+        auto timer = db.getSelectTimer("sale_ante");
+        loadSaleAntes(db, prep, [&retSaleAntes](LedgerEntry const &entry) {
+            retSaleAntes[entry.data.saleAnte().participantBalanceID] = make_shared<SaleAnteFrame>(entry);
+        });
+
+        return retSaleAntes;
+    }
 }

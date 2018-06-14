@@ -52,5 +52,7 @@ namespace stellar {
                                             Database &db, LedgerDelta *delta = nullptr);
 
         std::vector<SaleAnteFrame::pointer> loadSaleAntesForSale(uint64_t saleID, Database &db);
+
+        std::unordered_map<BalanceID, SaleAnteFrame::pointer> loadSaleAntes(uint64_t saleID, Database &db);
     };
 }

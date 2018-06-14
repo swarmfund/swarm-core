@@ -184,8 +184,11 @@ CreateSaleParticipationOpFrame::tryCreateSaleAnte(Database &db, LedgerDelta &del
         return false;
     }
 
+    prevSaleAnte->getSaleAnteEntry().amount = amountToLock;
+
     EntryHelperProvider::storeChangeEntry(delta, db, sourceBalanceFrame->mEntry);
     EntryHelperProvider::storeChangeEntry(delta, db, prevSaleAnte->mEntry);
+    return true;
 }
 
 void CreateSaleParticipationOpFrame::setErrorCode(BalanceFrame::Result lockingResult)

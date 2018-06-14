@@ -337,6 +337,7 @@
     <ClCompile Include="..\..\src\transactions\dex\DeleteOfferOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\DeleteSaleParticipationOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\ManageOfferOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\dex\ManageSaleOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\OfferExchange.cpp" />
     <ClCompile Include="..\..\src\transactions\dex\OfferManager.cpp" />
     <ClCompile Include="..\..\src\transactions\DirectDebitOpFrame.cpp" />
@@ -347,8 +348,8 @@
     <ClCompile Include="..\..\src\transactions\ManageAccountOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageAssetPairOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\ManageKeyValueOpFrame.cpp" />
-    <ClCompile Include="..\..\src\transactions\ManageSaleOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\CancelAssetRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetMaxIssuanceOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\CreateAssetOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetHelper.cpp" />
@@ -649,6 +650,7 @@
     <ClInclude Include="..\..\src\transactions\dex\DeleteOfferOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\DeleteSaleParticipationOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\ManageOfferOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\dex\ManageSaleOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\dex\OfferExchange.h" />
     <ClInclude Include="..\..\src\transactions\dex\OfferManager.h" />
     <ClInclude Include="..\..\src\transactions\DirectDebitOpFrame.h" />
@@ -659,8 +661,8 @@
     <ClInclude Include="..\..\src\transactions\ManageAccountOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageAssetPairOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\ManageKeyValueOpFrame.h" />
-    <ClInclude Include="..\..\src\transactions\ManageSaleOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\CancelAssetRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetMaxIssuanceOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetPreIssuerOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\CreateAssetOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetHelper.h" />

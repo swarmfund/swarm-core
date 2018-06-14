@@ -468,6 +468,14 @@ Config::load(std::string const& filename)
                     TX_INTERNAL_ERROR.emplace(txHash);
                 }
             }
+            else if (item.first == "TX_SKIP_SIG_CHECK")
+            {
+                auto txs = readStrVector(item.first, item.second);
+                for (std::string txHash : txs)
+                {
+                    TX_SKIP_SIG_CHECK.emplace(txHash);
+                }
+            }
             else if (item.first == "COMMANDS")
             {
                 COMMANDS = readStrVector(item.first, item.second);

@@ -59,8 +59,7 @@ namespace stellar {
 
         if (st.get_affected_rows() != 1) {
             CLOG(ERROR, Logging::ENTRY_LOGGER) << "Failed to update sale ante with sale id: " << saleAnteEntry.saleID
-                                               << " and participant balance id: "
-                                               << xdr::xdr_to_string(saleAnteEntry.participantBalanceID);
+                                               << " and participant balance id: " << strParticipantBalance;
             throw runtime_error("Failed to update sale ante");
         }
 

@@ -39,7 +39,7 @@ namespace stellar
 
         StatisticsV2Frame::pointer loadStatistics(uint64_t id, Database& db, LedgerDelta* delta = nullptr);
         StatisticsV2Frame::pointer loadStatistics(AccountID& accountID, StatsOpType statsOpType, AssetCode& assetCode,
-                                                  bool isConvertNeeded, Database &db, LedgerDelta *delta);
+                                                  bool isConvertNeeded, Database &db, LedgerDelta *delta = nullptr);
 
         StatisticsV2Frame::pointer mustLoadStatistics(uint64_t id, Database& db, LedgerDelta* delta = nullptr);
         StatisticsV2Frame::pointer mustLoadStatistics(AccountID& accountID, StatsOpType statsOpType, AssetCode& assetCode,

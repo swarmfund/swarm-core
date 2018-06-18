@@ -1,7 +1,3 @@
-//
-// Created by artem on 31.05.18.
-//
-
 #include <ledger/StatisticsV2Helper.h>
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/AssetPairHelper.h>

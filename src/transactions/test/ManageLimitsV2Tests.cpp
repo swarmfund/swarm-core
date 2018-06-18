@@ -1,8 +1,3 @@
-//
-// Created by artem on 04.06.18.
-//
-
-
 #include <ledger/LimitsV2Helper.h>
 #include <transactions/test/test_helper/ManageLimitsTestHelper.h>
 #include "main/Application.h"
@@ -14,8 +9,6 @@
 #include "TxTests.h"
 #include "test/test_marshaler.h"
 #include "test_helper/CreateAccountTestHelper.h"
-
-
 
 using namespace stellar;
 using namespace stellar::txtest;

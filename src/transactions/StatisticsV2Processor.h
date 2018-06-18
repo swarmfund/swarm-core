@@ -1,6 +1,3 @@
-//
-// Created by artem on 31.05.18.
-//
 #pragma once
 
 #include <transactions/AccountManager.h>

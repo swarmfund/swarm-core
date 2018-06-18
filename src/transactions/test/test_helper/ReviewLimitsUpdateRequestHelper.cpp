@@ -48,18 +48,6 @@ LimitsUpdateReviewChecker::checkApprove(ReviewableRequestFrame::pointer request)
 void
 LimitsUpdateReviewChecker::checkPermanentReject(ReviewableRequestFrame::pointer request)
 {
-    /*Database& db = mTestManager->getDB();
-
-    auto accountLimitsHelper = AccountLimitsHelper::Instance();
-    AccountID requestor = request->getRequestor();
-    auto accountLimitsAfterTx = accountLimitsHelper->loadLimits(requestor, db);
-
-    if (!!accountLimitsBeforeTx)
-    {
-        auto limitsEntryBeforeTx = accountLimitsBeforeTx->getLimits();
-        auto limitsEntryAfterTx = accountLimitsAfterTx->getLimits();
-        REQUIRE(limitsEntryBeforeTx == limitsEntryAfterTx);
-    }*/
 }
 
 ReviewLimitsUpdateRequestHelper::ReviewLimitsUpdateRequestHelper(

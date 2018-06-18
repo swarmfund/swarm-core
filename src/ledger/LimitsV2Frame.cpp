@@ -1,7 +1,3 @@
-//
-// Created by artem on 29.05.18.
-//
-
 #include "LimitsV2Frame.h"
 
 

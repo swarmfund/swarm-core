@@ -1,7 +1,3 @@
-//
-// Created by artem on 29.05.18.
-//
-
 #pragma once
 
 #include "EntryHelper.h"

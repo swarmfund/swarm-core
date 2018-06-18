@@ -1,7 +1,3 @@
-//
-// Created by artem on 11.06.18.
-//
-
 #include "PendingStatisticsFrame.h"
 
 using namespace std;

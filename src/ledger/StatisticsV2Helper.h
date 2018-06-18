@@ -1,7 +1,4 @@
-//
-// Created by artem on 29.05.18.
-//
-
+#pragma once
 #include "ledger/EntryHelper.h"
 #include "ledger/LedgerManager.h"
 #include <functional>

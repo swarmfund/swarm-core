@@ -1,7 +1,3 @@
-//
-// Created by artem on 29.05.18.
-//
-
 #include "StatisticsV2Frame.h"
 #include <util/types.h>
 #include "database/Database.h"

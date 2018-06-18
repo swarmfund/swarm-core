@@ -1,7 +1,3 @@
-//
-// Created by artem on 29.05.18.
-//
-
 #include "StatisticsV2Helper.h"
 #include "LedgerDelta.h"
 #include <lib/xdrpp/xdrpp/printer.h>
@@ -25,12 +21,12 @@ namespace stellar {
                            "asset_code          TEXT            NOT NULL,"
                            "is_convert_needed   BOOLEAN         NOT NULL,"
                            "daily_out           NUMERIC(20,0) 	NOT NULL,"
-                           "weekly_out  	    NUMERIC(20,0)  	NOT NULL,"
+                           "weekly_out          NUMERIC(20,0)  	NOT NULL,"
                            "monthly_out         NUMERIC(20,0)  	NOT NULL,"
                            "annual_out	        NUMERIC(20,0)  	NOT NULL,"
                            "updated_at          BIGINT 	        NOT NULL,"
                            "lastmodified        INT 		    NOT NULL,"
-                           "version		        INT 		    NOT NULL DEFAULT 0,"
+                           "version	            INT 		    NOT NULL DEFAULT 0,"
                            "UNIQUE (account_id, stats_op_type, asset_code, is_convert_needed)"
                            ");";
     }

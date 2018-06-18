@@ -1,6 +1,3 @@
-//
-// Created by artem on 11.06.18.
-//
 #pragma once
 
 #include "ledger/EntryFrame.h"

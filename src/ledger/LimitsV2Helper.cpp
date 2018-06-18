@@ -1,7 +1,3 @@
-//
-// Created by artem on 29.05.18.
-//
-
 #include <search.h>
 #include <lib/xdrpp/xdrpp/printer.h>
 #include "LimitsV2Helper.h"

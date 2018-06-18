@@ -1,6 +1,3 @@
-//
-// Created by artem on 11.06.18.
-//
 #include <database/Database.h>
 #include "PendingStatisticsHelper.h"
 #include "LedgerDelta.h"
@@ -23,8 +20,8 @@ namespace stellar
                            "statistics_id       BIGINT          NOT NULL REFERENCES statistics_v2, "
                            "request_id          BIGINT          NOT NULL REFERENCES reviewable_request, "
                            "amount              NUMERIC(20,0)   NOT NULL,"
-                           "lastmodified        INT 		    NOT NULL,"
-                           "version		        INT 		    NOT NULL DEFAULT 0,"
+                           "lastmodified        INT             NOT NULL,"
+                           "version             INT             NOT NULL DEFAULT 0,"
                            "PRIMARY KEY (request_id, statistics_id)"
                            ");";
     }

@@ -70,56 +70,6 @@ ManageLimitsOpFrame::getInnerResultCodeAsStr()
     return xdr::xdr_traits<ManageLimitsResultCode>::enum_name(code);
 }
 
-/*bool
-ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
-                           LedgerManager& ledgerManager)
-{
-    Database& db = ledgerManager.getDatabase();
-    if (mManageLimits.accountID)
-    {
-		auto accountLimitsHelper = AccountLimitsHelper::Instance();
-        auto accountLimitsFrame = accountLimitsHelper->loadLimits(*mManageLimits.account, db);
-        if (accountLimitsFrame)
-        {
-            accountLimitsFrame->manageLimits(mManageLimits.limits);
-            EntryHelperProvider::storeChangeEntry(delta, db, accountLimitsFrame->mEntry);
-        }
-        else
-        {
-            accountLimitsFrame = AccountLimitsFrame::createNew(*mManageLimits.account,
-                mManageLimits.limits);
-            EntryHelperProvider::storeAddEntry(delta, db, accountLimitsFrame->mEntry);
-        }
-    }
-    else
-    {
-        assert(mManageLimits.accountType);
-		auto accountTypeLimitsHelper = AccountTypeLimitsHelper::Instance();
-        auto accountTypeLimits = accountTypeLimitsHelper->loadLimits(*mManageLimits.accountType, db, &delta);
-        if (accountTypeLimits)
-        {
-            accountTypeLimits->manageLimits(mManageLimits.limits);
-            EntryHelperProvider::storeChangeEntry(delta, db, accountTypeLimits->mEntry);
-        }
-        else
-        {
-            LedgerEntry le;
-            le.data.type(LedgerEntryType::ACCOUNT_TYPE_LIMITS);
-            AccountTypeLimitsEntry& entry = le.data.accountTypeLimits();
-
-            entry.accountType = *mManageLimits.accountType;
-            entry.limits = mManageLimits.limits;
-            auto accountTypeLimitsFrame = std::make_shared<AccountTypeLimitsFrame>(le);
-			EntryHelperProvider::storeAddEntry(delta, db, accountTypeLimitsFrame->mEntry);
-        }
-    }
-
-    app.getMetrics().NewMeter({"op-set-limits", "success", "apply"}, "operation")
-        .Mark();
-    innerResult().code(ManageLimitsResultCode::SUCCESS);
-    return true;
-}*/
-
 bool
 ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
                              LedgerManager& ledgerManager)

@@ -1,7 +1,4 @@
 #pragma once
-// Created by artem on 11.06.18.
-//
-
 #include "LedgerDelta.h"
 #include "EntryHelper.h"
 #include "PendingStatisticsFrame.h"

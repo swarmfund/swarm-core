@@ -173,14 +173,6 @@ void applySetOptions(Application& app, SecretKey& source, Salt seq, ThresholdSet
                      Signer* signer, TrustData* trustData = nullptr,
                      SetOptionsResultCode targetResult = SetOptionsResultCode::SUCCESS, SecretKey* txSiger = nullptr);
 
-TransactionFramePtr createSetLimits(Hash const& networkID, SecretKey& source,
-                                     Salt seq,AccountID* account,
-                                     AccountType* accountType, Limits limits);
-
-void applySetLimits(Application& app, SecretKey& source, Salt seq,
-    AccountID* account, AccountType* accountType, Limits limits,  
-    ManageLimitsResultCode targetResult = ManageLimitsResultCode::SUCCESS);
-
 /*TransactionFramePtr createUploadPreemissions(Hash const& networkID, SecretKey& source, Salt seq,
 	std::vector<PreEmission> preEmissions);
 

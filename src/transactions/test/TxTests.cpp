@@ -851,48 +851,6 @@ applyDirectDebitTx(Application& app, SecretKey& source, Salt seq,
 	return opResult;
 }
 
-
-
-
-
-TransactionFramePtr
-createSetLimits(Hash const& networkID, SecretKey& source, Salt seq,
-    AccountID* account, AccountType* accountType, Limits limits)
-{
-    Operation op;
-    op.body.type(OperationType::SET_LIMITS);
-
-    ManageLimitsOp& setLimitsOp = op.body.manageLimitsOp();
-
-    if (account)
-        setLimitsOp.account.activate() = *account;
-    if (accountType)
-        setLimitsOp.accountType.activate() = *accountType;
-    setLimitsOp.limits = limits;
-
-    return transactionFromOperation(networkID, source, seq, op);
-}
-
-void
-applySetLimits(Application& app, SecretKey& source, Salt seq,
-                AccountID* account, AccountType* accountType, Limits limits,
-                ManageLimitsResultCode result)
-{
-    TransactionFramePtr txFrame;
-
-    txFrame = createSetLimits(app.getNetworkID(), source, seq,
-        account, accountType, limits);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    REQUIRE(ManageLimitsOpFrame::getInnerCode(
-                txFrame->getResult().result.results()[0]) == result);
-}
-
-
 TransactionFramePtr createManageAccount(Hash const& networkID, SecretKey& source, SecretKey& account, Salt seq, uint32 blockReasonsToAdd, uint32 blockReasonsToRemove, AccountType accountType)
 {
 	Operation op;

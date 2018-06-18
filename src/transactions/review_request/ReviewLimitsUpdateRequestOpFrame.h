@@ -21,8 +21,8 @@ protected:
     SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                           int32_t ledgerVersion) const override;
 
-    bool tryCallSetLimits(Application &app,  LedgerManager &ledgerManager, LedgerDelta &delta,
-                          ReviewableRequestFrame::pointer request);
+    bool tryCallManageLimits(Application &app, LedgerManager &ledgerManager, LedgerDelta &delta,
+                             ReviewableRequestFrame::pointer request);
 
 public:
     ReviewLimitsUpdateRequestOpFrame(Operation const& op, OperationResult& res,

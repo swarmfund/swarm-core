@@ -120,10 +120,18 @@ bool ReviewTwoStepWithdrawalRequestOpFrame::rejectWithdrawalRequest(Application&
     const uint64_t universalAmount = withdrawRequest.universalAmount;
     if (universalAmount > 0)
     {
-        AccountManager accountManager(app, ledgerManager.getDatabase(), delta, ledgerManager);
-        const AccountID requestor = request->getRequestor();
-        const time_t timePerformed = request->getCreatedAt();
-        accountManager.revertStats(requestor, universalAmount, timePerformed);
+        if (!ledgerManager.shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
+        {
+            AccountManager accountManager(app, ledgerManager.getDatabase(), delta, ledgerManager);
+            const AccountID requestor = request->getRequestor();
+            const time_t timePerformed = request->getCreatedAt();
+            accountManager.revertStats(requestor, universalAmount, timePerformed);
+        }
+        else
+        {
+            StatisticsV2Processor statisticsV2Processor(ledgerManager.getDatabase(), delta, ledgerManager);
+            statisticsV2Processor.revertStatsV2(request->getRequestID());
+        }
     }
 
     EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);

@@ -229,7 +229,9 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::SALE:
             ensureSaleCreationValid(oe.body.saleCreationRequest());
             return;
-        case ReviewableRequestType ::LIMITS_UPDATE:
+        case ReviewableRequestType::LIMITS_UPDATE:
+            return;
+        case ReviewableRequestType::MANAGE_LIMITS:
             return;
         case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
             ensureWithdrawalValid(oe.body.twoStepWithdrawalRequest());

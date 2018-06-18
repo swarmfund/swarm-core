@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/LimitsV2Helper.h>
 #include "transactions/ManageLimitsOpFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/AccountTypeLimitsHelper.h"
@@ -11,6 +12,7 @@
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "ledger/LedgerDelta.h"
 
 namespace stellar
 {
@@ -57,8 +59,7 @@ SourceDetails ManageLimitsOpFrame::getSourceAccountDetails(std::unordered_map<Ac
         signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
     }
 
-    //disallowed
-	return SourceDetails({}, threshold, signerType);
+	return SourceDetails({AccountType::GENERAL, AccountType::MASTER}, threshold, signerType);
 }
 
 std::string
@@ -69,7 +70,7 @@ ManageLimitsOpFrame::getInnerResultCodeAsStr()
     return xdr::xdr_traits<ManageLimitsResultCode>::enum_name(code);
 }
 
-bool
+/*bool
 ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
                            LedgerManager& ledgerManager)
 {
@@ -117,21 +118,51 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
         .Mark();
     innerResult().code(ManageLimitsResultCode::SUCCESS);
     return true;
+}*/
+
+bool
+ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
+                             LedgerManager& ledgerManager)
+{
+    innerResult().code(ManageLimitsResultCode::SUCCESS);
+
+    Database& db = ledgerManager.getDatabase();
+    auto limitsV2Helper = LimitsV2Helper::Instance();
+    auto limitsV2Frame = limitsV2Helper->loadLimits(db, mManageLimits.statsOpType, mManageLimits.assetCode,
+                                                    mManageLimits.accountID, mManageLimits.accountType,
+                                                    mManageLimits.isConvertNeeded, &delta);
+    if (mManageLimits.isDelete)
+    {
+        if (!limitsV2Frame)
+        {
+            innerResult().code(ManageLimitsResultCode::NOT_FOUND);
+            return false;
+        }
+
+        limitsV2Helper->storeDelete(delta, db, limitsV2Frame->getKey());
+        return true;
+    }
+
+    if (!limitsV2Frame)
+    {
+        uint64_t id = delta.getHeaderFrame().generateID(LedgerEntryType::LIMITS_V2);
+        limitsV2Frame = LimitsV2Frame::createNew(id, mManageLimits);
+        limitsV2Helper->storeAdd(delta, db, limitsV2Frame->mEntry);
+        return true;
+    }
+
+    limitsV2Frame->changeLimits(mManageLimits);
+    limitsV2Helper->storeChange(delta, db, limitsV2Frame->mEntry);
+
+    app.getMetrics().NewMeter({"op-manage-limits", "success", "apply"}, "operation").Mark();
+
+    return true;
 }
 
 bool
 ManageLimitsOpFrame::doCheckValid(Application& app)
 {
-    if (mManageLimits.account && mManageLimits.accountType)
-    {
-        app.getMetrics().NewMeter(
-                    {"op-set-limits", "invalid", "malformed"},
-                    "operation").Mark();
-        innerResult().code(ManageLimitsResultCode::MALFORMED);
-        return false;
-    }
-
-    if (!mManageLimits.account && !mManageLimits.accountType)
+    if (!!mManageLimits.accountID && !!mManageLimits.accountType)
     {
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},
@@ -154,8 +185,13 @@ ManageLimitsOpFrame::doCheckValid(Application& app)
 
 bool ManageLimitsOpFrame::isValidLimits()
 {
-    auto& limits = mManageLimits.limits;
-	return AccountFrame::isLimitsValid(limits);
+    if (mManageLimits.dailyOut < 0)
+        return false;
+    if (mManageLimits.weeklyOut < mManageLimits.dailyOut)
+        return false;
+    if (mManageLimits.monthlyOut < mManageLimits.weeklyOut)
+        return false;
+    return mManageLimits.annualOut >= mManageLimits.monthlyOut;
 }
 
 }

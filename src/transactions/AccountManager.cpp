@@ -18,6 +18,7 @@
 #include "ledger/EntryHelper.h"
 #include "ledger/StatisticsHelper.h"
 #include "ledger/FeeHelper.h"
+#include "StatisticsV2Processor.h"
 
 namespace stellar {
     using namespace std;
@@ -134,19 +135,33 @@ namespace stellar {
             return result;
         }
 
-        auto stats = StatisticsHelper::Instance()->mustLoadStatistics(fromBalance->getAccountID(), mDb, &mDelta);
+        return processStatistics(from, fromBalance, amount, universalAmount);
+    }
 
-        auto now = mLm.getCloseTime();
-        if (!stats->add(universalAmount, now)) {
-            return ProcessTransferResult(Result::STATS_OVERFLOW, 0);
+    AccountManager::ProcessTransferResult
+    AccountManager::processStatistics(AccountFrame::pointer from, BalanceFrame::pointer fromBalance,
+                                      uint64_t amount, uint64_t& universalAmount)
+    {
+        if (!mLm.shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
+        {
+            auto stats = StatisticsHelper::Instance()->mustLoadStatistics(fromBalance->getAccountID(), mDb, &mDelta);
+
+            auto now = mLm.getCloseTime();
+            if (!stats->add(universalAmount, now)) {
+                return ProcessTransferResult(Result::STATS_OVERFLOW, 0);
+            }
+
+            if (!validateStats(from, fromBalance, stats)) {
+                return ProcessTransferResult(Result::LIMITS_EXCEEDED, 0);
+            }
+
+            EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
         }
 
-        if (!validateStats(from, fromBalance, stats)) {
-            return ProcessTransferResult(Result::LIMITS_EXCEEDED, 0);
-        }
+        universalAmount = 0;
+        auto statsV2Result = tryAddStatsV2(from, fromBalance, amount, universalAmount);
 
-        EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
-        return result;
+        return ProcessTransferResult(statsV2Result, universalAmount);
     }
 
     bool AccountManager::revertRequest(AccountFrame::pointer account,
@@ -166,6 +181,30 @@ namespace stellar {
 
         EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
         return true;
+    }
+
+    AccountManager::Result
+    AccountManager::tryAddStatsV2(const AccountFrame::pointer account,
+                                  const BalanceFrame::pointer balance, const uint64_t amountToAdd,
+                                  uint64_t& universalAmount)
+    {
+        StatisticsV2Processor statisticsV2Processor(mDb, mDelta, mLm);
+        const auto result = statisticsV2Processor.addStatsV2(StatisticsV2Processor::SpendType::PAYMENT, amountToAdd,
+                                                             universalAmount, account, balance);
+        switch (result)
+        {
+            case StatisticsV2Processor::SUCCESS:
+                return AccountManager::SUCCESS;
+            case StatisticsV2Processor::STATS_V2_OVERFLOW:
+                return AccountManager::STATS_OVERFLOW;
+            case StatisticsV2Processor::LIMITS_V2_EXCEEDED:
+                return AccountManager::LIMITS_EXCEEDED;
+            default:
+                CLOG(ERROR, Logging::OPERATION_LOGGER)
+                        << "Unexpeced result from statisticsV2Processor when updating statsV2:" << result;
+                throw std::runtime_error("Unexpected state from statisticsV2Processor when updating statsV2");
+        }
+
     }
 
     bool AccountManager::validateStats(AccountFrame::pointer account,

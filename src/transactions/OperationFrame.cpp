@@ -45,6 +45,7 @@
 #include "CheckSaleStateOpFrame.h"
 #include "BindExternalSystemAccountIdOpFrame.h"
 #include "ManageKeyValueOpFrame.h"
+#include "CreateManageLimitsRequestOpFrame.h"
 
 namespace stellar
 {
@@ -80,7 +81,7 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
 		return shared_ptr<OperationFrame>(ManageAssetOpFrame::makeHelper(op, res, tx));
     case OperationType::CREATE_PREISSUANCE_REQUEST:
 		return shared_ptr<OperationFrame>(new CreatePreIssuanceRequestOpFrame(op, res, tx));
-    case OperationType::SET_LIMITS:
+    case OperationType::MANAGE_LIMITS:
 		return shared_ptr<OperationFrame>(new ManageLimitsOpFrame(op, res, tx));
 	case OperationType::MANAGE_ASSET_PAIR:
 		return shared_ptr<OperationFrame>(new ManageAssetPairOpFrame(op, res, tx));
@@ -110,6 +111,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageKeyValueOpFrame(op, res, tx));
     case OperationType::MANAGE_SALE:
         return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
+    case OperationType::CREATE_MANAGE_LIMITS_REQUEST:
+        return shared_ptr<OperationFrame>(new CreateManageLimitsRequestOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

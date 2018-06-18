@@ -8,6 +8,7 @@
 #include <ledger/FeeHelper.h>
 #include <ledger/ReviewableRequestHelper.h>
 #include <transactions/test/test_helper/ManageAccountTestHelper.h>
+#include <transactions/test/test_helper/ManageLimitsTestHelper.h>
 #include "main/test.h"
 #include "crypto/SHA.h"
 #include "test_helper/ManageAssetTestHelper.h"
@@ -30,6 +31,7 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
     Application& app = *appPtr;
     app.start();
     auto testManager = TestManager::make(app);
+    TestManager::upgradeToCurrentLedgerVersion(app);
 
     auto root = Account{ getRoot(), Salt(0) };
     auto issuanceHelper = IssuanceRequestHelper(testManager);
@@ -39,6 +41,7 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
     auto withdrawRequestHelper = WithdrawRequestHelper(testManager);
     auto createAccountTestHelper = CreateAccountTestHelper(testManager);
     auto manageAccountTestHelper = ManageAccountTestHelper(testManager);
+    ManageLimitsTestHelper manageLimitsTestHelper(testManager);
 
     // create asset and make it withdrawable
     const AssetCode asset = "USD";
@@ -60,6 +63,19 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
     auto withdrawerBalance = BalanceHelper::Instance()->loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
     REQUIRE(!!withdrawerBalance);
     issuanceHelper.applyCreateIssuanceRequest(root, asset, preIssuedAmount, withdrawerBalance->getBalanceID(), "RANDOM ISSUANCE REFERENCE");
+
+    //create limitsV2
+    ManageLimitsOp manageLimitsOp;
+    manageLimitsOp.accountID.activate() = withdrawer.key.getPublicKey();
+    manageLimitsOp.assetCode = "UAH";
+    manageLimitsOp.statsOpType = StatsOpType::WITHDRAW;
+    manageLimitsOp.isConvertNeeded = true;
+    manageLimitsOp.isDelete = false;
+    manageLimitsOp.dailyOut = 200000 * ONE;
+    manageLimitsOp.weeklyOut = 400000 * ONE;
+    manageLimitsOp.monthlyOut = 800000 * ONE;
+    manageLimitsOp.annualOut = 2000000 * ONE;
+    manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
     SECTION("Happy path")
     {
@@ -320,22 +336,14 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
             reviewWithdrawHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "");
         }
 
-        //TEST CASE SUSPENDED
-//        SECTION("exceed limits")
-//        {
-//            LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), testManager->getDB());
-//            AccountManager accountManager(app, testManager->getDB(), delta,
-//                                          testManager->getLedgerManager());
-//            Limits limits = accountManager.getDefaultLimits(AccountType::GENERAL);
-//            limits.dailyOut = amountToWithdraw - 1;
-//            AccountID withdrawerID = withdrawer.key.getPublicKey();
-//
-//            //set limits for withdrawer
-//            applySetLimits(testManager->getApp(), root.key, root.getNextSalt(), &withdrawerID, nullptr, limits);
-//
-//            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
-//                                                             CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
-//        }
+        SECTION("exceed limits")
+        {
+            manageLimitsOp.dailyOut = amountToWithdraw - 1;
+            manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
+
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+                                                             CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
+        }
 
     }
     SECTION("Two step withdrawal request")

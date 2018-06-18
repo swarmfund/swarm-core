@@ -6,6 +6,7 @@
 
 #include "transactions/OperationFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "StatisticsV2Processor.h"
 
 namespace stellar
 {
@@ -33,6 +34,8 @@ class CreateWithdrawalRequestOpFrame : public OperationFrame
 
     bool tryAddStats(AccountManager& accountManager, BalanceFrame::pointer balance, uint64_t amountToAdd,
                          uint64_t& universalAmount);
+    bool tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor, const BalanceFrame::pointer balance,
+                       const uint64_t amountToAdd, uint64_t& universalAmount);
 
     ReviewableRequestFrame::pointer createRequest(LedgerDelta& delta, LedgerManager& ledgerManager,
         Database& db, const AssetFrame::pointer assetFrame,

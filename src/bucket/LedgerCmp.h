@@ -163,6 +163,28 @@ struct LedgerEntryIdCmp
                 auto const& bpool = b.externalSystemAccountIDPoolEntry();
                 return apool.poolEntryID < bpool.poolEntryID;
             }
+            case LedgerEntryType::LIMITS_V2:
+            {
+                auto const& alim = a.limitsV2();
+                auto const& blim = b.limitsV2();
+                return alim.id < blim.id;
+            }
+            case LedgerEntryType::STATISTICS_V2:
+            {
+                auto const& astats = a.statisticsV2();
+                auto const& bstats = b.statisticsV2();
+                return astats.id < bstats.id;
+            }
+            case LedgerEntryType::PENDING_STATISTICS:
+            {
+                auto const& apend = a.pendingStatistics();
+                auto const& bpend = b.pendingStatistics();
+                if (apend.requestID < bpend.requestID)
+                    return true;
+                if (bpend.requestID < apend.requestID)
+                    return false;
+                return apend.statisticsID < bpend.statisticsID;
+            }
             default:
             {
                 throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");

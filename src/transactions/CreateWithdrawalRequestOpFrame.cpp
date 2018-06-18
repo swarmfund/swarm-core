@@ -15,6 +15,7 @@
 #include "ledger/ReviewableRequestFrame.h"
 #include "xdrpp/printer.h"
 #include "ledger/ReviewableRequestHelper.h"
+#include "StatisticsV2Processor.h"
 
 namespace stellar
 {
@@ -201,7 +202,15 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     uint64_t universalAmount = 0;
     const uint64_t amountToAdd = mCreateWithdrawalRequest.request.amount;
-    if (!tryAddStats(accountManager, balanceFrame, amountToAdd, universalAmount))
+
+    if (!ledgerManager.shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
+    {
+        if (!tryAddStats(accountManager, balanceFrame, amountToAdd, universalAmount))
+            return false;
+    }
+
+    StatisticsV2Processor statisticsV2Processor(db, delta, ledgerManager);
+    if (!tryAddStatsV2(statisticsV2Processor, balanceFrame, amountToAdd, universalAmount))
         return false;
 
     BalanceHelper::Instance()->storeChange(delta, db, balanceFrame->mEntry);
@@ -266,5 +275,28 @@ bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager,
     }
 }
 
+bool CreateWithdrawalRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor,
+                                                   const BalanceFrame::pointer balance, const uint64_t amountToAdd,
+                                                   uint64_t& universalAmount)
+{
+    const auto result = statisticsV2Processor.addStatsV2(StatisticsV2Processor::SpendType::WITHDRAW, amountToAdd,
+                                                         universalAmount, mSourceAccount, balance);
+    switch (result)
+    {
+        case StatisticsV2Processor::SUCCESS:
+            return true;
+        case StatisticsV2Processor::STATS_V2_OVERFLOW:
+            innerResult().code(CreateWithdrawalRequestResultCode::STATS_OVERFLOW);
+            return false;
+        case StatisticsV2Processor::LIMITS_V2_EXCEEDED:
+            innerResult().code(CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
+            return false;
+        default:
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                    << "Unexpeced result from statisticsV2Processor when updating statsV2:" << result;
+            throw std::runtime_error("Unexpected state from statisticsV2Processor when updating statsV2");
+    }
+
+}
 
 }

@@ -4,6 +4,7 @@
 
 #include <ledger/StatisticsHelper.h>
 #include <ledger/AssetPairHelper.h>
+#include <transactions/CreateManageLimitsRequestOpFrame.h>
 #include "LimitsUpdateRequestHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
@@ -21,10 +22,9 @@ LimitsUpdateRequestHelper(TestManager::pointer testManager) : TxHelper(testManag
 {
 }
 
-SetOptionsResult
-LimitsUpdateRequestHelper::applyCreateLimitsUpdateRequest(Account &source,
-                                                          LimitsUpdateRequest request,
-                                                          SetOptionsResultCode expectedResult)
+CreateManageLimitsRequestResult
+LimitsUpdateRequestHelper::applyCreateLimitsUpdateRequest(Account &source, LimitsUpdateRequest request,
+                                                          CreateManageLimitsRequestResultCode expectedResult)
 {
     Database& db = mTestManager->getDB();
 
@@ -36,22 +36,23 @@ LimitsUpdateRequestHelper::applyCreateLimitsUpdateRequest(Account &source,
     auto txResult = txFrame->getResult();
     auto opResult = txResult.result.results()[0];
 
-    auto actualResultCode = SetOptionsOpFrame::getInnerCode(opResult);
+    auto actualResultCode = CreateManageLimitsRequestOpFrame::getInnerCode(opResult);
     REQUIRE(actualResultCode == expectedResult);
 
     uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(db.getSession());
-    if (expectedResult != SetOptionsResultCode::SUCCESS)
+    if (expectedResult != CreateManageLimitsRequestResultCode::SUCCESS)
     {
         REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
-        return SetOptionsResult{};
+        return CreateManageLimitsRequestResult{};
     }
 
-    SetOptionsResult setOptionsResult = opResult.tr().setOptionsResult();
-    auto limitsUpdateRequest = reviewableRequestHelper->loadRequest(setOptionsResult.success().limitsUpdateRequestID, db);
-    REQUIRE(limitsUpdateRequest);
+    CreateManageLimitsRequestResult createManageLimitsRequestResult = opResult.tr().createManageLimitsRequestResult();
+    auto limitsUpdateRequest = reviewableRequestHelper->loadRequest(
+            createManageLimitsRequestResult.success().manageLimitsRequestID, db);
+    REQUIRE(!!limitsUpdateRequest);
     REQUIRE(reviewableRequestCountBeforeTx + 1 == reviewableRequestCountAfterTx);
 
-    return  opResult.tr().setOptionsResult();
+    return createManageLimitsRequestResult;
 }
 
 LimitsUpdateRequest
@@ -68,9 +69,9 @@ LimitsUpdateRequestHelper::createLimitsUpdateRequestTx(Account& source,
                                                        LimitsUpdateRequest request)
 {
     Operation baseOp;
-    baseOp.body.type(OperationType::SET_OPTIONS);
-    auto& op = baseOp.body.setOptionsOp();
-    op.limitsUpdateRequestData.activate().documentHash = request.documentHash;
+    baseOp.body.type(OperationType::CREATE_MANAGE_LIMITS_REQUEST);
+    auto& op = baseOp.body.createManageLimitsRequestOp();
+    op.manageLimitsRequest.documentHash = request.documentHash;
     op.ext.v(LedgerVersion::EMPTY_VERSION);
     return txFromOperation(source, baseOp, nullptr);
 }

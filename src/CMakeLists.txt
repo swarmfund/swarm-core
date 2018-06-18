@@ -46,10 +46,7 @@ set(NOT_COMMON_SOURCE_FILES
         transactions/ManageKeyValueOpFrame.cpp
         transactions/ManageKeyValueOpFrame.h
         transactions/test/test_helper/ManageKeyValueTestHelper.cpp
-        transactions/test/test_helper/ManageKeyValueTestHelper.h
-        transactions/test/ManageKeyValueTests.cpp
-        transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.cpp
-        transactions/manage_external_system_account_id_pool/DeleteExternalSystemAccountIDPoolEntryOpFrame.h)
+        transactions/test/test_helper/ManageKeyValueTestHelper.h)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

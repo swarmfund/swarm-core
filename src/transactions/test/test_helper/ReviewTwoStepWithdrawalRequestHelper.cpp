@@ -90,11 +90,14 @@ void TwoStepWithdrawReviewChecker::checkPermanentReject(
     AccountID requestor = request->getRequestor();
     auto statsAfterTx = StatisticsHelper::Instance()->mustLoadStatistics(requestor, mTestManager->getDB());
 
-    uint64_t universalAmount = withdrawalRequest->universalAmount;
-    REQUIRE(statsAfterTx->getDailyOutcome() == statsBeforeTx->getDailyOutcome() - universalAmount);
-    REQUIRE(statsAfterTx->getWeeklyOutcome() == statsBeforeTx->getWeeklyOutcome() - universalAmount);
-    REQUIRE(statsAfterTx->getMonthlyOutcome() == statsBeforeTx->getMonthlyOutcome() - universalAmount);
-    REQUIRE(statsAfterTx->getAnnualOutcome() == statsBeforeTx->getAnnualOutcome() - universalAmount);
+    if (!mTestManager->getLedgerManager().shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
+    {
+        uint64_t universalAmount = withdrawalRequest->universalAmount;
+        REQUIRE(statsAfterTx->getDailyOutcome() == statsBeforeTx->getDailyOutcome() - universalAmount);
+        REQUIRE(statsAfterTx->getWeeklyOutcome() == statsBeforeTx->getWeeklyOutcome() - universalAmount);
+        REQUIRE(statsAfterTx->getMonthlyOutcome() == statsBeforeTx->getMonthlyOutcome() - universalAmount);
+        REQUIRE(statsAfterTx->getAnnualOutcome() == statsBeforeTx->getAnnualOutcome() - universalAmount);
+    }
 }
 
 TransactionFramePtr ReviewTwoStepWithdrawRequestHelper::createReviewRequestTx(

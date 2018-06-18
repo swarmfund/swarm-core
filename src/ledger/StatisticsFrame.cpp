@@ -41,7 +41,7 @@ StatisticsFrame::isValid(StatisticsEntry const& se)
 {
 	bool res =  se.dailyOutcome >= 0;
 	res = res && (se.monthlyOutcome >= se.dailyOutcome);
-	res = res && (se.annualOutcome >= se.annualOutcome);
+	res = res && (se.annualOutcome >= se.annualOutcome); // FIXME useless compare
 	return res;
 }
 

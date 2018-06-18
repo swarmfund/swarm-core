@@ -21,7 +21,9 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageAccountOpFrame::getCoun
 {
 	return{ 
 		{ mManageAccount.account, CounterpartyDetails({ AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
-                                                        AccountType::SYNDICATE}, true, true) }
+                                                        AccountType::SYNDICATE,
+														AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR},
+													  true, true) }
 	};
 }
 
@@ -37,6 +39,8 @@ SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
 	case AccountType::NOT_VERIFIED:
 		allowedSignerClass = static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
 		break;
+	case AccountType::ACCREDITED_INVESTOR:
+	case AccountType::INSTITUTIONAL_INVESTOR:
 	case AccountType::GENERAL:
 		// not verified account manager is needed here to allow automatic account blocking on KYC update
 		allowedSignerClass = static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER) |

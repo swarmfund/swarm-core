@@ -25,14 +25,16 @@ protected:
 
     Result checkSignature(Application &app, Database &db, AccountFrame &account, SourceDetails &sourceDetails);
 
+    bool shouldSkipCheck(Application &app);
+
 
 public:
 	typedef std::shared_ptr<SignatureValidator> pointer;
 	
 	SignatureValidator(Hash contentHash, xdr::xvector<DecoratedSignature, 20> signatures);
 	// checks if signature is valid.
-    Result check(std::vector<PublicKey> keys, int signaturesRequired, LedgerVersion ledgerVersion);
 	Result check(Application& app, Database &db, AccountFrame& account, SourceDetails& sourceDetails);
+        Result check(std::vector<PublicKey> keys, int signaturesRequired, LedgerVersion ledgerVersion);
 	bool checkAllSignaturesUsed();
 	void resetSignatureTracker();
 };

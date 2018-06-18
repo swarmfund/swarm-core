@@ -1002,9 +1002,6 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateSaleDetailsRequestOpFrame.cpp">
       <Filter>transactions\review_request</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\transactions\ManageSaleOpFrame.cpp">
-      <Filter>transactions</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\transactions\BindExternalSystemAccountIdOpFrame.cpp">
       <Filter>transactions</Filter>
     </ClCompile>
@@ -1034,6 +1031,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\PaymentV2Tests.cpp">
       <Filter>transactions\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\manage_asset\ChangeAssetMaxIssuanceOpFrame.cpp">
+      <Filter>transactions\manage_asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\dex\ManageSaleOpFrame.cpp">
+      <Filter>transactions\dex</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1986,9 +1989,6 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateSaleDetailsRequestOpFrame.h">
       <Filter>transactions\review_request</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\transactions\ManageSaleOpFrame.h">
-      <Filter>transactions</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\transactions\BindExternalSystemAccountIdOpFrame.h">
       <Filter>transactions</Filter>
     </ClInclude>
@@ -2000,6 +2000,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\manage_external_system_account_id_pool\ManageExternalSystemAccountIDPoolEntryOpFrame.h">
       <Filter>transactions\manage_external_system_account_id_pool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\manage_asset\ChangeAssetMaxIssuanceOpFrame.h">
+      <Filter>transactions\manage_asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\dex\ManageSaleOpFrame.h">
+      <Filter>transactions\dex</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

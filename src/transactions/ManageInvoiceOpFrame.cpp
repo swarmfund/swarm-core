@@ -20,7 +20,8 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> ManageInvoiceOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{
-		{mManageInvoice.sender, CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE},
+		{mManageInvoice.sender, CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
+                                                     AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR},
                                                     true, true)}
 	};
 }
@@ -28,7 +29,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageInvoiceOpFrame::getCoun
 SourceDetails ManageInvoiceOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                                             int32_t ledgerVersion) const
 {
-    std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE};
+    std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
+                                                    AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR};
     // disallowed
 	return SourceDetails({}, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t >(SignerType::INVOICE_MANAGER), static_cast<int32_t >(BlockReasons::KYC_UPDATE) |

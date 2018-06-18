@@ -34,13 +34,9 @@ class CheckSaleStateOpFrame : public OperationFrame
                                               int32_t ledgerVersion) const override;
 
     void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app, LedgerDelta& delta, Database& db, LedgerManager& lm) const;
-    static void cancelAllOffersForQuoteAsset(const SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset,
-                                    LedgerDelta& delta, Database& db);
 
     bool handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta, Database& db);
     bool handleClose(SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db);
-
-    static void unlockPendingIssunace(SaleFrame::pointer sale, LedgerDelta& delta, Database& db);
 
     CreateIssuanceRequestResult applyCreateIssuanceRequest(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
         LedgerDelta& delta, LedgerManager& lm) const;

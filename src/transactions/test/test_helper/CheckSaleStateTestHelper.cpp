@@ -12,11 +12,10 @@ namespace stellar
 namespace txtest
 {
 
-    void CheckSaleStateHelper::ensureCancel(const CheckSaleStateSuccess result,
-                                        StateBeforeTxHelper& stateBeforeTx) const
+void CheckSaleStateHelper::ensureCancel(uint64_t saleID, StateBeforeTxHelper& stateBeforeTx) const
 {
     // asset unlocked
-    const auto sale = stateBeforeTx.getSale(result.saleID);
+    const auto sale = stateBeforeTx.getSale(saleID);
     auto baseAssetBeforeTx = stateBeforeTx.getAssetEntry(sale->getBaseAsset());
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
 
@@ -191,7 +190,7 @@ CheckSaleStateResult CheckSaleStateHelper::applyCheckSaleStateTx(
     switch(effect)
     {
     case CheckSaleStateEffect::CANCELED:
-        ensureCancel(checkSaleStateResult.success(), stateHelper);
+        ensureCancel(checkSaleStateResult.success().saleID, stateHelper);
         ensureNoOffersLeft(checkSaleStateResult.success(), stateHelper);
         break;
     case CheckSaleStateEffect::CLOSED:

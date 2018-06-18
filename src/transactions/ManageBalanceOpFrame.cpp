@@ -22,7 +22,7 @@ getCounterpartyDetails(Database& db, LedgerDelta* delta) const
 {
     const std::vector<AccountType> allowedCounterparties = {
         AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE,
-        AccountType::EXCHANGE
+        AccountType::EXCHANGE, AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
     };
 
     return {
@@ -41,7 +41,8 @@ SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(
     if (getSourceID() == mManageBalance.destination)
         allowedSourceAccounts = {
             AccountType::GENERAL, AccountType::NOT_VERIFIED,
-            AccountType::SYNDICATE, AccountType::EXCHANGE
+            AccountType::SYNDICATE, AccountType::EXCHANGE,
+            AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
         };
     else
         allowedSourceAccounts = {AccountType::MASTER};

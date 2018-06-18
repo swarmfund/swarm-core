@@ -21,7 +21,7 @@ namespace txtest
 		void createApproveRequest(Account& root, Account & source, ManageAssetOp::_request_t request);
 
 		ManageAssetResult applyManageAssetTx(Account & source, uint64_t requestID, ManageAssetOp::_request_t request,
-			ManageAssetResultCode expectedResult = ManageAssetResultCode::SUCCESS);
+			ManageAssetResultCode expectedResult = ManageAssetResultCode::SUCCESS, OperationResultCode expectedOpCode = OperationResultCode::opINNER);
 		TransactionFramePtr createManageAssetTx(Account& source, uint64_t requestID, ManageAssetOp::_request_t request);
 
 		ManageAssetOp::_request_t createAssetCreationRequest(
@@ -38,6 +38,8 @@ namespace txtest
 				uint32_t policies);
 
 		ManageAssetOp::_request_t createCancelRequest();
+
+                ManageAssetOp::_request_t updateMaxAmount(AssetCode asset, uint64 amount);
 
                 ManageAssetOp::_request_t createChangeSignerRequest(
                     AssetCode code,

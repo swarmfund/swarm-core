@@ -3,8 +3,10 @@
 #include "xdr/Stellar-operation-manage-sale.h"
 #include <transactions/OperationFrame.h>
 #include <ledger/ReviewableRequestFrame.h>
+#include <ledger/SaleFrame.h>
 #include <crypto/SHA.h>
 #include <lib/xdrpp/xdrpp/marshal.h>
+#include <ledger/SaleFrame.h>
 #include "main/Application.h"
 #include "medida/metrics_registry.h"
 #include "xdrpp/printer.h"
@@ -37,6 +39,11 @@ namespace stellar {
         bool doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) override;
 
         static void checkRequestType(ReviewableRequestFrame::pointer request);
+
+        static void cancelSale(SaleFrame::pointer sale, LedgerDelta &delta, Database &db, LedgerManager &lm);
+
+        static void cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,
+                                                 LedgerDelta &delta, Database &db);
 
         std::string getUpdateSaleDetailsRequestReference() const {
             const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::UPDATE_SALE_DETAILS,

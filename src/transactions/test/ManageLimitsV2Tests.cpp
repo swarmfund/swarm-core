@@ -101,6 +101,15 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
                                                               manageLimitsOp.assetCode, manageLimitsOp.accountID, nullptr,
                                                               manageLimitsOp.isConvertNeeded, nullptr);
                 REQUIRE(!deletedLimits);
+
+                SECTION("not found deleted limits")
+                {
+                    manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::NOT_FOUND);
+                    auto deletedLimits = limitsV2Helper->loadLimits(app.getDatabase(), manageLimitsOp.statsOpType,
+                                                                    manageLimitsOp.assetCode, manageLimitsOp.accountID, nullptr,
+                                                                    manageLimitsOp.isConvertNeeded, nullptr);
+                    REQUIRE(!deletedLimits);
+                }
             }
         }
 
@@ -124,13 +133,5 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
         REQUIRE(limitsAfterFrame->getWeeklyOut() == manageLimitsOp.weeklyOut);
         REQUIRE(limitsAfterFrame->getMonthlyOut() == manageLimitsOp.monthlyOut);
         REQUIRE(limitsAfterFrame->getAnnualOut() == manageLimitsOp.annualOut);
-
-        SECTION("it works for created accounts")
-        {
-            auto a2 = Account { SecretKey::random(), Salt(0)};
-            auto receiver = Account { SecretKey::random(), Salt(0)};
-            createAccountTestHelper.applyCreateAccountTx(root, a2.key.getPublicKey(), accountType);
-            createAccountTestHelper.applyCreateAccountTx(root, receiver.key.getPublicKey(), accountType);
-        }
     }
 }

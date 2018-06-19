@@ -233,6 +233,8 @@ namespace  stellar
         auto statsOpTypeInt = static_cast<int32_t>(statsOpType);
         auto spendOpTypeInt = static_cast<int32_t>(StatsOpType::SPEND);
 
+        // the idea behind this request is to select all limits which are appliable for account-operation pair
+        // we should try to select most precise limits (for specific account, for specific type, system global)
         string sql = "select distinct on (stats_op_type, asset_code, is_convert_needed)  limits_v2_id, "
                      "account_type, account_id, stats_op_type, asset_code, is_convert_needed, daily_out, "
                      "weekly_out, monthly_out, annual_out, lastmodified, version  "

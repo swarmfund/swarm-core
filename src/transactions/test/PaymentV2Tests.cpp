@@ -5,6 +5,7 @@
 #include <transactions/test/test_helper/ManageAssetPairTestHelper.h>
 #include <transactions/test/test_helper/PaymentV2TestHelper.h>
 #include <transactions/test/test_helper/SetFeesTestHelper.h>
+#include <transactions/test/test_helper/ManageLimitsTestHelper.h>
 #include "test_helper/TxHelper.h"
 #include "test/test_marshaler.h"
 #include "main/test.h"
@@ -33,6 +34,7 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
     auto manageAssetPairTestHelper = ManageAssetPairTestHelper(testManager);
     auto paymentV2TestHelper = PaymentV2TestHelper(testManager);
     auto setFeesTestHelper = SetFeesTestHelper(testManager);
+    auto manageLimitsTestHelper = ManageLimitsTestHelper(testManager);
 
     // db helpers
     auto balanceHelper = BalanceHelper::Instance();
@@ -57,6 +59,19 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
     // create payment participants
     createAccountTestHelper.applyCreateAccountTx(root, payer.key.getPublicKey(), AccountType::GENERAL);
     createAccountTestHelper.applyCreateAccountTx(root, recipient.key.getPublicKey(), AccountType::GENERAL);
+
+    //create limits
+    ManageLimitsOp manageLimitsOp;
+    manageLimitsOp.accountID.activate() = payer.key.getPublicKey();
+    manageLimitsOp.assetCode = "USD";
+    manageLimitsOp.statsOpType = StatsOpType::PAYMENT_OUT;
+    manageLimitsOp.isConvertNeeded = false;
+    manageLimitsOp.isDelete = false;
+    manageLimitsOp.dailyOut = 20000 * ONE;
+    manageLimitsOp.weeklyOut = 40000 * ONE;
+    manageLimitsOp.monthlyOut = 80000 * ONE;
+    manageLimitsOp.annualOut = 200000 * ONE;
+    manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
     // create asset pair
     manageAssetPairTestHelper.createAssetPair(root, paymentAsset, feeAsset, 5 * ONE);
@@ -123,6 +138,13 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
         auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
                                                              destination, 3, paymentFeeData, "", "", nullptr,
                                                              PaymentV2ResultCode::PAYMENT_AMOUNT_IS_LESS_THAN_DEST_FEE);
+    }
+    SECTION("Limits exceeded") {
+        manageLimitsOp.dailyOut = paymentAmount - 1;
+        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
+        auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
+                                                             destination, paymentAmount, paymentFeeData, "", "",
+                                                             nullptr, PaymentV2ResultCode::LIMITS_EXCEEDED);
     }
     SECTION("Dest fee amount overflows UINT64_MAX") {
         paymentFeeData.destinationFee.fixedFee = UINT64_MAX;

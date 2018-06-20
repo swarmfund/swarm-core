@@ -13,11 +13,11 @@ namespace stellar {
         db.getSession() << "DROP TABLE IF EXISTS sale_ante";
         db.getSession() << "CREATE TABLE sale_ante"
                            "("
-                           "sale_id                BIGINT      NOT NULL CHECK (sale_id >= 0),"
-                           "participant_balance_id VARCHAR(56) NOT NULL,"
-                           "amount                 BIGINT      NOT NULL CHECK (amount >= 0),"
-                           "lastmodified           INT         NOT NULL,"
-                           "version                INT         NOT NULL,"
+                           "sale_id                 BIGINT      REFERENCES sale(id) NOT NULL CHECK (sale_id >= 0),"
+                           "participant_balance_id  VARCHAR(56)                     NOT NULL,"
+                           "amount                  BIGINT                          NOT NULL CHECK (amount >= 0),"
+                           "lastmodified            INT                             NOT NULL,"
+                           "version                 INT                             NOT NULL,"
                            "PRIMARY KEY (sale_id, participant_balance_id)"
                            ");";
     }

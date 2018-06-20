@@ -159,6 +159,12 @@ CreateSaleParticipationOpFrame::tryCreateSaleAnte(Database &db, LedgerDelta &del
         throw std::runtime_error("Failed to calculate invest percent fee - overflow");
     }
 
+    if (!safeSum(amountToLock, static_cast<uint64_t>(investFeeFrame->getFixedFee()), amountToLock)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate sale ante amount - overflow, asset code: "
+                                               << investFeeFrame->getAsset();
+        throw std::runtime_error("Failed to calculate sale ante amount - overflow");
+    }
+
     auto prevSaleAnte = SaleAnteHelper::Instance()->loadSaleAnte(saleID, sourceBalanceFrame->getBalanceID(), db, &delta);
     if (!prevSaleAnte) {
         auto saleAnte = SaleAnteFrame::createNew(saleID, sourceBalanceFrame->getBalanceID(), amountToLock);

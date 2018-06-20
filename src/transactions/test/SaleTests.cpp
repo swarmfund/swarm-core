@@ -200,7 +200,8 @@ TEST_CASE("Sale", "[tx][sale]")
 
     SECTION("Sale with sale antes") {
         // set invest fee for sale antes
-        auto investFeeEntry = setFeesTestHelper.createFeeEntry(FeeType::INVEST_FEE, quoteAsset, 0, int64_t(5 * ONE));
+        auto investFeeEntry = setFeesTestHelper.createFeeEntry(FeeType::INVEST_FEE, quoteAsset,
+                                                               int64_t(5 * ONE), int64_t(5 * ONE));
         setFeesTestHelper.applySetFeesTx(root, &investFeeEntry, false);
 
         auto investFeeFrame = FeeHelper::Instance()->loadFee(FeeType::INVEST_FEE, quoteAsset, nullptr, nullptr,
@@ -209,6 +210,7 @@ TEST_CASE("Sale", "[tx][sale]")
         uint64_t quotePreIssued = 0;
         investFeeFrame->calculatePercentFee(hardCap, quotePreIssued, ROUND_UP);
         quotePreIssued += hardCap + ONE;
+        quotePreIssued += 50 * ONE;
         IssuanceRequestHelper(testManager).authorizePreIssuedAmount(root, root.key, quoteAsset, quotePreIssued, root);
 
         saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
@@ -223,6 +225,7 @@ TEST_CASE("Sale", "[tx][sale]")
             const auto quoteAssetAmount = hardCap / numberOfParticipants;
             uint64_t saleAnteAmount = 0;
             investFeeFrame->calculatePercentFee(quoteAssetAmount, saleAnteAmount, ROUND_UP);
+            saleAnteAmount += 5 * ONE;
             for (auto i = 0; i < numberOfParticipants; i++)
             {
                 addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0, &saleAnteAmount);
@@ -240,6 +243,7 @@ TEST_CASE("Sale", "[tx][sale]")
             const uint64_t quoteAssetAmount = softCap / numberOfParticipants;
             uint64_t saleAnteAmount = 0;
             investFeeFrame->calculatePercentFee(quoteAssetAmount, saleAnteAmount, ROUND_UP);
+            saleAnteAmount += 5 * ONE;
             for (auto i = 0; i < numberOfParticipants - 1; i++)
             {
                 addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0,
@@ -259,6 +263,7 @@ TEST_CASE("Sale", "[tx][sale]")
             const uint64_t quoteAssetAmount = softCap / numberOfParticipants;
             uint64_t saleAnteAmount = 0;
             investFeeFrame->calculatePercentFee(quoteAssetAmount, saleAnteAmount, ROUND_UP);
+            saleAnteAmount += 5 * ONE;
             for (auto i = 0; i < numberOfParticipants - 1; i++)
             {
                 addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0,

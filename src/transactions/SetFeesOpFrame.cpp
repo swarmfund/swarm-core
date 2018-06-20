@@ -242,9 +242,6 @@ namespace stellar {
         if (!mustValidFeeAmounts(fee, metrics))
             return false;
 
-        if (!mustEmptyFixed(fee, metrics))
-            return false;
-
         return mustDefaultSubtype(fee, metrics);
     }
 

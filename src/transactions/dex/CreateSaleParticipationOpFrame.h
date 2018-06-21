@@ -15,6 +15,11 @@ class CreateSaleParticipationOpFrame : public CreateOfferOpFrame
 
     bool isPriceValid(SaleFrame::pointer sale, BalanceFrame::pointer balance, Database& db) const;
 
+    bool tryCreateSaleAnte(Database& db, LedgerDelta& delta, LedgerManager& ledgerManager,
+                           BalanceFrame::pointer sourceBalanceFrame, uint64_t saleID);
+
+    void setErrorCode(BalanceFrame::Result lockingResult);
+
 public:
 
     CreateSaleParticipationOpFrame(Operation const& op, OperationResult& res,

@@ -53,7 +53,7 @@ class SaleFrame : public EntryFrame
         return EntryFrame::pointer(new SaleFrame(*this));
     }
     
-    // ensureValid - throws exeption if entry is not valid
+    // ensureValid - throws exception if entry is not valid
     static void ensureValid(SaleEntry const& oe);
     void ensureValid() const;
 

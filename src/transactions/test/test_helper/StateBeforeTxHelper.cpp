@@ -85,6 +85,16 @@ BalanceFrame::pointer StateBeforeTxHelper::getBalance(BalanceID balanceID) {
         return offers;
     }
 
+    std::vector<SaleAnteEntry> StateBeforeTxHelper::getAllSaleAntes() {
+        std::vector<SaleAnteEntry> saleAntes;
+        for (auto &entryPair :  mState) {
+            auto const &ledgerEntry = entryPair.second->mEntry;
+            if (ledgerEntry.data.type() == LedgerEntryType::SALE_ANTE)
+                saleAntes.push_back(ledgerEntry.data.saleAnte());
+        }
+        return saleAntes;
+    }
+
     AccountFrame::pointer StateBeforeTxHelper::getAccount(AccountID accountID)
     {
         LedgerKey key;
@@ -96,7 +106,6 @@ BalanceFrame::pointer StateBeforeTxHelper::getBalance(BalanceID balanceID) {
 
         return std::make_shared<AccountFrame>(mState[key]->mEntry);
     }
-
 
     ReviewableRequestFrame::pointer StateBeforeTxHelper::getReviewableRequest(uint64 requestID) {
         LedgerKey key;

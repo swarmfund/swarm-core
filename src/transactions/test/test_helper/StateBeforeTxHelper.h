@@ -29,6 +29,8 @@ namespace txtest
         ReviewableRequestFrame::pointer getReviewableRequest(uint64 requestID);
 
         std::vector<OfferEntry> getAllOffers();
+
+        std::vector<SaleAnteEntry> getAllSaleAntes();
     };
 }
 }

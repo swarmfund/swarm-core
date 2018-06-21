@@ -69,6 +69,10 @@ namespace stellar
             return mFee;
         }
 
+        AssetCode getAsset() const {
+            return mFee.asset;
+        }
+
 		int64_t getPercentFee()
 		{
 			return mFee.percentFee;

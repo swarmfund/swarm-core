@@ -54,11 +54,11 @@ namespace stellar
         LimitsV2Entry& entry = le.data.limitsV2();
 
         entry.id = id;
-        entry.accountType = manageLimitsOp.accountType;
-        entry.accountID = manageLimitsOp.accountID;
-        entry.statsOpType = manageLimitsOp.statsOpType;
-        entry.assetCode = manageLimitsOp.assetCode;
-        entry.isConvertNeeded = manageLimitsOp.isConvertNeeded;
+        entry.accountType = manageLimitsOp.details.updateLimitsDetails().accountType;
+        entry.accountID = manageLimitsOp.details.updateLimitsDetails().accountID;
+        entry.statsOpType = manageLimitsOp.details.updateLimitsDetails().statsOpType;
+        entry.assetCode = manageLimitsOp.details.updateLimitsDetails().assetCode;
+        entry.isConvertNeeded = manageLimitsOp.details.updateLimitsDetails().isConvertNeeded;
 
         auto limitsV2Frame = std::make_shared<LimitsV2Frame>(le);
         limitsV2Frame->changeLimits(manageLimitsOp);

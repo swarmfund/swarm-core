@@ -67,7 +67,7 @@ namespace stellar
     {
         uint64_t statisticsID = key.pendingStatistics().statisticsID;
         uint64_t requestID = key.pendingStatistics().requestID;
-        return loadPendingStatistics(statisticsID, requestID, db);
+        return loadPendingStatistics(requestID, statisticsID, db);
     }
 
     EntryFrame::pointer
@@ -105,7 +105,7 @@ namespace stellar
         {
             sql = "UPDATE pending_statistics "
                   "SET 	  amount=:am, lastmodified=:lm, version=:v "
-                  "WHERE  statistics_id=:stats_id AND request_id=:req_id,";
+                  "WHERE  statistics_id=:stats_id AND request_id=:req_id";
         }
 
         auto prep = db.getPreparedStatement(sql);
@@ -138,12 +138,12 @@ namespace stellar
                                                    LedgerDelta* delta)
     {
         string sql = pendingStatisticsSelector;
-        sql += " WHERE request_id = :req_id AND statistics_id = :stats_id";
+        sql += " WHERE statistics_id = :stats_id AND request_id = :req_id";
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
-        st.exchange(use(requestID, "req_id"));
         st.exchange(use(statsID, "stats_id"));
+        st.exchange(use(requestID, "req_id"));
 
         PendingStatisticsFrame::pointer result;
         auto timer = db.getSelectTimer("pending_stats");
@@ -165,7 +165,7 @@ namespace stellar
     PendingStatisticsHelper::loadPendingStatistics(uint64_t& requestID, Database &db, LedgerDelta& delta)
     {
         string sql = pendingStatisticsSelector;
-        sql += " WHERE request_id = :req_id;";
+        sql += " WHERE request_id = :req_id";
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
@@ -196,6 +196,7 @@ namespace stellar
             st.exchange(into(pendingStats.requestID));
             st.exchange(into(pendingStats.amount));
             st.exchange(into(le.lastModifiedLedgerSeq));
+            st.exchange(into(version));
             st.define_and_bind();
             st.execute(true);
 

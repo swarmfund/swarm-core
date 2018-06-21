@@ -28,21 +28,36 @@ ManageLimitsOpFrame::ManageLimitsOpFrame(Operation const& op, OperationResult& r
 
 std::unordered_map<AccountID, CounterpartyDetails> ManageLimitsOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
-	if (!mManageLimits.accountID)
-		return{};
-	return{
-		{ *mManageLimits.accountID , CounterpartyDetails(getAllAccountTypes(), true, true) }
-	};
+    switch (mManageLimits.details.action())
+    {
+        case ManageLimitsAction::UPDATE:
+            if (!mManageLimits.details.updateLimitsDetails().accountID)
+                return{};
+            return{
+                    {*mManageLimits.details.updateLimitsDetails().accountID,
+                            CounterpartyDetails(getAllAccountTypes(), true, true)}
+            };
+        case ManageLimitsAction::DELETE:
+            return {
+                {*mManageLimits.details.updateLimitsDetails().accountID,
+                            CounterpartyDetails({AccountType::MASTER}, true, true)}
+            };
+        default:
+            throw std::runtime_error("Unexpected manage limits action while get counterparty details. "
+                                     "Expected UPDATE or DELETE");
+    }
+
 }
 
 SourceDetails ManageLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                                         int32_t ledgerVersion) const
 {
-	int32_t signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
+	auto signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
 	int32_t threshold = mSourceAccount->getHighThreshold();
-	if (mManageLimits.accountID)
+	if ((mManageLimits.details.action() == ManageLimitsAction::UPDATE) &&
+        (!!mManageLimits.details.updateLimitsDetails().accountID))
 	{
-		auto account = counterpartiesDetails.find(*mManageLimits.accountID);
+		auto account = counterpartiesDetails.find(*mManageLimits.details.updateLimitsDetails().accountID);
 		if (account == counterpartiesDetails.end() || !account->second.mAccount)
 			throw std::invalid_argument("Unexpected counterpartiesDetails. Expected counterparty to be included");
 
@@ -52,12 +67,6 @@ SourceDetails ManageLimitsOpFrame::getSourceAccountDetails(std::unordered_map<Ac
 			threshold = mSourceAccount->getLowThreshold();
 		}
 	}
-
-    auto newSignersVersion = static_cast<int32_t>(LedgerVersion::NEW_SIGNER_TYPES);
-    if (ledgerVersion >= newSignersVersion)
-    {
-        signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
-    }
 
 	return SourceDetails({AccountType::GENERAL, AccountType::MASTER}, threshold, signerType);
 }
@@ -78,32 +87,42 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     Database& db = ledgerManager.getDatabase();
     auto limitsV2Helper = LimitsV2Helper::Instance();
-    auto limitsV2Frame = limitsV2Helper->loadLimits(db, mManageLimits.statsOpType, mManageLimits.assetCode,
-                                                    mManageLimits.accountID, mManageLimits.accountType,
-                                                    mManageLimits.isConvertNeeded, &delta);
-    if (mManageLimits.isDelete)
+
+    switch (mManageLimits.details.action())
     {
-        if (!limitsV2Frame)
-        {
+    case ManageLimitsAction::UPDATE:
+    {
+        auto limitsV2Frame = limitsV2Helper->loadLimits(db, mManageLimits.details.updateLimitsDetails().statsOpType,
+                                                        mManageLimits.details.updateLimitsDetails().assetCode,
+                                                        mManageLimits.details.updateLimitsDetails().accountID,
+                                                        mManageLimits.details.updateLimitsDetails().accountType,
+                                                        mManageLimits.details.updateLimitsDetails().isConvertNeeded,
+                                                        &delta);
+        if (!limitsV2Frame) {
+            uint64_t id = delta.getHeaderFrame().generateID(LedgerEntryType::LIMITS_V2);
+            limitsV2Frame = LimitsV2Frame::createNew(id, mManageLimits);
+            limitsV2Helper->storeAdd(delta, db, limitsV2Frame->mEntry);
+            return true;
+        }
+
+        limitsV2Frame->changeLimits(mManageLimits);
+        limitsV2Helper->storeChange(delta, db, limitsV2Frame->mEntry);
+        break;
+    }
+    case ManageLimitsAction::DELETE:
+    {
+        auto limitsV2FrameDelete = limitsV2Helper->loadLimits(mManageLimits.details.id(), db, &delta);
+        if (!limitsV2FrameDelete) {
             innerResult().code(ManageLimitsResultCode::NOT_FOUND);
             return false;
         }
-
-        limitsV2Helper->storeDelete(delta, db, limitsV2Frame->getKey());
-        return true;
+        limitsV2Helper->storeDelete(delta, db, limitsV2FrameDelete->getKey());
+        break;
     }
-
-    if (!limitsV2Frame)
-    {
-        uint64_t id = delta.getHeaderFrame().generateID(LedgerEntryType::LIMITS_V2);
-        limitsV2Frame = LimitsV2Frame::createNew(id, mManageLimits);
-        limitsV2Helper->storeAdd(delta, db, limitsV2Frame->mEntry);
-        return true;
+    default:
+        throw std::runtime_error("Unexpected manage limits action in doApply. "
+                                 "Expected UPDATE or REMOVE");
     }
-
-    limitsV2Frame->changeLimits(mManageLimits);
-    limitsV2Helper->storeChange(delta, db, limitsV2Frame->mEntry);
-
     app.getMetrics().NewMeter({"op-manage-limits", "success", "apply"}, "operation").Mark();
 
     return true;
@@ -112,7 +131,9 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
 bool
 ManageLimitsOpFrame::doCheckValid(Application& app)
 {
-    if (!!mManageLimits.accountID && !!mManageLimits.accountType)
+    if ((mManageLimits.details.action() == ManageLimitsAction::UPDATE) &&
+        !!mManageLimits.details.updateLimitsDetails().accountID &&
+        !!mManageLimits.details.updateLimitsDetails().accountType)
     {
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},

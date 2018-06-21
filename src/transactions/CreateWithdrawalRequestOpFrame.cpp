@@ -142,19 +142,19 @@ CreateWithdrawalRequestOpFrame::CreateWithdrawalRequestOpFrame(
 }
 
 
-ReviewableRequestFrame::pointer CreateWithdrawalRequestOpFrame::createRequest(LedgerDelta& delta, LedgerManager& ledgerManager,
-    Database& db, const AssetFrame::pointer assetFrame, const uint64_t universalAmount)
+ReviewableRequestFrame::pointer
+CreateWithdrawalRequestOpFrame::createRequest(LedgerDelta& delta, LedgerManager& ledgerManager,
+                                              Database& db, const AssetFrame::pointer assetFrame,
+                                              const uint64_t universalAmount)
 {
     auto request = ReviewableRequestFrame::createNew(delta, getSourceID(), assetFrame->getOwner(), nullptr,
-                                                ledgerManager.getCloseTime());
-    ReviewableRequestEntry& requestEntry = request->getRequestEntry();
-    if (assetFrame->isPolicySet(AssetPolicy::TWO_STEP_WITHDRAWAL))
-    {
+                                                     ledgerManager.getCloseTime());
+    ReviewableRequestEntry &requestEntry = request->getRequestEntry();
+    if (assetFrame->isPolicySet(AssetPolicy::TWO_STEP_WITHDRAWAL)) {
         requestEntry.body.type(ReviewableRequestType::TWO_STEP_WITHDRAWAL);
         requestEntry.body.twoStepWithdrawalRequest() = mCreateWithdrawalRequest.request;
         requestEntry.body.twoStepWithdrawalRequest().universalAmount = universalAmount;
-    } else
-    {
+    } else {
         requestEntry.body.type(ReviewableRequestType::WITHDRAW);
         requestEntry.body.withdrawalRequest() = mCreateWithdrawalRequest.request;
         requestEntry.body.withdrawalRequest().universalAmount = universalAmount;
@@ -164,6 +164,50 @@ ReviewableRequestFrame::pointer CreateWithdrawalRequestOpFrame::createRequest(Le
     ReviewableRequestHelper::Instance()->storeAdd(delta, db, request->mEntry);
     return request;
 }
+
+void
+CreateWithdrawalRequestOpFrame::storeChangeRequest(LedgerDelta& delta, ReviewableRequestFrame::pointer request,
+                                                   Database& db, const uint64_t universalAmount)
+{
+    switch (request->getRequestEntry().body.type())
+    {
+        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+        {
+            request->getRequestEntry().body.twoStepWithdrawalRequest().universalAmount = universalAmount;
+            break;
+        };
+        case ReviewableRequestType::WITHDRAW:
+        {
+            request->getRequestEntry().body.withdrawalRequest().universalAmount = universalAmount;
+            break;
+        };
+        default:
+            throw std::runtime_error("Unexpected reviewable request type");
+    }
+
+    request->recalculateHashRejectReason();
+    ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
+}
+
+ReviewableRequestFrame::pointer
+CreateWithdrawalRequestOpFrame::approveRequest(AccountManager& accountManager, LedgerDelta& delta,
+                                               LedgerManager& ledgerManager, Database& db,
+                                               const AssetFrame::pointer assetFrame,
+                                               const BalanceFrame::pointer balanceFrame)
+{
+    uint64_t universalAmount = 0;
+    auto request = createRequest(delta, ledgerManager, db, assetFrame, universalAmount);
+
+    if (!processStatistics(accountManager, db, delta, ledgerManager, balanceFrame,
+                           mCreateWithdrawalRequest.request.amount, universalAmount, request->getRequestID()))
+    {
+        return nullptr;
+    }
+    storeChangeRequest(delta, request, db, universalAmount);
+
+    return request;
+}
+
 
 bool
 CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
@@ -201,22 +245,12 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    uint64_t universalAmount = 0;
-    const uint64_t amountToAdd = mCreateWithdrawalRequest.request.amount;
-
-    if (!ledgerManager.shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
-    {
-        if (!tryAddStats(accountManager, balanceFrame, amountToAdd, universalAmount))
-            return false;
-    }
-
-    StatisticsV2Processor statisticsV2Processor(db, delta, ledgerManager);
-    if (!tryAddStatsV2(statisticsV2Processor, balanceFrame, amountToAdd, universalAmount))
+    auto request = approveRequest(accountManager, delta, ledgerManager, db, assetFrame, balanceFrame);
+    if (!request)
         return false;
 
     BalanceHelper::Instance()->storeChange(delta, db, balanceFrame->mEntry);
 
-    const ReviewableRequestFrame::pointer request = createRequest(delta, ledgerManager, db, assetFrame, universalAmount);
     innerResult().code(CreateWithdrawalRequestResultCode::SUCCESS);
     innerResult().success().requestID = request->getRequestID();
     return true;
@@ -257,6 +291,21 @@ bool CreateWithdrawalRequestOpFrame::isExternalDetailsValid(Application &app, co
     return externalDetails.size() <= app.getWithdrawalDetailsMaxLength();
 }
 
+bool CreateWithdrawalRequestOpFrame::processStatistics(AccountManager& accountManager, Database& db,
+                                                       LedgerDelta& delta, LedgerManager& ledgerManager,
+                                                       BalanceFrame::pointer balanceFrame, const uint64_t amountToAdd,
+                                                       uint64_t& universalAmount, const uint64_t requestID)
+{
+    if (!ledgerManager.shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
+    {
+        if (!tryAddStats(accountManager, balanceFrame, amountToAdd, universalAmount))
+            return false;
+    }
+
+    StatisticsV2Processor statisticsV2Processor(db, delta, ledgerManager);
+    return tryAddStatsV2(statisticsV2Processor, balanceFrame, amountToAdd, universalAmount, requestID);
+}
+
 bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager, const BalanceFrame::pointer balance,
                                                  const uint64_t amountToAdd, uint64_t& universalAmount)
 {
@@ -278,10 +327,10 @@ bool CreateWithdrawalRequestOpFrame::tryAddStats(AccountManager& accountManager,
 
 bool CreateWithdrawalRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor,
                                                    const BalanceFrame::pointer balance, const uint64_t amountToAdd,
-                                                   uint64_t& universalAmount)
+                                                   uint64_t& universalAmount, uint64_t requestID)
 {
     const auto result = statisticsV2Processor.addStatsV2(StatisticsV2Processor::SpendType::WITHDRAW, amountToAdd,
-                                                         universalAmount, mSourceAccount, balance);
+                                                         universalAmount, mSourceAccount, balance, &requestID);
     switch (result)
     {
         case StatisticsV2Processor::SUCCESS:

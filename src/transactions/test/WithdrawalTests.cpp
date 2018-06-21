@@ -66,11 +66,11 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
 
     //create limitsV2
     ManageLimitsOp manageLimitsOp;
-    manageLimitsOp.accountID.activate() = withdrawer.key.getPublicKey();
-    manageLimitsOp.assetCode = "UAH";
-    manageLimitsOp.statsOpType = StatsOpType::WITHDRAW;
-    manageLimitsOp.isConvertNeeded = true;
-    manageLimitsOp.isDelete = false;
+    manageLimitsOp.details.action(ManageLimitsAction::UPDATE);
+    manageLimitsOp.details.updateLimitsDetails().accountID.activate() = withdrawer.key.getPublicKey();
+    manageLimitsOp.details.updateLimitsDetails().assetCode = "UAH";
+    manageLimitsOp.details.updateLimitsDetails().statsOpType = StatsOpType::WITHDRAW;
+    manageLimitsOp.details.updateLimitsDetails().isConvertNeeded = true;
     manageLimitsOp.dailyOut = 200000 * ONE;
     manageLimitsOp.weeklyOut = 400000 * ONE;
     manageLimitsOp.monthlyOut = 800000 * ONE;

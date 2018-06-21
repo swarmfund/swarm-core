@@ -37,9 +37,9 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     if (!!balanceBeforeRequest)
         asset = balanceBeforeRequest->getAsset();
 
-    auto limitsV2Frames = LimitsV2Helper::Instance()->loadLimits(db, StatsOpType::WITHDRAW,
+    auto limitsV2Frames = LimitsV2Helper::Instance()->loadLimits(db, {StatsOpType::WITHDRAW},
                                                                  asset,
-                                                                 accountID, nullptr);
+                                                                 accountID);
     std::vector<StatisticsV2Frame::pointer> statsBeforeRequestVector;
     for (LimitsV2Frame::pointer limitsV2Frame : limitsV2Frames)
     {

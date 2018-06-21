@@ -40,19 +40,19 @@ public:
     uint64_t countObjects(soci::session& sess) override;
 
 
-    std::vector<LimitsV2Frame::pointer> loadLimits(Database &db, StatsOpType statsOpType, AssetCode assetCode,
-                                      xdr::pointer<AccountID> accountID = nullptr,
-                                      xdr::pointer<AccountType> accountType = nullptr,
-                                      LedgerDelta *delta = nullptr);
+    std::vector<LimitsV2Frame::pointer> loadLimits(Database &db, std::vector<StatsOpType> statsOpTypes,
+                                      AssetCode assetCode, xdr::pointer<AccountID> accountID = nullptr,
+                                      xdr::pointer<AccountType> accountType = nullptr);
     LimitsV2Frame::pointer loadLimits(Database &db, StatsOpType statsOpType, AssetCode assetCode,
                                       xdr::pointer<AccountID> accountID, xdr::pointer<AccountType> accountType,
-                                      bool isConvertNeeded, LedgerDelta *delta);
+                                      bool isConvertNeeded, LedgerDelta *delta = nullptr);
     LimitsV2Frame::pointer loadLimits(uint64_t id, Database& db, LedgerDelta* delta = nullptr);
 
 private:
     LimitsV2Helper() { ; }
     ~LimitsV2Helper() { ; }
 
+    std::string obtainSqlStatsOpTypesString(unsigned long size);
     void load(StatementContext &prep, std::function<void(LedgerEntry const &)> processor);
     void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
 };

@@ -18,11 +18,11 @@ LimitsUpdateReviewChecker::LimitsUpdateReviewChecker(TestManager::pointer testMa
 
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto request = reviewableRequestHelper->loadRequest(requestID, db);
-    if (!request || request->getType() != ReviewableRequestType::MANAGE_LIMITS)
+    if (!request || request->getType() != ReviewableRequestType::LIMITS_UPDATE)
     {
         return;
     }
-    manageLimitsRequest = std::make_shared<LimitsUpdateRequest>(request->getRequestEntry().body.manageLimitsRequest());
+    manageLimitsRequest = std::make_shared<LimitsUpdateRequest>(request->getRequestEntry().body.limitsUpdateRequest());
 }
 
 void
@@ -33,12 +33,12 @@ LimitsUpdateReviewChecker::checkApprove(ReviewableRequestFrame::pointer request)
 
     // check accountLimits
     auto limitsHelper = LimitsV2Helper::Instance();
-    auto limitsEntry = mOperation.body.reviewRequestOp().requestDetails.manageLimits().newLimitsV2;
+    auto limitsEntry = mOperation.body.reviewRequestOp().requestDetails.limitsUpdate().newLimitsV2;
     auto limitsAfterTx = limitsHelper->loadLimits(db, limitsEntry.statsOpType, limitsEntry.assetCode,
             limitsEntry.accountID, limitsEntry.accountType, limitsEntry.isConvertNeeded, nullptr);
     REQUIRE(!!limitsAfterTx);
     auto limitsEntryAfterTx = limitsAfterTx->getLimits();
-    auto reviewRequestLimits = mOperation.body.reviewRequestOp().requestDetails.manageLimits().newLimitsV2;
+    auto reviewRequestLimits = mOperation.body.reviewRequestOp().requestDetails.limitsUpdate().newLimitsV2;
     REQUIRE(limitsEntryAfterTx.dailyOut == reviewRequestLimits.dailyOut);
     REQUIRE(limitsEntryAfterTx.weeklyOut == reviewRequestLimits.weeklyOut);
     REQUIRE(limitsEntryAfterTx.monthlyOut == reviewRequestLimits.monthlyOut);
@@ -84,8 +84,7 @@ ReviewLimitsUpdateRequestHelper::createReviewRequestTx(Account &source, uint64_t
     reviewRequestOp.requestHash = requestHash;
     reviewRequestOp.requestID = requestID;
     reviewRequestOp.requestDetails.requestType(requestType);
-    reviewRequestOp.requestDetails.manageLimits().newLimitsV2 = limitsV2Entry;
-    reviewRequestOp.requestDetails.manageLimits().isDelete = false;
+    reviewRequestOp.requestDetails.limitsUpdate().newLimitsV2 = limitsV2Entry;
     return txFromOperation(source, op, nullptr);
 }
 

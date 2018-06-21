@@ -69,16 +69,16 @@ TEST_CASE("limits update", "[tx][limits_update]")
         }
         SECTION("Approve for account with limits")
         {
-            auto accountWithoutLimits = Account {SecretKey::random(), Salt(0)};
-            AccountID accountWithoutLimitsID = accountWithoutLimits.key.getPublicKey();
+            auto accountWithLimits = Account {SecretKey::random(), Salt(0)};
+            AccountID accountWithoutLimitsID = accountWithLimits.key.getPublicKey();
             createAccountTestHelper.applyCreateAccountTx(root, accountWithoutLimitsID,
                                                          AccountType::GENERAL);
             ManageLimitsOp manageLimitsOp;
-            manageLimitsOp.accountID.activate() = accountWithoutLimitsID;
-            manageLimitsOp.assetCode = "USD";
-            manageLimitsOp.statsOpType = StatsOpType::PAYMENT_OUT;
-            manageLimitsOp.isConvertNeeded = false;
-            manageLimitsOp.isDelete = false;
+            manageLimitsOp.details.action(ManageLimitsAction::UPDATE);
+            manageLimitsOp.details.updateLimitsDetails().accountID.activate() = accountWithoutLimitsID;
+            manageLimitsOp.details.updateLimitsDetails().assetCode = "USD";
+            manageLimitsOp.details.updateLimitsDetails().statsOpType = StatsOpType::PAYMENT_OUT;
+            manageLimitsOp.details.updateLimitsDetails().isConvertNeeded = false;
             manageLimitsOp.dailyOut = 10;
             manageLimitsOp.weeklyOut = 20;
             manageLimitsOp.monthlyOut = 30;
@@ -89,7 +89,7 @@ TEST_CASE("limits update", "[tx][limits_update]")
             stellar::Hash documentHashOfAccountWithoutLimits = Hash(sha256(documentDataOfAccountWithoutLimits));
 
             limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHashOfAccountWithoutLimits);
-            limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(accountWithoutLimits,
+            limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(accountWithLimits,
                                                                                           limitsUpdateRequest);
 
             reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().manageLimitsRequestID,

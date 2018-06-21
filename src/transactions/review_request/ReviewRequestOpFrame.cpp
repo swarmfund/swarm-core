@@ -99,7 +99,7 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewWithdrawalRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::SALE:
 		return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
-	case ReviewableRequestType::MANAGE_LIMITS:
+	case ReviewableRequestType::LIMITS_UPDATE:
 		return new ReviewLimitsUpdateRequestOpFrame(op, res, parentTx);
     case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
         return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);

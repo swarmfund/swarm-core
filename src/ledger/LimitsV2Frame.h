@@ -72,6 +72,12 @@ public:
         return mLimitsV2.assetCode;
     }
 
+    StatsOpType const&
+    getStatsOpType() const
+    {
+        return mLimitsV2.statsOpType;
+    }
+
     static bool isValid(LimitsV2Entry const& limitsV2);
     bool isValid() const;
 

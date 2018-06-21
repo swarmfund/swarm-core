@@ -42,7 +42,7 @@ CreateManageLimitsRequestOpFrame::CreateManageLimitsRequestOpFrame(
 std::string
 CreateManageLimitsRequestOpFrame::getLimitsManageRequestReference(Hash const& documentHash) const
 {
-    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::MANAGE_LIMITS, documentHash));
+    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::LIMITS_UPDATE, documentHash));
     return binToHex(hash);
 }
 
@@ -62,8 +62,8 @@ CreateManageLimitsRequestOpFrame::doApply(Application& app, LedgerDelta& delta, 
     }
 
     ReviewableRequestEntry::_body_t body;
-    body.type(ReviewableRequestType::MANAGE_LIMITS);
-    body.manageLimitsRequest().documentHash = mCreateManageLimitsRequest.manageLimitsRequest.documentHash;
+    body.type(ReviewableRequestType::LIMITS_UPDATE);
+    body.limitsUpdateRequest().documentHash = mCreateManageLimitsRequest.manageLimitsRequest.documentHash;
 
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr,
                                                              body, ledgerManager.getCloseTime());

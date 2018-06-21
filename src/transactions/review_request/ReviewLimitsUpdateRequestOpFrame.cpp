@@ -41,17 +41,17 @@ namespace stellar {
 
         Operation op;
         op.body.type(OperationType::MANAGE_LIMITS);
-        ManageLimitsOp& setLimitsOp = op.body.manageLimitsOp();
-        setLimitsOp.accountID = mReviewRequest.requestDetails.manageLimits().newLimitsV2.accountID;
-        setLimitsOp.accountType = mReviewRequest.requestDetails.manageLimits().newLimitsV2.accountType;
-        setLimitsOp.statsOpType = mReviewRequest.requestDetails.manageLimits().newLimitsV2.statsOpType;
-        setLimitsOp.assetCode = mReviewRequest.requestDetails.manageLimits().newLimitsV2.assetCode;
-        setLimitsOp.isConvertNeeded = mReviewRequest.requestDetails.manageLimits().newLimitsV2.isConvertNeeded;
-        setLimitsOp.isDelete = mReviewRequest.requestDetails.manageLimits().isDelete;
-        setLimitsOp.dailyOut = mReviewRequest.requestDetails.manageLimits().newLimitsV2.dailyOut;
-        setLimitsOp.weeklyOut = mReviewRequest.requestDetails.manageLimits().newLimitsV2.weeklyOut;
-        setLimitsOp.monthlyOut = mReviewRequest.requestDetails.manageLimits().newLimitsV2.monthlyOut;
-        setLimitsOp.annualOut = mReviewRequest.requestDetails.manageLimits().newLimitsV2.annualOut;
+        ManageLimitsOp& manageLimitsOp = op.body.manageLimitsOp();
+        manageLimitsOp.details.action(ManageLimitsAction::UPDATE);
+        manageLimitsOp.details.updateLimitsDetails().accountID = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.accountID;
+        manageLimitsOp.details.updateLimitsDetails().accountType = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.accountType;
+        manageLimitsOp.details.updateLimitsDetails().statsOpType = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.statsOpType;
+        manageLimitsOp.details.updateLimitsDetails().assetCode = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.assetCode;
+        manageLimitsOp.details.updateLimitsDetails().isConvertNeeded = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.isConvertNeeded;
+        manageLimitsOp.dailyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.dailyOut;
+        manageLimitsOp.weeklyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.weeklyOut;
+        manageLimitsOp.monthlyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.monthlyOut;
+        manageLimitsOp.annualOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.annualOut;
 
         OperationResult opRes;
         opRes.code(OperationResultCode::opINNER);
@@ -84,8 +84,8 @@ namespace stellar {
                                                          LedgerManager &ledgerManager,
                                                          ReviewableRequestFrame::pointer request)
     {
-        if (request->getRequestType() != ReviewableRequestType::MANAGE_LIMITS) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected MANAGE_LIMITS, but got "
+        if (request->getRequestType() != ReviewableRequestType::LIMITS_UPDATE) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected LIMITS, but got "
                                                    << xdr::xdr_traits<ReviewableRequestType>::enum_name(request->getRequestType());
             throw std::invalid_argument("Unexpected request type for review limits update request");
         }

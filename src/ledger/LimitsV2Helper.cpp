@@ -12,7 +12,7 @@ using namespace soci;
 
 namespace  stellar
 {
-    const char* limitsV2Selector = "select limits_v2_id, account_type, account_id, stats_op_type, asset_code,"
+    const char* limitsV2Selector = "select id, account_type, account_id, stats_op_type, asset_code,"
                                    " is_convert_needed, daily_out, weekly_out, monthly_out, annual_out,"
                                    " lastmodified, version "
                                    "from limits_v2 ";
@@ -22,9 +22,9 @@ namespace  stellar
         db.getSession() << "DROP TABLE IF EXISTS limits_v2;";
         db.getSession() << "CREATE TABLE limits_v2"
                    "("
-                   "limits_v2_id        BIGINT          NOT NULL CHECK (limits_v2_id >= 0),"
-                   "account_type        INT             ,"
-                   "account_id          VARCHAR(56)     ,"
+                   "id                  BIGINT          NOT NULL CHECK (id >= 0) PRIMARY KEY,"
+                   "account_type        INT             DEFAULT NULL,"
+                   "account_id          VARCHAR(56)     DEFAULT NULL,"
                    "stats_op_type       INT             NOT NULL,"
                    "asset_code          TEXT            NOT NULL,"
                    "is_convert_needed   BOOLEAN         NOT NULL,"
@@ -34,7 +34,7 @@ namespace  stellar
                    "annual_out          NUMERIC(20,0)   NOT NULL,"
                    "lastmodified        INT             NOT NULL,"
                    "version             INT             NOT NULL DEFAULT 0,"
-                   "CONSTRAINT limits_v2_id UNIQUE (account_type, account_id, stats_op_type, "
+                   "CONSTRAINT id UNIQUE (account_type, account_id, stats_op_type, "//maybe here mistake
                    "                                asset_code, is_convert_needed)"
                    ");";
     }
@@ -61,7 +61,7 @@ namespace  stellar
 
         if (insert)
         {
-            sql = "INSERT INTO limits_v2 (limits_v2_id, account_type, account_id, stats_op_type, asset_code, "
+            sql = "INSERT INTO limits_v2 (id, account_type, account_id, stats_op_type, asset_code, "
                   "is_convert_needed, daily_out, weekly_out, monthly_out, annual_out, lastmodified, version) "
                   "VALUES (:id, :acc_t, :acc_id, :stats_t, :asset_c, :is_c, :d_o, :w_o, :m_o, :a_o, :lm, :v)";
         } else
@@ -70,27 +70,35 @@ namespace  stellar
                   "SET    account_type=:acc_t, account_id=:acc_id, stats_op_type=:stats_t, asset_code=:asset_c, "
                   "       is_convert_needed=:is_c, daily_out=:d_o, weekly_out=:w_o, monthly_out=:m_o, annual_out=:a_o, "
                   "       lastmodified=:lm, version=:v "
-                  "WHERE  limits_v2_id = :id";
+                  "WHERE  id = :id";
         }
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
 
         int32_t accountType = 0;
+        indicator accountTypeIndicator = i_null;
         if (!!limitsV2Entry.accountType)
-            accountType = static_cast<int32_t>(*limitsV2Entry.accountType);//check it
+        {
+            accountType = static_cast<int32_t>(*limitsV2Entry.accountType);
+            accountTypeIndicator = i_ok;
+        }
 
         string accountIDStr;
+        indicator accountIDIndicator = i_null;
         if (!!limitsV2Entry.accountID)
-            accountIDStr = PubKeyUtils::toStrKey(*limitsV2Entry.accountID);//check it
+        {
+            accountIDStr = PubKeyUtils::toStrKey(*limitsV2Entry.accountID);
+            accountIDIndicator = i_ok;
+        }
 
         auto statsOpType = static_cast<int32_t>(limitsV2Entry.statsOpType);
         int isConvertNeeded = limitsV2Entry.isConvertNeeded ? 1 : 0;
         auto version = static_cast<int32_t>(limitsV2Entry.ext.v());
 
         st.exchange(use(limitsV2Entry.id, "id"));
-        st.exchange(use(accountType, "acc_t"));
-        st.exchange(use(accountIDStr, "acc_id"));
+        st.exchange(use(accountType, accountTypeIndicator, "acc_t"));
+        st.exchange(use(accountIDStr, accountIDIndicator, "acc_id"));
         st.exchange(use(statsOpType, "stats_t"));
         st.exchange(use(limitsV2Entry.assetCode, "asset_c"));
         st.exchange(use(isConvertNeeded, "is_c"));
@@ -138,7 +146,7 @@ namespace  stellar
     LimitsV2Helper::storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key)
     {
         auto timer = db.getDeleteTimer("limits-v2");
-        auto prep = db.getPreparedStatement("DELETE FROM limits_v2 WHERE limits_v2_id = :id");
+        auto prep = db.getPreparedStatement("DELETE FROM limits_v2 WHERE id = :id");
         auto& st = prep.statement();
         st.exchange(use(key.limitsV2().id, "id"));
         st.define_and_bind();
@@ -151,7 +159,7 @@ namespace  stellar
     {
         int exists = 0;
         auto timer = db.getSelectTimer("limits_v2_exists");
-        auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM limits_v2 WHERE limits_v2_id = :id)");
+        auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM limits_v2 WHERE id = :id)");
         auto& st = prep.statement();
         st.exchange(use(key.limitsV2().id, "id"));
         st.exchange(into(exists));
@@ -195,7 +203,7 @@ namespace  stellar
     LimitsV2Helper::loadLimits(uint64_t id, Database &db, LedgerDelta *delta)
     {
         string sql = limitsV2Selector;
-        sql += " where limits_v2_id = :id";
+        sql += " where id = :id";
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
@@ -217,40 +225,63 @@ namespace  stellar
         return result;
     }
 
-    std::vector<LimitsV2Frame::pointer>
-    LimitsV2Helper::loadLimits(Database &db, StatsOpType statsOpType, AssetCode assetCode,
-                               xdr::pointer<AccountID> accountID, xdr::pointer<AccountType> accountType,
-                               LedgerDelta *delta)
+    string
+    LimitsV2Helper::obtainSqlStatsOpTypesString(unsigned long size)
     {
-        string accountIDStr;
-        if (!!accountID)
-            accountIDStr = PubKeyUtils::toStrKey(*accountID);
+        string result;
+        for (unsigned long iterator = 0; iterator < size; iterator++)
+        {
+            result += ":stats_t_" + to_string(iterator);
+            result += ", ";
+        }
+        return result.substr(0, result.size()-2);
+    }
 
+    std::vector<LimitsV2Frame::pointer>
+    LimitsV2Helper::loadLimits(Database &db, vector<StatsOpType> statsOpTypes, AssetCode assetCode,
+                               xdr::pointer<AccountID> accountID, xdr::pointer<AccountType> accountType)
+    {
         int32_t accountTypeInt = 0;
+        indicator accountTypeIndicator = i_null;
         if (!!accountType)
+        {
             accountTypeInt = static_cast<int32_t>(*accountType);
+            accountTypeIndicator = i_ok;
+        }
 
-        auto statsOpTypeInt = static_cast<int32_t>(statsOpType);
-        auto spendOpTypeInt = static_cast<int32_t>(StatsOpType::SPEND);
+        string accountIDStr;
+        indicator accountIDIndicator = i_null;
+        if (!!accountID)
+        {
+            accountIDStr = PubKeyUtils::toStrKey(*accountID);
+            accountIDIndicator = i_ok;
+        }
 
         // the idea behind this request is to select all limits which are appliable for account-operation pair
         // we should try to select most precise limits (for specific account, for specific type, system global)
-        string sql = "select distinct on (stats_op_type, asset_code, is_convert_needed)  limits_v2_id, "
+        string sql = "select distinct on (stats_op_type, asset_code, is_convert_needed)  id, "
                      "account_type, account_id, stats_op_type, asset_code, is_convert_needed, daily_out, "
                      "weekly_out, monthly_out, annual_out, lastmodified, version  "
                      "from limits_v2 "
-                     "where (account_type=:acc_t or account_type = 0) and (account_id=:acc_id or account_id is null)"
-                     " and  (asset_code=:asset_c or is_convert_needed) and (stats_op_type in (:stats_t, :spend_t)) "
+                     "where (account_type=:acc_t or account_type is null) and (account_id=:acc_id or account_id is null)"
+                     " and  (asset_code=:asset_c or is_convert_needed) and (stats_op_type in (" +
+                     obtainSqlStatsOpTypesString(statsOpTypes.size()) + ")) "
                      "order by stats_op_type, asset_code, is_convert_needed, account_id = :acc_id, "
                      "account_type = :acc_t desc;";
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
-        st.exchange(use(accountIDStr, "acc_id"));
-        st.exchange(use(accountTypeInt, "acc_t"));
+        st.exchange(use(accountIDStr, accountIDIndicator, "acc_id"));
+        st.exchange(use(accountTypeInt, accountTypeIndicator, "acc_t"));
         st.exchange(use(assetCode, "asset_c"));
-        st.exchange(use(statsOpTypeInt, "stats_t"));
-        st.exchange(use(spendOpTypeInt, "spend_t"));
+
+        int counter = 0;
+        for (StatsOpType statsOpType : statsOpTypes)
+        {
+            auto statsOpTypeInt = static_cast<int32_t>(statsOpType);
+            st.exchange(use(statsOpTypeInt, "stats_t_" + to_string(counter)));
+            counter++;
+        }
 
         std::vector<LimitsV2Frame::pointer> result;
         auto timer = db.getSelectTimer("limits-v2");
@@ -267,13 +298,21 @@ namespace  stellar
                                xdr::pointer<AccountID> accountID, xdr::pointer<AccountType> accountType,
                                bool isConvertNeeded, LedgerDelta *delta)
     {
-        string accountIDStr;
-        if (!!accountID)
-            accountIDStr = PubKeyUtils::toStrKey(*accountID);
-
         int32_t accountTypeInt = 0;
+        indicator accountTypeIndicator = i_null;
         if (!!accountType)
+        {
             accountTypeInt = static_cast<int32_t>(*accountType);
+            accountTypeIndicator = i_ok;
+        }
+
+        string accountIDStr;
+        indicator accountIDIndicator = i_null;
+        if (!!accountID)
+        {
+            accountIDStr = PubKeyUtils::toStrKey(*accountID);
+            accountIDIndicator = i_ok;
+        }
 
         auto statsOpTypeInt = static_cast<int32_t>(statsOpType);
         int isConvertNeededInt = isConvertNeeded ? 1 : 0;
@@ -284,8 +323,8 @@ namespace  stellar
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
-        st.exchange(use(accountIDStr, "acc_id"));
-        st.exchange(use(accountTypeInt, "acc_t"));
+        st.exchange(use(accountIDStr, accountIDIndicator, "acc_id"));
+        st.exchange(use(accountTypeInt, accountTypeIndicator, "acc_t"));
         st.exchange(use(assetCode, "asset_c"));
         st.exchange(use(statsOpTypeInt, "stats_t"));
         st.exchange(use(isConvertNeededInt, "is_c"));
@@ -317,14 +356,16 @@ namespace  stellar
 
             int32_t accountType;
             string accountIDStr;
+            indicator accountTypeIndicator = i_null;
+            indicator accountIDIndicator = i_null;
             int32_t statsOpType;
             int32_t isConvertNeeded;
             int32_t version;
 
             auto& st = prep.statement();
             st.exchange(into(limitsV2.id));
-            st.exchange(into(accountType));
-            st.exchange(into(accountIDStr));
+            st.exchange(into(accountType, accountTypeIndicator));
+            st.exchange(into(accountIDStr, accountIDIndicator));
             st.exchange(into(statsOpType));
             st.exchange(into(limitsV2.assetCode));
             st.exchange(into(isConvertNeeded));
@@ -339,10 +380,10 @@ namespace  stellar
 
             while (st.got_data())
             {
-                if (accountType != 0)
+                if (accountTypeIndicator == i_ok)
                     limitsV2.accountType.activate() = static_cast<AccountType>(accountType);
 
-                if (!accountIDStr.empty())
+                if (accountIDIndicator == i_ok)
                     limitsV2.accountID.activate() = PubKeyUtils::fromStrKey(accountIDStr);
 
                 limitsV2.statsOpType = static_cast<StatsOpType>(statsOpType);

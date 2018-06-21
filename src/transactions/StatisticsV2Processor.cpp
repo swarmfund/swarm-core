@@ -46,32 +46,34 @@ namespace stellar
 
         AssetCode assetCode = balance->getAsset();
 
-        StatsOpType statsOpType;
+        std::vector<StatsOpType> statsOpTypes;
+        statsOpTypes.emplace_back(StatsOpType::SPEND);
         switch (spendType)
         {
             case SpendType::WITHDRAW:
-                statsOpType = StatsOpType::WITHDRAW;
+                statsOpTypes.emplace_back(StatsOpType::WITHDRAW);
                 break;
             case SpendType::PAYMENT:
-                statsOpType = StatsOpType::PAYMENT_OUT;
+                statsOpTypes.emplace_back(StatsOpType::PAYMENT_OUT);
                 break;
             default:
                 throw std::runtime_error("Unexpected spend type");
         }
 
         auto limitsV2Helper = LimitsV2Helper::Instance();
-        auto limitsV2Frames = limitsV2Helper->loadLimits(mDb, statsOpType, assetCode, accountID, accountType, &mDelta);
+        auto limitsV2Frames = limitsV2Helper->loadLimits(mDb, statsOpTypes, assetCode, accountID, accountType);
 
         for (LimitsV2Frame::pointer limitsV2Frame : limitsV2Frames)
         {
             auto statisticsV2Helper = StatisticsV2Helper::Instance();
-            auto statisticsV2Frame = statisticsV2Helper->loadStatistics(*accountID, statsOpType, assetCode,
-                                                                        limitsV2Frame->getConvertNeeded(), mDb, &mDelta);
+            auto statisticsV2Frame = statisticsV2Helper->loadStatistics(*accountID, limitsV2Frame->getStatsOpType(),
+                    assetCode, limitsV2Frame->getConvertNeeded(), mDb, &mDelta);
 
             if (!statisticsV2Frame) {
                 auto statisticsV2ID = mDelta.getHeaderFrame().generateID(LedgerEntryType::STATISTICS_V2);
                 statisticsV2Frame = StatisticsV2Frame::newStatisticsV2(statisticsV2ID, account->getID(),
-                                                                       statsOpType, limitsV2Frame->getAsset(),
+                                                                       limitsV2Frame->getStatsOpType(),
+                                                                       limitsV2Frame->getAsset(),
                                                                        limitsV2Frame->getConvertNeeded());
                 EntryHelperProvider::storeAddEntry(mDelta, mDb, statisticsV2Frame->mEntry);
             }
@@ -84,8 +86,9 @@ namespace stellar
                                                                                        statisticsV2Frame->getAsset(),
                                                                                        mDb);
                 if (!statsAssetPair){
-                    CLOG(WARNING, "Not found") << "No such asset pair: " << assetCode << " and "
-                                               << statisticsV2Frame->getAsset();
+                    CLOG(WARNING, Logging::OPERATION_LOGGER) << "Not found such asset pair: " << assetCode << " and "
+                                               << statisticsV2Frame->getAsset()
+                                               << " while statisticsV2Processor add stats.";
                     continue;
                 }
 

@@ -26,7 +26,8 @@ ManageLimitsOpFrame::ManageLimitsOpFrame(Operation const& op, OperationResult& r
 }
 
 
-std::unordered_map<AccountID, CounterpartyDetails> ManageLimitsOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
+std::unordered_map<AccountID, CounterpartyDetails>
+ManageLimitsOpFrame::getCounterpartyDetails(Database & db, LedgerDelta* delta) const
 {
     switch (mManageLimits.details.action())
     {
@@ -39,8 +40,7 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageLimitsOpFrame::getCount
             };
         case ManageLimitsAction::DELETE:
             return {
-                {*mManageLimits.details.updateLimitsDetails().accountID,
-                            CounterpartyDetails({AccountType::MASTER}, true, true)}
+                {mSourceAccount->getID(), CounterpartyDetails({AccountType::MASTER}, true, true)}
             };
         default:
             throw std::runtime_error("Unexpected manage limits action while get counterparty details. "
@@ -49,8 +49,9 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageLimitsOpFrame::getCount
 
 }
 
-SourceDetails ManageLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
-                                                        int32_t ledgerVersion) const
+SourceDetails
+ManageLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                             int32_t ledgerVersion) const
 {
 	auto signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
 	int32_t threshold = mSourceAccount->getHighThreshold();

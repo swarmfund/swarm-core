@@ -90,11 +90,12 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
         {
             manageLimitsOp.annualOut = INT64_MAX;
             manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
-            auto limitsAfter = limitsV2Helper->loadLimits(app.getDatabase(),
-                                                          manageLimitsOp.details.updateLimitsDetails().statsOpType,
-                                                          manageLimitsOp.details.updateLimitsDetails().assetCode,
-                                                          manageLimitsOp.details.updateLimitsDetails().accountID, nullptr,
-                                                          manageLimitsOp.details.updateLimitsDetails().isConvertNeeded, nullptr);
+            limitsAfter = limitsV2Helper->loadLimits(app.getDatabase(),
+                    manageLimitsOp.details.updateLimitsDetails().statsOpType,
+                    manageLimitsOp.details.updateLimitsDetails().assetCode,
+                    manageLimitsOp.details.updateLimitsDetails().accountID, nullptr,
+                    manageLimitsOp.details.updateLimitsDetails().isConvertNeeded, nullptr);
+
             REQUIRE(!!limitsAfter);
             REQUIRE(limitsAfter->getAnnualOut() == manageLimitsOp.annualOut);
 

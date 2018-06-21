@@ -2,6 +2,7 @@
 #include <ledger/ReviewableRequestHelper.h>
 #include <lib/catch.hpp>
 #include <transactions/dex/ManageSaleOpFrame.h>
+#include <ledger/SaleAnteHelper.h>
 #include "ManageAssetTestHelper.h"
 #include "ManageSaleTestHelper.h"
 #include "TestManager.h"
@@ -68,6 +69,8 @@ namespace stellar {
                 requestBeforeTx = reviewableRequestHelper->loadRequest(data.updateSaleDetailsData().requestID, db);
             }
 
+            auto saleAntesBeforeTx = SaleAnteHelper::Instance()->loadSaleAntes(saleID, db);
+
             std::vector<LedgerDelta::KeyEntryMap> stateBeforeOp;
             TransactionFramePtr txFrame;
             txFrame = createManageSaleTx(source, saleID, data);
@@ -116,7 +119,7 @@ namespace stellar {
                     REQUIRE(!saleAfterOp);
                     REQUIRE(stateBeforeOp.size() == 1);
                     StateBeforeTxHelper stateBeforeTxHelper(stateBeforeOp[0]);
-                    CheckSaleStateHelper(mTestManager).ensureCancel(saleID, stateBeforeTxHelper);
+                    CheckSaleStateHelper(mTestManager).ensureCancel(saleID, stateBeforeTxHelper, saleAntesBeforeTx);
                     break;
                 }
             }

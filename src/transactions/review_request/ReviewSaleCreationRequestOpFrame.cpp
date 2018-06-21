@@ -100,6 +100,9 @@ void ReviewSaleCreationRequestOpFrame::createAssetPair(SaleFrame::pointer sale, 
             ledgerManager.getDatabase());
         if (!!assetPair)
         {
+            if (ledgerManager.shouldUse(LedgerVersion::FIX_ASSET_PAIRS_CREATION_IN_SALE_CREATION)) {
+                continue;
+            }
             return;
         }
 

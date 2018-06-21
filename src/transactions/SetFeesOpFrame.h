@@ -40,6 +40,8 @@ namespace stellar {
 
         bool isEmissionFeeValid(FeeEntry const &fee, medida::MetricsRegistry &media);
 
+        bool isInvestFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics);
+
         bool trySetFee(medida::MetricsRegistry &media, Database &db, LedgerDelta &delta);
 
         bool doCheckForfeitFee(medida::MetricsRegistry &media, Database &db, LedgerDelta &delta);

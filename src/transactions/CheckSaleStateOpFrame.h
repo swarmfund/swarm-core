@@ -38,6 +38,8 @@ class CheckSaleStateOpFrame : public OperationFrame
     bool handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta, Database& db);
     bool handleClose(SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db);
 
+    void chargeSaleAntes(uint64_t saleID, AccountID const &commissionID, LedgerDelta &delta, Database &db);
+
     CreateIssuanceRequestResult applyCreateIssuanceRequest(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
         LedgerDelta& delta, LedgerManager& lm) const;
 

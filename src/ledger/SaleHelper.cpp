@@ -21,7 +21,7 @@ const char* selectorSale =
 
 void SaleHelper::dropAll(Database& db)
 {
-    db.getSession() << "DROP TABLE IF EXISTS sale;";
+    db.getSession() << "DROP TABLE IF EXISTS sale CASCADE;";
     db.getSession() << "CREATE TABLE sale"
         "("
         "id                  BIGINT        NOT NULL CHECK (id >= 0),"

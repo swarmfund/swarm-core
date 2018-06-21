@@ -40,10 +40,10 @@ namespace stellar
 
     void LimitsV2Frame::changeLimits(ManageLimitsOp const& manageLimitsOp)
     {
-        mLimitsV2.dailyOut = manageLimitsOp.dailyOut;
-        mLimitsV2.weeklyOut = manageLimitsOp.weeklyOut;
-        mLimitsV2.monthlyOut = manageLimitsOp.monthlyOut;
-        mLimitsV2.annualOut = manageLimitsOp.annualOut;
+        mLimitsV2.dailyOut = manageLimitsOp.details.limitsCreateDetails().dailyOut;
+        mLimitsV2.weeklyOut = manageLimitsOp.details.limitsCreateDetails().weeklyOut;
+        mLimitsV2.monthlyOut = manageLimitsOp.details.limitsCreateDetails().monthlyOut;
+        mLimitsV2.annualOut = manageLimitsOp.details.limitsCreateDetails().annualOut;
     }
 
     LimitsV2Frame::pointer
@@ -54,11 +54,11 @@ namespace stellar
         LimitsV2Entry& entry = le.data.limitsV2();
 
         entry.id = id;
-        entry.accountType = manageLimitsOp.details.updateLimitsDetails().accountType;
-        entry.accountID = manageLimitsOp.details.updateLimitsDetails().accountID;
-        entry.statsOpType = manageLimitsOp.details.updateLimitsDetails().statsOpType;
-        entry.assetCode = manageLimitsOp.details.updateLimitsDetails().assetCode;
-        entry.isConvertNeeded = manageLimitsOp.details.updateLimitsDetails().isConvertNeeded;
+        entry.accountType = manageLimitsOp.details.limitsCreateDetails().accountType;
+        entry.accountID = manageLimitsOp.details.limitsCreateDetails().accountID;
+        entry.statsOpType = manageLimitsOp.details.limitsCreateDetails().statsOpType;
+        entry.assetCode = manageLimitsOp.details.limitsCreateDetails().assetCode;
+        entry.isConvertNeeded = manageLimitsOp.details.limitsCreateDetails().isConvertNeeded;
 
         auto limitsV2Frame = std::make_shared<LimitsV2Frame>(le);
         limitsV2Frame->changeLimits(manageLimitsOp);

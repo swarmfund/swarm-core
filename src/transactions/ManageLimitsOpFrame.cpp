@@ -31,11 +31,11 @@ ManageLimitsOpFrame::getCounterpartyDetails(Database & db, LedgerDelta* delta) c
 {
     switch (mManageLimits.details.action())
     {
-        case ManageLimitsAction::UPDATE:
-            if (!mManageLimits.details.updateLimitsDetails().accountID)
+        case ManageLimitsAction::CREATE:
+            if (!mManageLimits.details.limitsCreateDetails().accountID)
                 return{};
             return{
-                    {*mManageLimits.details.updateLimitsDetails().accountID,
+                    {*mManageLimits.details.limitsCreateDetails().accountID,
                             CounterpartyDetails(getAllAccountTypes(), true, true)}
             };
         case ManageLimitsAction::DELETE:
@@ -55,10 +55,10 @@ ManageLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, Count
 {
 	auto signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
 	int32_t threshold = mSourceAccount->getHighThreshold();
-	if ((mManageLimits.details.action() == ManageLimitsAction::UPDATE) &&
-        (!!mManageLimits.details.updateLimitsDetails().accountID))
+	if ((mManageLimits.details.action() == ManageLimitsAction::CREATE) &&
+        (!!mManageLimits.details.limitsCreateDetails().accountID))
 	{
-		auto account = counterpartiesDetails.find(*mManageLimits.details.updateLimitsDetails().accountID);
+		auto account = counterpartiesDetails.find(*mManageLimits.details.limitsCreateDetails().accountID);
 		if (account == counterpartiesDetails.end() || !account->second.mAccount)
 			throw std::invalid_argument("Unexpected counterpartiesDetails. Expected counterparty to be included");
 
@@ -91,13 +91,13 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     switch (mManageLimits.details.action())
     {
-    case ManageLimitsAction::UPDATE:
+    case ManageLimitsAction::CREATE:
     {
-        auto limitsV2Frame = limitsV2Helper->loadLimits(db, mManageLimits.details.updateLimitsDetails().statsOpType,
-                                                        mManageLimits.details.updateLimitsDetails().assetCode,
-                                                        mManageLimits.details.updateLimitsDetails().accountID,
-                                                        mManageLimits.details.updateLimitsDetails().accountType,
-                                                        mManageLimits.details.updateLimitsDetails().isConvertNeeded,
+        auto limitsV2Frame = limitsV2Helper->loadLimits(db, mManageLimits.details.limitsCreateDetails().statsOpType,
+                                                        mManageLimits.details.limitsCreateDetails().assetCode,
+                                                        mManageLimits.details.limitsCreateDetails().accountID,
+                                                        mManageLimits.details.limitsCreateDetails().accountType,
+                                                        mManageLimits.details.limitsCreateDetails().isConvertNeeded,
                                                         &delta);
         if (!limitsV2Frame) {
             uint64_t id = delta.getHeaderFrame().generateID(LedgerEntryType::LIMITS_V2);
@@ -108,6 +108,9 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
 
         limitsV2Frame->changeLimits(mManageLimits);
         limitsV2Helper->storeChange(delta, db, limitsV2Frame->mEntry);
+
+        innerResult().success().details.action(ManageLimitsAction::CREATE);
+        innerResult().success().details.id() = limitsV2Frame->getID();
         break;
     }
     case ManageLimitsAction::DELETE:
@@ -132,9 +135,9 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
 bool
 ManageLimitsOpFrame::doCheckValid(Application& app)
 {
-    if ((mManageLimits.details.action() == ManageLimitsAction::UPDATE) &&
-        !!mManageLimits.details.updateLimitsDetails().accountID &&
-        !!mManageLimits.details.updateLimitsDetails().accountType)
+    if ((mManageLimits.details.action() == ManageLimitsAction::CREATE) &&
+        !!mManageLimits.details.limitsCreateDetails().accountID &&
+        !!mManageLimits.details.limitsCreateDetails().accountType)
     {
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},
@@ -157,13 +160,16 @@ ManageLimitsOpFrame::doCheckValid(Application& app)
 
 bool ManageLimitsOpFrame::isValidLimits()
 {
-    if (mManageLimits.dailyOut < 0)
+    if (mManageLimits.details.limitsCreateDetails().dailyOut < 0)
         return false;
-    if (mManageLimits.weeklyOut < mManageLimits.dailyOut)
+    if (mManageLimits.details.limitsCreateDetails().weeklyOut <
+        mManageLimits.details.limitsCreateDetails().dailyOut)
         return false;
-    if (mManageLimits.monthlyOut < mManageLimits.weeklyOut)
+    if (mManageLimits.details.limitsCreateDetails().monthlyOut <
+        mManageLimits.details.limitsCreateDetails().weeklyOut)
         return false;
-    return mManageLimits.annualOut >= mManageLimits.monthlyOut;
+    return mManageLimits.details.limitsCreateDetails().annualOut >=
+           mManageLimits.details.limitsCreateDetails().monthlyOut;
 }
 
 }

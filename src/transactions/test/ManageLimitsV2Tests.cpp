@@ -46,18 +46,18 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
     testManager->applyCheck(txFrame);
 
     ManageLimitsOp manageLimitsOp;
-    manageLimitsOp.details.action(ManageLimitsAction::UPDATE);
+    manageLimitsOp.details.action(ManageLimitsAction::CREATE);
     AccountID accountID = a1.key.getPublicKey();
     AccountType accountType = AccountType::GENERAL;
-    manageLimitsOp.details.updateLimitsDetails().accountID.activate() = accountID;
-    manageLimitsOp.details.updateLimitsDetails().accountType.activate() = accountType;
-    manageLimitsOp.details.updateLimitsDetails().assetCode = "USD";
-    manageLimitsOp.details.updateLimitsDetails().statsOpType = StatsOpType::PAYMENT_OUT;
-    manageLimitsOp.details.updateLimitsDetails().isConvertNeeded = false;
-    manageLimitsOp.dailyOut = 100;
-    manageLimitsOp.weeklyOut = 200;
-    manageLimitsOp.monthlyOut = 300;
-    manageLimitsOp.annualOut = 500;
+    manageLimitsOp.details.limitsCreateDetails().accountID.activate() = accountID;
+    manageLimitsOp.details.limitsCreateDetails().accountType.activate() = accountType;
+    manageLimitsOp.details.limitsCreateDetails().assetCode = "USD";
+    manageLimitsOp.details.limitsCreateDetails().statsOpType = StatsOpType::PAYMENT_OUT;
+    manageLimitsOp.details.limitsCreateDetails().isConvertNeeded = false;
+    manageLimitsOp.details.limitsCreateDetails().dailyOut = 100;
+    manageLimitsOp.details.limitsCreateDetails().weeklyOut = 200;
+    manageLimitsOp.details.limitsCreateDetails().monthlyOut = 300;
+    manageLimitsOp.details.limitsCreateDetails().annualOut = 500;
 
 	auto limitsV2Helper = LimitsV2Helper::Instance();
 
@@ -66,19 +66,19 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
     SECTION("malformed")
     {
         manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::MALFORMED);
-        manageLimitsOp.annualOut = 0;
-        manageLimitsOp.details.updateLimitsDetails().accountType = nullptr;
+        manageLimitsOp.details.limitsCreateDetails().annualOut = 0;
+        manageLimitsOp.details.limitsCreateDetails().accountType = nullptr;
         manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::MALFORMED);
     }
     SECTION("success accountID limits setting")
     {
-        manageLimitsOp.details.updateLimitsDetails().accountType = nullptr;
+        manageLimitsOp.details.limitsCreateDetails().accountType = nullptr;
         manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
         auto limitsAfter = limitsV2Helper->loadLimits(app.getDatabase(),
-                manageLimitsOp.details.updateLimitsDetails().statsOpType,
-                manageLimitsOp.details.updateLimitsDetails().assetCode,
-                manageLimitsOp.details.updateLimitsDetails().accountID, nullptr,
-                manageLimitsOp.details.updateLimitsDetails().isConvertNeeded, nullptr);
+                manageLimitsOp.details.limitsCreateDetails().statsOpType,
+                manageLimitsOp.details.limitsCreateDetails().assetCode,
+                manageLimitsOp.details.limitsCreateDetails().accountID, nullptr,
+                manageLimitsOp.details.limitsCreateDetails().isConvertNeeded, nullptr);
 
         REQUIRE(!!limitsAfter);
         REQUIRE(limitsAfter->getDailyOut() == manageLimitsOp.dailyOut);
@@ -91,10 +91,10 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
             manageLimitsOp.annualOut = INT64_MAX;
             manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
             limitsAfter = limitsV2Helper->loadLimits(app.getDatabase(),
-                    manageLimitsOp.details.updateLimitsDetails().statsOpType,
-                    manageLimitsOp.details.updateLimitsDetails().assetCode,
-                    manageLimitsOp.details.updateLimitsDetails().accountID, nullptr,
-                    manageLimitsOp.details.updateLimitsDetails().isConvertNeeded, nullptr);
+                    manageLimitsOp.details.limitsCreateDetails().statsOpType,
+                    manageLimitsOp.details.limitsCreateDetails().assetCode,
+                    manageLimitsOp.details.limitsCreateDetails().accountID, nullptr,
+                    manageLimitsOp.details.limitsCreateDetails().isConvertNeeded, nullptr);
 
             REQUIRE(!!limitsAfter);
             REQUIRE(limitsAfter->getAnnualOut() == manageLimitsOp.annualOut);
@@ -122,21 +122,21 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
 
     SECTION("success accountType limits update")
     {
-        manageLimitsOp.details.updateLimitsDetails().accountID = nullptr;
+        manageLimitsOp.details.limitsCreateDetails().accountID = nullptr;
         auto limitsBefore = limitsV2Helper->loadLimits(app.getDatabase(),
-                manageLimitsOp.details.updateLimitsDetails().statsOpType,
-                manageLimitsOp.details.updateLimitsDetails().assetCode,
-                nullptr, manageLimitsOp.details.updateLimitsDetails().accountType,
-                manageLimitsOp.details.updateLimitsDetails().isConvertNeeded, nullptr);
+                manageLimitsOp.details.limitsCreateDetails().statsOpType,
+                manageLimitsOp.details.limitsCreateDetails().assetCode,
+                nullptr, manageLimitsOp.details.limitsCreateDetails().accountType,
+                manageLimitsOp.details.limitsCreateDetails().isConvertNeeded, nullptr);
 
         REQUIRE(!limitsBefore);
 
         manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
         auto limitsAfterFrame = limitsV2Helper->loadLimits(app.getDatabase(),
-                manageLimitsOp.details.updateLimitsDetails().statsOpType,
-                manageLimitsOp.details.updateLimitsDetails().assetCode,
-                nullptr, manageLimitsOp.details.updateLimitsDetails().accountType,
-                manageLimitsOp.details.updateLimitsDetails().isConvertNeeded, nullptr);
+                manageLimitsOp.details.limitsCreateDetails().statsOpType,
+                manageLimitsOp.details.limitsCreateDetails().assetCode,
+                nullptr, manageLimitsOp.details.limitsCreateDetails().accountType,
+                manageLimitsOp.details.limitsCreateDetails().isConvertNeeded, nullptr);
 
         REQUIRE(!!limitsAfterFrame);
         REQUIRE(limitsAfterFrame->getDailyOut() == manageLimitsOp.dailyOut);

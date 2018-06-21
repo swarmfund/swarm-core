@@ -62,15 +62,15 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
 
     //create limits
     ManageLimitsOp manageLimitsOp;
-    manageLimitsOp.details.action(ManageLimitsAction::UPDATE);
-    manageLimitsOp.details.updateLimitsDetails().accountID.activate() = payer.key.getPublicKey();
-    manageLimitsOp.details.updateLimitsDetails().assetCode = "USD";
-    manageLimitsOp.details.updateLimitsDetails().statsOpType = StatsOpType::PAYMENT_OUT;
-    manageLimitsOp.details.updateLimitsDetails().isConvertNeeded = false;
-    manageLimitsOp.dailyOut = 20000 * ONE;
-    manageLimitsOp.weeklyOut = 40000 * ONE;
-    manageLimitsOp.monthlyOut = 80000 * ONE;
-    manageLimitsOp.annualOut = 200000 * ONE;
+    manageLimitsOp.details.action(ManageLimitsAction::CREATE);
+    manageLimitsOp.details.limitsCreateDetails().accountID.activate() = payer.key.getPublicKey();
+    manageLimitsOp.details.limitsCreateDetails().assetCode = "USD";
+    manageLimitsOp.details.limitsCreateDetails().statsOpType = StatsOpType::PAYMENT_OUT;
+    manageLimitsOp.details.limitsCreateDetails().isConvertNeeded = false;
+    manageLimitsOp.details.limitsCreateDetails().dailyOut = 20000 * ONE;
+    manageLimitsOp.details.limitsCreateDetails().weeklyOut = 40000 * ONE;
+    manageLimitsOp.details.limitsCreateDetails().monthlyOut = 80000 * ONE;
+    manageLimitsOp.details.limitsCreateDetails().annualOut = 200000 * ONE;
     manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
     // create asset pair

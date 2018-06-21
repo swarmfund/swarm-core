@@ -66,15 +66,15 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
 
     //create limitsV2
     ManageLimitsOp manageLimitsOp;
-    manageLimitsOp.details.action(ManageLimitsAction::UPDATE);
-    manageLimitsOp.details.updateLimitsDetails().accountID.activate() = withdrawer.key.getPublicKey();
-    manageLimitsOp.details.updateLimitsDetails().assetCode = "UAH";
-    manageLimitsOp.details.updateLimitsDetails().statsOpType = StatsOpType::WITHDRAW;
-    manageLimitsOp.details.updateLimitsDetails().isConvertNeeded = true;
-    manageLimitsOp.dailyOut = 200000 * ONE;
-    manageLimitsOp.weeklyOut = 400000 * ONE;
-    manageLimitsOp.monthlyOut = 800000 * ONE;
-    manageLimitsOp.annualOut = 2000000 * ONE;
+    manageLimitsOp.details.action(ManageLimitsAction::CREATE);
+    manageLimitsOp.details.limitsCreateDetails().accountID.activate() = withdrawer.key.getPublicKey();
+    manageLimitsOp.details.limitsCreateDetails().assetCode = "UAH";
+    manageLimitsOp.details.limitsCreateDetails().statsOpType = StatsOpType::WITHDRAW;
+    manageLimitsOp.details.limitsCreateDetails().isConvertNeeded = true;
+    manageLimitsOp.details.limitsCreateDetails().dailyOut = 200000 * ONE;
+    manageLimitsOp.details.limitsCreateDetails().weeklyOut = 400000 * ONE;
+    manageLimitsOp.details.limitsCreateDetails().monthlyOut = 800000 * ONE;
+    manageLimitsOp.details.limitsCreateDetails().annualOut = 2000000 * ONE;
     manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
     SECTION("Happy path")

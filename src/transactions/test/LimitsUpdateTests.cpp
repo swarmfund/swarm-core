@@ -74,15 +74,15 @@ TEST_CASE("limits update", "[tx][limits_update]")
             createAccountTestHelper.applyCreateAccountTx(root, accountWithoutLimitsID,
                                                          AccountType::GENERAL);
             ManageLimitsOp manageLimitsOp;
-            manageLimitsOp.details.action(ManageLimitsAction::UPDATE);
-            manageLimitsOp.details.updateLimitsDetails().accountID.activate() = accountWithoutLimitsID;
-            manageLimitsOp.details.updateLimitsDetails().assetCode = "USD";
-            manageLimitsOp.details.updateLimitsDetails().statsOpType = StatsOpType::PAYMENT_OUT;
-            manageLimitsOp.details.updateLimitsDetails().isConvertNeeded = false;
-            manageLimitsOp.dailyOut = 10;
-            manageLimitsOp.weeklyOut = 20;
-            manageLimitsOp.monthlyOut = 30;
-            manageLimitsOp.annualOut = 50;
+            manageLimitsOp.details.action(ManageLimitsAction::CREATE);
+            manageLimitsOp.details.limitsCreateDetails().accountID.activate() = accountWithoutLimitsID;
+            manageLimitsOp.details.limitsCreateDetails().assetCode = "USD";
+            manageLimitsOp.details.limitsCreateDetails().statsOpType = StatsOpType::PAYMENT_OUT;
+            manageLimitsOp.details.limitsCreateDetails().isConvertNeeded = false;
+            manageLimitsOp.details.limitsCreateDetails().dailyOut = 10;
+            manageLimitsOp.details.limitsCreateDetails().weeklyOut = 20;
+            manageLimitsOp.details.limitsCreateDetails().monthlyOut = 30;
+            manageLimitsOp.details.limitsCreateDetails().annualOut = 50;
             manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
             std::string documentDataOfAccountWithoutLimits = "Some other document data";

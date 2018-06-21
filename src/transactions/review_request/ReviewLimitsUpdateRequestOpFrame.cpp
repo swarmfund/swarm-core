@@ -42,16 +42,16 @@ namespace stellar {
         Operation op;
         op.body.type(OperationType::MANAGE_LIMITS);
         ManageLimitsOp& manageLimitsOp = op.body.manageLimitsOp();
-        manageLimitsOp.details.action(ManageLimitsAction::UPDATE);
-        manageLimitsOp.details.updateLimitsDetails().accountID = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.accountID;
-        manageLimitsOp.details.updateLimitsDetails().accountType = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.accountType;
-        manageLimitsOp.details.updateLimitsDetails().statsOpType = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.statsOpType;
-        manageLimitsOp.details.updateLimitsDetails().assetCode = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.assetCode;
-        manageLimitsOp.details.updateLimitsDetails().isConvertNeeded = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.isConvertNeeded;
-        manageLimitsOp.dailyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.dailyOut;
-        manageLimitsOp.weeklyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.weeklyOut;
-        manageLimitsOp.monthlyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.monthlyOut;
-        manageLimitsOp.annualOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.annualOut;
+        manageLimitsOp.details.action(ManageLimitsAction::CREATE);
+        manageLimitsOp.details.limitsCreateDetails().accountID = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.accountID;
+        manageLimitsOp.details.limitsCreateDetails().accountType = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.accountType;
+        manageLimitsOp.details.limitsCreateDetails().statsOpType = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.statsOpType;
+        manageLimitsOp.details.limitsCreateDetails().assetCode = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.assetCode;
+        manageLimitsOp.details.limitsCreateDetails().isConvertNeeded = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.isConvertNeeded;
+        manageLimitsOp.details.limitsCreateDetails().dailyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.dailyOut;
+        manageLimitsOp.details.limitsCreateDetails().weeklyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.weeklyOut;
+        manageLimitsOp.details.limitsCreateDetails().monthlyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.monthlyOut;
+        manageLimitsOp.details.limitsCreateDetails().annualOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.annualOut;
 
         OperationResult opRes;
         opRes.code(OperationResultCode::opINNER);

@@ -103,22 +103,14 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
                 manageLimitsOp.details.action(ManageLimitsAction::DELETE);
                 manageLimitsOp.details.id() = limitsAfter->getID();
                 manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
-                auto deletedLimits = limitsV2Helper->loadLimits(app.getDatabase(),
-                        manageLimitsOp.details.updateLimitsDetails().statsOpType,
-                        manageLimitsOp.details.updateLimitsDetails().assetCode,
-                        manageLimitsOp.details.updateLimitsDetails().accountID, nullptr,
-                        manageLimitsOp.details.updateLimitsDetails().isConvertNeeded, nullptr);
+                auto deletedLimits = limitsV2Helper->loadLimits(manageLimitsOp.details.id(), app.getDatabase());
 
                 REQUIRE(!deletedLimits);
 
                 SECTION("not found deleted limits")
                 {
                     manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::NOT_FOUND);
-                    auto deletedLimits = limitsV2Helper->loadLimits(app.getDatabase(),
-                            manageLimitsOp.details.updateLimitsDetails().statsOpType,
-                            manageLimitsOp.details.updateLimitsDetails().assetCode,
-                            manageLimitsOp.details.updateLimitsDetails().accountID, nullptr,
-                            manageLimitsOp.details.updateLimitsDetails().isConvertNeeded, nullptr);
+                    deletedLimits = limitsV2Helper->loadLimits(manageLimitsOp.details.id(), app.getDatabase());
 
                     REQUIRE(!deletedLimits);
                 }

@@ -146,7 +146,7 @@ ManageLimitsOpFrame::doCheckValid(Application& app)
         return false;
     }
     
-    if (!isValidLimits())
+    if ((mManageLimits.details.action() == ManageLimitsAction::CREATE) && !isValidLimits())
     {
         app.getMetrics().NewMeter(
                     {"op-set-limits", "invalid", "malformed"},

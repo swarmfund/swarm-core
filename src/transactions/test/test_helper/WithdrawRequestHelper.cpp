@@ -44,9 +44,9 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     for (LimitsV2Frame::pointer limitsV2Frame : limitsV2Frames)
     {
         auto statsBeforeRequest = StatisticsV2Helper::Instance()->loadStatistics(*accountID, StatsOpType::WITHDRAW,
-                                                                                    asset,
-                                                                                    limitsV2Frame->getConvertNeeded(),
-                                                                                    db);
+                                                                                 limitsV2Frame->getAsset(),
+                                                                                 limitsV2Frame->getConvertNeeded(),
+                                                                                 db);
         statsBeforeRequestVector.emplace_back(statsBeforeRequest);
     }
 
@@ -81,7 +81,7 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     {
         asset = balanceAfterRequest->getAsset();
         auto statsAfterRequest = StatisticsV2Helper::Instance()->mustLoadStatistics(*accountID, StatsOpType::WITHDRAW,
-                                                                                    asset,
+                                                                                    limitsV2Frame->getAsset(),
                                                                                     limitsV2Frame->getConvertNeeded(),
                                                                                     db);
         validateStatsChange(statsBeforeRequestVector.at(iterator), statsAfterRequest, withdrawRequest);

@@ -338,7 +338,7 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
 
         SECTION("exceed limits")
         {
-            manageLimitsOp.dailyOut = amountToWithdraw - 1;
+            manageLimitsOp.details.limitsCreateDetails().dailyOut = amountToWithdraw - 1;
             manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,

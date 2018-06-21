@@ -67,7 +67,7 @@ namespace stellar
         {
             auto statisticsV2Helper = StatisticsV2Helper::Instance();
             auto statisticsV2Frame = statisticsV2Helper->loadStatistics(*accountID, limitsV2Frame->getStatsOpType(),
-                    assetCode, limitsV2Frame->getConvertNeeded(), mDb, &mDelta);
+                    limitsV2Frame->getAsset(), limitsV2Frame->getConvertNeeded(), mDb, &mDelta);
 
             if (!statisticsV2Frame) {
                 auto statisticsV2ID = mDelta.getHeaderFrame().generateID(LedgerEntryType::STATISTICS_V2);

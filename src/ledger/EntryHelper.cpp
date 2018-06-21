@@ -45,13 +45,10 @@
 #include "database/Database.h"
 #include "SaleHelper.h"
 #include "AccountKYCHelper.h"
-<<<<<<< HEAD
 #include "LimitsV2Helper.h"
 #include "StatisticsV2Helper.h"
 #include "PendingStatisticsHelper.h"
-=======
 #include "SaleAnteHelper.h"
->>>>>>> master
 
 namespace stellar
 {

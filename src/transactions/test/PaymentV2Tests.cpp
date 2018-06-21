@@ -140,7 +140,7 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
                                                              PaymentV2ResultCode::PAYMENT_AMOUNT_IS_LESS_THAN_DEST_FEE);
     }
     SECTION("Limits exceeded") {
-        manageLimitsOp.dailyOut = paymentAmount - 1;
+        manageLimitsOp.details.limitsCreateDetails().dailyOut = paymentAmount - 1;
         manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
         auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
                                                              destination, paymentAmount, paymentFeeData, "", "",

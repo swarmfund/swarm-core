@@ -81,14 +81,14 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
                 manageLimitsOp.details.limitsCreateDetails().isConvertNeeded, nullptr);
 
         REQUIRE(!!limitsAfter);
-        REQUIRE(limitsAfter->getDailyOut() == manageLimitsOp.dailyOut);
-        REQUIRE(limitsAfter->getWeeklyOut() == manageLimitsOp.weeklyOut);
-        REQUIRE(limitsAfter->getMonthlyOut() == manageLimitsOp.monthlyOut);
-        REQUIRE(limitsAfter->getAnnualOut() == manageLimitsOp.annualOut);
+        REQUIRE(limitsAfter->getDailyOut() == manageLimitsOp.details.limitsCreateDetails().dailyOut);
+        REQUIRE(limitsAfter->getWeeklyOut() == manageLimitsOp.details.limitsCreateDetails().weeklyOut);
+        REQUIRE(limitsAfter->getMonthlyOut() == manageLimitsOp.details.limitsCreateDetails().monthlyOut);
+        REQUIRE(limitsAfter->getAnnualOut() == manageLimitsOp.details.limitsCreateDetails().annualOut);
 
         SECTION("success update if already set")
         {
-            manageLimitsOp.annualOut = INT64_MAX;
+            manageLimitsOp.details.limitsCreateDetails().annualOut = INT64_MAX;
             manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
             limitsAfter = limitsV2Helper->loadLimits(app.getDatabase(),
                     manageLimitsOp.details.limitsCreateDetails().statsOpType,
@@ -97,7 +97,7 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
                     manageLimitsOp.details.limitsCreateDetails().isConvertNeeded, nullptr);
 
             REQUIRE(!!limitsAfter);
-            REQUIRE(limitsAfter->getAnnualOut() == manageLimitsOp.annualOut);
+            REQUIRE(limitsAfter->getAnnualOut() == manageLimitsOp.details.limitsCreateDetails().annualOut);
 
             SECTION("success delete")
             {
@@ -139,9 +139,9 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
                 manageLimitsOp.details.limitsCreateDetails().isConvertNeeded, nullptr);
 
         REQUIRE(!!limitsAfterFrame);
-        REQUIRE(limitsAfterFrame->getDailyOut() == manageLimitsOp.dailyOut);
-        REQUIRE(limitsAfterFrame->getWeeklyOut() == manageLimitsOp.weeklyOut);
-        REQUIRE(limitsAfterFrame->getMonthlyOut() == manageLimitsOp.monthlyOut);
-        REQUIRE(limitsAfterFrame->getAnnualOut() == manageLimitsOp.annualOut);
+        REQUIRE(limitsAfterFrame->getDailyOut() == manageLimitsOp.details.limitsCreateDetails().dailyOut);
+        REQUIRE(limitsAfterFrame->getWeeklyOut() == manageLimitsOp.details.limitsCreateDetails().weeklyOut);
+        REQUIRE(limitsAfterFrame->getMonthlyOut() == manageLimitsOp.details.limitsCreateDetails().monthlyOut);
+        REQUIRE(limitsAfterFrame->getAnnualOut() == manageLimitsOp.details.limitsCreateDetails().annualOut);
     }
 }

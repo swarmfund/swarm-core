@@ -35,12 +35,14 @@ namespace stellar
         uint64_t countObjects(soci::session& sess) override;
 
         StatisticsV2Frame::pointer loadStatistics(uint64_t id, Database& db, LedgerDelta* delta = nullptr);
-        StatisticsV2Frame::pointer loadStatistics(AccountID& accountID, StatsOpType statsOpType, AssetCode& assetCode,
-                                                  bool isConvertNeeded, Database &db, LedgerDelta *delta = nullptr);
+        StatisticsV2Frame::pointer loadStatistics(AccountID& accountID, StatsOpType statsOpType,
+                                                  AssetCode const& assetCode, bool isConvertNeeded,
+                                                  Database &db, LedgerDelta *delta = nullptr);
 
         StatisticsV2Frame::pointer mustLoadStatistics(uint64_t id, Database& db, LedgerDelta* delta = nullptr);
-        StatisticsV2Frame::pointer mustLoadStatistics(AccountID& accountID, StatsOpType statsOpType, AssetCode& assetCode,
-                                               bool isConvertNeeded, Database &db, LedgerDelta *delta = nullptr);
+        StatisticsV2Frame::pointer mustLoadStatistics(AccountID& accountID, StatsOpType statsOpType,
+                                                      AssetCode const& assetCode, bool isConvertNeeded,
+                                                      Database &db, LedgerDelta *delta = nullptr);
     private:
         StatisticsV2Helper() { ; }
         ~StatisticsV2Helper() { ; }

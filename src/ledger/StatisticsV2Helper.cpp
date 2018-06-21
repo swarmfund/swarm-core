@@ -192,7 +192,7 @@ namespace stellar {
     }
 
     StatisticsV2Frame::pointer
-    StatisticsV2Helper::loadStatistics(AccountID& accountID, StatsOpType statsOpType, AssetCode& assetCode,
+    StatisticsV2Helper::loadStatistics(AccountID& accountID, StatsOpType statsOpType, AssetCode const& assetCode,
                                        bool isConvertNeeded, Database &db, LedgerDelta *delta)
     {
         string strAccountID = PubKeyUtils::toStrKey(accountID);
@@ -201,9 +201,8 @@ namespace stellar {
 
         string sql = statisticsColumnSelector;
         sql += " WHERE account_id = :acc_id AND stats_op_type = :stats_t AND "
-               "       (asset_code = :asset_c or is_convert_needed) AND "
-               "        is_convert_needed = :is_c"; //discuss with Dima " WHERE account_id = :acc_id AND stats_op_type = :stats_t AND "
-                                                    //                  "       asset_code = :asset_c AND is_convert_needed = :is_c"
+               "       asset_code = :asset_c AND is_convert_needed = :is_c";
+
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();
         st.exchange(use(strAccountID, "acc_id"));
@@ -268,7 +267,7 @@ namespace stellar {
     }
 
     StatisticsV2Frame::pointer
-    StatisticsV2Helper::mustLoadStatistics(AccountID& accountID, StatsOpType statsOpType, AssetCode& assetCode,
+    StatisticsV2Helper::mustLoadStatistics(AccountID& accountID, StatsOpType statsOpType, AssetCode const& assetCode,
                                            bool isConvertNeeded, Database &db, LedgerDelta *delta)
     {
         auto result = loadStatistics(accountID, statsOpType, assetCode, isConvertNeeded, db, delta);

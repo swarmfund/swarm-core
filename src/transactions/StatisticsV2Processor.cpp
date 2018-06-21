@@ -137,8 +137,8 @@ namespace stellar
 
             statisticsV2Helper->storeChange(mDelta, mDb, statisticsV2Frame->mEntry);
 
-            pendingStats->setAmount(0);
-            pendingStatisticsHelper->storeChange(mDelta, mDb, pendingStats->mEntry);
+            pendingStatisticsHelper->storeDelete(mDelta, mDb,
+                                                 pendingStatisticsHelper->getLedgerKey(pendingStats->mEntry));
         }
     }
 }

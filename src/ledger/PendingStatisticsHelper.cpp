@@ -16,14 +16,16 @@ namespace stellar
     {
         db.getSession() << "DROP TABLE IF EXISTS pending_statistics;";
         db.getSession() << "CREATE TABLE pending_statistics"
-                           "("
-                           "statistics_id       BIGINT          NOT NULL REFERENCES statistics_v2, "
-                           "request_id          BIGINT          NOT NULL REFERENCES reviewable_request, "
-                           "amount              NUMERIC(20,0)   NOT NULL,"
-                           "lastmodified        INT             NOT NULL,"
-                           "version             INT             NOT NULL DEFAULT 0,"
-                           "PRIMARY KEY (request_id, statistics_id)"
-                           ");";
+                   "("
+                   "statistics_id       BIGINT          NOT NULL,"
+                   "request_id          BIGINT          NOT NULL,"
+                   "amount              NUMERIC(20,0)   NOT NULL,"
+                   "lastmodified        INT             NOT NULL,"
+                   "version             INT             NOT NULL DEFAULT 0,"
+                   "PRIMARY KEY (request_id, statistics_id),"
+                   "FOREIGN KEY (statistics_id) REFERENCES statistics_v2(id) on delete cascade on update cascade,"
+                   "FOREIGN KEY (request_id) REFERENCES reviewable_request(id) on delete cascade on update cascade"
+                   ");";
     }
 
     void PendingStatisticsHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
@@ -36,14 +38,26 @@ namespace stellar
         storeUpdateHelper(delta, db, false, entry);
     }
 
-    void PendingStatisticsHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key) {}
+    void PendingStatisticsHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key)
+    {
+        auto timer = db.getDeleteTimer("delete_pending_statistics");
+        auto prep = db.getPreparedStatement("DELETE FROM pending_statistics "
+                                            "WHERE statistics_id = :stats_id AND request_id = :req_id");
+
+        auto& st = prep.statement();
+        st.exchange(use(key.pendingStatistics().statisticsID, "stats_id"));
+        st.exchange(use(key.pendingStatistics().requestID, "req_id"));
+        st.define_and_bind();
+        st.execute(true);
+        delta.deleteEntry(key);
+    }
 
     bool PendingStatisticsHelper::exists(Database &db, LedgerKey const &key)
     {
         int exists = 0;
         auto timer = db.getSelectTimer("pending_statistics_exists");
         auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM pending_statistics "
-                                            "WHERE statistics = :stats_id AND request_id = :req_id)");
+                                            "WHERE statistics_id = :stats_id AND request_id = :req_id)");
         auto &st = prep.statement();
         st.exchange(use(key.pendingStatistics().statisticsID, "stats_id"));
         st.exchange(use(key.pendingStatistics().requestID, "req_id"));

@@ -20,6 +20,7 @@
 #include "test_helper/ManageBalanceTestHelper.h"
 #include "transactions/dex/OfferManager.h"
 #include "test_helper/ParticipateInSaleTestHelper.h"
+#include "test_helper/ManageSaleTestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -84,7 +85,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
     SECTION("Given valid crowdfund")
     {
         const auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
-            endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, ONE) }, &saleType);
+            endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, ONE) }, &saleType, &preIssuedAmount, SaleState::PROMOTION);
         saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
         auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
         REQUIRE(sales.size() == 1);
@@ -112,6 +113,9 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
 
         SECTION("Participation amount is too small")
         {
+            auto saleTestHelper = ManageSaleTestHelper(testManager);
+            auto saleStateData = saleTestHelper.setSaleState(ManageSaleAction::SET_STATE, SaleState::NONE);
+            saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
             // able to invest 10^-6 when price for quote and default quote is 1
             auto quoteBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
             quoteDefaultQuotePrice = 1000 * ONE;
@@ -137,6 +141,43 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
             // so quote balance should be charged with only second order
             quoteBalanceAfterTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
             REQUIRE(quoteBalanceAfterTx->getAmount() == quoteBalanceBeforeTx->getAmount() - hardCapInQuoteAsset);
+        }
+        SECTION("Not able to invest into sale in voting state")
+        {
+            auto saleTestHelper = ManageSaleTestHelper(testManager);
+            auto saleStateData = saleTestHelper.setSaleState(ManageSaleAction::SET_STATE, SaleState::VOTING);
+            saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
+
+            // able to invest 10^-6 when price for quote and default quote is 1
+            auto quoteBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
+            quoteDefaultQuotePrice = 1000 * ONE;
+            assetPairHelper.applyManageAssetPairTx(root, quoteAsset, defaultQuoteAsset, quoteDefaultQuotePrice, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
+            auto manageOffer = OfferManager::buildManageOfferOp(baseBalance, quoteBalance, true, 1,
+                ONE, 0, 0, saleID);
+            ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer, ManageOfferResultCode::SALE_IS_NOT_STARTED_YET);
+
+            // reset back
+            saleStateData = saleTestHelper.setSaleState(ManageSaleAction::SET_STATE, SaleState::NONE);
+            saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
+
+            ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer);
+        }
+        SECTION("Not able to invest into sale in promotion state")
+        {
+            // able to invest 10^-6 when price for quote and default quote is 1
+            auto quoteBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
+            quoteDefaultQuotePrice = 1000 * ONE;
+            assetPairHelper.applyManageAssetPairTx(root, quoteAsset, defaultQuoteAsset, quoteDefaultQuotePrice, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
+            auto manageOffer = OfferManager::buildManageOfferOp(baseBalance, quoteBalance, true, 1,
+                ONE, 0, 0, saleID);
+            ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer, ManageOfferResultCode::SALE_IS_NOT_STARTED_YET);
+
+            // reset back
+            auto saleTestHelper = ManageSaleTestHelper(testManager);
+            auto saleStateData = saleTestHelper.setSaleState(ManageSaleAction::SET_STATE, SaleState::NONE);
+            saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
+
+            ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer);
         }
     }
 }

@@ -84,10 +84,11 @@ enum databaseSchemaVersion : unsigned long {
     EXTERNAL_POOL_FIX_MIGRATION = 11,
     KEY_VALUE_FIX_MIGRATION = 12,
     EXTERNAL_POOL_FIX_PARENT_DB_TYPE = 13,
-    ADD_SALE_ANTE = 14
+    ADD_SALE_ANTE = 14,
+    ADD_SALE_STATE = 15
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_SALE_ANTE;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_SALE_STATE;
 
 static void
 setSerializable(soci::session& sess)
@@ -179,6 +180,9 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_SALE_ANTE:
             SaleAnteHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::ADD_SALE_STATE:
+            SaleHelper::Instance()->addState(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

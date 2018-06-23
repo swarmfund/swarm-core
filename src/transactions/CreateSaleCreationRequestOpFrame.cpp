@@ -147,8 +147,11 @@ bool CreateSaleCreationRequestOpFrame::isPriceValid(
         return false;
     }
 
-    if (mCreateSaleCreationRequest.request.ext.v() == LedgerVersion::TYPED_SALE && 
-        mCreateSaleCreationRequest.request.ext.saleTypeExt().typedSale.saleType() == SaleType::CROWD_FUNDING)
+    bool isCrowdfunding = mCreateSaleCreationRequest.request.ext.v() == LedgerVersion::TYPED_SALE &&
+        mCreateSaleCreationRequest.request.ext.saleTypeExt().typedSale.saleType() == SaleType::CROWD_FUNDING;
+    isCrowdfunding = isCrowdfunding || (mCreateSaleCreationRequest.request.ext.v() == LedgerVersion::STATABLE_SALES &&
+        mCreateSaleCreationRequest.request.ext.extV3().saleTypeExt.typedSale.saleType() == SaleType::CROWD_FUNDING);
+    if (isCrowdfunding)
     {
         return quoteAsset.price == ONE;
     }

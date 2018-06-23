@@ -115,6 +115,10 @@ bool CreateSaleParticipationOpFrame::isSaleActive(Database& db, LedgerManager& l
     {
     case SaleFrame::State::ACTIVE:
         return true;
+    case SaleFrame::State::VOTING:
+        // just fall through
+    case SaleFrame::State::PROMOTION:
+        // just fall through
     case SaleFrame::State::NOT_STARTED_YET:
     {
         innerResult().code(ManageOfferResultCode::SALE_IS_NOT_STARTED_YET);
@@ -333,6 +337,18 @@ bool CreateSaleParticipationOpFrame::getSaleCurrentCap(const SaleFrame::pointer 
 
 SaleFrame::State CreateSaleParticipationOpFrame::getSaleState(const SaleFrame::pointer sale, Database& db, const uint64_t currentTime)
 {
+
+    switch (sale->getState()) {
+    case SaleState::NONE:
+        break;
+    case SaleState::VOTING:
+        return SaleFrame::State::VOTING;
+    case SaleState::PROMOTION:
+        return SaleFrame::State::PROMOTION;
+    default:
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected sale state; Failed to get Sale State for sale participation: saleID: " << sale->getID();
+        throw std::runtime_error("Unexpected sale state; Failed to get Sale State for sale participation");
+    }
     uint64_t currentCap = 0;
     if (!getSaleCurrentCap(sale, db, currentCap))
     {

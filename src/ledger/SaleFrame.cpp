@@ -243,6 +243,13 @@ SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &own
                 sale.ext.saleTypeExt().typedSale.saleType(saleType);
                 break;
             }
+            case LedgerVersion::STATABLE_SALES: {
+                sale.ext.v(LedgerVersion::STATABLE_SALES);
+                const auto saleType = request.ext.extV3().saleTypeExt.typedSale.saleType();
+                sale.ext.statableSaleExt().saleTypeExt.typedSale.saleType(saleType);
+                sale.ext.statableSaleExt().state = request.ext.extV3().state;
+                break;
+            }
             default: {
                 throw std::runtime_error("Unexpected version of sale creation request");
             }
@@ -278,7 +285,7 @@ uint64_t SaleFrame::getBaseAmountForCurrentCap()
         const uint64_t baseAmountForCurrentCap = getBaseAmountForCurrentCap(quoteAsset.quoteAsset);
         if (!safeSum(amountToIssue, baseAmountForCurrentCap, amountToIssue))
         {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate amount to issue for sale: " << getID();
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate amount to issue for sale: " << xdr::xdr_to_string(mSale);
             throw std::runtime_error("Failed to calculate amount to issue for sale");
         }
     }
@@ -317,6 +324,51 @@ void SaleFrame::unlockBaseAsset(uint64_t amount)
     mSale.currentCapInBase -= amount;
 }
 
+void SaleFrame::migrateToVersion(LedgerVersion version)
+{
+    if (version == mSale.ext.v()) {
+        return;
+    }
+
+    if (version < mSale.ext.v()) {
+        throw std::runtime_error("Trying to migrate sale to lower version");
+    }
+
+    auto allVersion = xdr::xdr_traits<LedgerVersion>::enum_values();
+    for (auto rawCurentVersion : allVersion) {
+        auto currentVersion = LedgerVersion(rawCurentVersion);
+        if (mSale.ext.v() >= currentVersion) {
+            continue;
+        }
+
+
+        if (currentVersion > version) {
+            break;
+        }
+
+        switch (currentVersion) {
+        case LedgerVersion::TYPED_SALE:
+            throw std::runtime_error("Not able to migrate sale from empty version to types sale");
+        case LedgerVersion::STATABLE_SALES:
+            auto typedSale = mSale.ext.saleTypeExt();
+            mSale.ext.v(LedgerVersion::STATABLE_SALES);
+            mSale.ext.statableSaleExt().saleTypeExt = typedSale;
+            mSale.ext.statableSaleExt().state = SaleState::NONE;
+            break;
+        }
+    }
+
+    if (mSale.ext.v() != version) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "unexpected state failed to migrate sale to version: " << xdr::xdr_to_string(version);
+        throw std::runtime_error("unexpected state: failed to migrate to specified version for sale");
+    }
+}
+
+void SaleFrame::setSaleState(SaleState state)
+{
+    setSaleState(mSale, state);
+}
+
 SaleType SaleFrame::getSaleType() const
 {
     return getSaleType(mSale);
@@ -331,6 +383,8 @@ SaleType SaleFrame::getSaleType(SaleEntry const& sale)
         return DEFAULT_SALE_TYPE;
     case LedgerVersion::TYPED_SALE:
         return sale.ext.saleTypeExt().typedSale.saleType();
+    case LedgerVersion::STATABLE_SALES:
+        return sale.ext.statableSaleExt().saleTypeExt.typedSale.saleType();
     default:
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected version of sale entry: " << xdr::xdr_to_string(version);
         throw runtime_error("Unexpected version of sale entry");
@@ -357,6 +411,14 @@ void SaleFrame::setSaleType(SaleEntry& sale, const SaleType saleType)
 
         sale.ext.saleTypeExt().typedSale.saleType(saleType);
         return;
+    case LedgerVersion::STATABLE_SALES:
+        if (saleType == DEFAULT_SALE_TYPE)
+        {
+            throw invalid_argument("Trying to set default sale type to STATABLE_SALES sale");
+        }
+
+        sale.ext.statableSaleExt().saleTypeExt.typedSale.saleType(saleType);
+        return;
     default:
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected ledger version of sale. version: " << xdr::xdr_to_string(version);
         throw runtime_error("Unexpected ledger verison of sale");
@@ -364,9 +426,32 @@ void SaleFrame::setSaleType(SaleEntry& sale, const SaleType saleType)
     }
 }
 
+void SaleFrame::setSaleState(SaleEntry & sale, SaleState saleState)
+{
+    switch (sale.ext.v()) {
+    case LedgerVersion::STATABLE_SALES:
+        sale.ext.statableSaleExt().state = saleState;
+        return;
+    default:
+        if (saleState == SaleState::NONE) {
+            return;
+        }
+        throw std::runtime_error("Unexpected action: not able to set state for sale of unepxected version");
+    }
+}
+
 void SaleFrame::normalize()
 {
     sort(mSale.quoteAssets.begin(), mSale.quoteAssets.end(), &quoteAssetCompare);
+}
+SaleState SaleFrame::getState()
+{
+    switch (mSale.ext.v()) {
+    case LedgerVersion::STATABLE_SALES:
+        return mSale.ext.statableSaleExt().state;
+    default:
+        return SaleState::NONE;
+    }
 }
 }
 

@@ -34,6 +34,9 @@ namespace stellar {
 
         bool amendUpdateSaleDetailsRequest(Database &db, LedgerDelta &delta);
 
+        bool setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+            Database &db);
+
         bool doCheckValid(Application &app) override;
 
         bool doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) override;

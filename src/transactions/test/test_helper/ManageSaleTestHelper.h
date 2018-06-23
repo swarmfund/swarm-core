@@ -11,6 +11,9 @@ namespace stellar {
             ManageSaleOp::_data_t createDataForAction(ManageSaleAction action, uint64_t *requestID = nullptr,
                                                       std::string *newDetails = nullptr);
 
+            ManageSaleOp::_data_t setSaleState(ManageSaleAction action,
+                SaleState saleState);
+
             TransactionFramePtr createManageSaleTx(Account &source, uint64_t saleID, ManageSaleOp::_data_t data);
 
             ManageSaleResult applyManageSaleTx(Account &source, uint64_t saleID, ManageSaleOp::_data_t data,

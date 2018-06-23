@@ -55,6 +55,38 @@ namespace stellar {
         return true;
     }
 
+    bool ManageSaleOpFrame::setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+        Database &db) {
+        if (mSourceAccount->getAccountType() != AccountType::MASTER) {
+            innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
+        }
+
+        sale->migrateToVersion(LedgerVersion::STATABLE_SALES);
+        auto stateToSet = mManageSaleOp.data.saleState();
+        switch (sale->getState()) {
+        case SaleState::NONE:
+            innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
+            return false;
+        case SaleState::PROMOTION:
+            break;
+        case SaleState::VOTING:
+            if (stateToSet == SaleState::PROMOTION) {
+                innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
+                return false;
+            }
+            break;
+        default:
+            throw std::runtime_error("Unexpected sale state on manage sale set sale state");
+        }
+
+        sale->setSaleState(stateToSet);
+        SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);
+        innerResult().code(ManageSaleResultCode::SUCCESS);
+        innerResult().success().response.action(ManageSaleAction::SET_STATE);
+
+        return true;
+    }
+
     bool
     ManageSaleOpFrame::createUpdateSaleDetailsRequest(Application &app, LedgerDelta &delta,
                                                       LedgerManager &ledgerManager, Database &db) {
@@ -148,6 +180,9 @@ namespace stellar {
                 innerResult().code(ManageSaleResultCode::SUCCESS);
                 innerResult().success().response.action(ManageSaleAction::CANCEL);
                 break;
+            }
+            case ManageSaleAction::SET_STATE: {
+                return setSaleState(saleFrame, app, delta, ledgerManager, db);
             }
             default:
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected action from manage sale op: "

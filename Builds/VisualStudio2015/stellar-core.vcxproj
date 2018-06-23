@@ -290,6 +290,8 @@
     <ClCompile Include="..\..\src\ledger\ReferenceHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\ReviewableRequestFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\ReviewableRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\SaleAnteFrame.cpp" />
+    <ClCompile Include="..\..\src\ledger\SaleAnteHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\SaleFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\SaleHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\SaleQuoteAssetHelper.cpp" />
@@ -564,6 +566,8 @@
     <ClInclude Include="..\..\src\ledger\ReferenceHelper.h" />
     <ClInclude Include="..\..\src\ledger\ReviewableRequestFrame.h" />
     <ClInclude Include="..\..\src\ledger\ReviewableRequestHelper.h" />
+    <ClInclude Include="..\..\src\ledger\SaleAnteFrame.h" />
+    <ClInclude Include="..\..\src\ledger\SaleAnteHelper.h" />
     <ClInclude Include="..\..\src\ledger\SaleFrame.h" />
     <ClInclude Include="..\..\src\ledger\SaleHelper.h" />
     <ClInclude Include="..\..\src\ledger\SaleQuoteAssetHelper.h" />
@@ -1216,6 +1220,12 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-key-value.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-sale-ante.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

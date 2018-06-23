@@ -49,11 +49,10 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
         return false;
     }
 
-    // TODO: at current stage we do not allow to issue tokens before the sale. Must be fixed
-    // If you are fixing this make sure to apply fix to check sale state when we are unlocking pendingIssuance amount
-    const uint64_t requiredBaseAssetForHardCap = saleCreationRequest.ext.v() ==
+
+    const uint64_t requiredBaseAssetForHardCap = saleCreationRequest.ext.v() >=
                                                  LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP
-                                                 ? saleCreationRequest.ext.extV2().requiredBaseAssetForHardCap
+                                                 ? getRequiredBaseAssetForHardCap(saleCreationRequest)
                                                  : baseAsset->getMaxIssuanceAmount();
 
     if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
@@ -89,6 +88,18 @@ const
 
     return SourceDetails({AccountType::MASTER},
                          mSourceAccount->getHighThreshold(), allowedSigners);
+}
+
+uint64 ReviewSaleCreationRequestOpFrame::getRequiredBaseAssetForHardCap(SaleCreationRequest const & saleCreationRequest)
+{
+    switch (saleCreationRequest.ext.v()) {
+    case LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP:
+        return saleCreationRequest.ext.extV2().requiredBaseAssetForHardCap;
+    case LedgerVersion::STATABLE_SALES:
+        return saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
+    default:
+        throw std::runtime_error("Unexpected operation: trying to get requiredBaseAssetForhard from unknow version of the request");
+    }
 }
 
 void ReviewSaleCreationRequestOpFrame::createAssetPair(SaleFrame::pointer sale, Application &app,

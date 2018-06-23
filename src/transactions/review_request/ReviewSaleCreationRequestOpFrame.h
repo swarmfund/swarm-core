@@ -16,6 +16,8 @@ public:
 
 	  ReviewSaleCreationRequestOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);
+
+          static uint64 getRequiredBaseAssetForHardCap(SaleCreationRequest const& saleCreationRequest);
 protected:
     bool handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) override;
 

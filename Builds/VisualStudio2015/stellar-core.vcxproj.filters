@@ -1038,6 +1038,12 @@
     <ClCompile Include="..\..\src\transactions\dex\ManageSaleOpFrame.cpp">
       <Filter>transactions\dex</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ledger\SaleAnteFrame.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\SaleAnteHelper.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -2007,6 +2013,12 @@
     <ClInclude Include="..\..\src\transactions\dex\ManageSaleOpFrame.h">
       <Filter>transactions\dex</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\ledger\SaleAnteFrame.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\SaleAnteHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -2267,6 +2279,9 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-key-value.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-ledger-entries-sale-ante.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

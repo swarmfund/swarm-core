@@ -267,7 +267,7 @@ namespace  stellar
                      " and  (asset_code=:asset_c or is_convert_needed) and (stats_op_type in (" +
                      obtainSqlStatsOpTypesString(statsOpTypes.size()) + ")) "
                      "order by stats_op_type, asset_code, is_convert_needed, account_id = :acc_id, "
-                     "account_type = :acc_t desc";
+                     "account_type = :acc_t asc";
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();

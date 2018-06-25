@@ -27,7 +27,7 @@ namespace stellar {
     SourceDetails ReviewLimitsUpdateRequestOpFrame::getSourceAccountDetails(
             std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const
     {
-        return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(), //fixme here allow to create
+        return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t >(SignerType::LIMITS_MANAGER));
     }
 

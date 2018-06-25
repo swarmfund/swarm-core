@@ -52,7 +52,7 @@ private:
     LimitsV2Helper() { ; }
     ~LimitsV2Helper() { ; }
 
-    std::string obtainSqlStatsOpTypesString(unsigned long size);
+    std::string obtainSqlStatsOpTypesString(std::vector<StatsOpType> stats);
     void load(StatementContext &prep, std::function<void(LedgerEntry const &)> processor);
     void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
 };

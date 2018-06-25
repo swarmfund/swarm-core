@@ -226,12 +226,13 @@ namespace  stellar
     }
 
     string
-    LimitsV2Helper::obtainSqlStatsOpTypesString(unsigned long size)
+    LimitsV2Helper::obtainSqlStatsOpTypesString(std::vector<StatsOpType> stats)
     {
         string result;
-        for (unsigned long iterator = 0; iterator < size; iterator++)
+        for (auto stat : stats)
         {
-            result += ":stats_t_" + to_string(iterator);
+            auto statsOpTypeInt = static_cast<int32_t>(stat);
+            result += to_string(statsOpTypeInt);
             result += ", ";
         }
         return result.substr(0, result.size()-2);
@@ -265,7 +266,7 @@ namespace  stellar
                      "from limits_v2 "
                      "where (account_type=:acc_t or account_type is null) and (account_id=:acc_id or account_id is null)"
                      " and  (asset_code=:asset_c or is_convert_needed) and (stats_op_type in (" +
-                     obtainSqlStatsOpTypesString(statsOpTypes.size()) + ")) "
+                     obtainSqlStatsOpTypesString(statsOpTypes) + ")) "
                      "order by stats_op_type, asset_code, is_convert_needed, account_id = :acc_id, "
                      "account_type = :acc_t asc";
 
@@ -274,14 +275,6 @@ namespace  stellar
         st.exchange(use(accountIDStr, accountIDIndicator, "acc_id"));
         st.exchange(use(accountTypeInt, accountTypeIndicator, "acc_t"));
         st.exchange(use(assetCode, "asset_c"));
-
-        int counter = 0;
-        for (StatsOpType statsOpType : statsOpTypes)
-        {
-            auto statsOpTypeInt = static_cast<int32_t>(statsOpType);
-            st.exchange(use(statsOpTypeInt, "stats_t_" + to_string(counter)));
-            counter++;
-        }
 
         std::vector<LimitsV2Frame::pointer> result;
         auto timer = db.getSelectTimer("limits-v2");

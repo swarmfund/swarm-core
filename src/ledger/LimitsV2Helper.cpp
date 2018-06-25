@@ -318,8 +318,8 @@ namespace  stellar
         int isConvertNeededInt = isConvertNeeded ? 1 : 0;
 
         string sql = limitsV2Selector;
-        sql += " WHERE (account_id = :acc_id or account_id is null) AND "
-               "       (account_type = :acc_t or account_type is null) AND "
+        sql += " WHERE (account_id = :acc_id or (:acc_id::text is null and account_id is null)) AND "
+               "       (account_type = :acc_t or (:acc_t::int is null and account_type is null)) AND "
                "       asset_code = :asset_c AND "
                "       stats_op_type = :stats_t AND is_convert_needed = :is_c ";
 

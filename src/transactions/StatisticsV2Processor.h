@@ -34,7 +34,7 @@ public:
                                              BalanceFrame::pointer balance = nullptr,
                                              uint64_t* requestID = nullptr);
 
-    StatisticsV2Processor::Result revertStatsV2(uint64_t requestID);
+    void revertStatsV2(uint64_t requestID);
 
     bool validateStats(LimitsV2Frame::pointer limitsV2Frame, StatisticsV2Frame::pointer statisticsV2Frame);
 

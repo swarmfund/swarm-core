@@ -118,7 +118,7 @@ namespace stellar
         return SUCCESS;
     }
 
-    StatisticsV2Processor::Result
+    void
     StatisticsV2Processor::revertStatsV2(uint64_t requestID)
     {
         auto pendingStatisticsHelper = PendingStatisticsHelper::Instance();

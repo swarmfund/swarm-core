@@ -147,13 +147,16 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 			assert(destBalanceFrame);
         }
 
-        if (!accountManager.revertRequest(sourceBalanceAccount, sourceBalanceFrame,
-            request->getSourceSend(),
-            request->getSourceSendUniversal(), request->getCreatedAt()))
+        if (!ledgerManager.shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
         {
-            app.getMetrics().NewMeter({ "op-review-payment-request", "failure", "line-full" }, "operation").Mark();
-            innerResult().code(ReviewPaymentRequestResultCode::LINE_FULL);
-            return false;
+            if (!accountManager.revertRequest(sourceBalanceAccount, sourceBalanceFrame,
+                                              request->getSourceSend(),
+                                              request->getSourceSendUniversal(), request->getCreatedAt()))
+            {
+                app.getMetrics().NewMeter({"op-review-payment-request", "failure", "line-full"}, "operation").Mark();
+                innerResult().code(ReviewPaymentRequestResultCode::LINE_FULL);
+                return false;
+            }
         }
 
         EntryHelperProvider::storeDeleteEntry(delta, ledgerManager.getDatabase(), request->getKey());

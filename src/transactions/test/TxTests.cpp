@@ -22,7 +22,7 @@
 #include "transactions/SetOptionsOpFrame.h"
 #include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
-#include "transactions/SetLimitsOpFrame.h"
+#include "transactions/ManageLimitsOpFrame.h"
 #include "transactions/ManageInvoiceOpFrame.h"
 #include "ledger/InvoiceFrame.h"
 #include "ledger/AccountHelper.h"
@@ -850,48 +850,6 @@ applyDirectDebitTx(Application& app, SecretKey& source, Salt seq,
 
 	return opResult;
 }
-
-
-
-
-
-TransactionFramePtr
-createSetLimits(Hash const& networkID, SecretKey& source, Salt seq,
-    AccountID* account, AccountType* accountType, Limits limits)
-{
-    Operation op;
-    op.body.type(OperationType::SET_LIMITS);
-
-    SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
-
-    if (account)
-        setLimitsOp.account.activate() = *account;
-    if (accountType)
-        setLimitsOp.accountType.activate() = *accountType;
-    setLimitsOp.limits = limits;
-
-    return transactionFromOperation(networkID, source, seq, op);
-}
-
-void
-applySetLimits(Application& app, SecretKey& source, Salt seq,
-                AccountID* account, AccountType* accountType, Limits limits,
-                SetLimitsResultCode result)
-{
-    TransactionFramePtr txFrame;
-
-    txFrame = createSetLimits(app.getNetworkID(), source, seq,
-        account, accountType, limits);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    REQUIRE(SetLimitsOpFrame::getInnerCode(
-                txFrame->getResult().result.results()[0]) == result);
-}
-
 
 TransactionFramePtr createManageAccount(Hash const& networkID, SecretKey& source, SecretKey& account, Salt seq, uint32 blockReasonsToAdd, uint32 blockReasonsToRemove, AccountType accountType)
 {

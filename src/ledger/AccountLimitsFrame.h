@@ -54,7 +54,7 @@ class AccountLimitsFrame : public EntryFrame
         return mAccountLimits.limits;
     }
     
-    void setLimits(Limits limits)
+    void manageLimits(Limits limits)
     {
         mAccountLimits.limits = limits;
     }

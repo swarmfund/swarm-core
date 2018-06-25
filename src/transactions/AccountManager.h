@@ -9,6 +9,7 @@
 #include "ledger/StatisticsFrame.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/BalanceFrame.h"
+#include "StatisticsV2Processor.h"
 
 
 namespace medida
@@ -65,6 +66,9 @@ public:
     ProcessTransferResult processTransferV2(AccountFrame::pointer from, BalanceFrame::pointer fromBalance, BalanceFrame::pointer toBalance,
         uint64_t amount, bool noIncludeIntoStats = false);
 
+    ProcessTransferResult processStatistics(AccountFrame::pointer from, BalanceFrame::pointer fromBalance,
+                                            uint64_t amount, uint64_t& universalAmount);
+
     bool revertRequest(AccountFrame::pointer account,
                        BalanceFrame::pointer balance, int64 amount,
                        int64 universalAmount, time_t timePerformed);
@@ -80,6 +84,9 @@ public:
 
     Result addStats(AccountFrame::pointer account, BalanceFrame::pointer balance, uint64_t amountToAdd,
                     uint64_t &universalAmount);
+
+    Result tryAddStatsV2(const AccountFrame::pointer account, const BalanceFrame::pointer balance,
+                         const uint64_t amountToAdd, uint64_t& universalAmount);
 
     void revertStats(AccountID account, uint64_t universalAmount, time_t timePerformed);
 

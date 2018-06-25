@@ -18,7 +18,7 @@ namespace stellar {
             "reject_reason, created_at, version, lastmodified FROM reviewable_request";
 
     void ReviewableRequestHelper::dropAll(Database &db) {
-        db.getSession() << "DROP TABLE IF EXISTS reviewable_request;";
+        db.getSession() << "DROP TABLE IF EXISTS reviewable_request CASCADE;";
         db.getSession() << "CREATE TABLE reviewable_request"
                 "("
                 "id            BIGINT        NOT NULL CHECK (id >= 0),"

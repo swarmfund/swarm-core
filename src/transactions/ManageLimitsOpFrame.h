@@ -8,32 +8,32 @@
 
 namespace stellar
 {
-class SetLimitsOpFrame : public OperationFrame
+class ManageLimitsOpFrame : public OperationFrame
 {
 
 	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
 	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                               int32_t ledgerVersion) const override;
 
-    SetLimitsResult&
+    ManageLimitsResult&
     innerResult()
     {
-        return mResult.tr().setLimitsResult();
+        return mResult.tr().manageLimitsResult();
     }
-    SetLimitsOp const& mSetLimits;
+    ManageLimitsOp const& mManageLimits;
 
   public:
-    SetLimitsOpFrame(Operation const& op, OperationResult& res,
+    ManageLimitsOpFrame(Operation const& op, OperationResult& res,
                       TransactionFrame& parentTx);
 
     bool doApply(Application& app, LedgerDelta& delta,
                  LedgerManager& ledgerManager) override;
     bool doCheckValid(Application& app) override;
 
-    static SetLimitsResultCode
+    static ManageLimitsResultCode
     getInnerCode(OperationResult const& res)
     {
-        return res.tr().setLimitsResult().code();
+        return res.tr().manageLimitsResult().code();
     }
 
     std::string getInnerResultCodeAsStr() override;

@@ -99,21 +99,21 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
             REQUIRE(!!limitsAfter);
             REQUIRE(limitsAfter->getAnnualOut() == manageLimitsOp.details.limitsCreateDetails().annualOut);
 
-            SECTION("success delete")
+            SECTION("success remove")
             {
-                manageLimitsOp.details.action(ManageLimitsAction::DELETE);
+                manageLimitsOp.details.action(ManageLimitsAction::REMOVE);
                 manageLimitsOp.details.id() = limitsAfter->getID();
                 manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
-                auto deletedLimits = limitsV2Helper->loadLimits(manageLimitsOp.details.id(), app.getDatabase());
+                auto removedLimits = limitsV2Helper->loadLimits(manageLimitsOp.details.id(), app.getDatabase());
 
-                REQUIRE(!deletedLimits);
+                REQUIRE(!removedLimits);
 
-                SECTION("not found deleted limits")
+                SECTION("not found removed limits")
                 {
                     manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::NOT_FOUND);
-                    deletedLimits = limitsV2Helper->loadLimits(manageLimitsOp.details.id(), app.getDatabase());
+                    removedLimits = limitsV2Helper->loadLimits(manageLimitsOp.details.id(), app.getDatabase());
 
-                    REQUIRE(!deletedLimits);
+                    REQUIRE(!removedLimits);
                 }
             }
         }

@@ -38,13 +38,13 @@ ManageLimitsOpFrame::getCounterpartyDetails(Database & db, LedgerDelta* delta) c
                     {*mManageLimits.details.limitsCreateDetails().accountID,
                             CounterpartyDetails(getAllAccountTypes(), true, true)}
             };
-        case ManageLimitsAction::DELETE:
+        case ManageLimitsAction::REMOVE:
             return {
                 {mSourceAccount->getID(), CounterpartyDetails({AccountType::MASTER}, true, true)}
             };
         default:
             throw std::runtime_error("Unexpected manage limits action while get counterparty details. "
-                                     "Expected UPDATE or DELETE");
+                                     "Expected UPDATE or REMOVE");
     }
 
 }
@@ -55,21 +55,8 @@ ManageLimitsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, Count
 {
 	auto signerType = static_cast<int32_t>(SignerType::LIMITS_MANAGER);
 	int32_t threshold = mSourceAccount->getHighThreshold();
-	if ((mManageLimits.details.action() == ManageLimitsAction::CREATE) &&
-        (!!mManageLimits.details.limitsCreateDetails().accountID))
-	{
-		auto account = counterpartiesDetails.find(*mManageLimits.details.limitsCreateDetails().accountID);
-		if (account == counterpartiesDetails.end() || !account->second.mAccount)
-			throw std::invalid_argument("Unexpected counterpartiesDetails. Expected counterparty to be included");
 
-		if (account->second.mAccount->getAccountType() == AccountType::GENERAL)
-		{
-			signerType |= static_cast<int32_t>(SignerType::GENERAL_ACC_MANAGER);
-			threshold = mSourceAccount->getLowThreshold();
-		}
-	}
-
-	return SourceDetails({AccountType::GENERAL, AccountType::MASTER}, threshold, signerType);
+	return SourceDetails({AccountType::MASTER}, threshold, signerType);
 }
 
 std::string
@@ -103,24 +90,26 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
             uint64_t id = delta.getHeaderFrame().generateID(LedgerEntryType::LIMITS_V2);
             limitsV2Frame = LimitsV2Frame::createNew(id, mManageLimits);
             limitsV2Helper->storeAdd(delta, db, limitsV2Frame->mEntry);
-            return true;
         }
-
-        limitsV2Frame->changeLimits(mManageLimits);
-        limitsV2Helper->storeChange(delta, db, limitsV2Frame->mEntry);
+        else
+        {
+            limitsV2Frame->changeLimits(mManageLimits);
+            limitsV2Helper->storeChange(delta, db, limitsV2Frame->mEntry);
+        }
 
         innerResult().success().details.action(ManageLimitsAction::CREATE);
         innerResult().success().details.id() = limitsV2Frame->getID();
         break;
     }
-    case ManageLimitsAction::DELETE:
+    case ManageLimitsAction::REMOVE:
     {
-        auto limitsV2FrameDelete = limitsV2Helper->loadLimits(mManageLimits.details.id(), db, &delta);
-        if (!limitsV2FrameDelete) {
+        auto limitsV2FrameToRemove = limitsV2Helper->loadLimits(mManageLimits.details.id(), db, &delta);
+        if (!limitsV2FrameToRemove) {
             innerResult().code(ManageLimitsResultCode::NOT_FOUND);
             return false;
         }
-        limitsV2Helper->storeDelete(delta, db, limitsV2FrameDelete->getKey());
+        limitsV2Helper->storeDelete(delta, db, limitsV2FrameToRemove->getKey());
+        innerResult().success().details.action(ManageLimitsAction::REMOVE);
         break;
     }
     default:

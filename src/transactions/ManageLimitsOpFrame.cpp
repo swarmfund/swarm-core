@@ -109,6 +109,7 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
             return false;
         }
         limitsV2Helper->storeDelete(delta, db, limitsV2FrameDelete->getKey());
+        innerResult().success().details.action(ManageLimitsAction::DELETE);
         break;
     }
     default:

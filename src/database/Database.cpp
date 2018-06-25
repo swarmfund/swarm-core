@@ -50,6 +50,9 @@
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
 #include <ledger/KeyValueHelper.h>
+#include <ledger/LimitsV2Helper.h>
+#include <ledger/StatisticsV2Helper.h>
+#include <ledger/PendingStatisticsHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
 #include "ledger/SaleAnteHelper.h"
@@ -85,10 +88,11 @@ enum databaseSchemaVersion : unsigned long {
     KEY_VALUE_FIX_MIGRATION = 12,
     EXTERNAL_POOL_FIX_PARENT_DB_TYPE = 13,
     ADD_SALE_ANTE = 14,
-    ADD_SALE_STATE = 15
+    ADD_SALE_STATE = 15,
+    ADD_LIMITS_V2 = 16
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_SALE_STATE;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_LIMITS_V2;
 
 static void
 setSerializable(soci::session& sess)
@@ -183,6 +187,11 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_SALE_STATE:
             SaleHelper::Instance()->addState(*this);
+            break;
+        case databaseSchemaVersion::ADD_LIMITS_V2:
+            LimitsV2Helper::Instance()->dropAll(*this);
+            StatisticsV2Helper::Instance()->dropAll(*this);
+            PendingStatisticsHelper::Instance()->dropAll(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

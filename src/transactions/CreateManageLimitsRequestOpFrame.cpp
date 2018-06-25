@@ -25,9 +25,9 @@ CreateManageLimitsRequestOpFrame::getSourceAccountDetails(
         std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
         int32_t ledgerVersion) const
 {
-    return SourceDetails({
-                                 AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED,
-                                 AccountType::SYNDICATE, AccountType::EXCHANGE
+    return SourceDetails({AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED,
+                          AccountType::SYNDICATE, AccountType::EXCHANGE, AccountType::ACCREDITED_INVESTOR,
+                          AccountType::COMMISSION, AccountType::INSTITUTIONAL_INVESTOR, AccountType::OPERATIONAL
                          }, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::LIMITS_MANAGER)
     );

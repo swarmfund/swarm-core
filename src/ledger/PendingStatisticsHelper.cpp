@@ -45,8 +45,10 @@ namespace stellar
                                             "WHERE statistics_id = :stats_id AND request_id = :req_id");
 
         auto& st = prep.statement();
-        st.exchange(use(key.pendingStatistics().statisticsID, "stats_id"));
-        st.exchange(use(key.pendingStatistics().requestID, "req_id"));
+        uint64_t statisticsID = key.pendingStatistics().statisticsID;
+        uint64_t requestID = key.pendingStatistics().requestID;
+        st.exchange(use(statisticsID, "stats_id"));
+        st.exchange(use(requestID, "req_id"));
         st.define_and_bind();
         st.execute(true);
         delta.deleteEntry(key);
@@ -59,8 +61,10 @@ namespace stellar
         auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM pending_statistics "
                                             "WHERE statistics_id = :stats_id AND request_id = :req_id)");
         auto &st = prep.statement();
-        st.exchange(use(key.pendingStatistics().statisticsID, "stats_id"));
-        st.exchange(use(key.pendingStatistics().requestID, "req_id"));
+        uint64_t statisticsID = key.pendingStatistics().statisticsID;
+        uint64_t requestID = key.pendingStatistics().requestID;
+        st.exchange(use(statisticsID, "stats_id"));
+        st.exchange(use(requestID, "req_id"));
         st.exchange(into(exists));
         st.define_and_bind();
         st.execute(true);

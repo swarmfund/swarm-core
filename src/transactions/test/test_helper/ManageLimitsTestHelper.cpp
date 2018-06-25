@@ -30,6 +30,7 @@ namespace txtest
          txFrame = createManageLimitsTx(source, manageLimitsOp);
          mTestManager->applyCheck(txFrame);
          REQUIRE(ManageLimitsOpFrame::getInnerCode(txFrame->getResult().result.results()[0]) == expectedResult);
+         REQUIRE(txFrame->getResult().result.results()[0].tr().manageLimitsResult().success().details.id() != 0);
      }
 }
 }

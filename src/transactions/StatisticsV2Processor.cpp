@@ -130,6 +130,11 @@ namespace stellar
             auto statisticsV2Frame = statisticsV2Helper->mustLoadStatistics(pendingStats->getStatsID(),
                                                                                         mDb, &mDelta);
             auto reviewableRequestFrame = ReviewableRequestHelper::Instance()->loadRequest(requestID, mDb, &mDelta);
+            if (!reviewableRequestFrame)
+            {
+                throw std::runtime_error("Unexpected state. Expected request to exist, requestID: "
+                                         + std::to_string(requestID));
+            }
 
             auto createdAt = reviewableRequestFrame->getCreatedAt();
             auto currentTime = mLm.getCloseTime();

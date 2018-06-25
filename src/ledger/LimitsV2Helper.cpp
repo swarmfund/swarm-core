@@ -317,16 +317,11 @@ namespace  stellar
         auto statsOpTypeInt = static_cast<int32_t>(statsOpType);
         int isConvertNeededInt = isConvertNeeded ? 1 : 0;
 
-        string sql = "select distinct on (stats_op_type, asset_code, is_convert_needed)  id, "
-                "account_type, account_id, stats_op_type, asset_code, is_convert_needed, daily_out, "
-                "weekly_out, monthly_out, annual_out, lastmodified, version  "
-                "from limits_v2 "
-                " WHERE (account_id = :acc_id or account_id is null) AND "
+        string sql = limitsV2Selector;
+        sql += " WHERE (account_id = :acc_id or account_id is null) AND "
                "       (account_type = :acc_t or account_type is null) AND "
                "       asset_code = :asset_c AND "
-               "       stats_op_type = :stats_t AND is_convert_needed = :is_c "
-               "order by stats_op_type, asset_code, is_convert_needed,"
-               "         account_id = :acc_id, account_type = :acc_t desc";
+               "       stats_op_type = :stats_t AND is_convert_needed = :is_c ";
 
         auto prep = db.getPreparedStatement(sql);
         auto& st = prep.statement();

@@ -35,7 +35,7 @@ namespace txtest
              return;
 
          if (txFrame->getResult().result.results()[0].tr().manageLimitsResult().success().details.action() ==
-             ManageLimitsAction::DELETE)
+             ManageLimitsAction::REMOVE)
              return;
 
          REQUIRE(txFrame->getResult().result.results()[0].tr().manageLimitsResult().success().details.id() != 0);

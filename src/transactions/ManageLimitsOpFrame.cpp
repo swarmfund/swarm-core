@@ -38,13 +38,13 @@ ManageLimitsOpFrame::getCounterpartyDetails(Database & db, LedgerDelta* delta) c
                     {*mManageLimits.details.limitsCreateDetails().accountID,
                             CounterpartyDetails(getAllAccountTypes(), true, true)}
             };
-        case ManageLimitsAction::DELETE:
+        case ManageLimitsAction::REMOVE:
             return {
                 {mSourceAccount->getID(), CounterpartyDetails({AccountType::MASTER}, true, true)}
             };
         default:
             throw std::runtime_error("Unexpected manage limits action while get counterparty details. "
-                                     "Expected UPDATE or DELETE");
+                                     "Expected UPDATE or REMOVE");
     }
 
 }
@@ -101,15 +101,15 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
         innerResult().success().details.id() = limitsV2Frame->getID();
         break;
     }
-    case ManageLimitsAction::DELETE:
+    case ManageLimitsAction::REMOVE:
     {
-        auto limitsV2FrameDelete = limitsV2Helper->loadLimits(mManageLimits.details.id(), db, &delta);
-        if (!limitsV2FrameDelete) {
+        auto limitsV2FrameToRemove = limitsV2Helper->loadLimits(mManageLimits.details.id(), db, &delta);
+        if (!limitsV2FrameToRemove) {
             innerResult().code(ManageLimitsResultCode::NOT_FOUND);
             return false;
         }
-        limitsV2Helper->storeDelete(delta, db, limitsV2FrameDelete->getKey());
-        innerResult().success().details.action(ManageLimitsAction::DELETE);
+        limitsV2Helper->storeDelete(delta, db, limitsV2FrameToRemove->getKey());
+        innerResult().success().details.action(ManageLimitsAction::REMOVE);
         break;
     }
     default:

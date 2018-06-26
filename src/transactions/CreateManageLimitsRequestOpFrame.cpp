@@ -69,7 +69,10 @@ CreateManageLimitsRequestOpFrame::doApply(Application& app, LedgerDelta& delta, 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::LIMITS_UPDATE);
     if (ledgerManager.shouldUse(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH))
+    {
+        body.limitsUpdateRequest().ext.v(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH);
         body.limitsUpdateRequest().ext.details() = mCreateManageLimitsRequest.manageLimitsRequest.ext.details();
+    }
     else
         body.limitsUpdateRequest().deprecatedDocumentHash =
                 mCreateManageLimitsRequest.manageLimitsRequest.deprecatedDocumentHash;

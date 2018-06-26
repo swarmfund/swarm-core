@@ -49,10 +49,9 @@ TEST_CASE("limits update", "[tx][limits_update]")
 
     // prepare data for request
     std::string documentData = "Some document data";
-    stellar::Hash documentHash = Hash(sha256(documentData));
 
     // create LimitsUpdateRequest
-    auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash);
+    auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentData);
     auto limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest);
 
     SECTION("Happy path")
@@ -86,9 +85,8 @@ TEST_CASE("limits update", "[tx][limits_update]")
             manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
             std::string documentDataOfAccountWithoutLimits = "Some other document data";
-            stellar::Hash documentHashOfAccountWithoutLimits = Hash(sha256(documentDataOfAccountWithoutLimits));
 
-            limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHashOfAccountWithoutLimits);
+            limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentDataOfAccountWithoutLimits);
             limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(accountWithLimits,
                                                                                           limitsUpdateRequest);
 

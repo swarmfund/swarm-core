@@ -51,7 +51,12 @@ CreateManageLimitsRequestOpFrame::doApply(Application& app, LedgerDelta& delta, 
 {
     Database& db = ledgerManager.getDatabase();
 
-    auto reference = getLimitsManageRequestReference(mCreateManageLimitsRequest.manageLimitsRequest.documentHash);
+    longstring reference;
+    if (ledgerManager.shouldUse(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH))
+        reference = mCreateManageLimitsRequest.manageLimitsRequest.ext.details();
+    else
+        reference = getLimitsManageRequestReference(mCreateManageLimitsRequest.manageLimitsRequest.deprecatedDocumentHash);
+
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
 
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
@@ -63,7 +68,11 @@ CreateManageLimitsRequestOpFrame::doApply(Application& app, LedgerDelta& delta, 
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::LIMITS_UPDATE);
-    body.limitsUpdateRequest().documentHash = mCreateManageLimitsRequest.manageLimitsRequest.documentHash;
+    if (ledgerManager.shouldUse(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH))
+        body.limitsUpdateRequest().ext.details() = mCreateManageLimitsRequest.manageLimitsRequest.ext.details();
+    else
+        body.limitsUpdateRequest().deprecatedDocumentHash =
+                mCreateManageLimitsRequest.manageLimitsRequest.deprecatedDocumentHash;
 
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr,
                                                              body, ledgerManager.getCloseTime());

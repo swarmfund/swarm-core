@@ -23,7 +23,7 @@ public:
             CreateManageLimitsRequestResultCode expectedResult =
             CreateManageLimitsRequestResultCode::SUCCESS);
 
-    static LimitsUpdateRequest createLimitsUpdateRequest(Hash documentHash);
+    static LimitsUpdateRequest createLimitsUpdateRequest(longstring details);
 
     TransactionFramePtr createLimitsUpdateRequestTx(Account& source, LimitsUpdateRequest request);
 };

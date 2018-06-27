@@ -32,6 +32,8 @@ TEST_CASE("limits update", "[tx][limits_update]")
     app.start();
     auto testManager = TestManager::make(app);
 
+    upgradeToCurrentLedgerVersion(app);
+
     auto root = Account{ getRoot(), Salt(0) };
     auto createAccountTestHelper = CreateAccountTestHelper(testManager);
     auto limitsUpdateRequestHelper = LimitsUpdateRequestHelper(testManager);

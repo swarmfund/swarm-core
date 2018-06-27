@@ -73,8 +73,11 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
     manageLimitsOp.details.limitsCreateDetails().annualOut = 200000 * ONE;
     manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
+    // exchange rates ETH USD
+    auto exchangeRatesETH_USD = 5;
+
     // create asset pair
-    manageAssetPairTestHelper.createAssetPair(root, paymentAsset, feeAsset, 5 * ONE);
+    manageAssetPairTestHelper.createAssetPair(root, paymentAsset, feeAsset, exchangeRatesETH_USD * ONE);
 
     // create fee charging rules for incoming and outgoing payments
     auto incomingFee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, paymentAsset, 5 * ONE, 0, nullptr, nullptr,
@@ -105,7 +108,8 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
     // create destination and feeData for further tests
     auto destination = paymentV2TestHelper.createDestinationForAccount(recipient.key.getPublicKey());
 
-    auto sourceFeeData = paymentV2TestHelper.createFeeData(outgoingFee.fixedFee, outgoingFee.percentFee * 2,
+    // maxPaymnetFee more in five times because fee in ETH, payment in USD, exchange rates 1:5
+    auto sourceFeeData = paymentV2TestHelper.createFeeData(outgoingFee.fixedFee, outgoingFee.percentFee * exchangeRatesETH_USD,
                                                            outgoingFee.ext.feeAsset());
     auto destFeeData = paymentV2TestHelper.createFeeData(incomingFee.fixedFee, incomingFee.percentFee,
                                                          incomingFee.ext.feeAsset());
@@ -214,7 +218,7 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
         auto eur = "EUR";
         issuanceTestHelper.createAssetWithPreIssuedAmount(root, eur, INT64_MAX, root);
         paymentFeeData.sourceFee.feeAsset = eur;
-        manageAssetPairTestHelper.createAssetPair(root, eur, paymentAsset, 2);
+        manageAssetPairTestHelper.createAssetPair(root, eur, paymentAsset, 2 * ONE);
         setFeesTestHelper.applySetFeesTx(root, &outgoingFee, true);
         outgoingFee.ext.feeAsset() = eur;
         setFeesTestHelper.applySetFeesTx(root, &outgoingFee, false);
@@ -230,10 +234,10 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
             // create paymentDelta to check balances amounts
             PaymentV2Delta paymentV2Delta;
             paymentV2Delta.source.push_back(BalanceDelta{paymentAsset, (paymentAmount + incomingFee.fixedFee) * -1});
-            paymentV2Delta.source.push_back(BalanceDelta{feeAsset, (outgoingFee.fixedFee + ONE) * -1});
+            paymentV2Delta.source.push_back(BalanceDelta{feeAsset, (outgoingFee.fixedFee + ONE) * -1 * exchangeRatesETH_USD});
             paymentV2Delta.destination.push_back(BalanceDelta{paymentAsset, paymentAmount});
             paymentV2Delta.commission.push_back(BalanceDelta{paymentAsset, incomingFee.fixedFee});
-            paymentV2Delta.commission.push_back(BalanceDelta{feeAsset, outgoingFee.fixedFee + ONE});
+            paymentV2Delta.commission.push_back(BalanceDelta{feeAsset, (outgoingFee.fixedFee + ONE) * exchangeRatesETH_USD});
             auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(), destination,
                                                                  paymentAmount, paymentFeeData, "", "",
                                                                  &paymentV2Delta);
@@ -244,10 +248,10 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
             // create paymentDelta to check balances amounts
             PaymentV2Delta paymentV2Delta;
             paymentV2Delta.source.push_back(BalanceDelta{paymentAsset, paymentAmount * -1});
-            paymentV2Delta.source.push_back(BalanceDelta{feeAsset, (outgoingFee.fixedFee + ONE) * -1});
+            paymentV2Delta.source.push_back(BalanceDelta{feeAsset, (outgoingFee.fixedFee + ONE) * -1 * exchangeRatesETH_USD});
             paymentV2Delta.destination.push_back(BalanceDelta{paymentAsset, paymentAmount - incomingFee.fixedFee});
             paymentV2Delta.commission.push_back(BalanceDelta{paymentAsset, incomingFee.fixedFee});
-            paymentV2Delta.commission.push_back(BalanceDelta{feeAsset, outgoingFee.fixedFee + ONE});
+            paymentV2Delta.commission.push_back(BalanceDelta{feeAsset, (outgoingFee.fixedFee + ONE) * exchangeRatesETH_USD});
             auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(), destination,
                                                                  paymentAmount, paymentFeeData, "", "",
                                                                  &paymentV2Delta);

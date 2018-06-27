@@ -56,11 +56,11 @@ LimitsUpdateRequestHelper::applyCreateLimitsUpdateRequest(Account &source, Limit
 }
 
 LimitsUpdateRequest
-LimitsUpdateRequestHelper::createLimitsUpdateRequest(Hash documentHash)
+LimitsUpdateRequestHelper::createLimitsUpdateRequest(longstring details)
 {
     LimitsUpdateRequest result;
-    result.documentHash = documentHash;
-    result.ext.v(LedgerVersion::EMPTY_VERSION);
+    result.ext.v(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH);
+    result.ext.details() = details;
     return result;
 }
 
@@ -71,7 +71,8 @@ LimitsUpdateRequestHelper::createLimitsUpdateRequestTx(Account& source,
     Operation baseOp;
     baseOp.body.type(OperationType::CREATE_MANAGE_LIMITS_REQUEST);
     auto& op = baseOp.body.createManageLimitsRequestOp();
-    op.manageLimitsRequest.documentHash = request.documentHash;
+    op.manageLimitsRequest.ext.v(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH);
+    op.manageLimitsRequest.ext.details() = request.ext.details();
     op.ext.v(LedgerVersion::EMPTY_VERSION);
     return txFromOperation(source, baseOp, nullptr);
 }

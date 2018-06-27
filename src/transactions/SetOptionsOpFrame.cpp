@@ -130,6 +130,7 @@ SetOptionsOpFrame::getLimitsUpdateRequestReference(Hash const& documentHash) con
     return binToHex(hash);
 }
 
+[[deprecated]]
 bool
 SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager) {
     Database& db = ledgerManager.getDatabase();
@@ -146,7 +147,7 @@ SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& d
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::LIMITS_UPDATE);
-    body.limitsUpdateRequest().documentHash = mSetOptions.limitsUpdateRequestData->documentHash;
+    body.limitsUpdateRequest().deprecatedDocumentHash = mSetOptions.limitsUpdateRequestData->documentHash;
 
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr, body,
                                                              ledgerManager.getCloseTime());

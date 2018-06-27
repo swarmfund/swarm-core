@@ -24,6 +24,7 @@ class CreateManageLimitsRequestOpFrame : public OperationFrame
                                           int32_t ledgerVersion) const override;
 
     std::string getLimitsManageRequestReference(Hash const& documentHash) const;
+    std::string getLimitsManageRequestDetailsReference(longstring const& details) const;
 
 public:
 

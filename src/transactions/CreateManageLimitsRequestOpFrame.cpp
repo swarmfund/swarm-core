@@ -46,6 +46,13 @@ CreateManageLimitsRequestOpFrame::getLimitsManageRequestReference(Hash const& do
     return binToHex(hash);
 }
 
+std::string
+CreateManageLimitsRequestOpFrame::getLimitsManageRequestDetailsReference(longstring const& details) const
+{
+    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::LIMITS_UPDATE, details));
+    return binToHex(hash);
+}
+
 bool
 CreateManageLimitsRequestOpFrame::doApply(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager)
 {
@@ -53,7 +60,10 @@ CreateManageLimitsRequestOpFrame::doApply(Application& app, LedgerDelta& delta, 
 
     longstring reference;
     if (ledgerManager.shouldUse(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH))
-        reference = mCreateManageLimitsRequest.manageLimitsRequest.ext.details();
+    {
+        auto details = mCreateManageLimitsRequest.manageLimitsRequest.ext.details();
+        reference = getLimitsManageRequestDetailsReference(details);
+    }
     else
         reference = getLimitsManageRequestReference(mCreateManageLimitsRequest.manageLimitsRequest.deprecatedDocumentHash);
 

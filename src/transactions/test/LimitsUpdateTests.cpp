@@ -50,7 +50,8 @@ TEST_CASE("limits update", "[tx][limits_update]")
     reviewLimitsUpdateHelper.initializeLimits(requestorID);
 
     // prepare data for request
-    std::string documentData = "Some document data";
+    std::string documentData = "Some document data, huge data, very huge data to check convert to string64"
+                               " when get reference to write to database information about request";
 
     // create LimitsUpdateRequest
     auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentData);

@@ -6,6 +6,7 @@
 #include <ledger/ReviewableRequestHelper.h>
 #include <ledger/OfferHelper.h>
 #include <ledger/BalanceHelper.h>
+#include "transactions/CreateSaleCreationRequestOpFrame.h"
 
 namespace stellar {
     ManageSaleOpFrame::ManageSaleOpFrame(Operation const &op, OperationResult &opRes, TransactionFrame &parentTx)
@@ -21,7 +22,7 @@ namespace stellar {
     SourceDetails
     ManageSaleOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                                int32_t ledgerVersion) const {
-        std::vector<AccountType> allowedSourceAccountTypes = { AccountType::SYNDICATE };
+        std::vector<AccountType> allowedSourceAccountTypes = {AccountType::SYNDICATE};
 
         if (ledgerVersion >= static_cast<int32_t>(LedgerVersion::ALLOW_MASTER_TO_MANAGE_SALE)) {
             allowedSourceAccountTypes.push_back(AccountType::MASTER);
@@ -40,7 +41,7 @@ namespace stellar {
             return false;
         }
 
-        checkRequestType(requestFrame);
+        checkRequestType(requestFrame, ReviewableRequestType::UPDATE_SALE_DETAILS);
 
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.updateSaleDetailsRequest().newDetails = mManageSaleOp.data.updateSaleDetailsData().newDetails;
@@ -55,8 +56,9 @@ namespace stellar {
         return true;
     }
 
-    bool ManageSaleOpFrame::setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
-        Database &db) {
+    bool ManageSaleOpFrame::setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta,
+                                         LedgerManager &ledgerManager,
+                                         Database &db) {
         if (mSourceAccount->getAccountType() != AccountType::MASTER) {
             innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
         }
@@ -64,19 +66,19 @@ namespace stellar {
         sale->migrateToVersion(LedgerVersion::STATABLE_SALES);
         auto stateToSet = mManageSaleOp.data.saleState();
         switch (sale->getState()) {
-        case SaleState::NONE:
-            innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
-            return false;
-        case SaleState::PROMOTION:
-            break;
-        case SaleState::VOTING:
-            if (stateToSet == SaleState::PROMOTION) {
+            case SaleState::NONE:
                 innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
                 return false;
-            }
-            break;
-        default:
-            throw std::runtime_error("Unexpected sale state on manage sale set sale state");
+            case SaleState::PROMOTION:
+                break;
+            case SaleState::VOTING:
+                if (stateToSet == SaleState::PROMOTION) {
+                    innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
+                    return false;
+                }
+                break;
+            default:
+                throw std::runtime_error("Unexpected sale state on manage sale set sale state");
         }
 
         sale->setSaleState(stateToSet);
@@ -141,8 +143,9 @@ namespace stellar {
     void ManageSaleOpFrame::deleteAllAntesForSale(uint64_t saleID, LedgerDelta &delta, Database &db) {
         auto saleAntes = SaleAnteHelper::Instance()->loadSaleAntesForSale(saleID, db);
         for (auto &saleAnte : saleAntes) {
-            auto participantBalanceFrame = BalanceHelper::Instance()->mustLoadBalance(saleAnte->getParticipantBalanceID(),
-                                                                                      db, &delta);
+            auto participantBalanceFrame = BalanceHelper::Instance()->mustLoadBalance(
+                    saleAnte->getParticipantBalanceID(),
+                    db, &delta);
             if (!participantBalanceFrame->unlock(saleAnte->getAmount())) {
                 std::string strParticipantBalanceID = PubKeyUtils::toStrKey(saleAnte->getParticipantBalanceID());
                 CLOG(ERROR, Logging::OPERATION_LOGGER)
@@ -154,6 +157,64 @@ namespace stellar {
             EntryHelperProvider::storeChangeEntry(delta, db, participantBalanceFrame->mEntry);
             EntryHelperProvider::storeDeleteEntry(delta, db, saleAnte->getKey());
         }
+    }
+
+    bool ManageSaleOpFrame::createPromotionUpdateRequest(LedgerDelta &delta, LedgerManager &ledgerManager, Database &db,
+                                                         SaleState saleState, AccountID const &masterID) {
+        if (saleState != SaleState::PROMOTION) {
+            innerResult().code(ManageSaleResultCode::INVALID_SALE_STATE);
+            return false;
+        }
+
+        auto reference = getPromotionUpdateRequestReference();
+        auto const referencePtr = xdr::pointer<string64>(new string64(reference));
+        auto requestHelper = ReviewableRequestHelper::Instance();
+        if (requestHelper->isReferenceExist(db, getSourceID(), reference)) {
+            innerResult().code(ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_ALREADY_EXISTS);
+            return false;
+        }
+
+        auto requestFrame = ReviewableRequestFrame::createNew(delta, getSourceID(), masterID,
+                                                              referencePtr, ledgerManager.getCloseTime());
+
+        auto &requestEntry = requestFrame->getRequestEntry();
+        requestEntry.body.type(ReviewableRequestType::UPDATE_PROMOTION);
+        requestEntry.body.promotionUpdateRequest().promotionID = mManageSaleOp.saleID;
+        requestEntry.body.promotionUpdateRequest().newPromotionData = mManageSaleOp.data.promotionUpdateData().newPromotionData;
+
+        requestFrame->recalculateHashRejectReason();
+
+        requestHelper->storeAdd(delta, db, requestFrame->mEntry);
+
+        innerResult().code(ManageSaleResultCode::SUCCESS);
+        innerResult().success().response.action(ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST);
+        innerResult().success().response.promotionUpdateRequestID() = requestFrame->getRequestID();
+
+        return true;
+    }
+
+    bool ManageSaleOpFrame::amendPromotionUpdateRequest(Database &db, LedgerDelta &delta) {
+        auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
+                mManageSaleOp.data.promotionUpdateData().requestID, db, &delta);
+
+        if (!requestFrame) {
+            innerResult().code(ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_NOT_FOUND);
+            return false;
+        }
+
+        checkRequestType(requestFrame, ReviewableRequestType::UPDATE_PROMOTION);
+
+        auto &requestEntry = requestFrame->getRequestEntry();
+        requestEntry.body.promotionUpdateRequest().newPromotionData = mManageSaleOp.data.promotionUpdateData().newPromotionData;
+
+        requestFrame->recalculateHashRejectReason();
+        ReviewableRequestHelper::Instance()->storeChange(delta, db, requestFrame->mEntry);
+
+        innerResult().code(ManageSaleResultCode::SUCCESS);
+        innerResult().success().response.action(ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST);
+        innerResult().success().response.promotionUpdateRequestID() = requestFrame->getRequestID();
+
+        return true;
     }
 
     bool ManageSaleOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
@@ -184,6 +245,12 @@ namespace stellar {
             case ManageSaleAction::SET_STATE: {
                 return setSaleState(saleFrame, app, delta, ledgerManager, db);
             }
+            case ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST: {
+                if (mManageSaleOp.data.promotionUpdateData().requestID != 0) {
+                    return amendPromotionUpdateRequest(db, delta);
+                }
+                return createPromotionUpdateRequest(delta, ledgerManager, db, saleFrame->getState(), app.getMasterID());
+            }
             default:
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected action from manage sale op: "
                                                        << xdr::xdr_to_string(mManageSaleOp.data.action());
@@ -193,10 +260,53 @@ namespace stellar {
         return true;
     }
 
+    bool ManageSaleOpFrame::isPromotionUpdateDataValid(Application &app) {
+        auto saleCreationRequestValidationResult = CreateSaleCreationRequestOpFrame::doCheckValid(
+                app, mManageSaleOp.data.promotionUpdateData().newPromotionData);
+
+        if (saleCreationRequestValidationResult == CreateSaleCreationRequestResultCode::SUCCESS) {
+            return true;
+        }
+
+        switch (saleCreationRequestValidationResult) {
+            case CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR: {
+                innerResult().code(ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_INVALID_ASSET_PAIR);
+                return false;
+            }
+            case CreateSaleCreationRequestResultCode::INVALID_PRICE: {
+                innerResult().code(ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_INVALID_PRICE);
+                return false;
+            }
+            case CreateSaleCreationRequestResultCode::START_END_INVALID: {
+                innerResult().code(ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_START_END_INVALID);
+                return false;
+            }
+            case CreateSaleCreationRequestResultCode::INVALID_CAP: {
+                innerResult().code(ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_INVALID_CAP);
+                return false;
+            }
+            case CreateSaleCreationRequestResultCode::INVALID_DETAILS: {
+                innerResult().code(ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_INVALID_DETAILS);
+                return false;
+            }
+            default: {
+                CLOG(ERROR, Logging::OPERATION_LOGGER)
+                        << "Unexpected result code from CreateSaleCreationRequestOpFrame::doCheckValid: "
+                        << xdr::xdr_traits<CreateSaleCreationRequestResultCode>::enum_name(
+                                saleCreationRequestValidationResult);
+                throw std::runtime_error("Unexpected result code from CreateSaleCreationRequestOpFrame::doCheckValid");
+            }
+        }
+    }
+
     bool ManageSaleOpFrame::doCheckValid(Application &app) {
         if (mManageSaleOp.saleID == 0) {
             innerResult().code(ManageSaleResultCode::SALE_NOT_FOUND);
             return false;
+        }
+
+        if (mManageSaleOp.data.action() == ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST) {
+            return isPromotionUpdateDataValid(app);
         }
 
         if (mManageSaleOp.data.action() != ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST) {
@@ -211,9 +321,12 @@ namespace stellar {
         return true;
     }
 
-    void ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request) {
-        if (request->getRequestType() != ReviewableRequestType::UPDATE_SALE_DETAILS) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected UPDATE_SALE_DETAILS, but got "
+    void
+    ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request, ReviewableRequestType requestType) {
+        if (request->getRequestType() != requestType) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected "
+                                                   << xdr::xdr_traits<ReviewableRequestType>::enum_name(requestType)
+                                                   << " but got "
                                                    << xdr::xdr_traits<ReviewableRequestType>::enum_name(
                                                            request->getRequestType());
             throw std::invalid_argument("Unexpected request type");

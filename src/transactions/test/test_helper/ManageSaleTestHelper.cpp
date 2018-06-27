@@ -45,11 +45,19 @@ namespace stellar {
             return data;
         }
 
-        ManageSaleOp::_data_t ManageSaleTestHelper::setSaleState(ManageSaleAction action, SaleState saleState)
-        {
+        ManageSaleOp::_data_t ManageSaleTestHelper::setSaleState(SaleState saleState) {
             ManageSaleOp::_data_t data;
             data.action(ManageSaleAction::SET_STATE);
             data.saleState() = saleState;
+            return data;
+        }
+
+        ManageSaleOp::_data_t ManageSaleTestHelper::createPromotionUpdateRequest(uint64_t requestID,
+                                                                                 SaleCreationRequest newPromotionData) {
+            ManageSaleOp::_data_t data;
+            data.action(ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST);
+            data.promotionUpdateData().requestID = requestID;
+            data.promotionUpdateData().newPromotionData = newPromotionData;
             return data;
         }
 
@@ -73,8 +81,17 @@ namespace stellar {
             auto saleBeforeOp = saleHelper->loadSale(saleID, db);
 
             ReviewableRequestFrame::pointer requestBeforeTx;
-            if (data.action() == ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST) {
-                requestBeforeTx = reviewableRequestHelper->loadRequest(data.updateSaleDetailsData().requestID, db);
+            switch (data.action()) {
+                case ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST: {
+                    requestBeforeTx = reviewableRequestHelper->loadRequest(data.updateSaleDetailsData().requestID, db);
+                    break;
+                }
+                case ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST: {
+                    requestBeforeTx = reviewableRequestHelper->loadRequest(data.promotionUpdateData().requestID, db);
+                    break;
+                }
+                default:
+                    break;
             }
 
             auto saleAntesBeforeTx = SaleAnteHelper::Instance()->loadSaleAntes(saleID, db);
@@ -119,6 +136,29 @@ namespace stellar {
 
                         REQUIRE(requestBeforeTxEntry.body.updateSaleDetailsRequest().newDetails !=
                                 requestAfterTxEntry.body.updateSaleDetailsRequest().newDetails);
+                    }
+
+                    break;
+                }
+                case ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST: {
+                    auto requestAfterTx = reviewableRequestHelper->loadRequest(
+                            manageSaleResult.success().response.requestID(), db);
+                    REQUIRE(!!requestAfterTx);
+
+                    auto requestAfterTxEntry = requestAfterTx->getRequestEntry();
+
+                    REQUIRE(requestAfterTxEntry.body.promotionUpdateRequest().promotionID == saleID);
+                    REQUIRE(requestAfterTxEntry.body.promotionUpdateRequest().newPromotionData ==
+                            data.promotionUpdateData().newPromotionData);
+
+                    if (!!requestBeforeTx) {
+                        auto requestBeforeTxEntry = requestBeforeTx->getRequestEntry();
+
+                        REQUIRE(requestBeforeTxEntry.body.promotionUpdateRequest().promotionID ==
+                                requestAfterTxEntry.body.promotionUpdateRequest().promotionID);
+
+                        REQUIRE(!(requestBeforeTxEntry.body.promotionUpdateRequest().newPromotionData ==
+                                requestAfterTxEntry.body.promotionUpdateRequest().newPromotionData));
                     }
 
                     break;

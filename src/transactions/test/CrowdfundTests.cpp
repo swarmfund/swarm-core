@@ -114,7 +114,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
         SECTION("Participation amount is too small")
         {
             auto saleTestHelper = ManageSaleTestHelper(testManager);
-            auto saleStateData = saleTestHelper.setSaleState(ManageSaleAction::SET_STATE, SaleState::NONE);
+            auto saleStateData = saleTestHelper.setSaleState(SaleState::NONE);
             saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
             // able to invest 10^-6 when price for quote and default quote is 1
             auto quoteBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
@@ -145,7 +145,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
         SECTION("Not able to invest into sale in voting state")
         {
             auto saleTestHelper = ManageSaleTestHelper(testManager);
-            auto saleStateData = saleTestHelper.setSaleState(ManageSaleAction::SET_STATE, SaleState::VOTING);
+            auto saleStateData = saleTestHelper.setSaleState(SaleState::VOTING);
             saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
 
             // able to invest 10^-6 when price for quote and default quote is 1
@@ -157,7 +157,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
             ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer, ManageOfferResultCode::SALE_IS_NOT_STARTED_YET);
 
             // reset back
-            saleStateData = saleTestHelper.setSaleState(ManageSaleAction::SET_STATE, SaleState::NONE);
+            saleStateData = saleTestHelper.setSaleState(SaleState::NONE);
             saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
 
             ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer);
@@ -174,7 +174,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
 
             // reset back
             auto saleTestHelper = ManageSaleTestHelper(testManager);
-            auto saleStateData = saleTestHelper.setSaleState(ManageSaleAction::SET_STATE, SaleState::NONE);
+            auto saleStateData = saleTestHelper.setSaleState(SaleState::NONE);
             saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
 
             ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer);

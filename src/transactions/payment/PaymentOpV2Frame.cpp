@@ -213,7 +213,7 @@ namespace stellar {
 
     FeeDataV2
     PaymentOpV2Frame::getActualFee(AccountFrame::pointer accountFrame, AssetCode const &transferAsset, uint64_t amount,
-                                   PaymentFeeType feeType, Database &db) {
+                                   PaymentFeeType feeType, Database &db, LedgerManager& lm) {
         FeeDataV2 actualFee;
         actualFee.feeAsset = transferAsset;
         actualFee.maxPaymentFee = 0;
@@ -237,7 +237,13 @@ namespace stellar {
                 throw std::runtime_error("Unexpected state. Failed to load asset pair for cross asset fee");
             }
 
-            if (!assetPair->convertAmount(transferAsset, amount, Rounding::ROUND_UP, amount)) {
+            AssetCode destAsset;
+            if (lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_FEE))
+                destAsset = actualFee.feeAsset;
+            else
+                destAsset = transferAsset;
+
+            if (!assetPair->convertAmount(destAsset, amount, Rounding::ROUND_UP, amount)) {
                 // most probably it will not happen, but it'd better to return error code
                 throw std::runtime_error("failed to convert transfer amount into fee asset");
             }
@@ -282,7 +288,7 @@ namespace stellar {
         }
 
         auto sourceFee = getActualFee(sourceAccount, sourceBalance->getAsset(), mPayment.amount,
-                                      PaymentFeeType::OUTGOING, db);
+                                      PaymentFeeType::OUTGOING, db, ledgerManager);
 
         if (!processTransferFee(accountManager, sourceAccount, sourceBalance, mPayment.feeData.sourceFee, sourceFee,
                                 app.getCommissionID(), db, delta, false, sourceSentUniversal)) {
@@ -291,7 +297,10 @@ namespace stellar {
 
         auto destAccount = AccountHelper::Instance()->mustLoadAccount(destBalance->getAccountID(), db);
         auto destFee = getActualFee(destAccount, sourceBalance->getAsset(), mPayment.amount, PaymentFeeType::INCOMING,
-                                    db);
+                                    db, ledgerManager);
+
+        // destination fee asset must be the same as asset of payment
+        // cross asset fee is not allowed for payment destination balance
         if (destFee.feeAsset != sourceBalance->getAsset() ||
             mPayment.feeData.destinationFee.feeAsset != sourceBalance->getAsset()) {
             innerResult().code(PaymentV2ResultCode::INVALID_DESTINATION_FEE_ASSET);

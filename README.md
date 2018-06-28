@@ -16,6 +16,7 @@ functionality available, can be found in
 ## On newer distributions with OpenSSL 1.1:
 
 ```sh
+git submodule update --init
 cmake CMakeLists.txt -DPostgreSQL_INCLUDE_DIRS=/usr/include/postgresql/ -DPostgreSQL_LIBRARIES=/usr/lib/libpq.so -DOPENSSL_ROOT_DIR=/usr/lib/openssl-1.0 -DOPENSSL_LIBRARIES=/usr/lib/openssl-1.0 -DOPENSSL_INCLUDE_DIR=/usr/include/openssl-1.0
 make -j8
 ```
@@ -35,6 +36,7 @@ Make sure You typed correct paths to the libs. Consider replacing `-j8` accordin
 ## On older distributions with OpenSSL 1.0:
 
 ```sh
+git submodule update --init
 cmake CMakeLists.txt -DPostgreSQL_INCLUDE_DIRS=/usr/include/postgresql/ -DPostgreSQL_LIBRARIES=/usr/lib/libpq.so
 make -j8
 ```

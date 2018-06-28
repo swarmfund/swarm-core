@@ -21,6 +21,7 @@
 #include "transactions/dex/OfferManager.h"
 #include "test_helper/ParticipateInSaleTestHelper.h"
 #include "test_helper/ManageSaleTestHelper.h"
+#include "test_helper/ReviewPromotionUpdateRequestTestHelper.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -58,6 +59,8 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
     SaleRequestHelper saleRequestHelper(testManager);
     IssuanceRequestHelper issuanceHelper(testManager);
     CheckSaleStateHelper checkStateHelper(testManager);
+    ManageSaleTestHelper manageSaleHelper(testManager);
+    ReviewPromotionUpdateRequestHelper reviewPromotionUpdateHelper(testManager);
 
     auto syndicate = Account{ SecretKey::random(), 0 };
     const auto syndicatePubKey = syndicate.key.getPublicKey();
@@ -178,6 +181,25 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
             saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
 
             ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer);
+        }
+        SECTION("Update sale in promotion state")
+        {
+            uint64_t requestID = 0;
+            const auto newPromotionData = SaleRequestHelper::createSaleRequest(baseAsset, defaultQuoteAsset,
+                                                                               currentTime,
+                                                                               endTime, softCap * 2, hardCap * 2, "{}",
+                                                                               {saleRequestHelper.createSaleQuoteAsset
+                                                                                       (quoteAsset, ONE)},
+                                                                               &saleType, &preIssuedAmount,
+                                                                               SaleState::NONE);
+
+            auto manageSaleData = manageSaleHelper.createPromotionUpdateRequest(requestID, newPromotionData);
+
+            auto manageSaleResult = manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+
+            requestID = manageSaleResult.success().response.promotionUpdateRequestID();
+
+            reviewPromotionUpdateHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "");
         }
     }
 }

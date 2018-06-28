@@ -142,7 +142,7 @@ namespace stellar {
                 }
                 case ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST: {
                     auto requestAfterTx = reviewableRequestHelper->loadRequest(
-                            manageSaleResult.success().response.requestID(), db);
+                            manageSaleResult.success().response.promotionUpdateRequestID(), db);
                     REQUIRE(!!requestAfterTx);
 
                     auto requestAfterTxEntry = requestAfterTx->getRequestEntry();

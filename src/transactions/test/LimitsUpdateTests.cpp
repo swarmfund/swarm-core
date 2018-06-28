@@ -32,6 +32,8 @@ TEST_CASE("limits update", "[tx][limits_update]")
     app.start();
     auto testManager = TestManager::make(app);
 
+    upgradeToCurrentLedgerVersion(app);
+
     auto root = Account{ getRoot(), Salt(0) };
     auto createAccountTestHelper = CreateAccountTestHelper(testManager);
     auto limitsUpdateRequestHelper = LimitsUpdateRequestHelper(testManager);
@@ -48,11 +50,11 @@ TEST_CASE("limits update", "[tx][limits_update]")
     reviewLimitsUpdateHelper.initializeLimits(requestorID);
 
     // prepare data for request
-    std::string documentData = "Some document data";
-    stellar::Hash documentHash = Hash(sha256(documentData));
+    std::string documentData = "Some document data, huge data, very huge data to check convert to string64"
+                               " when get reference to write to database information about request";
 
     // create LimitsUpdateRequest
-    auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHash);
+    auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentData);
     auto limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest);
 
     SECTION("Happy path")
@@ -86,9 +88,8 @@ TEST_CASE("limits update", "[tx][limits_update]")
             manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
             std::string documentDataOfAccountWithoutLimits = "Some other document data";
-            stellar::Hash documentHashOfAccountWithoutLimits = Hash(sha256(documentDataOfAccountWithoutLimits));
 
-            limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentHashOfAccountWithoutLimits);
+            limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentDataOfAccountWithoutLimits);
             limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(accountWithLimits,
                                                                                           limitsUpdateRequest);
 

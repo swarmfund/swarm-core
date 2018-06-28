@@ -11,6 +11,36 @@ Documentation of the code's layout and abstractions, as well as for the
 functionality available, can be found in
 [`./docs`](https://github.com/swarmfund/swarm-core/tree/master/docs).
 
+# Builiding 
+
+## On newer distributions with OpenSSL 1.1:
+
+```sh
+git submodule update --init
+cmake CMakeLists.txt -DPostgreSQL_INCLUDE_DIRS=/usr/include/postgresql/ -DPostgreSQL_LIBRARIES=/usr/lib/libpq.so -DOPENSSL_ROOT_DIR=/usr/lib/openssl-1.0 -DOPENSSL_LIBRARIES=/usr/lib/openssl-1.0 -DOPENSSL_INCLUDE_DIR=/usr/include/openssl-1.0
+make -j8
+```
+
+Expect warning:
+
+```
+warning: libcrypto.so.1.1, needed by /usr/lib/libpq.so, may conflict with libcrypto.so.1.0.0
+```
+
+Make sure You typed correct paths to the libs. Consider replacing `-j8` according to the number outputed by:
+
+```sh
+# nproc
+```
+
+## On older distributions with OpenSSL 1.0:
+
+```sh
+git submodule update --init
+cmake CMakeLists.txt -DPostgreSQL_INCLUDE_DIRS=/usr/include/postgresql/ -DPostgreSQL_LIBRARIES=/usr/lib/libpq.so
+make -j8
+```
+
 # Installation
 
 See [Installation](./INSTALL.md) Note: to build core you will need to replace submodule https://gitlab.com/swarmfund/xdr with https://github.com/swarmfund/swarm-xdr. 

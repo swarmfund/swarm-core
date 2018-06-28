@@ -46,12 +46,27 @@ CreateManageLimitsRequestOpFrame::getLimitsManageRequestReference(Hash const& do
     return binToHex(hash);
 }
 
+std::string
+CreateManageLimitsRequestOpFrame::getLimitsManageRequestDetailsReference(longstring const& details) const
+{
+    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::LIMITS_UPDATE, details));
+    return binToHex(hash);
+}
+
 bool
 CreateManageLimitsRequestOpFrame::doApply(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
 
-    auto reference = getLimitsManageRequestReference(mCreateManageLimitsRequest.manageLimitsRequest.documentHash);
+    longstring reference;
+    if (ledgerManager.shouldUse(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH))
+    {
+        auto details = mCreateManageLimitsRequest.manageLimitsRequest.ext.details();
+        reference = getLimitsManageRequestDetailsReference(details);
+    }
+    else
+        reference = getLimitsManageRequestReference(mCreateManageLimitsRequest.manageLimitsRequest.deprecatedDocumentHash);
+
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
 
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
@@ -63,7 +78,14 @@ CreateManageLimitsRequestOpFrame::doApply(Application& app, LedgerDelta& delta, 
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::LIMITS_UPDATE);
-    body.limitsUpdateRequest().documentHash = mCreateManageLimitsRequest.manageLimitsRequest.documentHash;
+    if (ledgerManager.shouldUse(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH))
+    {
+        body.limitsUpdateRequest().ext.v(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH);
+        body.limitsUpdateRequest().ext.details() = mCreateManageLimitsRequest.manageLimitsRequest.ext.details();
+    }
+    else
+        body.limitsUpdateRequest().deprecatedDocumentHash =
+                mCreateManageLimitsRequest.manageLimitsRequest.deprecatedDocumentHash;
 
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr,
                                                              body, ledgerManager.getCloseTime());

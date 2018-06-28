@@ -80,7 +80,8 @@ std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpar
 	return{
 		{ targetBalance->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
                                                                AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE,
-                                                               AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR },
+                                                               AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
+                                                               AccountType::VERIFIED},
                                                              true, false) }
 	};
 }
@@ -105,7 +106,8 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
     {
         allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
                                 AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE,
-                                AccountType::ACCREDITED_INVESTOR, AccountType ::INSTITUTIONAL_INVESTOR};
+                                AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
+                                AccountType::VERIFIED};
     }
 	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType,
 						 static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
@@ -321,7 +323,8 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 	auto assetHelper = AssetHelper::Instance();
     auto assetFrame = assetHelper->loadAsset(mSourceBalance->getAsset(), db);
     assert(assetFrame);
-    if (!isAllowedToTransfer(db, assetFrame) || !AccountManager::isAllowedToReceive(mPayment.destinationBalanceID, db))
+    if (!isAllowedToTransfer(db, assetFrame) ||
+        AccountManager::isAllowedToReceive(mPayment.destinationBalanceID, db) != AccountManager::SUCCESS)
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "not-allowed-by-asset-policy" }, "operation").Mark();
         innerResult().code(PaymentResultCode::NOT_ALLOWED_BY_ASSET_POLICY);

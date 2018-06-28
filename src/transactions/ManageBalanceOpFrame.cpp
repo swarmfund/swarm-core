@@ -21,7 +21,7 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageBalanceOpFrame::
 getCounterpartyDetails(Database& db, LedgerDelta* delta) const
 {
     const std::vector<AccountType> allowedCounterparties = {
-        AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE,
+        AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE, AccountType::VERIFIED,
         AccountType::EXCHANGE, AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
     };
 
@@ -41,7 +41,7 @@ SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(
     if (getSourceID() == mManageBalance.destination)
         allowedSourceAccounts = {
             AccountType::GENERAL, AccountType::NOT_VERIFIED,
-            AccountType::SYNDICATE, AccountType::EXCHANGE,
+            AccountType::SYNDICATE, AccountType::EXCHANGE, AccountType::VERIFIED,
             AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
         };
     else

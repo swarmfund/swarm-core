@@ -201,7 +201,7 @@ namespace stellar {
                 return AccountManager::LIMITS_EXCEEDED;
             default:
                 CLOG(ERROR, Logging::OPERATION_LOGGER)
-                        << "Unexpeced result from statisticsV2Processor when updating statsV2:" << result;
+                        << "Unexpected result from statisticsV2Processor when updating statsV2:" << result;
                 throw std::runtime_error("Unexpected state from statisticsV2Processor when updating statsV2");
         }
 
@@ -373,18 +373,25 @@ namespace stellar {
     }
 
     [[deprecated]]
-    bool AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db) {
+    AccountManager::Result AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db) {
         auto balanceFrame = BalanceHelper::Instance()->loadBalance(receivingBalance, db);
         if (!balanceFrame)
-            return false;
+            return AccountManager::Result::BALANCE_NOT_FOUND;
 
         auto receiver = AccountHelper::Instance()->mustLoadAccount(balanceFrame->getAccountID(), db);
         auto receivingAsset = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
 
-        if (receiver->getAccountType() == AccountType::NOT_VERIFIED && receivingAsset->isRequireKYC())
-            return false;
+        if (receiver->getAccountType() == AccountType::NOT_VERIFIED ||
+            receiver->getAccountType() == AccountType::VERIFIED){
 
-        return true;
+            if (receivingAsset->isRequireVerification() && receiver->getAccountType() == AccountType::NOT_VERIFIED)
+                return AccountManager::Result::REQUIRED_VERIFICATION;
+
+            if (receivingAsset->isRequireKYC())
+                return AccountManager::Result::REQUIRED_KYC;
+        }
+
+        return AccountManager::Result::SUCCESS;
     }
 
     void AccountManager::unlockPendingIssuanceForSale(SaleFrame::pointer const sale, LedgerDelta &delta, Database &db,

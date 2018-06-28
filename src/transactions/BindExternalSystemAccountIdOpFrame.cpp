@@ -28,7 +28,8 @@ BindExternalSystemAccountIdOpFrame::getSourceAccountDetails(
 {
     std::vector<AccountType> allowedSourceAccounts;
     allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE,
-                              AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR };
+                              AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
+                              AccountType::VERIFIED};
     return SourceDetails(allowedSourceAccounts, mSourceAccount->getLowThreshold(),
                          static_cast<int32_t >(SignerType::BALANCE_MANAGER));
 }

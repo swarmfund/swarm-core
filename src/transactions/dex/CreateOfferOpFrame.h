@@ -24,6 +24,8 @@ class CreateOfferOpFrame : public ManageOfferOpFrame
 
     bool lockSellingAmount(OfferEntry const& offer);
 
+    bool isAllowedToReceive(BalanceID receivingBalance, Database &db);
+
 protected:
 
     BalanceFrame::pointer loadBalanceValidForTrading(

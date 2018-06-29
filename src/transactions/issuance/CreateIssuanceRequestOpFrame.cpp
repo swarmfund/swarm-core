@@ -173,8 +173,7 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
-    if (!AccountManager::isAllowedToReceive(balance->getBalanceID(), db)) {
-        innerResult().code(CreateIssuanceRequestResultCode::REQUIRES_KYC);
+    if (!isAllowedToReceive(balance->getBalanceID(), db)) {
         return nullptr;
     }
 
@@ -238,5 +237,28 @@ CreateIssuanceRequestOp CreateIssuanceRequestOpFrame::build(
     issuanceRequestOp.request = request;
     issuanceRequestOp.reference = binToHex(sha256(xdr_to_opaque(receiver, asset, amount, lm.getCloseTime())));
     return issuanceRequestOp;
+}
+
+bool
+CreateIssuanceRequestOpFrame::isAllowedToReceive(BalanceID receivingBalance, Database &db)
+{
+	const auto result = AccountManager::isAllowedToReceive(receivingBalance, db);
+	switch (result){
+		case AccountManager::SUCCESS:
+			return true;
+		case AccountManager::BALANCE_NOT_FOUND:
+			innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
+			return false;
+		case AccountManager::REQUIRED_VERIFICATION:
+			innerResult().code(CreateIssuanceRequestResultCode::REQUIRES_VERIFICATION);
+			return false;
+		case AccountManager::REQUIRED_KYC:
+			innerResult().code(CreateIssuanceRequestResultCode::REQUIRES_KYC);
+			return false;
+		default:
+			CLOG(ERROR, Logging::OPERATION_LOGGER)
+					<< "Unexpected isAllowedToReceive method result from accountManager:" << result;
+			throw std::runtime_error("Unexpected isAllowedToReceive method result from accountManager");
+	}
 }
 }

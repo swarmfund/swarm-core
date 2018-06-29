@@ -27,8 +27,8 @@ namespace stellar {
     getCounterpartyDetails(Database &db, LedgerDelta *delta) const {
         return {
                 {mCreateAccount.destination, CounterpartyDetails({AccountType::NOT_VERIFIED, AccountType::GENERAL,
-                                                                  AccountType::SYNDICATE, AccountType::EXCHANGE}, true,
-                                                                 false)}
+                                                                  AccountType::SYNDICATE, AccountType::EXCHANGE,
+                                                                  AccountType::VERIFIED}, true, false)}
         };
     }
 
@@ -42,6 +42,7 @@ namespace stellar {
                 allowedSignerClass = static_cast<int32_t>(SignerType::
                 NOT_VERIFIED_ACC_MANAGER);
                 break;
+            case AccountType::VERIFIED:
             case AccountType::GENERAL:
                 if (mCreateAccount.policies != 0) {
                     allowedSignerClass = static_cast<int32_t>(SignerType::
@@ -97,10 +98,11 @@ namespace stellar {
             return true;
         if (accountType != AccountType::NOT_VERIFIED)
             return false;
-        // it is only allowed to change account type from not verified to general or syndicate
+        // it is only allowed to change account type from not verified to general or syndicate or verified
         return mCreateAccount.accountType == AccountType::SYNDICATE ||
                mCreateAccount.accountType == AccountType::GENERAL ||
-               mCreateAccount.accountType == AccountType::EXCHANGE;
+               mCreateAccount.accountType == AccountType::EXCHANGE ||
+               mCreateAccount.accountType == AccountType::VERIFIED;
     }
 
     void CreateAccountOpFrame::storeExternalSystemsIDs(Application &app,

@@ -270,9 +270,11 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     SecretKey preissuedSigner = SecretKey::random();
     uint32 baseAssetPolicy = static_cast<uint32>(AssetPolicy::BASE_ASSET);
     uint32 requiresKYCPolicy = static_cast<uint32>(AssetPolicy::REQUIRES_KYC);
+    auto requiresVerificationPolicy = static_cast<uint32>(AssetPolicy::REQUIRES_VERIFICATION);
     auto assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(assetCode, preissuedSigner.getPublicKey(),
                                                                                  "{}", maxIssuanceAmount,
-                                                                                 baseAssetPolicy | requiresKYCPolicy);
+                                                                                 baseAssetPolicy | requiresKYCPolicy |
+                                                                                 requiresVerificationPolicy);
     manageAssetTestHelper.applyManageAssetTx(assetOwner, 0, assetCreationRequest);
 
     //pre-issue some amount
@@ -363,16 +365,48 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     SECTION("try to issue asset which requires KYC to not verified")
     {
         auto notVerifiedKP = SecretKey::random();
+        AssetCode localAsset = "USD";
+
+        assetCreationRequest = manageAssetTestHelper.createAssetCreationRequest(localAsset, preissuedSigner.getPublicKey(),
+                                                                                     "{}", maxIssuanceAmount,
+                                                                                     baseAssetPolicy | requiresKYCPolicy);
+        manageAssetTestHelper.applyManageAssetTx(assetOwner, 0, assetCreationRequest);
+
         createAccountTestHelper.applyCreateAccountTx(root, notVerifiedKP.getPublicKey(), AccountType::NOT_VERIFIED);
 
-        auto notVerifiedBalance = balanceHelper->loadBalance(notVerifiedKP.getPublicKey(), assetCode, testManager->getDB(),
+        auto notVerifiedBalance = balanceHelper->loadBalance(notVerifiedKP.getPublicKey(), localAsset, testManager->getDB(),
                                                           nullptr);
 
-        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, notVerifiedBalance->getBalanceID(),
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, localAsset, amount, notVerifiedBalance->getBalanceID(),
                                                          reference, CreateIssuanceRequestResultCode::REQUIRES_KYC);
 
     }
 
+    SECTION("try to issue asset which requires VERIFICATION to not verified")
+    {
+        auto notVerifiedKP = SecretKey::random();
+        createAccountTestHelper.applyCreateAccountTx(root, notVerifiedKP.getPublicKey(), AccountType::NOT_VERIFIED);
+
+        auto notVerifiedBalance = balanceHelper->loadBalance(notVerifiedKP.getPublicKey(), assetCode, testManager->getDB(),
+                                                             nullptr);
+
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, notVerifiedBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::REQUIRES_VERIFICATION);
+
+    }
+
+    SECTION("try to issue asset which requires KYC to verified")
+    {
+        auto verifiedKP = SecretKey::random();
+        createAccountTestHelper.applyCreateAccountTx(root, verifiedKP.getPublicKey(), AccountType::VERIFIED);
+
+        auto verifiedBalance = balanceHelper->loadBalance(verifiedKP.getPublicKey(), assetCode, testManager->getDB(),
+                nullptr);
+
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, verifiedBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::REQUIRES_KYC);
+
+    }
 }
 
 TEST_CASE("Issuance", "[tx][issuance]")

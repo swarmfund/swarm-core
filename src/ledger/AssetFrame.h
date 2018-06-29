@@ -133,6 +133,11 @@ public:
         return isPolicySet(AssetPolicy::REQUIRES_KYC);
     }
 
+    bool isRequireVerification() const
+    {
+        return isPolicySet(AssetPolicy::REQUIRES_VERIFICATION);
+    }
+
     static bool isAssetCodeValid(AssetCode const& code);
     
     static void ensureValid(AssetEntry const& oe);

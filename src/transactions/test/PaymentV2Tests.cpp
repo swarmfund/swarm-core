@@ -190,6 +190,37 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
                                                              destination, paymentAmount, paymentFeeData, "",
                                                              "", nullptr,
                                                              PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
+
+        manageAssetTestHelper.updateAsset(root, paymentAsset, root, static_cast<uint32_t>(AssetPolicy::BASE_ASSET) |
+                                                                    static_cast<uint32_t>(AssetPolicy::TRANSFERABLE) |
+                                                                    static_cast<uint32_t>(AssetPolicy::STATS_QUOTE_ASSET) |
+                                                                    static_cast<uint32_t>(AssetPolicy::REQUIRES_VERIFICATION));
+        auto newPayer = Account{SecretKey::random(), Salt(1)};
+        createAccountTestHelper.applyCreateAccountTx(root, newPayer.key.getPublicKey(), AccountType::NOT_VERIFIED);
+        payerBalance = balanceHelper->loadBalance(newPayer.key.getPublicKey(), paymentAsset, db, nullptr);
+        REQUIRE(!!payerBalance);
+        opResult = paymentV2TestHelper.applyPaymentV2Tx(newPayer, payerBalance->getBalanceID(),
+                                                             destination, paymentAmount, paymentFeeData, "",
+                                                             "", nullptr,
+                                                             PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
+
+        manageAssetTestHelper.updateAsset(root, paymentAsset, root, static_cast<uint32_t>(AssetPolicy::BASE_ASSET) |
+                                                                    static_cast<uint32_t>(AssetPolicy::TRANSFERABLE) |
+                                                                    static_cast<uint32_t>(AssetPolicy::STATS_QUOTE_ASSET) |
+                                                                    static_cast<uint32_t>(AssetPolicy::REQUIRES_KYC));
+        opResult = paymentV2TestHelper.applyPaymentV2Tx(newPayer, payerBalance->getBalanceID(),
+                                                        destination, paymentAmount, paymentFeeData, "",
+                                                        "", nullptr,
+                                                        PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
+
+        newPayer = Account{SecretKey::random(), Salt(1)};
+        createAccountTestHelper.applyCreateAccountTx(root, newPayer.key.getPublicKey(), AccountType::VERIFIED);
+        payerBalance = balanceHelper->loadBalance(newPayer.key.getPublicKey(), paymentAsset, db, nullptr);
+        REQUIRE(!!payerBalance);
+        opResult = paymentV2TestHelper.applyPaymentV2Tx(newPayer, payerBalance->getBalanceID(),
+                                                        destination, paymentAmount, paymentFeeData, "",
+                                                        "", nullptr,
+                                                        PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
     }
     SECTION("Destination fee asset differs from payment amount asset") {
         paymentFeeData.destinationFee.feeAsset = feeAsset;

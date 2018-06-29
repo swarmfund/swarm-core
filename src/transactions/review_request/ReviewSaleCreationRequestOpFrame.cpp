@@ -71,6 +71,8 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
     createAssetPair(saleFrame, app, ledgerManager, delta);
     innerResult().code(ReviewRequestResultCode::SUCCESS);
+    innerResult().success().ext.v(LedgerVersion::ADD_SALE_ID_REVIEW_REQUEST_RESULT);
+    innerResult().success().ext.saleID() = saleFrame->getID();
     return true;
 }
 

@@ -33,7 +33,7 @@ namespace stellar {
         }
 
         if (saleFrame->getState() != SaleState::PROMOTION) {
-            innerResult().code(ReviewRequestResultCode::INVALID_STATE);
+            innerResult().code(ReviewRequestResultCode::INVALID_SALE_STATE);
             return false;
         }
 

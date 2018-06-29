@@ -381,13 +381,12 @@ namespace stellar {
         auto receiver = AccountHelper::Instance()->mustLoadAccount(balanceFrame->getAccountID(), db);
         auto receivingAsset = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
 
-        if (receiver->getAccountType() == AccountType::NOT_VERIFIED ||
-            receiver->getAccountType() == AccountType::VERIFIED){
+        if (receivingAsset->isRequireVerification() && receiver->getAccountType() == AccountType::NOT_VERIFIED)
+            return AccountManager::Result::REQUIRED_VERIFICATION;
 
-            if (receivingAsset->isRequireVerification() && receiver->getAccountType() == AccountType::NOT_VERIFIED)
-                return AccountManager::Result::REQUIRED_VERIFICATION;
-
-            if (receivingAsset->isRequireKYC())
+        if (receivingAsset->isRequireKYC()){
+            if (receiver->getAccountType() == AccountType::NOT_VERIFIED ||
+                receiver->getAccountType() == AccountType::VERIFIED)
                 return AccountManager::Result::REQUIRED_KYC;
         }
 

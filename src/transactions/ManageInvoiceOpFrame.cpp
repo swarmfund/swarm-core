@@ -21,8 +21,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageInvoiceOpFrame::getCoun
 {
 	return{
 		{mManageInvoice.sender, CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
-                                                     AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR},
-                                                    true, true)}
+                                                     AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
+                                                     AccountType::VERIFIED}, true, true)}
 	};
 }
 
@@ -30,7 +30,8 @@ SourceDetails ManageInvoiceOpFrame::getSourceAccountDetails(std::unordered_map<A
                                                             int32_t ledgerVersion) const
 {
     std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
-                                                    AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR};
+                                                    AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
+                                                    AccountType::VERIFIED};
     // disallowed
 	return SourceDetails({}, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t >(SignerType::INVOICE_MANAGER), static_cast<int32_t >(BlockReasons::KYC_UPDATE) |

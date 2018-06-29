@@ -39,7 +39,10 @@ public:
         LINE_FULL,
         UNDERFUNDED,
         STATS_OVERFLOW,
-        LIMITS_EXCEEDED
+        LIMITS_EXCEEDED,
+        REQUIRED_KYC,
+        REQUIRED_VERIFICATION,
+        BALANCE_NOT_FOUND
     };
 
     AccountManager(Application& app, Database& db, LedgerDelta& delta,
@@ -98,7 +101,7 @@ public:
     static BalanceID loadOrCreateBalanceForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
     static BalanceFrame::pointer loadOrCreateBalanceFrameForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
 
-    static bool isAllowedToReceive(BalanceID receivingBalance, Database& db);
+    static Result isAllowedToReceive(BalanceID receivingBalance, Database& db);
 
     static void unlockPendingIssuanceForSale(const SaleFrame::pointer sale, LedgerDelta &delta, Database &db,
                                              LedgerManager &lm);

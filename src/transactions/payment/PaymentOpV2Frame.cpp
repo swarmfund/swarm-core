@@ -45,7 +45,8 @@ namespace stellar {
                                                         AccountType::OPERATIONAL, AccountType::COMMISSION,
                                                         AccountType::SYNDICATE, AccountType::EXCHANGE,
                                                         AccountType::ACCREDITED_INVESTOR,
-                                                        AccountType::INSTITUTIONAL_INVESTOR};
+                                                        AccountType::INSTITUTIONAL_INVESTOR,
+                                                        AccountType::VERIFIED};
 
         return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType,
                              static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
@@ -194,16 +195,24 @@ namespace stellar {
             return false;
         }
 
-        // is holding asset require KYC
-        if (!asset->isRequireKYC()) {
+        // is holding asset require KYC or VERIFICATION
+        if (!asset->isRequireKYC() && !asset->isRequireVerification()) {
             return true;
         }
 
         auto &sourceAccount = getSourceAccount();
         auto destAccount = AccountHelper::Instance()->mustLoadAccount(to->getAccountID(), db);
 
+        if ((sourceAccount.getAccountType() == AccountType::NOT_VERIFIED ||
+            destAccount->getAccountType() == AccountType::NOT_VERIFIED) && asset->isRequireVerification()) {
+            innerResult().code(PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
+            return false;
+        }
+
         if (sourceAccount.getAccountType() == AccountType::NOT_VERIFIED ||
-            destAccount->getAccountType() == AccountType::NOT_VERIFIED) {
+            sourceAccount.getAccountType() == AccountType::VERIFIED ||
+            destAccount->getAccountType() == AccountType::NOT_VERIFIED ||
+            destAccount->getAccountType() == AccountType::VERIFIED) {
             innerResult().code(PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
             return false;
         }

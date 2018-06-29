@@ -37,7 +37,8 @@ const
     return SourceDetails({
                              AccountType::GENERAL, AccountType::SYNDICATE,
                              AccountType::OPERATIONAL, AccountType::EXCHANGE, AccountType::NOT_VERIFIED,
-                             AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
+                             AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
+                             AccountType::VERIFIED
                          }, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER),
                          static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));

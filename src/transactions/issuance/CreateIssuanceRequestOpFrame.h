@@ -33,6 +33,8 @@ class CreateIssuanceRequestOpFrame : public OperationFrame
 	ReviewableRequestFrame::pointer tryCreateIssuanceRequest(Application& app, LedgerDelta& delta,
 		LedgerManager& ledgerManager);
 
+    bool isAllowedToReceive(BalanceID receivingBalance, Database &db);
+
 public:
 
     CreateIssuanceRequestOpFrame(Operation const& op, OperationResult& res,

@@ -37,7 +37,11 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 	auto sourceBalanceFrame = balanceHelper->loadBalance(request->getSourceBalance(), db);
 	if (sourceBalanceFrame)
 	{
-		result.insert({sourceBalanceFrame->getAccountID(), CounterpartyDetails({ AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, false, true) });
+		result.insert({sourceBalanceFrame->getAccountID(), CounterpartyDetails({ AccountType::GENERAL,
+                                                                                 AccountType::OPERATIONAL,
+                                                                                 AccountType::COMMISSION,
+                                                                                 AccountType::VERIFIED},
+                                                                               false, true) });
 	}
 
 	auto destBalance = request->getPaymentRequest().destinationBalance;
@@ -46,7 +50,12 @@ std::unordered_map<AccountID, CounterpartyDetails> ReviewPaymentRequestOpFrame::
 		auto destBalanceFrame = balanceHelper->loadBalance(*request->getPaymentRequest().destinationBalance, db);
 		if (destBalanceFrame)
 		{
-			result.insert({ destBalanceFrame->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION }, true, true) });
+			result.insert({ destBalanceFrame->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED,
+                                                                                    AccountType::GENERAL,
+                                                                                    AccountType::OPERATIONAL,
+                                                                                    AccountType::COMMISSION,
+                                                                                    AccountType::VERIFIED},
+                                                                                  true, true) });
 		}
 	}
 	return result;

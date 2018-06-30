@@ -101,19 +101,16 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
 
     innerResult().code(saleCreationResult);
 
-    return saleCreationResult == ReviewRequestResultCode::SUCCESS;
-    AccountManager accountManager(app, db, delta, ledgerManager);
-    const auto balances = loadBalances(accountManager, request, saleCreationRequest);
-    const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest,
-        balances, requiredBaseAssetForHardCap);
-    SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
-    createAssetPair(saleFrame, app, ledgerManager, delta);
-    innerResult().code(ReviewRequestResultCode::SUCCESS);
+    if (saleCreationResult != ReviewRequestResultCode::SUCCESS) {
+        return false;
+    }
+
     if (ledgerManager.shouldUse(LedgerVersion::ADD_SALE_ID_REVIEW_REQUEST_RESULT))
     {
         innerResult().success().ext.v(LedgerVersion::ADD_SALE_ID_REVIEW_REQUEST_RESULT);
-        innerResult().success().ext.saleID() = saleFrame->getID();
+        innerResult().success().ext.saleID() = newSaleID;
     }
+
     return true;
 }
 

@@ -192,14 +192,82 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
                                                                                        (quoteAsset, ONE)},
                                                                                &saleType, &preIssuedAmount,
                                                                                SaleState::NONE);
-
             auto manageSaleData = manageSaleHelper.createPromotionUpdateRequest(requestID, newPromotionData);
 
-            auto manageSaleResult = manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+            SECTION("Invalid asset pair")
+            {
+                manageSaleData.promotionUpdateData().newPromotionData.baseAsset = quoteAsset;
+                manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                   ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_INVALID_ASSET_PAIR);
+            }
+            SECTION("Sale ends before starts")
+            {
+                manageSaleData.promotionUpdateData().newPromotionData.endTime = currentTime - 1;
+                manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                   ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_START_END_INVALID);
+            }
+            SECTION("Invalid cap")
+            {
+                manageSaleData.promotionUpdateData().newPromotionData.hardCap = softCap - 1;
+                manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                   ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_INVALID_CAP);
+            }
+            SECTION("Invalid details")
+            {
+                manageSaleData.promotionUpdateData().newPromotionData.details = "Invalid JSON";
+                manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                   ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_INVALID_DETAILS);
+            }
 
-            requestID = manageSaleResult.success().response.promotionUpdateRequestID();
+            SECTION("Try to update foreign sale")
+            {
+                auto secondSyndicate = Account{ SecretKey::random(), 0 };
+                CreateAccountTestHelper(testManager).applyCreateAccountTx(root, secondSyndicate.key.getPublicKey(),
+                                                                          AccountType::SYNDICATE);
 
-            reviewPromotionUpdateHelper.applyReviewRequestTx(root, requestID, ReviewRequestOpAction::APPROVE, "");
+                manageSaleHelper.applyManageSaleTx(secondSyndicate, saleID, manageSaleData,
+                                                   ManageSaleResultCode::SALE_NOT_FOUND);
+            }
+
+            SECTION("Try to update foreign sale with master")
+            {
+                manageSaleHelper.applyManageSaleTx(root, saleID, manageSaleData);
+            }
+
+            SECTION("Promotion update request creation success")
+            {
+                auto manageSaleResult = manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+                requestID = manageSaleResult.success().response.promotionUpdateRequestID();
+
+                SECTION("Update promotion update request")
+                {
+                    SECTION("Request already exists")
+                    {
+                        manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                           ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_ALREADY_EXISTS);
+
+                    }
+                    SECTION("Request not found")
+                    {
+                        manageSaleData.promotionUpdateData().requestID = 42;
+                        manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                           ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_NOT_FOUND);
+                    }
+                    SECTION("Successful request update")
+                    {
+                        manageSaleData.promotionUpdateData().requestID = requestID;
+                        manageSaleData.promotionUpdateData().newPromotionData.hardCap =
+                                manageSaleData.promotionUpdateData().newPromotionData.hardCap - ONE;
+                        manageSaleHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+                    }
+
+                    SECTION("Review promotion update request success")
+                    {
+                        reviewPromotionUpdateHelper.applyReviewRequestTx(root, requestID,
+                                                                         ReviewRequestOpAction::APPROVE, "");
+                    }
+                }
+            }
         }
     }
 }

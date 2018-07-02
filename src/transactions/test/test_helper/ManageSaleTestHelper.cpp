@@ -9,6 +9,7 @@
 #include "TxHelper.h"
 #include "StateBeforeTxHelper.h"
 #include "CheckSaleStateTestHelper.h"
+#include "test/test_marshaler.h"
 
 class pointer;
 namespace stellar {
@@ -153,6 +154,8 @@ namespace stellar {
 
                     if (!!requestBeforeTx) {
                         auto requestBeforeTxEntry = requestBeforeTx->getRequestEntry();
+
+                        REQUIRE(requestBeforeTxEntry.requestID == requestAfterTxEntry.requestID);
 
                         REQUIRE(requestBeforeTxEntry.body.promotionUpdateRequest().promotionID ==
                                 requestAfterTxEntry.body.promotionUpdateRequest().promotionID);

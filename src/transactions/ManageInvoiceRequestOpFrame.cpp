@@ -76,7 +76,7 @@ ManageInvoiceRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledge
 	    return false;
 	}
 
-	if (!(reviewableRequest->getRequestEntry().body.invoiceRequestEntry().receiverAccount == mSourceAccount->getID()))
+	if (!(reviewableRequest->getRequestEntry().body.invoiceRequestEntry().receiverAccount == getSourceID()))
 	{
         innerResult().code(ManageInvoiceRequestResultCode::NOT_ALLOWED_TO_REMOVE);
         return false;
@@ -159,7 +159,7 @@ bool
 ManageInvoiceRequestOpFrame::checkMaxInvoicesForReceiverAccount(Application& app, Database& db)
 {
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-    auto allRequests = reviewableRequestHelper->loadRequests(getSourceID(), ReviewableRequestType::MANAGE_INVOICE, db);
+    auto allRequests = reviewableRequestHelper->loadRequests(getSourceID(), ReviewableRequestType::INVOICE, db);
     if (allRequests.size() >= app.getMaxInvoicesForReceiverAccount())
     {
         app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "too-many-invoices"},

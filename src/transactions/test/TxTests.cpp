@@ -255,7 +255,7 @@ closeLedgerOn(Application& app, uint32 ledgerSeq, int day, int month, int year,
     
 }
 
-[[deprecated]] // Use TestManager
+[[deprecated("Use TestManager")]]
 void upgradeToCurrentLedgerVersion(Application& app)
 {
 	TestManager::upgradeToCurrentLedgerVersion(app);

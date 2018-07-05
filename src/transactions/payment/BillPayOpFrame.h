@@ -19,7 +19,7 @@ class BillPayOpFrame : public OperationFrame {
     getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                             int32_t ledgerVersion) const override;
 
-    bool checkPaymentDetails(InvoiceRequestEntry& invoiceRequestEntry);
+    bool checkPaymentDetails(ReviewableRequestEntry& requestEntry);
 
     bool processPaymentV2(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager);
 

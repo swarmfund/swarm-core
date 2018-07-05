@@ -60,8 +60,8 @@ BillPayOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &led
         return false;
     }
 
-    auto invoiceEntry = request->getRequestEntry().body.invoiceRequestEntry();
-    if (!checkPaymentDetails(invoiceEntry))
+    auto requestEntry = request->getRequestEntry();
+    if (!checkPaymentDetails(requestEntry))
         return false;
 
     if (!processPaymentV2(app, delta, ledgerManager))
@@ -73,13 +73,14 @@ BillPayOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &led
 }
 
 bool
-BillPayOpFrame::checkPaymentDetails(InvoiceRequestEntry& invoiceRequestEntry)
+BillPayOpFrame::checkPaymentDetails(ReviewableRequestEntry& requestEntry)
 {
+    auto invoiceRequest = requestEntry.body.invoiceRequest();
     switch (mBillPay.paymentDetails.destination.type())
     {
         case PaymentDestinationType::BALANCE:
         {
-            if (!(invoiceRequestEntry.invoiceRequest.receiverBalance ==
+            if (!(invoiceRequest.receiverBalance ==
                   mBillPay.paymentDetails.destination.balanceID()))
             {
                 innerResult().code(BillPayResultCode::DESTINATION_BALANCE_MISMATCHED);
@@ -89,7 +90,7 @@ BillPayOpFrame::checkPaymentDetails(InvoiceRequestEntry& invoiceRequestEntry)
         }
         case PaymentDestinationType::ACCOUNT:
         {
-            if (!(invoiceRequestEntry.receiverAccount == mBillPay.paymentDetails.destination.accountID()))
+            if (!(requestEntry.requestor == mBillPay.paymentDetails.destination.accountID()))
             {
                 innerResult().code(BillPayResultCode::DESTINATION_ACCOUNT_MISMATCHED);
                 return false;
@@ -100,7 +101,7 @@ BillPayOpFrame::checkPaymentDetails(InvoiceRequestEntry& invoiceRequestEntry)
             throw std::runtime_error("Unexpected payment v2 destination type in BillPay");
     }
 
-    if (invoiceRequestEntry.invoiceRequest.amount != mBillPay.paymentDetails.amount)
+    if (invoiceRequest.amount != mBillPay.paymentDetails.amount)
     {
         innerResult().code(BillPayResultCode::AMOUNT_MISMATCHED);
         return false;

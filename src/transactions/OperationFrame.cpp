@@ -90,7 +90,7 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new DirectDebitOpFrame(op, res, tx));
 	case OperationType::MANAGE_OFFER:
 		return shared_ptr<OperationFrame>(ManageOfferOpFrame::make(op, res, tx));
-    case OperationType::INVOICE_REQUEST:
+    case OperationType::MANAGE_INVOICE_REQUEST:
         return shared_ptr<OperationFrame>(new ManageInvoiceRequestOpFrame(op, res, tx));
     case OperationType::REVIEW_REQUEST:
 		return shared_ptr<OperationFrame>(ReviewRequestOpFrame::makeHelper(op, res, tx));

@@ -76,7 +76,7 @@ ManageInvoiceRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledge
 	    return false;
 	}
 
-	if (!(reviewableRequest->getRequestEntry().body.invoiceRequestEntry().receiverAccount == getSourceID()))
+	if (!(reviewableRequest->getRequestor() == getSourceID()))
 	{
         innerResult().code(ManageInvoiceRequestResultCode::NOT_ALLOWED_TO_REMOVE);
         return false;
@@ -122,11 +122,10 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     if (!checkMaxInvoicesForReceiverAccount(app, db))
         return false;
 
-    InvoiceRequestEntry invoiceRequestEntry;
-    invoiceRequestEntry.invoiceRequest.sender = mManageInvoiceRequest.details.invoiceRequest().sender;
-    invoiceRequestEntry.receiverAccount = getSourceID();
-    invoiceRequestEntry.invoiceRequest.receiverBalance = mManageInvoiceRequest.details.invoiceRequest().receiverBalance;
-    invoiceRequestEntry.invoiceRequest.amount = mManageInvoiceRequest.details.invoiceRequest().amount;
+    InvoiceRequest invoiceRequest;
+    invoiceRequest.sender = mManageInvoiceRequest.details.invoiceRequest().sender;
+    invoiceRequest.receiverBalance = mManageInvoiceRequest.details.invoiceRequest().receiverBalance;
+    invoiceRequest.amount = mManageInvoiceRequest.details.invoiceRequest().amount;
 
     auto reference = getManageInvoiceRequestReference(mManageInvoiceRequest.details.invoiceRequest().details);
 
@@ -139,7 +138,7 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::INVOICE);
-    body.invoiceRequestEntry() = invoiceRequestEntry;
+    body.invoiceRequest() = invoiceRequest;
 
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr,

@@ -46,7 +46,7 @@ ManageInvoiceRequestTestHelper::createManageInvoiceRequest(Account& source,
                                                            ManageInvoiceRequestOp& manageInvoiceRequestOp)
 {
     Operation op;
-    op.body.type(OperationType::INVOICE_REQUEST);
+    op.body.type(OperationType::MANAGE_INVOICE_REQUEST);
     op.body.manageInvoiceRequestOp() = manageInvoiceRequestOp;
 
     return txFromOperation(source, op, nullptr);

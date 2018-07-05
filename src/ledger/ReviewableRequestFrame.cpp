@@ -203,7 +203,6 @@ void ReviewableRequestFrame::ensureInvoiceVaild(InvoiceRequestEntry const &reque
     if (requestEntry.invoiceRequest.amount == 0)
         throw runtime_error("amount can not be 0");
 
-
 }
 
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
@@ -251,7 +250,7 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::UPDATE_SALE_DETAILS:
             ensureUpdateSaleDetailsValid(oe.body.updateSaleDetailsRequest());
             return;
-        case ReviewableRequestType::MANAGE_INVOICE:
+        case ReviewableRequestType::INVOICE:
             ensureInvoiceVaild(oe.body.invoiceRequestEntry());
             return;
         default:

@@ -110,7 +110,7 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
         return new ReviewUpdateKYCRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::UPDATE_SALE_DETAILS:
 		return new ReviewUpdateSaleDetailsRequestOpFrame(op, res, parentTx);
-	case ReviewableRequestType::MANAGE_INVOICE:
+	case ReviewableRequestType::INVOICE:
 		return new ReviewInvoiceRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");

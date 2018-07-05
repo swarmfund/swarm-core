@@ -54,7 +54,7 @@ BillPayOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &led
     Database& db = ledgerManager.getDatabase();
 
     auto request = ReviewableRequestHelper::Instance()->loadRequest(mBillPay.requestID, db, &delta);
-    if (!request || (request->getRequestType() != ReviewableRequestType::MANAGE_INVOICE))
+    if (!request || (request->getRequestType() != ReviewableRequestType::INVOICE))
     {
         innerResult().code(BillPayResultCode::INVOICE_REQUEST_NOT_FOUND);
         return false;

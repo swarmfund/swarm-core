@@ -53,7 +53,7 @@ ManageInvoiceRequestOpFrame::ManageInvoiceRequestOpFrame(Operation const& op, Op
 std::string
 ManageInvoiceRequestOpFrame::getManageInvoiceRequestReference(longstring const& details) const
 {
-    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::MANAGE_INVOICE, details));
+    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::INVOICE, details));
     return binToHex(hash);
 }
 
@@ -70,10 +70,16 @@ ManageInvoiceRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledge
 
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto reviewableRequest = reviewableRequestHelper->loadRequest(mManageInvoiceRequest.details.requestID(), db);
-	if (!reviewableRequest || reviewableRequest->getRequestType() != ReviewableRequestType::MANAGE_INVOICE)
+	if (!reviewableRequest || reviewableRequest->getRequestType() != ReviewableRequestType::INVOICE)
 	{
 	    innerResult().code(ManageInvoiceRequestResultCode::NOT_FOUND);
 	    return false;
+	}
+
+	if (!(reviewableRequest->getRequestEntry().body.invoiceRequestEntry().receiverAccount == mSourceAccount->getID()))
+	{
+        innerResult().code(ManageInvoiceRequestResultCode::NOT_ALLOWED_TO_REMOVE);
+        return false;
 	}
 
     LedgerKey requestKey;
@@ -132,7 +138,7 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     }
 
     ReviewableRequestEntry::_body_t body;
-    body.type(ReviewableRequestType::MANAGE_INVOICE);
+    body.type(ReviewableRequestType::INVOICE);
     body.invoiceRequestEntry() = invoiceRequestEntry;
 
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));

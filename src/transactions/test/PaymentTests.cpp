@@ -22,7 +22,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("payment", "[tx][payment]")
+TEST_CASE("payment", "[dep_tx][payment]")
 {
     // TODO requires refactoring
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);

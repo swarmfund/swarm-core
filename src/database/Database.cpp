@@ -27,7 +27,6 @@
 #include "ledger/AssetPairFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/OfferFrame.h"
-#include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"

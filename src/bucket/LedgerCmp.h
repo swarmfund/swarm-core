@@ -123,11 +123,6 @@ struct LedgerEntryIdCmp
                     return false;
                 return ap.ownerID < bp.ownerID;
             }
-            case LedgerEntryType::INVOICE: {
-                auto const &ai = a.invoice();
-                auto const &bi = b.invoice();
-                return ai.invoiceID < bi.invoiceID;
-            }
             case LedgerEntryType::REVIEWABLE_REQUEST: {
                 auto const &ar = a.reviewableRequest();
                 auto const &br = b.reviewableRequest();

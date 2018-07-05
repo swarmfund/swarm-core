@@ -12,8 +12,6 @@
 #include "ledger/AccountFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/BalanceHelper.h"
-#include "ledger/InvoiceFrame.h"
-#include "ledger/InvoiceHelper.h"
 
 
 namespace stellar
@@ -145,8 +143,6 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 		EntryHelperProvider::storeChangeEntry(delta, db, commissionBalanceFrame->mEntry);
 		EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
         innerResult().reviewPaymentResponse().state = PaymentState::PROCESSED;
-        
-        tryProcessInvoice(request->getInvoiceID(), delta, db);
 	}
     else
     {
@@ -172,27 +168,10 @@ ReviewPaymentRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 
 		EntryHelperProvider::storeChangeEntry(delta, db, sourceBalanceFrame->mEntry);
         innerResult().reviewPaymentResponse().state = PaymentState::REJECTED;
-
-        tryProcessInvoice(request->getInvoiceID(), delta, db);
     }
 
     app.getMetrics().NewMeter({"op-review-payment-request", "success", "apply"}, "operation").Mark();
 	return true;
-}
-
-void ReviewPaymentRequestOpFrame::tryProcessInvoice(uint64* invoiceID,
-    LedgerDelta& delta, Database& db)
-{
-    if (invoiceID)
-    {
-        if (*invoiceID > 100)
-            return;
-		auto invoiceHelper = InvoiceHelper::Instance();
-        auto invoiceFrame = invoiceHelper->loadInvoice(*invoiceID, db);
-        assert(invoiceFrame);
-        EntryHelperProvider::storeDeleteEntry(delta, db, invoiceFrame->getKey());
-        innerResult().reviewPaymentResponse().relatedInvoiceID.activate() = *invoiceID;
-    }
 }
 
 bool

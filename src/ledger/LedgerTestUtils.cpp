@@ -218,13 +218,6 @@ makeValid(AccountLimitsEntry& o)
 	makeValid(o.limits);
 }
 
-void
-makeValid(InvoiceEntry& o)
-{
-	o.invoiceID = rand();
-	clampLow<int64_t>(1, o.amount);
-}
-
 LedgerEntry makeValid(LedgerEntry& le)
 {
 	auto& led = le.data;
@@ -266,10 +259,6 @@ LedgerEntry makeValid(LedgerEntry& le)
 	case LedgerEntryType::OFFER_ENTRY:
 		makeValid(led.offer());
 		break;
-	case LedgerEntryType::INVOICE:
-		makeValid(led.invoice());
-		break;
-
 	default:
 		throw std::runtime_error("Unexpected entry type");
 	}

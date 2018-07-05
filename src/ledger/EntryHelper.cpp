@@ -31,8 +31,6 @@
 #include "ledger/TrustHelper.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/OfferHelper.h"
-#include "ledger/InvoiceFrame.h"
-#include "ledger/InvoiceHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/KeyValueEntryFrame.h"
@@ -182,7 +180,6 @@ namespace stellar
 		{ LedgerEntryType::BALANCE, BalanceHelper::Instance() },
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID, ExternalSystemAccountIDHelper::Instance() },
 		{ LedgerEntryType::FEE, FeeHelper::Instance() },
-		{ LedgerEntryType::INVOICE, InvoiceHelper::Instance() },
 		{ LedgerEntryType::OFFER_ENTRY, OfferHelper::Instance() },
 		{ LedgerEntryType::PAYMENT_REQUEST, PaymentRequestHelper::Instance() },
 		{ LedgerEntryType::REFERENCE_ENTRY, ReferenceHelper::Instance() },

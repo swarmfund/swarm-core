@@ -7,6 +7,7 @@
 #include "main/Application.h"
 #include "xdrpp/marshal.h"
 #include <string>
+#include <transactions/payment/BillPayOpFrame.h>
 #include "util/Logging.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
@@ -30,7 +31,7 @@
 #include "transactions/ManageLimitsOpFrame.h"
 #include "transactions/ManageAssetPairOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
-#include "transactions/ManageInvoiceOpFrame.h"
+#include "transactions/ManageInvoiceRequestOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
@@ -89,8 +90,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new DirectDebitOpFrame(op, res, tx));
 	case OperationType::MANAGE_OFFER:
 		return shared_ptr<OperationFrame>(ManageOfferOpFrame::make(op, res, tx));
-    case OperationType::MANAGE_INVOICE:
-        return shared_ptr<OperationFrame>(new ManageInvoiceOpFrame(op, res, tx));
+    case OperationType::INVOICE_REQUEST:
+        return shared_ptr<OperationFrame>(new ManageInvoiceRequestOpFrame(op, res, tx));
     case OperationType::REVIEW_REQUEST:
 		return shared_ptr<OperationFrame>(ReviewRequestOpFrame::makeHelper(op, res, tx));
     case OperationType::CREATE_SALE_REQUEST:
@@ -113,6 +114,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
     case OperationType::CREATE_MANAGE_LIMITS_REQUEST:
         return shared_ptr<OperationFrame>(new CreateManageLimitsRequestOpFrame(op, res, tx));
+    case OperationType::BILL_PAY:
+        return shared_ptr<OperationFrame>(new BillPayOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

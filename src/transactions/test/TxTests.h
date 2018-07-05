@@ -147,15 +147,6 @@ PaymentResult applyPaymentTx(Application& app, SecretKey& from, SecretKey& to,
                     InvoiceReference* invoiceReference = nullptr);
 
 TransactionFramePtr
-createManageInvoice(Hash const& networkID, SecretKey& from, AccountID sender,
-                BalanceID receiverBalance, int64_t amount = 0, uint64_t invoiceID = 0);
-
-ManageInvoiceResult
-applyManageInvoice(Application& app, SecretKey& from, AccountID sender,
-                BalanceID receiverBalance, int64_t amount = 0, uint64_t invoiceID = 0,
-                ManageInvoiceResultCode result = ManageInvoiceResultCode::SUCCESS);
-
-TransactionFramePtr
 createReviewPaymentRequestTx(Hash const& networkID, SecretKey& exchange,
                 Salt seq, int64 paymentID,  bool accept = true);
 

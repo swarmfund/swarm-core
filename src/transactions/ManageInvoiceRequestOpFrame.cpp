@@ -122,11 +122,6 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     if (!checkMaxInvoicesForReceiverAccount(app, db))
         return false;
 
-    InvoiceRequest invoiceRequest;
-    invoiceRequest.sender = mManageInvoiceRequest.details.invoiceRequest().sender;
-    invoiceRequest.receiverBalance = mManageInvoiceRequest.details.invoiceRequest().receiverBalance;
-    invoiceRequest.amount = mManageInvoiceRequest.details.invoiceRequest().amount;
-
     auto reference = getManageInvoiceRequestReference(mManageInvoiceRequest.details.invoiceRequest().details);
 
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
@@ -138,7 +133,7 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::INVOICE);
-    body.invoiceRequest() = invoiceRequest;
+    body.invoiceRequest() = mManageInvoiceRequest.details.invoiceRequest();
 
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr,

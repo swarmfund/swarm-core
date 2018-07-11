@@ -61,6 +61,9 @@ namespace stellar {
                                          Database &db) {
         if (mSourceAccount->getAccountType() != AccountType::MASTER) {
             innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
+            if (ledgerManager.shouldUse(LedgerVersion::FIX_SET_SALE_STATE_AND_CHECK_SALE_STATE_OPS)) {
+                return false;
+            }
         }
 
         sale->migrateToVersion(LedgerVersion::STATABLE_SALES);

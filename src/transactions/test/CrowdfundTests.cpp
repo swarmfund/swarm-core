@@ -165,6 +165,12 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
 
             ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer);
         }
+        SECTION("Try to set state with non-master account")
+        {
+            auto saleTestHelper = ManageSaleTestHelper(testManager);
+            auto saleStateData = saleTestHelper.setSaleState(SaleState::VOTING);
+            saleTestHelper.applyManageSaleTx(syndicate, saleID, saleStateData, ManageSaleResultCode::NOT_ALLOWED);
+        }
         SECTION("Not able to invest into sale in promotion state")
         {
             // able to invest 10^-6 when price for quote and default quote is 1

@@ -33,14 +33,13 @@ namespace stellar {
 
     bool ManageSaleOpFrame::amendUpdateSaleDetailsRequest(Database &db, LedgerDelta &delta) {
         auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
-                mManageSaleOp.data.updateSaleDetailsData().requestID, db, &delta);
+                mManageSaleOp.data.updateSaleDetailsData().requestID, getSourceID(),
+                ReviewableRequestType::UPDATE_SALE_DETAILS, db, &delta);
 
         if (!requestFrame) {
             innerResult().code(ManageSaleResultCode::UPDATE_DETAILS_REQUEST_NOT_FOUND);
             return false;
         }
-
-        checkRequestType(requestFrame, ReviewableRequestType::UPDATE_SALE_DETAILS);
 
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.updateSaleDetailsRequest().newDetails = mManageSaleOp.data.updateSaleDetailsData().newDetails;
@@ -148,14 +147,13 @@ namespace stellar {
 
     bool ManageSaleOpFrame::amendUpdateEndTimeRequest(Database &db, LedgerDelta &delta) {
         auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
-                mManageSaleOp.data.updateSaleEndTimeData().requestID, db, &delta);
+                mManageSaleOp.data.updateSaleEndTimeData().requestID, getSourceID(),
+                ReviewableRequestType::UPDATE_SALE_END_TIME, db, &delta);
 
         if (!requestFrame) {
             innerResult().code(ManageSaleResultCode::UPDATE_END_TIME_REQUEST_NOT_FOUND);
             return false;
         }
-
-        checkRequestType(requestFrame, ReviewableRequestType::UPDATE_SALE_END_TIME);
 
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.updateSaleEndTimeRequest().newEndTime = mManageSaleOp.data.updateSaleEndTimeData().newEndTime;

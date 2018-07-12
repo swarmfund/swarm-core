@@ -158,6 +158,7 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
         throw runtime_error("Unexpected db state: expected sale owner to exist");
     }
 
+    auto balanceBefore = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db)->getAmount();
     issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
 
     innerResult().code(CheckSaleStateResultCode::SUCCESS);
@@ -184,11 +185,11 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
 
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
 
-    auto baseBalance = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
-    if (baseBalance->getAmount() > ONE)
+    auto balanceAfter = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db)->getAmount();
+    if (abs(balanceBefore - balanceAfter) > ONE)
     {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();
-        throw runtime_error("Unexpected state: after sale close issuer endup with balance > ONE");
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance different from before sale" << sale->getID();
+        throw runtime_error("Unexpected state: after sale close issuer endup with balance different from before sale");
     }
     
     return true;

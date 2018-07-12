@@ -249,14 +249,13 @@ namespace stellar {
 
     bool ManageSaleOpFrame::amendPromotionUpdateRequest(Database &db, LedgerDelta &delta) {
         auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
-                mManageSaleOp.data.promotionUpdateData().requestID, db, &delta);
+                mManageSaleOp.data.promotionUpdateData().requestID, getSourceID(),
+                ReviewableRequestType::UPDATE_PROMOTION, db, &delta);
 
         if (!requestFrame) {
             innerResult().code(ManageSaleResultCode::PROMOTION_UPDATE_REQUEST_NOT_FOUND);
             return false;
         }
-
-        checkRequestType(requestFrame, ReviewableRequestType::UPDATE_PROMOTION);
 
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.promotionUpdateRequest().newPromotionData = mManageSaleOp.data.promotionUpdateData().newPromotionData;

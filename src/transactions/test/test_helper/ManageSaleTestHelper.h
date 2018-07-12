@@ -15,6 +15,9 @@ namespace stellar {
 
             ManageSaleOp::_data_t createUpdateSaleEndTimeRequest(uint64_t requestID, uint64_t newEndTime);
 
+            ManageSaleOp::_data_t
+            createPromotionUpdateRequest(uint64_t requestID, SaleCreationRequest newPromotionData);
+
             TransactionFramePtr createManageSaleTx(Account &source, uint64_t saleID, ManageSaleOp::_data_t data);
 
             ManageSaleResult applyManageSaleTx(Account &source, uint64_t saleID, ManageSaleOp::_data_t data,

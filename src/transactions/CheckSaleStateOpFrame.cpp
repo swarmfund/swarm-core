@@ -95,7 +95,7 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
 
     updateAvailableForIssuance(sale, delta, db);
 
-    updateMaxIssuance(sale, delta, db);
+    updateMaxIssuance(sale, delta, db, lm);
 }
 
 bool CheckSaleStateOpFrame::handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
@@ -200,6 +200,7 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
 {
     Database& db = app.getDatabase();
     const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
+    // TODO: must be refactored
     const auto amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
     const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue, sale->getBaseBalanceID(), lm);
     Operation op;
@@ -223,12 +224,27 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
 }
 
 void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
-    LedgerDelta& delta, Database& db)
+    LedgerDelta& delta, Database& db, LedgerManager& lm)
 {
     auto baseAsset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db, &delta);
 
-    // at this point issued amount is the sum of a previously issued amount and a total amount of the sale
-    const uint64_t updatedMaxIssuance = baseAsset->getIssued();
+    uint64_t updatedMaxIssuance = 0;
+
+    if (lm.shouldUse(LedgerVersion::FIX_SET_SALE_STATE_AND_CHECK_SALE_STATE_OPS))
+    {
+        uint64_t issued = baseAsset->getIssued();
+        uint64_t pendingIssuance = baseAsset->getPendingIssuance();
+        if (!safeSum(issued, pendingIssuance, updatedMaxIssuance))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: overflow on new max issuance amount calculation: "
+                                                      << xdr::xdr_to_string(sale->getSaleEntry());
+            throw runtime_error("Unexpected state: overflow on new max issuance amount calculation");
+        }
+    }
+    else
+    {
+        updatedMaxIssuance = baseAsset->getIssued();
+    }
 
     baseAsset->setMaxIssuance(updatedMaxIssuance);
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);

@@ -8,24 +8,33 @@
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/SaleFrame.h"
 
-namespace stellar
-{
-class ReviewSaleCreationRequestOpFrame : public ReviewRequestOpFrame
-{
-public:
+namespace stellar {
+    class ReviewSaleCreationRequestOpFrame : public ReviewRequestOpFrame {
+    public:
 
-	  ReviewSaleCreationRequestOpFrame(Operation const& op, OperationResult& res,
-                       TransactionFrame& parentTx);
+        ReviewSaleCreationRequestOpFrame(Operation const &op, OperationResult &res,
+                                         TransactionFrame &parentTx);
 
-          static uint64 getRequiredBaseAssetForHardCap(SaleCreationRequest const& saleCreationRequest);
-protected:
-    bool handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) override;
+        static uint64 getRequiredBaseAssetForHardCap(SaleCreationRequest const &saleCreationRequest);
 
-	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
-                                          int32_t ledgerVersion) const override;
+    protected:
+        bool handleApprove(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+                           ReviewableRequestFrame::pointer request) override;
 
-    void createAssetPair(SaleFrame::pointer sale, Application &app, LedgerManager &ledgerManager, LedgerDelta &delta) const;
+        SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                              int32_t ledgerVersion) const override;
 
-    std::map<AssetCode, BalanceID> loadBalances(AccountManager& accountManager, ReviewableRequestFrame::pointer request, SaleCreationRequest const& sale);
-};
+        ReviewRequestResultCode tryCreateSale(Application &app, Database &db, LedgerDelta &delta,
+                                              LedgerManager &ledgerManager,
+                                              ReviewableRequestFrame::pointer request, uint64_t saleID);
+
+        SaleCreationRequest &getSaleCreationRequestFromBody(ReviewableRequestFrame::pointer request);
+
+        void createAssetPair(SaleFrame::pointer sale, Application &app, LedgerManager &ledgerManager,
+                             LedgerDelta &delta) const;
+
+        std::map<AssetCode, BalanceID>
+        loadBalances(AccountManager &accountManager, ReviewableRequestFrame::pointer request,
+                     SaleCreationRequest const &sale);
+    };
 }

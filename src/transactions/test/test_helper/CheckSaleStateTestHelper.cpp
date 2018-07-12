@@ -74,7 +74,7 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     auto currentCupBaseAsset = std::min(sale->getBaseAmountForCurrentCap(), baseAssetBeforeTx.maxIssuanceAmount);
     REQUIRE(baseAssetAfterTx->getAvailableForIssuance() == 0);
     REQUIRE(baseAssetAfterTx->getIssued() == baseAssetBeforeTx.issued + currentCupBaseAsset);
-    REQUIRE(baseAssetAfterTx->getMaxIssuanceAmount() == baseAssetBeforeTx.issued + currentCupBaseAsset);
+    REQUIRE(baseAssetAfterTx->getMaxIssuanceAmount() == baseAssetAfterTx->getMaxIssuanceAmount());
 
     // check that sale owner have expected quote on balance
     for (const auto quoteAsset : sale->getSaleEntry().quoteAssets)

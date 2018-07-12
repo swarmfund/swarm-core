@@ -9,6 +9,7 @@
 #include "TxHelper.h"
 #include "StateBeforeTxHelper.h"
 #include "CheckSaleStateTestHelper.h"
+#include "test/test_marshaler.h"
 
 class pointer;
 namespace stellar {
@@ -45,8 +46,7 @@ namespace stellar {
             return data;
         }
 
-        ManageSaleOp::_data_t ManageSaleTestHelper::setSaleState(SaleState saleState)
-        {
+        ManageSaleOp::_data_t ManageSaleTestHelper::setSaleState(SaleState saleState) {
             ManageSaleOp::_data_t data;
             data.action(ManageSaleAction::SET_STATE);
             data.saleState() = saleState;
@@ -59,6 +59,15 @@ namespace stellar {
             data.action(ManageSaleAction::CREATE_UPDATE_END_TIME_REQUEST);
             data.updateSaleEndTimeData().requestID = requestID;
             data.updateSaleEndTimeData().newEndTime = newEndTime;
+            return data;
+        }
+
+        ManageSaleOp::_data_t ManageSaleTestHelper::createPromotionUpdateRequest(uint64_t requestID,
+                                                                                 SaleCreationRequest newPromotionData) {
+            ManageSaleOp::_data_t data;
+            data.action(ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST);
+            data.promotionUpdateData().requestID = requestID;
+            data.promotionUpdateData().newPromotionData = newPromotionData;
             return data;
         }
 
@@ -90,6 +99,10 @@ namespace stellar {
                 }
                 case ManageSaleAction::CREATE_UPDATE_END_TIME_REQUEST: {
                     requestBeforeTx = reviewableRequestHelper->loadRequest(data.updateSaleEndTimeData().requestID, db);
+                    break;
+                }
+                case ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST: {
+                    requestBeforeTx = reviewableRequestHelper->loadRequest(data.promotionUpdateData().requestID, db);
                     break;
                 }
                 default:
@@ -138,6 +151,31 @@ namespace stellar {
 
                         REQUIRE(requestBeforeTxEntry.body.updateSaleDetailsRequest().newDetails !=
                                 requestAfterTxEntry.body.updateSaleDetailsRequest().newDetails);
+                    }
+
+                    break;
+                }
+                case ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST: {
+                    auto requestAfterTx = reviewableRequestHelper->loadRequest(
+                            manageSaleResult.success().response.promotionUpdateRequestID(), db);
+                    REQUIRE(!!requestAfterTx);
+
+                    auto requestAfterTxEntry = requestAfterTx->getRequestEntry();
+
+                    REQUIRE(requestAfterTxEntry.body.promotionUpdateRequest().promotionID == saleID);
+                    REQUIRE(requestAfterTxEntry.body.promotionUpdateRequest().newPromotionData ==
+                            data.promotionUpdateData().newPromotionData);
+
+                    if (!!requestBeforeTx) {
+                        auto requestBeforeTxEntry = requestBeforeTx->getRequestEntry();
+
+                        REQUIRE(requestBeforeTxEntry.requestID == requestAfterTxEntry.requestID);
+
+                        REQUIRE(requestBeforeTxEntry.body.promotionUpdateRequest().promotionID ==
+                                requestAfterTxEntry.body.promotionUpdateRequest().promotionID);
+
+                        REQUIRE(!(requestBeforeTxEntry.body.promotionUpdateRequest().newPromotionData ==
+                                requestAfterTxEntry.body.promotionUpdateRequest().newPromotionData));
                     }
 
                     break;

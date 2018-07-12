@@ -298,6 +298,48 @@ TEST_CASE("Sale", "[tx][sale]")
         auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
         REQUIRE(sales.size() == 1);
         const auto saleID = sales[0]->getID();
+        SECTION("Create second sale for the same base asset and close both") {
+            auto createSecondSaleRequestResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+            saleReviewer.applyReviewRequestTx(root, createSecondSaleRequestResult.success().requestID,
+                                              ReviewRequestOpAction::APPROVE, "");
+            sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
+            REQUIRE(sales.size() == 2);
+
+            const uint64_t secondSaleID = sales[1]->getID();
+
+            IssuanceRequestHelper(testManager).authorizePreIssuedAmount(root, root.key, quoteAsset, quotePreIssued, root);
+
+            const int numberOfParticipants = 10;
+            const auto quoteAssetAmount = hardCap / numberOfParticipants;
+            uint64_t feeToPay(0);
+            participantsFeeFrame->calculatePercentFee(quoteAssetAmount, feeToPay, ROUND_UP);
+
+            // first sale reached hard cap
+            for (auto i = 0; i < numberOfParticipants; i++)
+            {
+                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+                if (i < numberOfParticipants - 1)
+                {
+                    CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
+                }
+            }
+
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
+
+            // second sale reached hard cap
+            for (auto i = 0; i < numberOfParticipants; i++)
+            {
+                addNewParticipant(testManager, root, secondSaleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+                if (i < numberOfParticipants - 1)
+                {
+                    CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, secondSaleID, CheckSaleStateResultCode::NOT_READY);
+                }
+            }
+
+            testManager->advanceToTime(endTime + 1);
+
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, secondSaleID);
+        }
         SECTION("Create several sales for the same base asset") {
             auto createSecondSaleRequestResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
             auto createThirdSaleRequestResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);

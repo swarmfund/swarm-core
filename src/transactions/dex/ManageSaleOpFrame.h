@@ -40,7 +40,14 @@ namespace stellar {
         bool amendUpdateEndTimeRequest(Database &db, LedgerDelta &delta);
 
         bool setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
-            Database &db);
+                          Database &db);
+
+        bool isPromotionUpdateDataValid(Application &app);
+
+        bool createPromotionUpdateRequest(LedgerDelta &delta, LedgerManager &ledgerManager, Database &db,
+                                          SaleState saleState, AccountID const &masterID);
+
+        bool amendPromotionUpdateRequest(Database &db, LedgerDelta &delta);
 
         bool doCheckValid(Application &app) override;
 
@@ -63,6 +70,12 @@ namespace stellar {
 
         std::string getUpdateSaleEndTimeRequestReference() const {
             const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::UPDATE_SALE_END_TIME,
+                                                        mManageSaleOp.saleID));
+            return binToHex(hash);
+        }
+
+        std::string getPromotionUpdateRequestReference() const {
+            const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::UPDATE_PROMOTION,
                                                         mManageSaleOp.saleID));
             return binToHex(hash);
         }

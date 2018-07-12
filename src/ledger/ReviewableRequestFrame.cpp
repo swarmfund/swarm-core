@@ -245,6 +245,8 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
             return;
         case ReviewableRequestType::UPDATE_SALE_END_TIME:
             return;
+            case ReviewableRequestType ::UPDATE_PROMOTION:
+            return;
         default:
             throw runtime_error("Unexpected reviewable request type");
         }

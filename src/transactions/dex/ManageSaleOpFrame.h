@@ -34,6 +34,11 @@ namespace stellar {
 
         bool amendUpdateSaleDetailsRequest(Database &db, LedgerDelta &delta);
 
+        bool createUpdateEndTimeRequest(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+                                        Database &db);
+
+        bool amendUpdateEndTimeRequest(Database &db, LedgerDelta &delta);
+
         bool setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
             Database &db);
 
@@ -41,7 +46,7 @@ namespace stellar {
 
         bool doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) override;
 
-        static void checkRequestType(ReviewableRequestFrame::pointer request);
+        static void checkRequestType(ReviewableRequestFrame::pointer request, ReviewableRequestType requestType);
 
         static void cancelSale(SaleFrame::pointer sale, LedgerDelta &delta, Database &db, LedgerManager &lm);
 
@@ -52,6 +57,12 @@ namespace stellar {
 
         std::string getUpdateSaleDetailsRequestReference() const {
             const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::UPDATE_SALE_DETAILS,
+                                                        mManageSaleOp.saleID));
+            return binToHex(hash);
+        }
+
+        std::string getUpdateSaleEndTimeRequestReference() const {
+            const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::UPDATE_SALE_END_TIME,
                                                         mManageSaleOp.saleID));
             return binToHex(hash);
         }

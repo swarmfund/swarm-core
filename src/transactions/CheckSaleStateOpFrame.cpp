@@ -226,6 +226,12 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
 void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
     LedgerDelta& delta, Database& db, LedgerManager& lm)
 {
+    // no need to update max issuance
+    if (lm.shouldUse(LedgerVersion::FIX_UPDATE_MAX_ISSUANCE))
+    {
+        return;
+    }
+
     auto baseAsset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db, &delta);
 
     uint64_t updatedMaxIssuance = 0;

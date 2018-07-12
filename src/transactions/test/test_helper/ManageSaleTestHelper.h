@@ -13,6 +13,8 @@ namespace stellar {
 
             ManageSaleOp::_data_t setSaleState(SaleState saleState);
 
+            ManageSaleOp::_data_t createUpdateSaleEndTimeRequest(uint64_t requestID, uint64_t newEndTime);
+
             ManageSaleOp::_data_t
             createPromotionUpdateRequest(uint64_t requestID, SaleCreationRequest newPromotionData);
 

@@ -6,6 +6,7 @@
 #include <transactions/FeesManager.h>
 #include <ledger/FeeHelper.h>
 #include <ledger/SaleAnteHelper.h>
+#include <transactions/test/test_helper/ReviewUpdateSaleEndTimeRequestHelper.h>
 #include "main/Application.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -172,6 +173,7 @@ TEST_CASE("Sale", "[tx][sale]")
     CheckSaleStateHelper checkStateHelper(testManager);
     ManageSaleTestHelper manageSaleTestHelper(testManager);
     ReviewUpdateSaleDetailsRequestTestHelper reviewUpdateSaleDetailsRequestTestHelper(testManager);
+    ReviewUpdateSaleEndTimeRequestHelper reviewUpdateSaleEndTimeRequestHelper(testManager);
     CreateAccountTestHelper accountTestHelper(testManager);
     SetFeesTestHelper setFeesTestHelper(testManager);
     auto saleReviewer = ReviewSaleRequestHelper(testManager);
@@ -430,8 +432,6 @@ TEST_CASE("Sale", "[tx][sale]")
             REQUIRE(checkRes.success().effect.effect() == CheckSaleStateEffect::CANCELED);
         }
 
-
-
         SECTION("Manage sale")
         {
             SECTION("Update sale details") {
@@ -467,6 +467,53 @@ TEST_CASE("Sale", "[tx][sale]")
 
                 reviewUpdateSaleDetailsRequestTestHelper.applyReviewRequestTx(root, requestID,
                                                                               ReviewRequestOpAction::APPROVE, "");
+            }
+            SECTION("Update sale end time") {
+                auto manageSaleData = manageSaleTestHelper.createUpdateSaleEndTimeRequest(0, endTime + 1000);
+
+                SECTION("Invalid end time") {
+                    manageSaleData.updateSaleEndTimeData().newEndTime = 0;
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                           ManageSaleResultCode::INVALID_NEW_END_TIME);
+                }
+                SECTION("Sale not found") {
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, 42, manageSaleData,
+                                                           ManageSaleResultCode::SALE_NOT_FOUND);
+                }
+
+                SECTION("Successful update end time request creation") {
+                    auto manageSaleResult = manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+                    auto requestID = manageSaleResult.success().response.updateEndTimeRequestID();
+
+                    SECTION("Trying to create same request once again") {
+                        manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                        ManageSaleResultCode::UPDATE_END_TIME_REQUEST_ALREADY_EXISTS);
+                    }
+
+                    SECTION("Trying to update non existing request") {
+                        manageSaleData.updateSaleEndTimeData().requestID = 42;
+                        manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                               ManageSaleResultCode::UPDATE_END_TIME_REQUEST_NOT_FOUND);
+                    }
+
+                    SECTION("Review request") {
+                        testManager->advanceToTime(3000);
+
+                        SECTION("Invalid new end time") {
+                            reviewUpdateSaleEndTimeRequestHelper.applyReviewRequestTx(root, requestID,
+                                                                                          ReviewRequestOpAction::APPROVE, "",
+                                                                                          ReviewRequestResultCode::INVALID_SALE_NEW_END_TIME);
+                        }
+
+                        // amend update sale end time request successfully
+                        manageSaleData.updateSaleEndTimeData().requestID = requestID;
+                        manageSaleData.updateSaleEndTimeData().newEndTime = endTime + 3000;
+                        manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+
+                        reviewUpdateSaleEndTimeRequestHelper.applyReviewRequestTx(root, requestID,
+                                                                                      ReviewRequestOpAction::APPROVE, "");
+                    }
+                }
             }
         }
     }

@@ -453,5 +453,10 @@ SaleState SaleFrame::getState()
         return SaleState::NONE;
     }
 }
+
+bool SaleFrame::isEndTimeValid(uint64 endTime, uint64 ledgerCloseTime)
+{
+    return endTime > mSale.startTime && endTime > ledgerCloseTime;
+}
 }
 

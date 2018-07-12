@@ -243,6 +243,8 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::UPDATE_SALE_DETAILS:
             ensureUpdateSaleDetailsValid(oe.body.updateSaleDetailsRequest());
             return;
+        case ReviewableRequestType::UPDATE_SALE_END_TIME:
+            return;
             case ReviewableRequestType ::UPDATE_PROMOTION:
             return;
         default:

@@ -34,14 +34,13 @@ namespace stellar {
 
     bool ManageSaleOpFrame::amendUpdateSaleDetailsRequest(Database &db, LedgerDelta &delta) {
         auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
-                mManageSaleOp.data.updateSaleDetailsData().requestID, db, &delta);
+                mManageSaleOp.data.updateSaleDetailsData().requestID, getSourceID(),
+                ReviewableRequestType::UPDATE_SALE_DETAILS, db, &delta);
 
         if (!requestFrame) {
             innerResult().code(ManageSaleResultCode::UPDATE_DETAILS_REQUEST_NOT_FOUND);
             return false;
         }
-
-        checkRequestType(requestFrame, ReviewableRequestType::UPDATE_SALE_DETAILS);
 
         auto &requestEntry = requestFrame->getRequestEntry();
         requestEntry.body.updateSaleDetailsRequest().newDetails = mManageSaleOp.data.updateSaleDetailsData().newDetails;
@@ -117,6 +116,58 @@ namespace stellar {
         innerResult().code(ManageSaleResultCode::SUCCESS);
         innerResult().success().response.action(ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST);
         innerResult().success().response.requestID() = requestFrame->getRequestID();
+
+        return true;
+    }
+
+    bool
+    ManageSaleOpFrame::createUpdateEndTimeRequest(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+                                                  Database &db) {
+        auto reference = getUpdateSaleEndTimeRequestReference();
+        auto const referencePtr = xdr::pointer<string64>(new string64(reference));
+        auto requestHelper = ReviewableRequestHelper::Instance();
+        if (requestHelper->isReferenceExist(db, getSourceID(), reference)) {
+            innerResult().code(ManageSaleResultCode::UPDATE_END_TIME_REQUEST_ALREADY_EXISTS);
+            return false;
+        }
+
+        auto requestFrame = ReviewableRequestFrame::createNew(delta, getSourceID(), app.getMasterID(), referencePtr,
+                                                              ledgerManager.getCloseTime());
+        auto &requestEntry = requestFrame->getRequestEntry();
+        requestEntry.body.type(ReviewableRequestType::UPDATE_SALE_END_TIME);
+        requestEntry.body.updateSaleEndTimeRequest().saleID = mManageSaleOp.saleID;
+        requestEntry.body.updateSaleEndTimeRequest().newEndTime = mManageSaleOp.data.updateSaleEndTimeData().newEndTime;
+
+        requestFrame->recalculateHashRejectReason();
+
+        requestHelper->storeAdd(delta, db, requestFrame->mEntry);
+
+        innerResult().code(ManageSaleResultCode::SUCCESS);
+        innerResult().success().response.action(ManageSaleAction::CREATE_UPDATE_END_TIME_REQUEST);
+        innerResult().success().response.updateEndTimeRequestID() = requestFrame->getRequestID();
+
+        return true;
+    }
+
+    bool ManageSaleOpFrame::amendUpdateEndTimeRequest(Database &db, LedgerDelta &delta) {
+        auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
+                mManageSaleOp.data.updateSaleEndTimeData().requestID, getSourceID(),
+                ReviewableRequestType::UPDATE_SALE_END_TIME, db, &delta);
+
+        if (!requestFrame) {
+            innerResult().code(ManageSaleResultCode::UPDATE_END_TIME_REQUEST_NOT_FOUND);
+            return false;
+        }
+
+        auto &requestEntry = requestFrame->getRequestEntry();
+        requestEntry.body.updateSaleEndTimeRequest().newEndTime = mManageSaleOp.data.updateSaleEndTimeData().newEndTime;
+
+        requestFrame->recalculateHashRejectReason();
+        ReviewableRequestHelper::Instance()->storeChange(delta, db, requestFrame->mEntry);
+
+        innerResult().code(ManageSaleResultCode::SUCCESS);
+        innerResult().success().response.action(ManageSaleAction::CREATE_UPDATE_END_TIME_REQUEST);
+        innerResult().success().response.updateEndTimeRequestID() = requestFrame->getRequestID();
 
         return true;
     }
@@ -248,6 +299,17 @@ namespace stellar {
             case ManageSaleAction::SET_STATE: {
                 return setSaleState(saleFrame, app, delta, ledgerManager, db);
             }
+            case ManageSaleAction::CREATE_UPDATE_END_TIME_REQUEST: {
+                uint64_t newEndTime = mManageSaleOp.data.updateSaleEndTimeData().newEndTime;
+                if (!saleFrame->isEndTimeValid(newEndTime, ledgerManager.getCloseTime())) {
+                    innerResult().code(ManageSaleResultCode::INVALID_NEW_END_TIME);
+                    return false;
+                }
+                if (mManageSaleOp.data.updateSaleEndTimeData().requestID != 0) {
+                    return amendUpdateEndTimeRequest(db, delta);
+                }
+                return createUpdateEndTimeRequest(app, delta, ledgerManager, db);
+            }
             case ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST: {
                 if (mManageSaleOp.data.promotionUpdateData().requestID != 0) {
                     return amendPromotionUpdateRequest(db, delta);
@@ -324,8 +386,8 @@ namespace stellar {
         return true;
     }
 
-    void
-    ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request, ReviewableRequestType requestType) {
+    void ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request,
+                                             ReviewableRequestType requestType) {
         if (request->getRequestType() != requestType) {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected "
                                                    << xdr::xdr_traits<ReviewableRequestType>::enum_name(requestType)

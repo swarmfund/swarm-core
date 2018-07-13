@@ -184,16 +184,16 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
         chargeSaleAntes(sale->getID(), app.getCommissionID(), delta, db);
     }
 
+    auto baseBalance = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
     if(lm.shouldUse(LedgerVersion::ALLOW_CLOSE_SALE_WITH_NON_ZERO_BALANCE)){
-        auto balanceAfter = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
-        if (safeDelta(balanceBefore->getAmount(), balanceAfter->getAmount()) > ONE)
+        auto balanceDelta = safeDelta(balanceBefore->getAmount(), baseBalance->getAmount());
+        if (balanceDelta > ONE)
         {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance different from before sale" << sale->getID();
             throw runtime_error("Unexpected state: after sale close issuer endup with balance different from before sale");
         }
     } else {
-        auto baseBalance = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
         if (baseBalance->getAmount() > ONE)
         {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();

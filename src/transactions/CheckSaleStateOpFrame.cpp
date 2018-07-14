@@ -148,7 +148,8 @@ void CheckSaleStateOpFrame::chargeSaleAntes(uint64_t saleID, AccountID const &co
 }
 
 
-void CheckSaleStateOpFrame::checkIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm, BalanceFrame::pointer balanceBefore, BalanceFrame::pointer balanceAfter){
+void CheckSaleStateOpFrame::checkIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm, Database& db, BalanceFrame::pointer balanceBefore){
+    auto balanceAfter = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
     if(lm.shouldUse(LedgerVersion::ALLOW_CLOSE_SALE_WITH_NON_ZERO_BALANCE)) {
         auto balanceDelta = safeDelta(balanceBefore->getAmount(), balanceAfter->getAmount());
         if (balanceDelta > ONE) {
@@ -208,8 +209,7 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
 
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
 
-    auto balanceAfter = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
-    checkIssuerBalance(sale, lm, balanceBefore, balanceAfter);
+    checkIssuerBalance(sale, lm, db, balanceBefore);
 
     return true;
 }

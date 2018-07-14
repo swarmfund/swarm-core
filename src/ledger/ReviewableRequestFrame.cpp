@@ -252,6 +252,10 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::INVOICE:
             ensureInvoiceVaild(oe.body.invoiceRequest());
             return;
+        case ReviewableRequestType::UPDATE_SALE_END_TIME:
+            return;
+        case ReviewableRequestType ::UPDATE_PROMOTION:
+            return;
         default:
             throw runtime_error("Unexpected reviewable request type");
         }

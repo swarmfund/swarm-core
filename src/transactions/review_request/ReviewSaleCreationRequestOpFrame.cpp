@@ -18,6 +18,66 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
+    SaleCreationRequest&
+    ReviewSaleCreationRequestOpFrame::getSaleCreationRequestFromBody(ReviewableRequestFrame::pointer request) {
+        auto requestType = request->getType();
+        switch (requestType) {
+            case ReviewableRequestType::SALE: {
+                return request->getRequestEntry().body.saleCreationRequest();
+            }
+            case ReviewableRequestType::UPDATE_PROMOTION: {
+                return request->getRequestEntry().body.promotionUpdateRequest().newPromotionData;
+            }
+            default: {
+                CLOG(ERROR, Logging::OPERATION_LOGGER)
+                        << "Unexpected reviewable request type while retrieving sale creation request from body: "
+                           << request->getRequestID();
+                throw runtime_error("Unexpected reviewable request type while retrieving sale creation request from body");
+            }
+        }
+    }
+
+    ReviewRequestResultCode ReviewSaleCreationRequestOpFrame::tryCreateSale(Application &app, Database &db,
+                                                                            LedgerDelta &delta,
+                                                                            LedgerManager &ledgerManager,
+                                                                            ReviewableRequestFrame::pointer request,
+                                                                            uint64_t saleID) {
+        auto saleCreationRequest = getSaleCreationRequestFromBody(request);
+
+        if (!CreateSaleCreationRequestOpFrame::areQuoteAssetsValid(db, saleCreationRequest.quoteAssets, saleCreationRequest.defaultQuoteAsset))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state, quote asset does not exist: " << request->getRequestID();
+            throw runtime_error("Quote asset does not exist");
+        }
+
+        auto baseAsset = AssetHelper::Instance()->loadAsset(saleCreationRequest.baseAsset, request->getRequestor(), db, &delta);
+        if (!baseAsset)
+        {
+            return ReviewRequestResultCode::BASE_ASSET_DOES_NOT_EXISTS;
+        }
+
+        const uint64_t requiredBaseAssetForHardCap = saleCreationRequest.ext.v() >=
+                                                     LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP
+                                                     ? getRequiredBaseAssetForHardCap(saleCreationRequest)
+                                                     : baseAsset->getMaxIssuanceAmount();
+
+        if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state, failed to lock issuance amount: " << request->getRequestID();
+            return ReviewRequestResultCode::INSUFFICIENT_PREISSUED_FOR_HARD_CAP;
+        }
+
+        AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
+
+        AccountManager accountManager(app, db, delta, ledgerManager);
+        const auto balances = loadBalances(accountManager, request, saleCreationRequest);
+        const auto saleFrame = SaleFrame::createNew(saleID, baseAsset->getOwner(), saleCreationRequest,
+                                                    balances, requiredBaseAssetForHardCap);
+        SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
+        createAssetPair(saleFrame, app, ledgerManager, delta);
+        return ReviewRequestResultCode::SUCCESS;
+    }
+
 bool ReviewSaleCreationRequestOpFrame::handleApprove(
     Application& app, LedgerDelta& delta, LedgerManager& ledgerManager,
     ReviewableRequestFrame::pointer request)
@@ -35,47 +95,22 @@ bool ReviewSaleCreationRequestOpFrame::handleApprove(
     auto& db = app.getDatabase();
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
-    auto& saleCreationRequest = request->getRequestEntry().body.saleCreationRequest();
-    if (!CreateSaleCreationRequestOpFrame::areQuoteAssetsValid(db, saleCreationRequest.quoteAssets, saleCreationRequest.defaultQuoteAsset))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state, quote asset does not exist: " << request->getRequestID();
-        throw runtime_error("Quote asset does not exist");
-    }
+    auto newSaleID = delta.getHeaderFrame().generateID(LedgerEntryType::SALE);
 
-    auto baseAsset = AssetHelper::Instance()->loadAsset(saleCreationRequest.baseAsset, request->getRequestor(), db, &delta);
-    if (!baseAsset)
-    {
-        innerResult().code(ReviewRequestResultCode::BASE_ASSET_DOES_NOT_EXISTS);
+    ReviewRequestResultCode saleCreationResult = tryCreateSale(app, db, delta, ledgerManager, request, newSaleID);
+
+    innerResult().code(saleCreationResult);
+
+    if (saleCreationResult != ReviewRequestResultCode::SUCCESS) {
         return false;
     }
 
-
-    const uint64_t requiredBaseAssetForHardCap = saleCreationRequest.ext.v() >=
-                                                 LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP
-                                                 ? getRequiredBaseAssetForHardCap(saleCreationRequest)
-                                                 : baseAsset->getMaxIssuanceAmount();
-
-    if (!baseAsset->lockIssuedAmount(requiredBaseAssetForHardCap))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state, failed to lock issuance amount: " << request->getRequestID();
-        innerResult().code(ReviewRequestResultCode::INSUFFICIENT_PREISSUED_FOR_HARD_CAP);
-        return false;
-    }
-
-    AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
-
-    AccountManager accountManager(app, db, delta, ledgerManager);
-    const auto balances = loadBalances(accountManager, request, saleCreationRequest);
-    const auto saleFrame = SaleFrame::createNew(delta.getHeaderFrame().generateID(LedgerEntryType::SALE), baseAsset->getOwner(), saleCreationRequest,
-        balances, requiredBaseAssetForHardCap);
-    SaleHelper::Instance()->storeAdd(delta, db, saleFrame->mEntry);
-    createAssetPair(saleFrame, app, ledgerManager, delta);
-    innerResult().code(ReviewRequestResultCode::SUCCESS);
     if (ledgerManager.shouldUse(LedgerVersion::ADD_SALE_ID_REVIEW_REQUEST_RESULT))
     {
         innerResult().success().ext.v(LedgerVersion::ADD_SALE_ID_REVIEW_REQUEST_RESULT);
-        innerResult().success().ext.saleID() = saleFrame->getID();
+        innerResult().success().ext.saleID() = newSaleID;
     }
+
     return true;
 }
 
@@ -103,7 +138,7 @@ uint64 ReviewSaleCreationRequestOpFrame::getRequiredBaseAssetForHardCap(SaleCrea
     case LedgerVersion::STATABLE_SALES:
         return saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
     default:
-        throw std::runtime_error("Unexpected operation: trying to get requiredBaseAssetForhard from unknow version of the request");
+        throw std::runtime_error("Unexpected operation: trying to get requiredBaseAssetForHardCap from unknown version of the request");
     }
 }
 

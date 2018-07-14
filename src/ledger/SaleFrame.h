@@ -104,5 +104,7 @@ class SaleFrame : public EntryFrame
 
     SaleState getState();
 
+    bool isEndTimeValid(uint64 endTime, uint64 ledgerCloseTime);
+
 };
 }

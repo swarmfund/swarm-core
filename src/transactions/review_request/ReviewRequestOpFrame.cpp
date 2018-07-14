@@ -25,6 +25,8 @@
 #include "ReviewAMLAlertRequestOpFrame.h"
 #include "ReviewUpdateKYCRequestOpFrame.h"
 #include "ReviewInvoiceRequestOpFrame.h"
+#include "ReviewUpdateSaleEndTimeRequestOpFrame.h"
+#include "ReviewPromotionUpdateRequestOpFrame.h"
 
 namespace stellar
 {
@@ -112,6 +114,10 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewUpdateSaleDetailsRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::INVOICE:
 		return new ReviewInvoiceRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::UPDATE_SALE_END_TIME:
+		return new ReviewUpdateSaleEndTimeRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::UPDATE_PROMOTION:
+		return new ReviewPromotionUpdateRequestOpFrame(op, res, parentTx);
 	default:
 		throw std::runtime_error("Unexpceted request type for review request op");
 	}

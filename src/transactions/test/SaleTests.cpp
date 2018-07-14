@@ -6,6 +6,7 @@
 #include <transactions/FeesManager.h>
 #include <ledger/FeeHelper.h>
 #include <ledger/SaleAnteHelper.h>
+#include <transactions/test/test_helper/ReviewUpdateSaleEndTimeRequestHelper.h>
 #include "main/Application.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -172,6 +173,7 @@ TEST_CASE("Sale", "[tx][sale]")
     CheckSaleStateHelper checkStateHelper(testManager);
     ManageSaleTestHelper manageSaleTestHelper(testManager);
     ReviewUpdateSaleDetailsRequestTestHelper reviewUpdateSaleDetailsRequestTestHelper(testManager);
+    ReviewUpdateSaleEndTimeRequestHelper reviewUpdateSaleEndTimeRequestHelper(testManager);
     CreateAccountTestHelper accountTestHelper(testManager);
     SetFeesTestHelper setFeesTestHelper(testManager);
     auto saleReviewer = ReviewSaleRequestHelper(testManager);
@@ -296,6 +298,48 @@ TEST_CASE("Sale", "[tx][sale]")
         auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
         REQUIRE(sales.size() == 1);
         const auto saleID = sales[0]->getID();
+        SECTION("Create second sale for the same base asset and close both") {
+            auto createSecondSaleRequestResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+            saleReviewer.applyReviewRequestTx(root, createSecondSaleRequestResult.success().requestID,
+                                              ReviewRequestOpAction::APPROVE, "");
+            sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
+            REQUIRE(sales.size() == 2);
+
+            const uint64_t secondSaleID = sales[1]->getID();
+
+            IssuanceRequestHelper(testManager).authorizePreIssuedAmount(root, root.key, quoteAsset, quotePreIssued, root);
+
+            const int numberOfParticipants = 10;
+            const auto quoteAssetAmount = hardCap / numberOfParticipants;
+            uint64_t feeToPay(0);
+            participantsFeeFrame->calculatePercentFee(quoteAssetAmount, feeToPay, ROUND_UP);
+
+            // first sale reached hard cap
+            for (auto i = 0; i < numberOfParticipants; i++)
+            {
+                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+                if (i < numberOfParticipants - 1)
+                {
+                    CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
+                }
+            }
+
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
+
+            // second sale reached hard cap
+            for (auto i = 0; i < numberOfParticipants; i++)
+            {
+                addNewParticipant(testManager, root, secondSaleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+                if (i < numberOfParticipants - 1)
+                {
+                    CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, secondSaleID, CheckSaleStateResultCode::NOT_READY);
+                }
+            }
+
+            testManager->advanceToTime(endTime + 1);
+
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, secondSaleID);
+        }
         SECTION("Create several sales for the same base asset") {
             auto createSecondSaleRequestResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
             auto createThirdSaleRequestResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
@@ -388,8 +432,6 @@ TEST_CASE("Sale", "[tx][sale]")
             REQUIRE(checkRes.success().effect.effect() == CheckSaleStateEffect::CANCELED);
         }
 
-
-
         SECTION("Manage sale")
         {
             SECTION("Update sale details") {
@@ -425,6 +467,53 @@ TEST_CASE("Sale", "[tx][sale]")
 
                 reviewUpdateSaleDetailsRequestTestHelper.applyReviewRequestTx(root, requestID,
                                                                               ReviewRequestOpAction::APPROVE, "");
+            }
+            SECTION("Update sale end time") {
+                auto manageSaleData = manageSaleTestHelper.createUpdateSaleEndTimeRequest(0, endTime + 1000);
+
+                SECTION("Invalid end time") {
+                    manageSaleData.updateSaleEndTimeData().newEndTime = 0;
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                           ManageSaleResultCode::INVALID_NEW_END_TIME);
+                }
+                SECTION("Sale not found") {
+                    manageSaleTestHelper.applyManageSaleTx(syndicate, 42, manageSaleData,
+                                                           ManageSaleResultCode::SALE_NOT_FOUND);
+                }
+
+                SECTION("Successful update end time request creation") {
+                    auto manageSaleResult = manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+                    auto requestID = manageSaleResult.success().response.updateEndTimeRequestID();
+
+                    SECTION("Trying to create same request once again") {
+                        manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                        ManageSaleResultCode::UPDATE_END_TIME_REQUEST_ALREADY_EXISTS);
+                    }
+
+                    SECTION("Trying to update non existing request") {
+                        manageSaleData.updateSaleEndTimeData().requestID = 42;
+                        manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData,
+                                                               ManageSaleResultCode::UPDATE_END_TIME_REQUEST_NOT_FOUND);
+                    }
+
+                    SECTION("Review request") {
+                        testManager->advanceToTime(3000);
+
+                        SECTION("Invalid new end time") {
+                            reviewUpdateSaleEndTimeRequestHelper.applyReviewRequestTx(root, requestID,
+                                                                                          ReviewRequestOpAction::APPROVE, "",
+                                                                                          ReviewRequestResultCode::INVALID_SALE_NEW_END_TIME);
+                        }
+
+                        // amend update sale end time request successfully
+                        manageSaleData.updateSaleEndTimeData().requestID = requestID;
+                        manageSaleData.updateSaleEndTimeData().newEndTime = endTime + 3000;
+                        manageSaleTestHelper.applyManageSaleTx(syndicate, saleID, manageSaleData);
+
+                        reviewUpdateSaleEndTimeRequestHelper.applyReviewRequestTx(root, requestID,
+                                                                                      ReviewRequestOpAction::APPROVE, "");
+                    }
+                }
             }
         }
     }

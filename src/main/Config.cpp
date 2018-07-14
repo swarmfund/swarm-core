@@ -3,16 +3,16 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include <hdkeys.h>
 #include "main/Config.h"
-#include "history/HistoryArchive.h"
 #include "StellarCoreVersion.h"
+#include "crypto/Hex.h"
+#include "history/HistoryArchive.h"
+#include "ledger/AssetFrame.h"
+#include "scp/LocalNode.h"
 #include "util/Logging.h"
 #include "util/types.h"
-#include "crypto/Hex.h"
-#include "scp/LocalNode.h"
+#include <hdkeys.h>
 #include <sstream>
-#include "ledger/AssetFrame.h"
 
 using namespace Coin;
 
@@ -20,16 +20,21 @@ namespace stellar
 {
 using xdr::operator<;
 
-Config::Config() : NODE_SEED(SecretKey::random()), 
-masterID(PubKeyUtils::fromStrKey("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF")),
-commissionID(PubKeyUtils::fromStrKey("GAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHV4")), 
-operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABVCX"))
+Config::Config()
+    : NODE_SEED(SecretKey::random())
+    , masterID(PubKeyUtils::fromStrKey(
+          "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"))
+    , commissionID(PubKeyUtils::fromStrKey(
+          "GAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHV4"))
+    , operationalID(PubKeyUtils::fromStrKey(
+          "GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABVCX"))
 {
     // fill in defaults
 
     // non configurable
     FORCE_SCP = false;
-    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::ALLOW_CLOSE_SALE_WITH_NON_ZERO_BALANCE);
+    LEDGER_PROTOCOL_VERSION = static_cast<int32_t>(
+        LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION);
     OVERLAY_PROTOCOL_MIN_VERSION = 5;
     OVERLAY_PROTOCOL_VERSION = 5;
 
@@ -74,7 +79,6 @@ operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     DATABASE = "sqlite3://:memory:";
     NTP_SERVER = "pool.ntp.org";
     INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE = true;
-
 }
 
 void
@@ -594,9 +598,11 @@ Config::load(std::string const& filename)
             {
                 if (!item.second->as<int64_t>())
                 {
-                    throw std::invalid_argument("invalid MAX_INVOICES_FOR_RECEIVER_ACCOUNT");
+                    throw std::invalid_argument(
+                        "invalid MAX_INVOICES_FOR_RECEIVER_ACCOUNT");
                 }
-                MAX_INVOICES_FOR_RECEIVER_ACCOUNT = item.second->as<int64_t>()->value();
+                MAX_INVOICES_FOR_RECEIVER_ACCOUNT =
+                    item.second->as<int64_t>()->value();
             }
             else if (item.first == "NTP_SERVER")
             {
@@ -606,28 +612,34 @@ Config::load(std::string const& filename)
                 }
                 NTP_SERVER = item.second->as<std::string>()->value();
             }
-			else if (item.first == "MASTER_ACCOUNT_ID")
-			{
-				if (!item.second->as<std::string>())
-				{
-					throw std::invalid_argument("invalid MASTER_ACCOUNT_ID");
-				}
+            else if (item.first == "MASTER_ACCOUNT_ID")
+            {
+                if (!item.second->as<std::string>())
+                {
+                    throw std::invalid_argument("invalid MASTER_ACCOUNT_ID");
+                }
 
-				masterID = PubKeyUtils::fromStrKey(item.second->as<std::string>()->value());
-			}
-            else if (item.first == "INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE")
+                masterID = PubKeyUtils::fromStrKey(
+                    item.second->as<std::string>()->value());
+            }
+            else if (item.first ==
+                     "INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE")
             {
                 if (!item.second->as<bool>())
                 {
-                    throw std::invalid_argument(
-                            "invalid INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE");
+                    throw std::invalid_argument("invalid "
+                                                "INVARIANT_CHECK_CACHE_"
+                                                "CONSISTENT_WITH_DATABASE");
                 }
                 INVARIANT_CHECK_CACHE_CONSISTENT_WITH_DATABASE =
-                        item.second->as<bool>()->value();
+                    item.second->as<bool>()->value();
             }
             else if (item.first == "BTC_ADDRESS_ROOT")
             {
-                if (!item.second->as<std::string>() || !HDKeychain::validateExtendedPublicKey(item.second->as<std::string>()->value())) {
+                if (!item.second->as<std::string>() ||
+                    !HDKeychain::validateExtendedPublicKey(
+                        item.second->as<std::string>()->value()))
+                {
                     throw std::invalid_argument("invalid BTC_ADDRESS_ROOT");
                 }
 
@@ -635,7 +647,10 @@ Config::load(std::string const& filename)
             }
             else if (item.first == "ETH_ADDRESS_ROOT")
             {
-                if (!item.second->as<std::string>() || !HDKeychain::validateExtendedPublicKey(item.second->as<std::string>()->value())) {
+                if (!item.second->as<std::string>() ||
+                    !HDKeychain::validateExtendedPublicKey(
+                        item.second->as<std::string>()->value()))
+                {
                     throw std::invalid_argument("invalid ETH_ADDRESS_ROOT");
                 }
 
@@ -695,51 +710,51 @@ Config::load(std::string const& filename)
     }
 }
 
-AssetCode Config::getAssetCode(std::shared_ptr<cpptoml::toml_base> rawValue, const char* errorMessage)
+AssetCode
+Config::getAssetCode(std::shared_ptr<cpptoml::toml_base> rawValue,
+                     const char* errorMessage)
 {
-	if (!rawValue->as<std::string>())
-	{
-		throw std::invalid_argument(errorMessage);
-	}
-	auto asset = rawValue->as<std::string>()->value();
-	if (!AssetFrame::isAssetCodeValid(asset))
-		throw std::invalid_argument(errorMessage);
-	return asset;
+    if (!rawValue->as<std::string>())
+    {
+        throw std::invalid_argument(errorMessage);
+    }
+    auto asset = rawValue->as<std::string>()->value();
+    if (!AssetFrame::isAssetCodeValid(asset))
+        throw std::invalid_argument(errorMessage);
+    return asset;
 }
 
 void
 Config::validateConfig()
 {
-	auto systemAccounts = getSystemAccounts();
-	for (int i = 0; i < systemAccounts.size(); i++)
-	{
-		for (int j = 0; j < systemAccounts.size(); j++)
-		{
-			if (i == j)
-				continue;
+    auto systemAccounts = getSystemAccounts();
+    for (int i = 0; i < systemAccounts.size(); i++)
+    {
+        for (int j = 0; j < systemAccounts.size(); j++)
+        {
+            if (i == j)
+                continue;
 
-			if (systemAccounts[i] == systemAccounts[j])
-				throw std::invalid_argument("Systems accounts can't have same accountID");
-		}
-	}
+            if (systemAccounts[i] == systemAccounts[j])
+                throw std::invalid_argument(
+                    "Systems accounts can't have same accountID");
+        }
+    }
 
-	if (BASE_EXCHANGE_NAME.empty())
-	{
-		throw std::invalid_argument("BASE_EXCHANGE_NAME must not be empty");
-	}
+    if (BASE_EXCHANGE_NAME.empty())
+    {
+        throw std::invalid_argument("BASE_EXCHANGE_NAME must not be empty");
+    }
 
-	if (TX_EXPIRATION_PERIOD_WINDOW == 0)
-		throw std::invalid_argument("TX_EXPIRATION_PERIOD_WINDOW must be set");
+    if (TX_EXPIRATION_PERIOD_WINDOW == 0)
+        throw std::invalid_argument("TX_EXPIRATION_PERIOD_WINDOW must be set");
 
-	if (TX_EXPIRATION_PERIOD <= TX_EXPIRATION_PERIOD_WINDOW)
-		throw std::invalid_argument("invalid TX_EXPIRATION_PERIOD");
-
+    if (TX_EXPIRATION_PERIOD <= TX_EXPIRATION_PERIOD_WINDOW)
+        throw std::invalid_argument("invalid TX_EXPIRATION_PERIOD");
 
     std::set<NodeID> nodes;
-    LocalNode::forAllNodes(QUORUM_SET, [&](NodeID const& n)
-                           {
-                               nodes.insert(n);
-                           });
+    LocalNode::forAllNodes(QUORUM_SET,
+                           [&](NodeID const& n) { nodes.insert(n); });
 
     if (nodes.size() == 0)
     {
@@ -859,8 +874,9 @@ Config::parseNodeID(std::string configStr, PublicKey& retKey, SecretKey& sKey,
                     throw std::invalid_argument("name already used");
                 }
 
-                if (!VALIDATOR_NAMES.emplace(std::make_pair(nodestr,
-                                                            commonName)).second)
+                if (!VALIDATOR_NAMES
+                         .emplace(std::make_pair(nodestr, commonName))
+                         .second)
                 {
                     std::stringstream msg;
                     msg << "naming node twice: " << commonName;
@@ -915,20 +931,19 @@ Config::resolveNodeID(std::string const& s, PublicKey& retKey) const
         auto it = VALIDATOR_NAMES.end();
         if (s[0] == '$')
         {
-            it = std::find_if(VALIDATOR_NAMES.begin(), VALIDATOR_NAMES.end(),
-                              [&](std::pair<std::string, std::string> const& p)
-                              {
-                                  return p.second == arg;
-                              });
+            it =
+                std::find_if(VALIDATOR_NAMES.begin(), VALIDATOR_NAMES.end(),
+                             [&](std::pair<std::string, std::string> const& p) {
+                                 return p.second == arg;
+                             });
         }
         else if (s[0] == '@')
         {
-            it = std::find_if(VALIDATOR_NAMES.begin(), VALIDATOR_NAMES.end(),
-                              [&](std::pair<std::string, std::string> const& p)
-                              {
-                                  return p.first.compare(0, arg.size(), arg) ==
-                                         0;
-                              });
+            it = std::find_if(
+                VALIDATOR_NAMES.begin(), VALIDATOR_NAMES.end(),
+                [&](std::pair<std::string, std::string> const& p) {
+                    return p.first.compare(0, arg.size(), arg) == 0;
+                });
         }
 
         if (it == VALIDATOR_NAMES.end())
@@ -947,8 +962,9 @@ Config::resolveNodeID(std::string const& s, PublicKey& retKey) const
     return true;
 }
 
-std::vector<std::string> Config::readStrVector(const std::string name,
-    std::shared_ptr<cpptoml::toml_base> values)
+std::vector<std::string>
+Config::readStrVector(const std::string name,
+                      std::shared_ptr<cpptoml::toml_base> values)
 {
     if (!values->is_array())
     {
@@ -960,8 +976,7 @@ std::vector<std::string> Config::readStrVector(const std::string name,
     {
         if (!v->as<std::string>())
         {
-            throw std::invalid_argument(
-                "invalid element of " + name);
+            throw std::invalid_argument("invalid element of " + name);
         }
         results.push_back(v->as<std::string>()->value());
     }

@@ -54,6 +54,8 @@ class CheckSaleStateOpFrame : public OperationFrame
 
     static int64_t getSaleCurrentPriceInDefaultQuote(SaleFrame::pointer sale, LedgerDelta& delta, Database& db);
 
+    void checkIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm,  BalanceFrame::pointer balanceBefore, BalanceFrame::pointer balanceAfter);
+
 public:
 
     CheckSaleStateOpFrame(Operation const& op, OperationResult& res,

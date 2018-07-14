@@ -284,6 +284,12 @@ bool safeSum(uint64_t& result, std::vector<uint64_t> params)
     return true;
 }
 
+uint64_t safeDelta(uint64_t a, uint64_t b){
+	uint64_t res;
+	res = a > b ? a - b : b - a;
+	return res;
+}
+
 int64_t
 bigDivide(int64_t A, int64_t B, int64_t C, Rounding rounding)
 {

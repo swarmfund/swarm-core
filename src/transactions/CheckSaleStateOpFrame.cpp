@@ -147,6 +147,29 @@ void CheckSaleStateOpFrame::chargeSaleAntes(uint64_t saleID, AccountID const &co
     }
 }
 
+
+void CheckSaleStateOpFrame::checkIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm, Database& db, BalanceFrame::pointer balanceBefore){
+    auto balanceAfter = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
+    if(lm.shouldUse(LedgerVersion::ALLOW_CLOSE_SALE_WITH_NON_ZERO_BALANCE)) {
+        auto balanceDelta = safeDelta(balanceBefore->getAmount(), balanceAfter->getAmount());
+        if (balanceDelta > ONE) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                    << "Unexpected state: after sale close issuer endup with balance different from before sale"
+                    << sale->getID();
+            throw runtime_error(
+                    "Unexpected state: after sale close issuer endup with balance different from before sale");
+        }
+        return;
+    }
+    if (balanceAfter->getAmount() > ONE)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();
+        throw runtime_error("Unexpected state: after sale close issuer endup with balance > ONE");
+    }
+    return;
+}
+
+
 bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& app,
     LedgerManager& lm, LedgerDelta& delta, Database& db)
 {
@@ -157,6 +180,8 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state: expected sale owner to exist: " << PubKeyUtils::toStrKey(sale->getOwnerID());
         throw runtime_error("Unexpected db state: expected sale owner to exist");
     }
+
+    auto balanceBefore = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
 
     issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
 
@@ -184,13 +209,8 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
 
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
 
-    auto baseBalance = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
-    if (baseBalance->getAmount() > ONE)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();
-        throw runtime_error("Unexpected state: after sale close issuer endup with balance > ONE");
-    }
-    
+    checkIssuerBalance(sale, lm, db, balanceBefore);
+
     return true;
 }
 

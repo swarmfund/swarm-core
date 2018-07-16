@@ -32,8 +32,7 @@ namespace stellar {
                              static_cast<int32_t>(SignerType::ASSET_MANAGER));
     }
 
-    bool
-    ManageSaleOpFrame::amendUpdateSaleDetailsRequest(LedgerManager &lm, Database &db, LedgerDelta &delta) {
+    bool ManageSaleOpFrame::amendUpdateSaleDetailsRequest(LedgerManager &lm, Database &db, LedgerDelta &delta) {
         auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
                 mManageSaleOp.data.updateSaleDetailsData().requestID, getSourceID(),
                 ReviewableRequestType::UPDATE_SALE_DETAILS, db, &delta);
@@ -58,8 +57,7 @@ namespace stellar {
         return true;
     }
 
-    bool
-    ManageSaleOpFrame::setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta,
+    bool ManageSaleOpFrame::setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta,
                                     LedgerManager &ledgerManager,
                                     Database &db) {
         if (mSourceAccount->getAccountType() != AccountType::MASTER) {
@@ -97,8 +95,7 @@ namespace stellar {
 
     bool
     ManageSaleOpFrame::createUpdateSaleDetailsRequest(Application &app, LedgerDelta &delta,
-                                                      LedgerManager &ledgerManager,
-                                                      Database &db) {
+                                                      LedgerManager &ledgerManager, Database &db) {
         auto reference = getUpdateSaleDetailsRequestReference();
         auto const referencePtr = xdr::pointer<string64>(new string64(reference));
         auto requestHelper = ReviewableRequestHelper::Instance();
@@ -158,8 +155,7 @@ namespace stellar {
         return true;
     }
 
-    bool
-    ManageSaleOpFrame::amendUpdateEndTimeRequest(LedgerManager &lm, Database &db, LedgerDelta &delta) {
+    bool ManageSaleOpFrame::amendUpdateEndTimeRequest(LedgerManager &lm, Database &db, LedgerDelta &delta) {
         auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
                 mManageSaleOp.data.updateSaleEndTimeData().requestID, getSourceID(),
                 ReviewableRequestType::UPDATE_SALE_END_TIME, db, &delta);
@@ -184,8 +180,7 @@ namespace stellar {
         return true;
     }
 
-    void
-    ManageSaleOpFrame::cancelSale(SaleFrame::pointer sale, LedgerDelta &delta, Database &db, LedgerManager &lm) {
+    void ManageSaleOpFrame::cancelSale(SaleFrame::pointer sale, LedgerDelta &delta, Database &db, LedgerManager &lm) {
         for (auto &saleQuoteAsset : sale->getSaleEntry().quoteAssets) {
             cancelAllOffersForQuoteAsset(sale, saleQuoteAsset, delta, db);
         }
@@ -198,8 +193,7 @@ namespace stellar {
         SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
     }
 
-    void
-    ManageSaleOpFrame::cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,
+    void ManageSaleOpFrame::cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,
                                                     LedgerDelta &delta, Database &db) {
         auto orderBookID = sale->getID();
         const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(),
@@ -208,8 +202,7 @@ namespace stellar {
         OfferManager::deleteOffers(offersToCancel, db, delta);
     }
 
-    void
-    ManageSaleOpFrame::deleteAllAntesForSale(uint64_t saleID, LedgerDelta &delta, Database &db) {
+    void ManageSaleOpFrame::deleteAllAntesForSale(uint64_t saleID, LedgerDelta &delta, Database &db) {
         auto saleAntes = SaleAnteHelper::Instance()->loadSaleAntesForSale(saleID, db);
         for (auto &saleAnte : saleAntes) {
             auto participantBalanceFrame = BalanceHelper::Instance()->mustLoadBalance(
@@ -228,8 +221,7 @@ namespace stellar {
         }
     }
 
-    bool
-    ManageSaleOpFrame::createPromotionUpdateRequest(Application &app, LedgerDelta &delta, Database &db,
+    bool ManageSaleOpFrame::createPromotionUpdateRequest(Application &app, LedgerDelta &delta, Database &db,
                                                     SaleState saleState) {
         auto &ledgerManager = app.getLedgerManager();
 
@@ -296,8 +288,7 @@ namespace stellar {
         trySetFulfilled(lm, true);
     }
 
-    bool
-    ManageSaleOpFrame::amendPromotionUpdateRequest(LedgerManager &lm, Database &db, LedgerDelta &delta) {
+    bool ManageSaleOpFrame::amendPromotionUpdateRequest(LedgerManager &lm, Database &db, LedgerDelta &delta) {
         auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
                 mManageSaleOp.data.promotionUpdateData().requestID, getSourceID(),
                 ReviewableRequestType::UPDATE_PROMOTION, db, &delta);
@@ -322,8 +313,7 @@ namespace stellar {
         return true;
     }
 
-    bool
-    ManageSaleOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
+    bool ManageSaleOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
         Database &db = app.getDatabase();
 
         auto saleFrame = getSourceAccount().getAccountType() == AccountType::MASTER
@@ -377,8 +367,7 @@ namespace stellar {
         return true;
     }
 
-    bool
-    ManageSaleOpFrame::isPromotionUpdateDataValid(Application &app) {
+    bool ManageSaleOpFrame::isPromotionUpdateDataValid(Application &app) {
         auto saleCreationRequestValidationResult = CreateSaleCreationRequestOpFrame::doCheckValid(
                 app, mManageSaleOp.data.promotionUpdateData().newPromotionData);
 
@@ -417,8 +406,7 @@ namespace stellar {
         }
     }
 
-    bool
-    ManageSaleOpFrame::doCheckValid(Application &app) {
+    bool ManageSaleOpFrame::doCheckValid(Application &app) {
         if (mManageSaleOp.saleID == 0) {
             innerResult().code(ManageSaleResultCode::SALE_NOT_FOUND);
             return false;
@@ -440,8 +428,7 @@ namespace stellar {
         return true;
     }
 
-    void
-    ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request,
+    void ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request,
                                         ReviewableRequestType requestType) {
         if (request->getRequestType() != requestType) {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected "
@@ -452,8 +439,7 @@ namespace stellar {
         }
     }
 
-    bool
-    ManageSaleOpFrame::isSaleStateValid(LedgerManager &lm, SaleState saleState) {
+    bool ManageSaleOpFrame::isSaleStateValid(LedgerManager &lm, SaleState saleState) {
         if (!lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION)) {
             return saleState == SaleState::PROMOTION;
         }
@@ -465,8 +451,7 @@ namespace stellar {
         return true;
     }
 
-    void
-    ManageSaleOpFrame::trySetFulfilled(LedgerManager &lm, bool fulfilled) {
+    void ManageSaleOpFrame::trySetFulfilled(LedgerManager &lm, bool fulfilled) {
         if (!lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION)) {
             return;
         }

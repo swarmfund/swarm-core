@@ -22,8 +22,7 @@ namespace stellar {
         std::unordered_map<AccountID, CounterpartyDetails>
         getCounterpartyDetails(Database &db, LedgerDelta *delta) const override;
 
-        SourceDetails
-        getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+        SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                 int32_t ledgerVersion) const override;
 
         void trySetFulfilled(LedgerManager &lm, bool fulfilled);
@@ -61,8 +60,7 @@ namespace stellar {
 
         static void cancelSale(SaleFrame::pointer sale, LedgerDelta &delta, Database &db, LedgerManager &lm);
 
-        static void
-        cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,
+        static void cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,
                                      LedgerDelta &delta, Database &db);
 
         static void deleteAllAntesForSale(uint64_t saleID, LedgerDelta &delta, Database &db);
@@ -86,8 +84,7 @@ namespace stellar {
             return binToHex(hash);
         }
 
-        static ManageSaleResultCode
-        getInnerCode(OperationResult &res) {
+        static ManageSaleResultCode getInnerCode(OperationResult &res) {
             return res.tr().manageSaleResult().code();
         }
 

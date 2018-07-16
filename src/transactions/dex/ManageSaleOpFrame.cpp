@@ -3,10 +3,10 @@
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
 #include <ledger/BalanceHelper.h>
 #include <ledger/OfferHelper.h>
-#include <ledger/ReviewableRequestFrame.h>
 #include <ledger/ReviewableRequestHelper.h>
 #include <ledger/SaleAnteHelper.h>
 #include <ledger/SaleHelper.h>
+#include <transactions/review_request/ReviewRequestHelper.h>
 
 namespace stellar
 {
@@ -46,7 +46,8 @@ ManageSaleOpFrame::getSourceAccountDetails(
 }
 
 bool
-ManageSaleOpFrame::amendUpdateSaleDetailsRequest(Database& db,
+ManageSaleOpFrame::amendUpdateSaleDetailsRequest(LedgerManager& lm,
+                                                 Database& db,
                                                  LedgerDelta& delta)
 {
     auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
@@ -72,6 +73,8 @@ ManageSaleOpFrame::amendUpdateSaleDetailsRequest(Database& db,
     innerResult().success().response.action(
         ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST);
     innerResult().success().response.requestID() = requestFrame->getRequestID();
+
+    trySetFulfilled(lm, false);
 
     return true;
 }
@@ -154,6 +157,8 @@ ManageSaleOpFrame::createUpdateSaleDetailsRequest(Application& app,
         ManageSaleAction::CREATE_UPDATE_DETAILS_REQUEST);
     innerResult().success().response.requestID() = requestFrame->getRequestID();
 
+    trySetFulfilled(ledgerManager, false);
+
     return true;
 }
 
@@ -192,11 +197,14 @@ ManageSaleOpFrame::createUpdateEndTimeRequest(Application& app,
     innerResult().success().response.updateEndTimeRequestID() =
         requestFrame->getRequestID();
 
+    trySetFulfilled(ledgerManager, false);
+
     return true;
 }
 
 bool
-ManageSaleOpFrame::amendUpdateEndTimeRequest(Database& db, LedgerDelta& delta)
+ManageSaleOpFrame::amendUpdateEndTimeRequest(LedgerManager& lm, Database& db,
+                                             LedgerDelta& delta)
 {
     auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
         mManageSaleOp.data.updateSaleEndTimeData().requestID, getSourceID(),
@@ -222,6 +230,8 @@ ManageSaleOpFrame::amendUpdateEndTimeRequest(Database& db, LedgerDelta& delta)
         ManageSaleAction::CREATE_UPDATE_END_TIME_REQUEST);
     innerResult().success().response.updateEndTimeRequestID() =
         requestFrame->getRequestID();
+
+    trySetFulfilled(lm, false);
 
     return true;
 }
@@ -286,12 +296,13 @@ ManageSaleOpFrame::deleteAllAntesForSale(uint64_t saleID, LedgerDelta& delta,
 }
 
 bool
-ManageSaleOpFrame::createPromotionUpdateRequest(LedgerDelta& delta,
-                                                LedgerManager& ledgerManager,
+ManageSaleOpFrame::createPromotionUpdateRequest(Application& app,
+                                                LedgerDelta& delta,
                                                 Database& db,
-                                                SaleState saleState,
-                                                AccountID const& masterID)
+                                                SaleState saleState)
 {
+    auto& ledgerManager = app.getLedgerManager();
+
     if (!ManageSaleOpFrame::isSaleStateValid(ledgerManager, saleState))
     {
         innerResult().code(ManageSaleResultCode::INVALID_SALE_STATE);
@@ -309,7 +320,7 @@ ManageSaleOpFrame::createPromotionUpdateRequest(LedgerDelta& delta,
     }
 
     auto requestFrame = ReviewableRequestFrame::createNew(
-        delta, getSourceID(), masterID, referencePtr,
+        delta, getSourceID(), app.getMasterID(), referencePtr,
         ledgerManager.getCloseTime());
 
     auto& requestEntry = requestFrame->getRequestEntry();
@@ -329,11 +340,47 @@ ManageSaleOpFrame::createPromotionUpdateRequest(LedgerDelta& delta,
     innerResult().success().response.promotionUpdateRequestID() =
         requestFrame->getRequestID();
 
+    if (mSourceAccount->getAccountType() == AccountType::MASTER)
+    {
+        tryAutoApprove(app, db, delta, requestFrame);
+        return true;
+    }
+
+    trySetFulfilled(ledgerManager, false);
+
     return true;
 }
 
+void
+ManageSaleOpFrame::tryAutoApprove(Application& app, Database& db,
+                                  LedgerDelta& delta,
+                                  ReviewableRequestFrame::pointer requestFrame)
+{
+    auto& lm = app.getLedgerManager();
+
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION))
+    {
+        return;
+    }
+
+    auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, lm,
+                                                         delta, requestFrame);
+    if (result != ReviewRequestResultCode::SUCCESS)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER)
+            << "Unexpected state: tryApproveRequest expected to be success, "
+               "but was: "
+            << xdr::xdr_to_string(result);
+        throw std::runtime_error(
+            "Unexpected state: tryApproveRequest expected to be success");
+    }
+
+    trySetFulfilled(lm, true);
+}
+
 bool
-ManageSaleOpFrame::amendPromotionUpdateRequest(Database& db, LedgerDelta& delta)
+ManageSaleOpFrame::amendPromotionUpdateRequest(LedgerManager& lm, Database& db,
+                                               LedgerDelta& delta)
 {
     auto requestFrame = ReviewableRequestHelper::Instance()->loadRequest(
         mManageSaleOp.data.promotionUpdateData().requestID, getSourceID(),
@@ -359,6 +406,8 @@ ManageSaleOpFrame::amendPromotionUpdateRequest(Database& db, LedgerDelta& delta)
         ManageSaleAction::CREATE_PROMOTION_UPDATE_REQUEST);
     innerResult().success().response.promotionUpdateRequestID() =
         requestFrame->getRequestID();
+
+    trySetFulfilled(lm, false);
 
     return true;
 }
@@ -387,7 +436,7 @@ ManageSaleOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         if (mManageSaleOp.data.updateSaleDetailsData().requestID != 0)
         {
-            return amendUpdateSaleDetailsRequest(db, delta);
+            return amendUpdateSaleDetailsRequest(ledgerManager, db, delta);
         }
         return createUpdateSaleDetailsRequest(app, delta, ledgerManager, db);
     }
@@ -414,7 +463,7 @@ ManageSaleOpFrame::doApply(Application& app, LedgerDelta& delta,
         }
         if (mManageSaleOp.data.updateSaleEndTimeData().requestID != 0)
         {
-            return amendUpdateEndTimeRequest(db, delta);
+            return amendUpdateEndTimeRequest(ledgerManager, db, delta);
         }
         return createUpdateEndTimeRequest(app, delta, ledgerManager, db);
     }
@@ -422,10 +471,10 @@ ManageSaleOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         if (mManageSaleOp.data.promotionUpdateData().requestID != 0)
         {
-            return amendPromotionUpdateRequest(db, delta);
+            return amendPromotionUpdateRequest(ledgerManager, db, delta);
         }
-        return createPromotionUpdateRequest(
-            delta, ledgerManager, db, saleFrame->getState(), app.getMasterID());
+        return createPromotionUpdateRequest(app, delta, db,
+                                            saleFrame->getState());
     }
     default:
         CLOG(ERROR, Logging::OPERATION_LOGGER)
@@ -545,16 +594,29 @@ ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request,
 bool
 ManageSaleOpFrame::isSaleStateValid(LedgerManager& lm, SaleState saleState)
 {
-    if (lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION))
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION))
     {
-        if (saleState != SaleState::PROMOTION && saleState != SaleState::VOTING)
-        {
-            return false;
-        }
-
-        return true;
+        return saleState == SaleState::PROMOTION;
     }
 
-    return saleState == SaleState::PROMOTION;
+    if (saleState != SaleState::PROMOTION && saleState != SaleState::VOTING)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void
+ManageSaleOpFrame::trySetFulfilled(LedgerManager& lm, bool fulfilled)
+{
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION))
+    {
+        return;
+    }
+
+    innerResult().success().ext.v(
+        LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION);
+    innerResult().success().ext.fulfilled() = fulfilled;
 }
 }

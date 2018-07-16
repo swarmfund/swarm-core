@@ -31,6 +31,8 @@ class ManageSaleOpFrame : public OperationFrame
                                 counterpartiesDetails,
                             int32_t ledgerVersion) const override;
 
+    void trySetFulfilled(LedgerManager& lm, bool fulfilled);
+
   public:
     ManageSaleOpFrame(Operation const& op, OperationResult& opRes,
                       TransactionFrame& parentTx);
@@ -39,12 +41,14 @@ class ManageSaleOpFrame : public OperationFrame
                                         LedgerManager& ledgerManager,
                                         Database& db);
 
-    bool amendUpdateSaleDetailsRequest(Database& db, LedgerDelta& delta);
+    bool amendUpdateSaleDetailsRequest(LedgerManager& lm, Database& db,
+                                       LedgerDelta& delta);
 
     bool createUpdateEndTimeRequest(Application& app, LedgerDelta& delta,
                                     LedgerManager& ledgerManager, Database& db);
 
-    bool amendUpdateEndTimeRequest(Database& db, LedgerDelta& delta);
+    bool amendUpdateEndTimeRequest(LedgerManager& lm, Database& db,
+                                   LedgerDelta& delta);
 
     bool setSaleState(SaleFrame::pointer sale, Application& app,
                       LedgerDelta& delta, LedgerManager& ledgerManager,
@@ -52,12 +56,14 @@ class ManageSaleOpFrame : public OperationFrame
 
     bool isPromotionUpdateDataValid(Application& app);
 
-    bool createPromotionUpdateRequest(LedgerDelta& delta,
-                                      LedgerManager& ledgerManager,
-                                      Database& db, SaleState saleState,
-                                      AccountID const& masterID);
+    bool createPromotionUpdateRequest(Application& app, LedgerDelta& delta,
+                                      Database& db, SaleState saleState);
 
-    bool amendPromotionUpdateRequest(Database& db, LedgerDelta& delta);
+    void tryAutoApprove(Application& app, Database& db, LedgerDelta& delta,
+                        ReviewableRequestFrame::pointer requestFrame);
+
+    bool amendPromotionUpdateRequest(LedgerManager& lm, Database& db,
+                                     LedgerDelta& delta);
 
     bool doCheckValid(Application& app) override;
 

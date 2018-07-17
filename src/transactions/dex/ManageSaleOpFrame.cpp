@@ -58,8 +58,7 @@ namespace stellar {
     }
 
     bool ManageSaleOpFrame::setSaleState(SaleFrame::pointer sale, Application &app, LedgerDelta &delta,
-                                    LedgerManager &ledgerManager,
-                                    Database &db) {
+                                         LedgerManager &ledgerManager, Database &db) {
         if (mSourceAccount->getAccountType() != AccountType::MASTER) {
             innerResult().code(ManageSaleResultCode::NOT_ALLOWED);
             if (ledgerManager.shouldUse(LedgerVersion::FIX_SET_SALE_STATE_AND_CHECK_SALE_STATE_OPS)) {
@@ -194,7 +193,7 @@ namespace stellar {
     }
 
     void ManageSaleOpFrame::cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,
-                                                    LedgerDelta &delta, Database &db) {
+                                                         LedgerDelta &delta, Database &db) {
         auto orderBookID = sale->getID();
         const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(),
                                                                                    saleQuoteAsset.quoteAsset,
@@ -222,7 +221,7 @@ namespace stellar {
     }
 
     bool ManageSaleOpFrame::createPromotionUpdateRequest(Application &app, LedgerDelta &delta, Database &db,
-                                                    SaleState saleState) {
+                                                         SaleState saleState) {
         auto &ledgerManager = app.getLedgerManager();
 
         if (!ManageSaleOpFrame::isSaleStateValid(ledgerManager, saleState)) {
@@ -264,10 +263,8 @@ namespace stellar {
         return true;
     }
 
-    void
-    ManageSaleOpFrame::tryAutoApprove(Application &app, Database &db,
-                                      LedgerDelta &delta,
-                                      ReviewableRequestFrame::pointer requestFrame) {
+    void ManageSaleOpFrame::tryAutoApprove(Application &app, Database &db, LedgerDelta &delta,
+                                           ReviewableRequestFrame::pointer requestFrame) {
         auto &lm = app.getLedgerManager();
 
         if (!lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION)) {
@@ -277,12 +274,9 @@ namespace stellar {
         auto result = ReviewRequestHelper::tryApproveRequest(mParentTx, app, lm,
                                                              delta, requestFrame);
         if (result != ReviewRequestResultCode::SUCCESS) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER)
-                    << "Unexpected state: tryApproveRequest expected to be success, "
-                       "but was: "
-                    << xdr::xdr_to_string(result);
-            throw std::runtime_error(
-                    "Unexpected state: tryApproveRequest expected to be success");
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: tryApproveRequest expected to be success, "
+                                                      "but was: " << xdr::xdr_to_string(result);
+            throw std::runtime_error("Unexpected state: tryApproveRequest expected to be success");
         }
 
         trySetFulfilled(lm, true);
@@ -317,8 +311,8 @@ namespace stellar {
         Database &db = app.getDatabase();
 
         auto saleFrame = getSourceAccount().getAccountType() == AccountType::MASTER
-                ? SaleHelper::Instance()->loadSale(mManageSaleOp.saleID, db, &delta)
-                : SaleHelper::Instance()->loadSale(mManageSaleOp.saleID, getSourceID(), db, &delta);
+                         ? SaleHelper::Instance()->loadSale(mManageSaleOp.saleID, db, &delta)
+                         : SaleHelper::Instance()->loadSale(mManageSaleOp.saleID, getSourceID(), db, &delta);
 
         if (!saleFrame) {
             innerResult().code(ManageSaleResultCode::SALE_NOT_FOUND);
@@ -429,12 +423,13 @@ namespace stellar {
     }
 
     void ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request,
-                                        ReviewableRequestType requestType) {
+                                             ReviewableRequestType requestType) {
         if (request->getRequestType() != requestType) {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected "
                                                    << xdr::xdr_traits<ReviewableRequestType>::enum_name(requestType)
                                                    << " but got "
-                                                  << xdr::xdr_traits<ReviewableRequestType>::enum_name(request->getRequestType());
+                                                   << xdr::xdr_traits<ReviewableRequestType>::enum_name(
+                                                           request->getRequestType());
             throw std::invalid_argument("Unexpected request type");
         }
     }

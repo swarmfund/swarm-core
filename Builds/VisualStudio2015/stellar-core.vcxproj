@@ -378,12 +378,14 @@
     <ClCompile Include="..\..\src\transactions\review_request\ReviewLimitsUpdateRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewPaymentRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewPreIssuanceCreationRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewPromotionUpdateRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateSaleDetailsRequestOpFrame.cpp" />
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateSaleEndTimeRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\StatisticsV2Processor.cpp" />
     <ClCompile Include="..\..\src\transactions\test\AccountManagerTests.cpp" />
@@ -424,10 +426,12 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\PaymentV2TestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewAMLAlertRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewLimitsUpdateRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewPromotionUpdateRequestTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateKYCRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleDetailsRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleEndTimeRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.cpp" />
@@ -702,12 +706,14 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewLimitsUpdateRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewPaymentRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewPreIssuanceCreationRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewPromotionUpdateRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewSaleCreationRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewTwoStepWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateKYCRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateSaleDetailsRequestOpFrame.h" />
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateSaleEndTimeRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\StatisticsV2Processor.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\Account.h" />
@@ -734,11 +740,13 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewIssuanceRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewLimitsUpdateRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPreIssuanceRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPromotionUpdateRequestTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewSaleRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewTwoStepWithdrawalRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateKYCRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleDetailsRequestHelper.h" />
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleEndTimeRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewWithdrawalRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SaleRequestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\SetFeesTestHelper.h" />
@@ -1267,6 +1275,18 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-manage-limits.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-promotion.x">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">src/generated/xdr/%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-sale-end-time.x">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\xdrc.exe -hh -o src/generated/xdr/%(Filename).h %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">running xdrc for %(Filename).x</Message>

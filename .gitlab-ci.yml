@@ -22,9 +22,6 @@ build:
   image: docker:latest
   stage: build
   only:
-   - dev
-   - staging
-   - prod
    - master
   script:
     # login to docker registry

@@ -100,6 +100,8 @@ bool isValidJson(std::string strJson);
 bool safeSum(uint64_t a, uint64_t b, uint64_t& result);
 bool safeSum(uint64_t& result, std::vector<uint64_t> params);
 
+uint64_t safeDelta(uint64_t a, uint64_t b);
+
 // calculates A*B/C when A*B overflows 64bits
 int64_t bigDivide(int64_t A, int64_t B, int64_t C, Rounding rounding);
 // no throw version, returns true if result is valid

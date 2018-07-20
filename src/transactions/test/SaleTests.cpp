@@ -200,6 +200,49 @@ TEST_CASE("Sale", "[tx][sale]")
         endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price) }, &basicSaleType,
                                                             &requiredBaseAssetForHardCap);
 
+
+    SECTION("Non zero balance on sale close"){
+        auto sellerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(2 * ONE), quoteAsset, &syndicatePubKey);
+        auto participantsFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(1 * ONE), quoteAsset, nullptr);
+        LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
+        EntryHelperProvider::storeAddEntry(delta, db, sellerFeeFrame->mEntry);
+        EntryHelperProvider::storeAddEntry(delta, db, participantsFeeFrame->mEntry);
+
+        uint64_t quotePreIssued(0);
+        participantsFeeFrame->calculatePercentFee(hardCap, quotePreIssued, ROUND_UP);
+        quotePreIssued += hardCap + ONE;
+        IssuanceRequestHelper(testManager).authorizePreIssuedAmount(root, root.key, quoteAsset, quotePreIssued, root);
+
+        saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
+
+        auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
+        REQUIRE(sales.size() == 1);
+        const auto saleID = sales[0]->getID();
+
+
+        auto ownBalance = BalanceHelper::Instance()->loadBalance(syndicatePubKey, baseAsset, testManager->getDB(),
+                                                                 nullptr);
+        IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(syndicate, baseAsset, 10*ONE, ownBalance->getBalanceID(),
+                                                                      syndicate.key.getStrKeyPublic(), CreateIssuanceRequestResultCode::SUCCESS);
+
+        const int numberOfParticipants = 10;
+        const uint64_t quoteAmount = softCap / numberOfParticipants;
+        uint64_t feeToPay(0);
+        participantsFeeFrame->calculatePercentFee(quoteAmount, feeToPay, ROUND_UP);
+        const int64_t timeStep = (endTime - currentTime) / numberOfParticipants;
+        for (int i = 0; i < numberOfParticipants - 1; i++)
+        {
+            addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
+            testManager->advanceToTime(testManager->getLedgerManager().getCloseTime() + timeStep);
+            checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
+        }
+
+        participantsFeeFrame->calculatePercentFee(quoteAmount, feeToPay, ROUND_UP);
+        addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
+        testManager->advanceToTime(endTime + 1);
+        checkStateHelper.applyCheckSaleStateTx(root, saleID);
+    }
+
     SECTION("Sale with sale antes") {
         // set invest fee for sale antes
         auto investFeeEntry = setFeesTestHelper.createFeeEntry(FeeType::INVEST_FEE, quoteAsset,

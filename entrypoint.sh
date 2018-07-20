@@ -2,7 +2,7 @@
 set -e
 
 CONFIG=$1
-BIN=./src/stellar-core
+BIN=/usr/local/bin/stellar-core
 HISTORY=/history
 
 start() {

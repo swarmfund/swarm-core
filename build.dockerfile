@@ -1,22 +1,21 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
-# TODO make base image out of it
 RUN true \
  && apt-get update \
  && apt-get install -y \
-	git \
-	build-essential \
-	pkg-config \
-	autoconf \
-	automake \
-	libtool \
-	bison \
-	flex \
-	libpq-dev \
-	gcc \
-	g++ \
-	cpp \
-	awscli
+      autoconf \
+      automake \
+      bison \
+      flex \
+      git \
+      gcc \
+      g++ \
+      libtool \
+      libstdc++6 \
+      libpq-dev \
+      libssl1.0-dev \
+      pkg-config \
+      make 
 
 ARG RSA_KEY
 WORKDIR /build
@@ -31,14 +30,24 @@ RUN true \
  && echo "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config \
  && echo "Host gitlab\n\tHostName gitlab.com\n\tIdentityFile ~/.ssh/id_rsa\n\tUser git\n" >> ~/.ssh/config \
  && git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/ \
- && git submodule init \
- && git submodule update \
+ && git submodule update --init \
  && ./autogen.sh \
  && ./configure \
- && make -j 4 \
+ && make -j 4
+
+
+FROM ubuntu:18.04
+
+COPY --from=0 /build/src/stellar-core /usr/local/bin/stellar-core
+COPY --from=0 /build/entrypoint.sh /entrypoint.sh
+
+RUN true \
+ && apt update \
+ && apt install -y libpq5 libssl1.0.0 \
+ && rm -rf /var/lib/apt/lists/* /var/log/*.log /var/log/*/*.log \
  && mkdir /data \
- && chmod +x ./run.docker
+ && chmod +x /entrypoint.sh 
 
 VOLUME /data
 
-ENTRYPOINT ["./run.docker"]
+ENTRYPOINT ["/entrypoint.sh"]

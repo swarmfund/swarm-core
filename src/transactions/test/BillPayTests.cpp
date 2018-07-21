@@ -133,11 +133,11 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
         REQUIRE(result.success().details.response().receiverBalance == receiverBalance->getBalanceID());
         REQUIRE(result.success().details.response().senderBalance == payerBalance->getBalanceID());
 
-        /*SECTION("Success bill pay without approve")
+        SECTION("Success bill pay without approve")
         {
             auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
                     destination, paymentAmount, paymentFeeData, "", "", nullptr);
-        }*/
+        }
 
         SECTION("Approve invoice request")
         {
@@ -217,12 +217,19 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
                                              BillPayResultCode::DESTINATION_BALANCE_MISMATCHED);
         }
 
-        SECTION("destination cannot pay fee for billpay")
+        SECTION("destination cannot pay fee for bill pay")
         {
             paymentFeeData = paymentV2TestHelper.createPaymentFeeData(sourceFeeData, destFeeData, false);
             billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
                                              destination, paymentAmount, paymentFeeData, "", "", nullptr,
                                              BillPayResultCode::REQUIRED_SOURCE_PAY_FOR_DESTINATION);
+        }
+
+        SECTION("SOURCE BALANCE MISMATCHED")
+        {
+            auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID, SecretKey::random().getPublicKey(),
+                    destination, paymentAmount, paymentFeeData, "", "", nullptr,
+                    BillPayResultCode::SOURCE_BALANCE_MISMATCHED);
         }
 
         SECTION("Reference duplication")

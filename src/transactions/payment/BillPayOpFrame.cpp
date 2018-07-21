@@ -65,9 +65,9 @@ BillPayOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &led
     auto requestEntry = request->getRequestEntry();
     auto invoiceRequest = requestEntry.body.invoiceRequest();
     auto balanceHelper = BalanceHelper::Instance();
-    auto senderBalance = balanceHelper->loadBalance(invoiceRequest.sender,
+    auto senderBalance = balanceHelper->mustLoadBalance(invoiceRequest.sender,
                                                     invoiceRequest.asset, db, &delta);
-    auto receiverBalance = balanceHelper->loadBalance(requestEntry.requestor,
+    auto receiverBalance = balanceHelper->mustLoadBalance(requestEntry.requestor,
                                                       invoiceRequest.asset, db, &delta);
 
     if (!checkPaymentDetails(requestEntry, receiverBalance->getBalanceID(), senderBalance->getBalanceID()))

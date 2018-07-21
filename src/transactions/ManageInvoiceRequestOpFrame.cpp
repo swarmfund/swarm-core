@@ -97,9 +97,10 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
                                                         LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
+    auto& invoiceRequest = mManageInvoiceRequest.details.invoiceRequest();
 
-    auto senderBalance = BalanceHelper::Instance()->loadBalance(mManageInvoiceRequest.details.invoiceRequest().sender,
-                                                    mManageInvoiceRequest.details.invoiceRequest().asset, db, &delta);
+    auto senderBalance = BalanceHelper::Instance()->loadBalance(invoiceRequest.sender,
+                                                                invoiceRequest.asset, db, &delta);
     if (!senderBalance)
     {
         app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "sender-balance-not-found" },
@@ -111,7 +112,7 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     if (!checkMaxInvoicesForReceiverAccount(app, db))
         return false;
 
-    auto reference = getManageInvoiceRequestReference(mManageInvoiceRequest.details.invoiceRequest().details);
+    auto reference = getManageInvoiceRequestReference(invoiceRequest.details);
 
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     if (reviewableRequestHelper->isReferenceExist(db, getSourceID(), reference))
@@ -122,17 +123,16 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::INVOICE);
-    body.invoiceRequest() = mManageInvoiceRequest.details.invoiceRequest();
+    body.invoiceRequest() = invoiceRequest;
 
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
-    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(),
-                                                             mManageInvoiceRequest.details.invoiceRequest().sender,
+    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), invoiceRequest.sender,
                                                              referencePtr, body, ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 
     auto receiverBalanceID = AccountManager::loadOrCreateBalanceForAsset(getSourceID(),
-            mManageInvoiceRequest.details.invoiceRequest().asset, db, delta);
+                                                                         invoiceRequest.asset, db, delta);
 
     innerResult().success().details.action(ManageInvoiceRequestAction::CREATE);
     innerResult().success().details.response().requestID = request->getRequestID();

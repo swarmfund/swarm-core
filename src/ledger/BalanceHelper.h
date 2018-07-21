@@ -51,6 +51,9 @@ namespace stellar
 		BalanceFrame::pointer loadBalance(AccountID account, AssetCode asset, Database& db,
 			LedgerDelta *delta);
 
+		BalanceFrame::pointer mustLoadBalance(AccountID account, AssetCode asset, Database& db,
+											  LedgerDelta *delta);
+
 		BalanceFrame::pointer mustLoadBalance(BalanceID balanceID, Database& db, LedgerDelta* delta = nullptr)
 		{
 			auto result = loadBalance(balanceID, db, delta);

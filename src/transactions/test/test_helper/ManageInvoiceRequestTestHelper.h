@@ -19,7 +19,7 @@ public:
                           ManageInvoiceRequestResultCode expectedResult = ManageInvoiceRequestResultCode ::SUCCESS);
 
 
-    ManageInvoiceRequestOp createInvoiceRequest(BalanceID receiverBalance, AccountID sender,
+    ManageInvoiceRequestOp createInvoiceRequest(AssetCode asset, AccountID sender,
                                                 uint64_t amount, longstring details);
 
     ManageInvoiceRequestOp createRemoveInvoiceRequest(uint64_t& requestID);

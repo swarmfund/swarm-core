@@ -11,11 +11,17 @@ namespace stellar
 {
 class ReviewInvoiceRequestOpFrame : public ReviewRequestOpFrame
 {
+private:
+    bool tryLockAmount(BalanceFrame::pointer balance, uint64_t amount);
+
 protected:
     bool handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager,
                        ReviewableRequestFrame::pointer request) override;
 
     bool handleReject(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager,
+                      ReviewableRequestFrame::pointer request) override;
+
+    bool handlePermanentReject(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager,
                       ReviewableRequestFrame::pointer request) override;
 
     SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,

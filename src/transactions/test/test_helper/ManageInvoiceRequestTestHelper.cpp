@@ -15,15 +15,16 @@ ManageInvoiceRequestTestHelper::ManageInvoiceRequestTestHelper(TestManager::poin
 }
 
 ManageInvoiceRequestOp
-ManageInvoiceRequestTestHelper::createInvoiceRequest(BalanceID receiverBalance, AccountID sender,
+ManageInvoiceRequestTestHelper::createInvoiceRequest(AssetCode asset, AccountID sender,
                                                      uint64_t amount, longstring details)
 {
     ManageInvoiceRequestOp result;
     result.details.action(ManageInvoiceRequestAction::CREATE);
-    result.details.invoiceRequest().receiverBalance = receiverBalance;
+    result.details.invoiceRequest().asset = asset;
     result.details.invoiceRequest().sender = sender;
     result.details.invoiceRequest().amount = amount;
     result.details.invoiceRequest().details = details;
+    result.details.invoiceRequest().isSecured = false;
     result.details.invoiceRequest().ext.v(LedgerVersion::EMPTY_VERSION);
     result.ext.v(LedgerVersion::EMPTY_VERSION);
 

@@ -98,19 +98,8 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
 {
     Database& db = ledgerManager.getDatabase();
 
-    auto balanceHelper = BalanceHelper::Instance();
-    auto balance = balanceHelper->loadBalance(mManageInvoiceRequest.details.invoiceRequest().receiverBalance, db);
-
-    if (!balance || !(balance->getAccountID() == mSourceAccount->getID()) )
-    {
-        app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "balance-not-found" },
-                                  "operation").Mark();
-        innerResult().code(ManageInvoiceRequestResultCode::BALANCE_NOT_FOUND);
-        return false;
-    }
-
-    auto senderBalance = balanceHelper->loadBalance(mManageInvoiceRequest.details.invoiceRequest().sender,
-                                                    balance->getAsset(), db, &delta);
+    auto senderBalance = BalanceHelper::Instance()->loadBalance(mManageInvoiceRequest.details.invoiceRequest().sender,
+                                                    mManageInvoiceRequest.details.invoiceRequest().asset, db, &delta);
     if (!senderBalance)
     {
         app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "sender-balance-not-found" },
@@ -136,14 +125,18 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     body.invoiceRequest() = mManageInvoiceRequest.details.invoiceRequest();
 
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
-    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr,
-                                                             body, ledgerManager.getCloseTime());
+    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(),
+                                                             mManageInvoiceRequest.details.invoiceRequest().sender,
+                                                             referencePtr, body, ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 
+    auto receiverBalanceID = AccountManager::loadOrCreateBalanceForAsset(getSourceID(),
+            mManageInvoiceRequest.details.invoiceRequest().asset, db, delta);
+
     innerResult().success().details.action(ManageInvoiceRequestAction::CREATE);
     innerResult().success().details.response().requestID = request->getRequestID();
-    innerResult().success().details.response().asset = balance->getAsset();
+    innerResult().success().details.response().receiverBalance = receiverBalanceID;
     innerResult().success().details.response().senderBalance = senderBalance->getBalanceID();
 
     return true;
@@ -174,6 +167,15 @@ ManageInvoiceRequestOpFrame::doCheckValid(Application& app)
         app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "malformed-zero-amount"},
                          "operation").Mark();
         innerResult().code(ManageInvoiceRequestResultCode::MALFORMED);
+        return false;
+    }
+
+    if (mManageInvoiceRequest.details.action() == ManageInvoiceRequestAction::CREATE &&
+        mManageInvoiceRequest.details.invoiceRequest().isSecured)
+    {
+        app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "malformed-zero-amount"},
+                                  "operation").Mark();
+        innerResult().code(ManageInvoiceRequestResultCode::IS_SECURED_MUST_BE_FALSE);
         return false;
     }
 

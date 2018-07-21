@@ -1,5 +1,7 @@
 #include <ledger/ReviewableRequestHelper.h>
 #include <xdr/Stellar-operation-bill-pay.h>
+#include <ledger/BalanceHelper.h>
+#include <lib/xdrpp/xdrpp/printer.h>
 #include "BillPayOpFrame.h"
 #include "PaymentOpV2Frame.h"
 
@@ -61,8 +63,23 @@ BillPayOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &led
     }
 
     auto requestEntry = request->getRequestEntry();
-    if (!checkPaymentDetails(requestEntry))
+    auto invoiceRequest = requestEntry.body.invoiceRequest();
+    auto balanceHelper = BalanceHelper::Instance();
+    auto senderBalance = balanceHelper->loadBalance(invoiceRequest.sender,
+                                                    invoiceRequest.asset, db, &delta);
+    auto receiverBalance = balanceHelper->loadBalance(requestEntry.requestor,
+                                                      invoiceRequest.asset, db, &delta);
+
+    if (!checkPaymentDetails(requestEntry, receiverBalance->getBalanceID(), senderBalance->getBalanceID()))
         return false;
+
+    if (invoiceRequest.isSecured && !senderBalance->unlock(invoiceRequest.amount))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to unlock specified amount in bill pay: "
+                                                  "invoice request: " << xdr::xdr_to_string(requestEntry)
+                                               << "; balance: " << xdr::xdr_to_string(senderBalance->getBalance());
+        throw runtime_error("Unexpected state: failed to unlock specified amount in bill pay");
+    }
 
     if (!processPaymentV2(app, delta, ledgerManager))
         return false;
@@ -73,15 +90,15 @@ BillPayOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &led
 }
 
 bool
-BillPayOpFrame::checkPaymentDetails(ReviewableRequestEntry& requestEntry)
+BillPayOpFrame::checkPaymentDetails(ReviewableRequestEntry& requestEntry,
+                                    BalanceID receiverBalance, BalanceID senderBalance)
 {
     auto invoiceRequest = requestEntry.body.invoiceRequest();
     switch (mBillPay.paymentDetails.destination.type())
     {
         case PaymentDestinationType::BALANCE:
         {
-            if (!(invoiceRequest.receiverBalance ==
-                  mBillPay.paymentDetails.destination.balanceID()))
+            if (!(receiverBalance == mBillPay.paymentDetails.destination.balanceID()))
             {
                 innerResult().code(BillPayResultCode::DESTINATION_BALANCE_MISMATCHED);
                 return false;
@@ -104,6 +121,12 @@ BillPayOpFrame::checkPaymentDetails(ReviewableRequestEntry& requestEntry)
     if (invoiceRequest.amount != mBillPay.paymentDetails.amount)
     {
         innerResult().code(BillPayResultCode::AMOUNT_MISMATCHED);
+        return false;
+    }
+
+    if (!(mBillPay.paymentDetails.sourceBalanceID == senderBalance))
+    {
+        innerResult().code(BillPayResultCode::SOURCE_BALANCE_MISMATCHED);
         return false;
     }
 
@@ -132,7 +155,7 @@ bool BillPayOpFrame::processPaymentV2(Application &app, LedgerDelta &delta, Ledg
     if (!paymentOpV2Frame.doCheckValid(app) || !paymentOpV2Frame.doApply(app, delta, ledgerManager))
     {
         auto resultCode = PaymentOpV2Frame::getInnerCode(opRes);
-        setErrorCode(resultCode);
+        trySetErrorCode(resultCode);
         return false;
     }
 
@@ -140,96 +163,17 @@ bool BillPayOpFrame::processPaymentV2(Application &app, LedgerDelta &delta, Ledg
     return true;
 }
 
-void BillPayOpFrame::setErrorCode(PaymentV2ResultCode paymentResult)
+void BillPayOpFrame::trySetErrorCode(PaymentV2ResultCode paymentResult)
 {
-    switch (paymentResult)
+    try
     {
-        case PaymentV2ResultCode::MALFORMED:
-        {
-            innerResult().code(BillPayResultCode::MALFORMED);
-            return;
-        }
-        case PaymentV2ResultCode::UNDERFUNDED:
-        {
-            innerResult().code(BillPayResultCode::UNDERFUNDED);
-            return;
-        }
-        case PaymentV2ResultCode::LINE_FULL:
-        {
-            innerResult().code(BillPayResultCode::LINE_FULL);
-            return;
-        }
-        case PaymentV2ResultCode::DESTINATION_BALANCE_NOT_FOUND:
-        {
-            innerResult().code(BillPayResultCode::DESTINATION_BALANCE_NOT_FOUND);
-            return;
-        }
-        case PaymentV2ResultCode::BALANCE_ASSETS_MISMATCHED:
-        {
-            innerResult().code(BillPayResultCode::BALANCE_ASSETS_MISMATCHED);
-            return;
-        }
-        case PaymentV2ResultCode::SRC_BALANCE_NOT_FOUND:
-        {
-            innerResult().code(BillPayResultCode::SRC_BALANCE_NOT_FOUND);
-            return;
-        }
-        case PaymentV2ResultCode::REFERENCE_DUPLICATION:
-        {
-            innerResult().code(BillPayResultCode::REFERENCE_DUPLICATION);
-            return;
-        }
-        case PaymentV2ResultCode::STATS_OVERFLOW:
-        {
-            innerResult().code(BillPayResultCode::STATS_OVERFLOW);
-            return;
-        }
-        case PaymentV2ResultCode::LIMITS_EXCEEDED:
-        {
-            innerResult().code(BillPayResultCode::LIMITS_EXCEEDED);
-            return;
-        }
-        case PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY:
-        {
-            innerResult().code(BillPayResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
-            return;
-        }
-        case PaymentV2ResultCode::INVALID_DESTINATION_FEE:
-        {
-            innerResult().code(BillPayResultCode::INVALID_DESTINATION_FEE);
-            return;
-        }
-        case PaymentV2ResultCode::INVALID_DESTINATION_FEE_ASSET:
-        {
-            innerResult().code(BillPayResultCode::INVALID_DESTINATION_FEE_ASSET);
-            return;
-        }
-        case PaymentV2ResultCode::FEE_ASSET_MISMATCHED:
-        {
-            innerResult().code(BillPayResultCode::FEE_ASSET_MISMATCHED);
-            return;
-        }
-        case PaymentV2ResultCode::INSUFFICIENT_FEE_AMOUNT:
-        {
-            innerResult().code(BillPayResultCode::INSUFFICIENT_FEE_AMOUNT);
-            return;
-        }
-        case PaymentV2ResultCode::BALANCE_TO_CHARGE_FEE_FROM_NOT_FOUND:
-        {
-            innerResult().code(BillPayResultCode::BALANCE_TO_CHARGE_FEE_FROM_NOT_FOUND);
-            return;
-        }
-        case PaymentV2ResultCode::PAYMENT_AMOUNT_IS_LESS_THAN_DEST_FEE:
-        {
-            innerResult().code(BillPayResultCode::PAYMENT_AMOUNT_IS_LESS_THAN_DEST_FEE);
-            return;
-        }
-        default:
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from payment v2 operation: "
-                                                   << xdr::xdr_traits<PaymentV2ResultCode>::enum_name(paymentResult);
-            throw std::runtime_error("Unexpected result code from payment v2 operation");
-        }
+        innerResult().code(paymentCodeToBillPayCode[paymentResult]);
+    }
+    catch(...)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from payment v2 operation: "
+                                               << xdr::xdr_traits<PaymentV2ResultCode>::enum_name(paymentResult);
+        throw std::runtime_error("Unexpected result code from payment v2 operation");
     }
 }
 

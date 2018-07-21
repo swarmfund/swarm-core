@@ -11,6 +11,7 @@
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include <transactions/test/test_helper/BillPayTestHelper.h>
 #include <transactions/test/test_helper/LimitsUpdateRequestHelper.h>
+#include <transactions/test/test_helper/ReviewInvoiceRequestHelper.h>
 #include "main/Application.h"
 #include "ledger/LedgerManager.h"
 #include "overlay/LoopbackPeer.h"
@@ -49,6 +50,7 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
     auto setFeesTestHelper = SetFeesTestHelper(testManager);
     ManageInvoiceRequestTestHelper manageInvoiceRequestTestHelper(testManager);
     BillPayTestHelper billPayTestHelper(testManager);
+    ReviewInvoiceRequestHelper reviewInvoiceRequestHelper(testManager);
 
     // set up world
     auto balanceHelper = BalanceHelper::Instance();
@@ -124,17 +126,62 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
 	SECTION("Success create invoice request")
     {
         auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                receiverBalance->getBalanceID(), payer.key.getPublicKey(), paymentAmount, details);
+                paymentAsset, payer.key.getPublicKey(), paymentAmount, details);
 
         auto result = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp);
         auto requestID = result.success().details.response().requestID;
-        REQUIRE(result.success().details.response().asset == paymentAsset);
+        REQUIRE(result.success().details.response().receiverBalance == receiverBalance->getBalanceID());
         REQUIRE(result.success().details.response().senderBalance == payerBalance->getBalanceID());
 
-        SECTION("Success bill pay")
+        /*SECTION("Success bill pay without approve")
         {
             auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
                     destination, paymentAmount, paymentFeeData, "", "", nullptr);
+        }*/
+
+        SECTION("Approve invoice request")
+        {
+            auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
+                                                                                ReviewRequestOpAction::APPROVE, "");
+
+            SECTION("Success bill pay with approved invoice")
+            {
+                auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID,
+                                                                 payerBalance->getBalanceID(),
+                                                                 destination, paymentAmount,
+                                                                 paymentFeeData, "", "", nullptr);
+            }
+
+            SECTION("Not allowed to reject")
+            {
+                reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
+                        ReviewRequestOpAction::REJECT, "Some reason", ReviewRequestResultCode::REJECT_NOT_ALLOWED);
+            }
+
+            SECTION("Not allowed to permanent reject")
+            {
+                reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
+                        ReviewRequestOpAction::PERMANENT_REJECT, "Some reason",
+                        ReviewRequestResultCode::PERMANENT_REJECT_NOT_ALLOWED);
+            }
+
+            SECTION("Not allowed to approve second time")
+            {
+                reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
+                        ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::ALREADY_APPROVED);
+            }
+        }
+
+        SECTION("Only sender allowed to approve")
+        {
+            auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(root, requestID,
+                    ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::NOT_FOUND);
+        }
+
+        SECTION("Success permanent reject")
+        {
+            auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
+                    ReviewRequestOpAction::PERMANENT_REJECT, "Some reason");
         }
 
         SECTION("Invoice request not found")
@@ -189,14 +236,14 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
             for (int i = 1; i < app.getMaxInvoicesForReceiverAccount(); i++)
             {
                 createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                        receiverBalance->getBalanceID(), payer.key.getPublicKey(), paymentAmount + i,
+                        paymentAsset, payer.key.getPublicKey(), paymentAmount + i,
                         details + std::to_string(i));
 
                 manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp);
             }
 
             createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                    receiverBalance->getBalanceID(), payer.key.getPublicKey(), paymentAmount + 23,
+                    paymentAsset, payer.key.getPublicKey(), paymentAmount + 23,
                     "expected to be excess");
 
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
@@ -217,33 +264,24 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
         }
     }
 
-	SECTION("Unsuccessful create invoice request")
+	SECTION("Unsuccessful manage invoice request")
 	{
 	    SECTION("Malformed")
         {
             auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                    receiverBalance->getBalanceID(), payer.key.getPublicKey(), 0, details);
+                    paymentAsset, payer.key.getPublicKey(), 0, details);
 
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
                     ManageInvoiceRequestResultCode::MALFORMED);
         }
 
-        SECTION("WRONG RECEIVE BALANCE")
-        {
-            auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                    SecretKey::random().getPublicKey(), payer.key.getPublicKey(), paymentAmount, details);
-
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                    ManageInvoiceRequestResultCode::BALANCE_NOT_FOUND);
-        }
-
         SECTION("Destination balance not found")
         {
             auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                    receiverBalance->getBalanceID(), SecretKey::random().getPublicKey(), paymentAmount, details);
+                    paymentAsset, SecretKey::random().getPublicKey(), paymentAmount, details);
 
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                                                                                   ManageInvoiceRequestResultCode::BALANCE_NOT_FOUND);
+                                                                     ManageInvoiceRequestResultCode::BALANCE_NOT_FOUND);
         }
 
         SECTION("Request not found")

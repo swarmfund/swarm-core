@@ -73,14 +73,6 @@ BillPayOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &led
     if (!checkPaymentDetails(requestEntry, receiverBalance->getBalanceID(), senderBalance->getBalanceID()))
         return false;
 
-    if (invoiceRequest.isSecured && !senderBalance->unlock(invoiceRequest.amount))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to unlock specified amount in bill pay: "
-                                                  "invoice request: " << xdr::xdr_to_string(requestEntry)
-                                               << "; balance: " << xdr::xdr_to_string(senderBalance->getBalance());
-        throw runtime_error("Unexpected state: failed to unlock specified amount in bill pay");
-    }
-
     if (!processPaymentV2(app, delta, ledgerManager))
         return false;
 
@@ -89,93 +81,7 @@ BillPayOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &led
     return true;
 }
 
-bool
-BillPayOpFrame::checkPaymentDetails(ReviewableRequestEntry& requestEntry,
-                                    BalanceID receiverBalance, BalanceID senderBalance)
-{
-    auto invoiceRequest = requestEntry.body.invoiceRequest();
-    switch (mBillPay.paymentDetails.destination.type())
-    {
-        case PaymentDestinationType::BALANCE:
-        {
-            if (!(receiverBalance == mBillPay.paymentDetails.destination.balanceID()))
-            {
-                innerResult().code(BillPayResultCode::DESTINATION_BALANCE_MISMATCHED);
-                return false;
-            }
-            break;
-        }
-        case PaymentDestinationType::ACCOUNT:
-        {
-            if (!(requestEntry.requestor == mBillPay.paymentDetails.destination.accountID()))
-            {
-                innerResult().code(BillPayResultCode::DESTINATION_ACCOUNT_MISMATCHED);
-                return false;
-            }
-            break;
-        }
-        default:
-            throw std::runtime_error("Unexpected payment v2 destination type in BillPay");
-    }
 
-    if (invoiceRequest.amount != mBillPay.paymentDetails.amount)
-    {
-        innerResult().code(BillPayResultCode::AMOUNT_MISMATCHED);
-        return false;
-    }
-
-    if (!(mBillPay.paymentDetails.sourceBalanceID == senderBalance))
-    {
-        innerResult().code(BillPayResultCode::SOURCE_BALANCE_MISMATCHED);
-        return false;
-    }
-
-    if (!mBillPay.paymentDetails.feeData.sourcePaysForDest)
-    {
-        innerResult().code(BillPayResultCode::REQUIRED_SOURCE_PAY_FOR_DESTINATION);
-        return false;
-    }
-
-    return true;
-}
-
-bool BillPayOpFrame::processPaymentV2(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager)
-{
-    Operation op;
-    op.body.type(OperationType::PAYMENT_V2);
-    op.body.paymentOpV2() = mBillPay.paymentDetails;
-
-    OperationResult opRes;
-    opRes.code(OperationResultCode::opINNER);
-    opRes.tr().type(OperationType::PAYMENT_V2);
-    PaymentOpV2Frame paymentOpV2Frame(op, opRes, mParentTx);
-
-    paymentOpV2Frame.setSourceAccountPtr(mSourceAccount);
-
-    if (!paymentOpV2Frame.doCheckValid(app) || !paymentOpV2Frame.doApply(app, delta, ledgerManager))
-    {
-        auto resultCode = PaymentOpV2Frame::getInnerCode(opRes);
-        trySetErrorCode(resultCode);
-        return false;
-    }
-
-    innerResult().success().paymentV2Response = opRes.tr().paymentV2Result().paymentV2Response();
-    return true;
-}
-
-void BillPayOpFrame::trySetErrorCode(PaymentV2ResultCode paymentResult)
-{
-    try
-    {
-        innerResult().code(paymentCodeToBillPayCode[paymentResult]);
-    }
-    catch(...)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from payment v2 operation: "
-                                               << xdr::xdr_traits<PaymentV2ResultCode>::enum_name(paymentResult);
-        throw std::runtime_error("Unexpected result code from payment v2 operation");
-    }
-}
 
 bool
 BillPayOpFrame::doCheckValid(Application &app)

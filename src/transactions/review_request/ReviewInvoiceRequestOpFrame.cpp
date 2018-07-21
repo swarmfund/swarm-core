@@ -3,6 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <transactions/manage_asset/ManageAssetHelper.h>
+#include <transactions/payment/PaymentOpV2Frame.h>
 #include "util/asio.h"
 #include "ReviewInvoiceRequestOpFrame.h"
 #include "database/Database.h"
@@ -45,7 +46,8 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
         throw invalid_argument("Unexpected request type for review invoice request");
     }
 
-    auto& invoiceRequest = request->getRequestEntry().body.invoiceRequest();
+    auto requestEntry = request->getRequestEntry();
+    auto invoiceRequest = requestEntry.body.invoiceRequest();
 
     if (!(invoiceRequest.sender == getSourceID()))
     {
@@ -53,62 +55,117 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    if (invoiceRequest.isSecured)
-    {
-        innerResult().code(ReviewRequestResultCode::ALREADY_APPROVED);
-        return false;
-    }
-
     Database& db = ledgerManager.getDatabase();
 
-    auto senderBalance = BalanceHelper::Instance()->loadBalance(invoiceRequest.sender,
-                                                                invoiceRequest.asset, db, &delta);
-    if (!senderBalance)
-    {
-        innerResult().code(ReviewRequestResultCode::BALANCE_NOT_FOUND);
-        return false;
-    }
 
-    if (!tryLockAmount(senderBalance, invoiceRequest.amount))
+    auto balanceHelper = BalanceHelper::Instance();
+    auto senderBalance = balanceHelper->mustLoadBalance(invoiceRequest.sender,
+                                                        invoiceRequest.asset, db, &delta);
+    auto receiverBalance = balanceHelper->mustLoadBalance(requestEntry.requestor,
+                                                          invoiceRequest.asset, db, &delta);
+
+    if (!checkPaymentDetails(requestEntry, receiverBalance->getBalanceID(), senderBalance->getBalanceID()))
         return false;
 
-    invoiceRequest.isSecured = true;
-    request->recalculateHashRejectReason();
-    EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
-    EntryHelperProvider::storeChangeEntry(delta, db, senderBalance->mEntry);
+    if (!processPaymentV2(app, delta, ledgerManager))
+        return false;
+
+    EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
     return true;
 }
 
 bool
-ReviewInvoiceRequestOpFrame::tryLockAmount(BalanceFrame::pointer balance, uint64_t amount)
+ReviewInvoiceRequestOpFrame::checkPaymentDetails(ReviewableRequestEntry& requestEntry,
+                                    BalanceID receiverBalance, BalanceID senderBalance)
 {
-    auto lockResult = balance->tryLock(amount);
-
-    switch (lockResult)
+    auto invoiceRequest = requestEntry.body.invoiceRequest();
+    auto paymentDetails = mReviewRequest.requestDetails.billPay().paymentDetails;
+    switch (paymentDetails.destination.type())
     {
-        case BalanceFrame::SUCCESS:
+        case PaymentDestinationType::BALANCE:
         {
-            return true;
+            if (!(receiverBalance == paymentDetails.destination.balanceID()))
+            {
+                innerResult().code(BillPayResultCode::DESTINATION_BALANCE_MISMATCHED);
+                return false;
+            }
+            break;
         }
-        case BalanceFrame::LINE_FULL:
+        case PaymentDestinationType::ACCOUNT:
         {
-            innerResult().code(ReviewRequestResultCode::LOCKED_AMOUNT_OVERFLOW);
-            return false;
-        }
-        case BalanceFrame::UNDERFUNDED:
-        {
-            innerResult().code(ReviewRequestResultCode::BALANCE_UNDERFUNDED);
-            return false;
+            if (!(requestEntry.requestor == paymentDetails.destination.accountID()))
+            {
+                innerResult().code(BillPayResultCode::DESTINATION_ACCOUNT_MISMATCHED);
+                return false;
+            }
+            break;
         }
         default:
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from tryLock method: "
-                                                   << static_cast<int>(lockResult);
-            throw std::runtime_error("Unexpected result code from tryLock method");
-        }
+            throw std::runtime_error("Unexpected payment v2 destination type in BillPay");
+    }
+
+    if (invoiceRequest.amount != paymentDetails.amount)
+    {
+        innerResult().code(BillPayResultCode::AMOUNT_MISMATCHED);
+        return false;
+    }
+
+    if (!(paymentDetails.sourceBalanceID == senderBalance))
+    {
+        innerResult().code(BillPayResultCode::SOURCE_BALANCE_MISMATCHED);
+        return false;
+    }
+
+    if (!paymentDetails.feeData.sourcePaysForDest)
+    {
+        innerResult().code(BillPayResultCode::REQUIRED_SOURCE_PAY_FOR_DESTINATION);
+        return false;
+    }
+
+    return true;
+}
+
+bool
+ReviewInvoiceRequestOpFrame::processPaymentV2(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager)
+{
+    Operation op;
+    op.body.type(OperationType::PAYMENT_V2);
+    op.body.paymentOpV2() = mReviewRequest.requestDetails.billPay().paymentDetails;
+
+    OperationResult opRes;
+    opRes.code(OperationResultCode::opINNER);
+    opRes.tr().type(OperationType::PAYMENT_V2);
+    PaymentOpV2Frame paymentOpV2Frame(op, opRes, mParentTx);
+
+    paymentOpV2Frame.setSourceAccountPtr(mSourceAccount);
+
+    if (!paymentOpV2Frame.doCheckValid(app) || !paymentOpV2Frame.doApply(app, delta, ledgerManager))
+    {
+        auto resultCode = PaymentOpV2Frame::getInnerCode(opRes);
+        trySetErrorCode(resultCode);
+        return false;
+    }
+
+    innerResult().success().paymentV2Response = opRes.tr().paymentV2Result().paymentV2Response();
+    return true;
+}
+
+void
+BillPayOReviewInvoiceRequestOpFramepFrame::trySetErrorCode(PaymentV2ResultCode paymentResult)
+{
+    try
+    {
+        innerResult().code(paymentCodeToBillPayCode[paymentResult]);
+    }
+    catch(...)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from payment v2 operation: "
+                                               << xdr::xdr_traits<PaymentV2ResultCode>::enum_name(paymentResult);
+        throw std::runtime_error("Unexpected result code from payment v2 operation");
     }
 }
+
 
 bool
 ReviewInvoiceRequestOpFrame::handleReject(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager,
@@ -128,12 +185,6 @@ ReviewInvoiceRequestOpFrame::handlePermanentReject(Application& app, LedgerDelta
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected INVOICE, but got "
                              << xdr::xdr_traits<ReviewableRequestType>::enum_name(request->getRequestType());
         throw invalid_argument("Unexpected request type for review invoice request");
-    }
-
-    if (request->getRequestEntry().body.invoiceRequest().isSecured)
-    {
-        innerResult().code(ReviewRequestResultCode::PERMANENT_REJECT_NOT_ALLOWED);
-        return false;
     }
 
     return ReviewRequestOpFrame::handlePermanentReject(app, delta, ledgerManager, request);

@@ -56,8 +56,11 @@ namespace stellar {
 
         static longstring makeExternalSystemExpirationPeriodKey(int32 externalSystemType);
 
+        static longstring makeIssuanceTasksKey(AssetCode assetCode);
+
         static const char * kycRulesPrefix;
         static const char * externalSystemPrefix;
+        static const char * issuanceTasksPrefix;
     };
 
 }

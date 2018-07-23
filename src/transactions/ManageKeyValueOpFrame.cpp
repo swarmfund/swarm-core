@@ -17,6 +17,7 @@ namespace stellar {
 
     char const * ManageKeyValueOpFrame::kycRulesPrefix = "kyc_lvlup_rules";
     char const * ManageKeyValueOpFrame::externalSystemPrefix = "ext_sys_exp_period";
+    char const * ManageKeyValueOpFrame::issuanceTasksPrefix = "issuance_tasks";
 
     ManageKeyValueOpFrame::ManageKeyValueOpFrame(const stellar::Operation &op, stellar::OperationResult &res,
                                                  stellar::TransactionFrame &parentTx)
@@ -114,4 +115,11 @@ namespace stellar {
         return key;
     }
 
+    longstring ManageKeyValueOpFrame::makeIssuanceTasksKey(AssetCode assetCode)
+    {
+        longstring key;
+        key = key + issuanceTasksPrefix + ":" + assetCode;
+
+        return key;
+    }
 }

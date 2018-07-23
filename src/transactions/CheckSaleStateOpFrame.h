@@ -43,6 +43,7 @@ class CheckSaleStateOpFrame : public OperationFrame
     CreateIssuanceRequestResult applyCreateIssuanceRequest(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
         LedgerDelta& delta, LedgerManager& lm) const;
 
+    static void restrictIssuanceAfterSale(SaleFrame::pointer sale, LedgerDelta& delta, Database& db, LedgerManager& lm);
     static void updateMaxIssuance(SaleFrame::pointer sale, LedgerDelta& delta, Database& db, LedgerManager& lm);
 
     ManageOfferSuccessResult applySaleOffer(AccountFrame::pointer saleOwner, SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, Application& app, LedgerManager& lm, LedgerDelta& delta) const;
@@ -54,7 +55,7 @@ class CheckSaleStateOpFrame : public OperationFrame
 
     static int64_t getSaleCurrentPriceInDefaultQuote(SaleFrame::pointer sale, LedgerDelta& delta, Database& db);
 
-    void checkIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm,  Database& db, BalanceFrame::pointer balanceBefore);
+    void cleanupIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm,  Database& db, LedgerDelta& delta, BalanceFrame::pointer balanceBefore);
 
 public:
 

@@ -103,9 +103,9 @@ namespace txtest
 	CreateIssuanceRequestResult IssuanceRequestHelper::applyCreateIssuanceRequest(Account & source, AssetCode assetCode,
                                                                                   uint64_t amount, BalanceID receiver,
                                                                                   std::string reference,
+																				  uint32_t *allTasks,
                                                                                   CreateIssuanceRequestResultCode expectedResult,
-                                                                                  std::string externalDetails,
-																				  uint32_t *allTasks)
+                                                                                  std::string externalDetails)
 	{
 		auto &db = mTestManager->getDB();
 		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();

@@ -44,14 +44,15 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
     manageKeyValueHelper.setKey(key)->setValue(0);
     manageKeyValueHelper.doApply(testManager->getApp(), ManageKVAction::PUT, true);
 
+    uint32_t issuanceTasks = 0;
+
 	SECTION("Auto review of issuance request")
 	{
-	    uint32_t allTasks = 0;
 		auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetToBeIssued, preIssuedAmount,
                                                                                       receiverBalance->getBalanceID(),
-                                                                                      receiverKP.getStrKeyPublic(),
+                                                                                      receiverKP.getStrKeyPublic(), &issuanceTasks,
                                                                                       CreateIssuanceRequestResultCode::SUCCESS,
-                                                                                      "{}", &allTasks);
+                                                                                      "{}");
 		REQUIRE(issuanceRequestResult.success().fulfilled);
 		auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
 		REQUIRE(!issuanceRequest);
@@ -61,7 +62,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
         uint32_t allTasks = 4;
         auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetToBeIssued, preIssuedAmount,
             receiverBalance->getBalanceID(),
-            receiverKP.getStrKeyPublic(),CreateIssuanceRequestResultCode::SUCCESS, "{}", &allTasks);
+            receiverKP.getStrKeyPublic(), &allTasks, CreateIssuanceRequestResultCode::SUCCESS, "{}");
         REQUIRE(!issuanceRequestResult.success().fulfilled);
 	}
     
@@ -97,6 +98,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
                                                                            insufficientAmount,
                                                                            receiverBalance->getBalanceID(),
                                                                            receiverKP.getStrKeyPublic(),
+                                                                           &issuanceTasks,
                                                                            CreateIssuanceRequestResultCode::FEE_EXCEEDS_AMOUNT);
         }
 
@@ -276,6 +278,8 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     IssuanceRequestHelper issuanceRequestHelper = IssuanceRequestHelper(testManager);
     CreateAccountTestHelper createAccountTestHelper(testManager);
 
+    uint32_t issuanceTasks = 0;
+
     //create one base asset
     AssetCode assetCode = "UAH";
     uint64_t maxIssuanceAmount = UINT64_MAX/2;
@@ -307,7 +311,8 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     SECTION("Issuance tasks don't exist")
     {
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, receiverBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::ISSUANCE_TASKS_NOT_FOUND);
+                                                         reference, nullptr,
+                                                         CreateIssuanceRequestResultCode::ISSUANCE_TASKS_NOT_FOUND);
     }
 
     ManageKeyValueTestHelper manageKeyValueHelper(testManager);
@@ -320,19 +325,19 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     {
         AssetCode invalidAssetCode = "U0H";
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, invalidAssetCode, amount, receiverBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
+                                                         reference, &issuanceTasks, CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
     }
 
     SECTION("try to issue zero amount")
     {
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, 0, receiverBalance->getBalanceID(), reference,
-                                                         CreateIssuanceRequestResultCode::INVALID_AMOUNT);
+                                                         &issuanceTasks, CreateIssuanceRequestResultCode::INVALID_AMOUNT);
     }
 
     SECTION("empty reference")
     {
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, receiverBalance->getBalanceID(), "",
-                                                         CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
+                                                         &issuanceTasks, CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
     }
 
     SECTION("try to use the same reference twice")
@@ -343,14 +348,16 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
 
         //try to issue issuanceAmount again using the same reference
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, issuanceAmount, receiverBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
+                                                         reference, &issuanceTasks,
+                                                         CreateIssuanceRequestResultCode::REFERENCE_DUPLICATION);
     }
 
     SECTION("try to issue non-existing asset")
     {
         AssetCode nonExistentAsset = "CCC";
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, nonExistentAsset, amount, receiverBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
+                                                         reference, &issuanceTasks,
+                                                         CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
     }
 
     SECTION("try to issue not my asset")
@@ -362,27 +369,30 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
 
         //try to issue some amount from syndicate account
         issuanceRequestHelper.applyCreateIssuanceRequest(syndicate, assetCode, amount, receiverBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::NOT_AUTHORIZED);
+                                                         reference, &issuanceTasks,
+                                                         CreateIssuanceRequestResultCode::NOT_AUTHORIZED);
     }
 
     SECTION("exceed max issuance amount")
     {
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, maxIssuanceAmount + 1, receiverBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::EXCEEDS_MAX_ISSUANCE_AMOUNT);
+                                                         reference, &issuanceTasks,
+                                                         CreateIssuanceRequestResultCode::EXCEEDS_MAX_ISSUANCE_AMOUNT);
     }
 
     SECTION("try to issue to non-existing receiver")
     {
         BalanceID nonExistingReceiver = SecretKey::random().getPublicKey();
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, nonExistingReceiver, reference,
-                                                         CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
+                                                         &issuanceTasks, CreateIssuanceRequestResultCode::NO_COUNTERPARTY);
     }
 
     SECTION("invalid external details")
     {
         std::string invalidDetails = "{\"key\"}";
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, receiverBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS,
+                                                         reference, &issuanceTasks,
+                                                         CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS,
                                                          invalidDetails);
     }
 
@@ -402,7 +412,8 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
                                                           nullptr);
 
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, localAsset, amount, notVerifiedBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::REQUIRES_KYC);
+                                                         reference, &issuanceTasks,
+                                                         CreateIssuanceRequestResultCode::REQUIRES_KYC);
 
     }
 
@@ -415,7 +426,8 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
                                                              nullptr);
 
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, notVerifiedBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::REQUIRES_VERIFICATION);
+                                                         reference, &issuanceTasks,
+                                                         CreateIssuanceRequestResultCode::REQUIRES_VERIFICATION);
 
     }
 
@@ -428,7 +440,8 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
                 nullptr);
 
         issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, verifiedBalance->getBalanceID(),
-                                                         reference, CreateIssuanceRequestResultCode::REQUIRES_KYC);
+                                                         reference, &issuanceTasks,
+                                                         CreateIssuanceRequestResultCode::REQUIRES_KYC);
 
     }
 }

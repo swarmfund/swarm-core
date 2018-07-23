@@ -111,8 +111,9 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
 
         // fund participant with quote asset
         uint64_t quoteBalanceAmount = INT64_MAX;
+        uint32_t allTasks = 0;
         issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalance,
-            SecretKey::random().getStrKeyPublic());
+            SecretKey::random().getStrKeyPublic(), &allTasks);
 
         SECTION("Participation amount is too small")
         {

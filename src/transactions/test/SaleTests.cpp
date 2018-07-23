@@ -46,12 +46,13 @@ uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, Acco
     auto quoteBalance = BalanceHelper::Instance()->loadBalance(participant.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
     REQUIRE(!!quoteBalance);
     // issue 1 more to ensure that it is enough to cover rounded up base amount
+    uint32_t allTasks = 0;
     if (!!saleAnteAmount) {
         IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + *saleAnteAmount + fee + 1, quoteBalance->getBalanceID(),
-                                                                      SecretKey::random().getStrKeyPublic());
+                                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
     } else {
         IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + fee + 1, quoteBalance->getBalanceID(),
-                                                                      SecretKey::random().getStrKeyPublic());
+                                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
     }
 
     auto accountID = participant.key.getPublicKey();
@@ -200,6 +201,7 @@ TEST_CASE("Sale", "[tx][sale]")
         endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price) }, &basicSaleType,
                                                             &requiredBaseAssetForHardCap);
 
+    uint32_t issuanceTasks = 0;
 
     SECTION("Non zero balance on sale close"){
         auto sellerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(2 * ONE), quoteAsset, &syndicatePubKey);
@@ -223,7 +225,8 @@ TEST_CASE("Sale", "[tx][sale]")
         auto ownBalance = BalanceHelper::Instance()->loadBalance(syndicatePubKey, baseAsset, testManager->getDB(),
                                                                  nullptr);
         IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(syndicate, baseAsset, 10*ONE, ownBalance->getBalanceID(),
-                                                                      syndicate.key.getStrKeyPublic(), CreateIssuanceRequestResultCode::SUCCESS);
+                                                                      syndicate.key.getStrKeyPublic(), &issuanceTasks,
+                                                                      CreateIssuanceRequestResultCode::SUCCESS);
 
         const int numberOfParticipants = 10;
         const uint64_t quoteAmount = softCap / numberOfParticipants;
@@ -794,7 +797,7 @@ TEST_CASE("Sale", "[tx][sale]")
             // fund participant with quote asset
             uint64_t quoteBalanceAmount = saleRequest.hardCap;
             issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalance,
-                                                      SecretKey::random().getStrKeyPublic());
+                                                      SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
             // buy a half of sale in order to keep it active
             int64_t baseAmount = bigDivide(saleRequest.hardCap/2, ONE, saleRequest.quoteAssets[0].price, ROUND_UP);
@@ -905,7 +908,7 @@ TEST_CASE("Sale", "[tx][sale]")
             {
                 // fund account
                 issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, 2 * ONE, quoteBalance,
-                                                          SecretKey::random().getStrKeyPublic());
+                                                          SecretKey::random().getStrKeyPublic(), &issuanceTasks);
                 SECTION("by more than ONE")
                 {
                     int64_t baseAssetAmount = bigDivide(hardCap + 2 * ONE, ONE, price, ROUND_DOWN);
@@ -927,7 +930,7 @@ TEST_CASE("Sale", "[tx][sale]")
                 // fund with quote asset
                 auto quoteBalanceID = BalanceHelper::Instance()->loadBalance(notVerifiedID, quoteAsset, db, nullptr)->getBalanceID();
                 issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalanceID,
-                                                          SecretKey::random().getStrKeyPublic());
+                                                          SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
                 manageOffer.baseBalance = baseBalanceID;
                 manageOffer.quoteBalance = quoteBalanceID;

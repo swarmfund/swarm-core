@@ -29,9 +29,9 @@ namespace txtest
                                                                     uint64_t amount, std::string reference);
 
 		CreateIssuanceRequestResult applyCreateIssuanceRequest(Account& source, AssetCode assetCode, uint64_t amount, BalanceID receiver,
-			std::string reference, CreateIssuanceRequestResultCode expectedResult = CreateIssuanceRequestResultCode::SUCCESS,
-                                                               std::string externalDetails = "{}",
-															   uint32_t *allTasks = nullptr);
+			std::string reference, uint32_t *allTasks = nullptr,
+		    CreateIssuanceRequestResultCode expectedResult = CreateIssuanceRequestResultCode::SUCCESS,
+		    std::string externalDetails = "{}");
 
 		TransactionFramePtr createIssuanceRequestTx(Account &source, const IssuanceRequest &request,
 													std::string reference, uint32_t *allTasks = nullptr);

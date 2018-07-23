@@ -333,7 +333,7 @@ bool CreateIssuanceRequestOpFrame::calculateFee(AccountID receiver, Database &db
 
 CreateIssuanceRequestOp CreateIssuanceRequestOpFrame::build(
     AssetCode const& asset, const uint64_t amount, BalanceID const& receiver,
-    LedgerManager& lm)
+    LedgerManager& lm, uint32_t allTasks)
 {
     IssuanceRequest request;
     request.amount = amount;
@@ -345,6 +345,13 @@ CreateIssuanceRequestOp CreateIssuanceRequestOpFrame::build(
     CreateIssuanceRequestOp issuanceRequestOp;
     issuanceRequestOp.request = request;
     issuanceRequestOp.reference = binToHex(sha256(xdr_to_opaque(receiver, asset, amount, lm.getCloseTime())));
+
+    if (lm.shouldUse(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST))
+    {
+        issuanceRequestOp.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+        issuanceRequestOp.ext.allTasks().activate() = allTasks;
+    }
+
     return issuanceRequestOp;
 }
 

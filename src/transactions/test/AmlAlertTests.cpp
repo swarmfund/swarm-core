@@ -59,7 +59,9 @@ TEST_CASE("Aml alert", "[tx][aml_alert]")
         CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.getPublicKey(), AccountType::GENERAL);
         auto balance = BalanceHelper::Instance()->loadBalance(account.getPublicKey(), asset, testManager->getDB(), nullptr);
         REQUIRE(!!balance);
-        issuanceHelper.applyCreateIssuanceRequest(root, asset, preIssuedAmount, balance->getBalanceID(), "RANDOM ISSUANCE REFERENCE");
+        uint32_t allTasks = 0;
+        issuanceHelper.applyCreateIssuanceRequest(root, asset, preIssuedAmount, balance->getBalanceID(),
+                                                  "RANDOM ISSUANCE REFERENCE", &allTasks);
         SECTION("Insuficient balance")
         {
             amlAlertHelper.applyCreateAmlAlert(root, balance->getBalanceID(), preIssuedAmount + 1, "Inalid", reference, CreateAMLAlertRequestResultCode::UNDERFUNDED);

@@ -123,10 +123,17 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
                                                                  invalidReference, nullptr,
                                                                  PaymentV2ResultCode::MALFORMED);
         }
-        SECTION("Send to self") {
+        SECTION("Send to self by balance") {
             auto balanceDestination = paymentV2TestHelper.createDestinationForBalance(payerBalance->getBalanceID());
             auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
                                                                  balanceDestination, paymentAmount, paymentFeeData,
+                                                                 "", "", nullptr,
+                                                                 PaymentV2ResultCode::MALFORMED);
+        }
+        SECTION("Send to self by account") {
+            auto accountDestination = paymentV2TestHelper.createDestinationForAccount(payer.key.getPublicKey());
+            auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
+                                                                 accountDestination, paymentAmount, paymentFeeData,
                                                                  "", "", nullptr,
                                                                  PaymentV2ResultCode::MALFORMED);
         }

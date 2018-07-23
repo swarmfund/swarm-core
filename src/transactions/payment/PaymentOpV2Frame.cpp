@@ -268,6 +268,17 @@ namespace stellar {
         return actualFee;
     }
 
+    bool
+    PaymentOpV2Frame::isSendToSelf(LedgerManager& lm, BalanceID sourceBalanceID, BalanceID destBalanceID)
+    {
+        if (!lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_SEND_TO_SELF))
+        {
+            return false;
+        }
+
+        return sourceBalanceID == destBalanceID;
+    }
+
     bool PaymentOpV2Frame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
         Database &db = app.getDatabase();
         auto sourceBalance = BalanceHelper::Instance()->loadBalance(getSourceID(), mPayment.sourceBalanceID, db,
@@ -279,6 +290,14 @@ namespace stellar {
 
         auto destBalance = tryLoadDestinationBalance(sourceBalance->getAsset(), db, delta);
         if (!destBalance) {
+            return false;
+        }
+
+        BalanceID destBalanceID = destBalance->getBalanceID();
+
+        if (isSendToSelf(ledgerManager, mPayment.sourceBalanceID, destBalanceID))
+        {
+            innerResult().code(PaymentV2ResultCode::MALFORMED);
             return false;
         }
 

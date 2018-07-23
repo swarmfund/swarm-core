@@ -57,6 +57,8 @@ class ReviewableRequestFrame : public EntryFrame
 		mRequest.body = body;
 	}
 
+	void setTasks(uint32_t allTasks);
+
 	AccountID& getRequestor() const {
 		return mRequest.requestor;
 	}
@@ -105,6 +107,36 @@ class ReviewableRequestFrame : public EntryFrame
     time_t getCreatedAt() {
         return mRequest.createdAt;
     }
+
+    uint32_t getAllTasks() const
+	{
+		uint32_t allTasks = 0;
+		if (mRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+		{
+			allTasks = mRequest.ext.tasksExt().allTasks;
+		}
+		return allTasks;
+	}
+
+	uint32_t getPendingTasks() const
+	{
+		uint32_t pendingTasks = 0;
+		if (mRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+		{
+			pendingTasks = mRequest.ext.tasksExt().pendingTasks;
+		}
+		return pendingTasks;
+	}
+
+	xdr::xvector<longstring> getExternalDetails() const
+	{
+		xdr::xvector<longstring> externalDetails;
+		if (mRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+		{
+			externalDetails = mRequest.ext.tasksExt().externalDetails;
+		}
+		return externalDetails;
+	}
 
 	void setRejectReason(stellar::longstring rejectReason) {
 		mRequest.rejectReason = rejectReason;

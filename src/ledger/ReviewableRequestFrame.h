@@ -159,5 +159,7 @@ class ReviewableRequestFrame : public EntryFrame
     static void ensureValid(ReviewableRequestEntry const& oe);
     void ensureValid() const;
 
+	void checkRequestType(ReviewableRequestType requestType) const;
+
 };
 }

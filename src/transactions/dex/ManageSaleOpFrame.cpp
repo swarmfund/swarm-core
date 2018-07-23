@@ -384,16 +384,4 @@ namespace stellar {
 
         return true;
     }
-
-    void ManageSaleOpFrame::checkRequestType(ReviewableRequestFrame::pointer request,
-                                             ReviewableRequestType requestType) {
-        if (request->getRequestType() != requestType) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected "
-                                                   << xdr::xdr_traits<ReviewableRequestType>::enum_name(requestType)
-                                                   << " but got "
-                                                   << xdr::xdr_traits<ReviewableRequestType>::enum_name(
-                                                           request->getRequestType());
-            throw std::invalid_argument("Unexpected request type");
-        }
-    }
 }

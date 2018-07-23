@@ -19,7 +19,7 @@ namespace stellar {
     bool ReviewUpdateSaleDetailsRequestOpFrame::handleApprove(Application &app, LedgerDelta &delta,
                                                               LedgerManager &ledgerManager,
                                                               ReviewableRequestFrame::pointer request) {
-        ManageSaleOpFrame::checkRequestType(request, ReviewableRequestType::UPDATE_SALE_DETAILS);
+        request->checkRequestType(ReviewableRequestType::UPDATE_SALE_DETAILS);
 
         Database &db = ledgerManager.getDatabase();
 

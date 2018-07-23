@@ -53,8 +53,6 @@ namespace stellar {
 
         bool doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) override;
 
-        static void checkRequestType(ReviewableRequestFrame::pointer request, ReviewableRequestType requestType);
-
         static void cancelSale(SaleFrame::pointer sale, LedgerDelta &delta, Database &db, LedgerManager &lm);
 
         static void cancelAllOffersForQuoteAsset(SaleFrame::pointer sale, SaleQuoteAsset const &saleQuoteAsset,

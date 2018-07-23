@@ -29,7 +29,7 @@ namespace stellar {
     bool
     ReviewUpdateKYCRequestOpFrame::handleApprove(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
                                                  ReviewableRequestFrame::pointer request) {
-        CreateUpdateKYCRequestOpFrame::checkRequestType(request);
+        request->checkRequestType(ReviewableRequestType::UPDATE_KYC);
 
         Database &db = ledgerManager.getDatabase();
 
@@ -93,7 +93,7 @@ namespace stellar {
             throw std::runtime_error("Unexpected state. Tasks to remove must be zero.");
         }
 
-        CreateUpdateKYCRequestOpFrame::checkRequestType(request);
+        request->checkRequestType(ReviewableRequestType::UPDATE_KYC);
 
         Database &db = ledgerManager.getDatabase();
 

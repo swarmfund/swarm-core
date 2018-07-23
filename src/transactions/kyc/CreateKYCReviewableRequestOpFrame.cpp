@@ -73,15 +73,6 @@ namespace stellar {
                              static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
     }
 
-    void CreateUpdateKYCRequestOpFrame::checkRequestType(ReviewableRequestFrame::pointer request) {
-        if (request->getRequestType() != ReviewableRequestType::UPDATE_KYC) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected UPDATE_KYC, but got " << xdr::
-            xdr_traits<ReviewableRequestType>::
-            enum_name(request->getRequestType());
-            throw std::invalid_argument("Unexpected request type for review update KYC request");
-        }
-    }
-
     bool CreateUpdateKYCRequestOpFrame::ensureUpdateKYCDataValid(ReviewableRequestEntry &requestEntry) {
         auto &updateKYCRequest = requestEntry.body.updateKYCRequest();
         auto updateKYCRequestData = mCreateUpdateKYCRequest.updateKYCRequestData;

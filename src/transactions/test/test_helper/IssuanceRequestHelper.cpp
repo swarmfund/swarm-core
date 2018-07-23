@@ -104,19 +104,20 @@ namespace txtest
                                                                                   uint64_t amount, BalanceID receiver,
                                                                                   std::string reference,
                                                                                   CreateIssuanceRequestResultCode expectedResult,
-                                                                                  std::string externalDetails)
+                                                                                  std::string externalDetails,
+																				  uint32_t *allTasks)
 	{
+		auto &db = mTestManager->getDB();
 		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-		auto expectedReviewableRequestAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
+		auto expectedReviewableRequestAfterTx = reviewableRequestHelper->countObjects(db.getSession());
 
-		auto referenceHelper = ReferenceHelper::Instance();
-		auto referenceBeforeTx = referenceHelper->loadReference(source.key.getPublicKey(), reference, mTestManager->getDB());
+		auto referenceBeforeTx = ReferenceHelper::Instance()->loadReference(source.key.getPublicKey(), reference,
+																			db);
 
-		auto assetHelper = AssetHelper::Instance();
-		auto assetBeforeTx = assetHelper->loadAsset(assetCode, mTestManager->getDB());
+		auto assetBeforeTx = AssetHelper::Instance()->loadAsset(assetCode, db);
 
         auto issuanceRequest = createIssuanceRequest(assetCode, amount, receiver, externalDetails);
-        auto txFrame = createIssuanceRequestTx(source, issuanceRequest, reference);
+        auto txFrame = createIssuanceRequestTx(source, issuanceRequest, reference, allTasks);
 
         auto reviewIssuanceChecker = ReviewIssuanceChecker(mTestManager, std::make_shared<IssuanceRequest>(issuanceRequest));
 
@@ -126,7 +127,7 @@ namespace txtest
 		auto actualResultCode = CreateIssuanceRequestOpFrame::getInnerCode(opResult);
 		REQUIRE(actualResultCode == expectedResult);
 
-		uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(mTestManager->getDB().getSession());
+		uint64 reviewableRequestCountAfterTx = reviewableRequestHelper->countObjects(db.getSession());
 		if (expectedResult != CreateIssuanceRequestResultCode::SUCCESS)
 		{
 			REQUIRE(expectedReviewableRequestAfterTx == reviewableRequestCountAfterTx);
@@ -143,19 +144,43 @@ namespace txtest
 		// if request was auto fulfilled, lets check if receiver actually got assets
 		if (result.success().fulfilled) {
             reviewIssuanceChecker.checkApprove(nullptr);
+			return result;
 		}
+
+		if (allTasks == nullptr)
+		{
+			return result;
+		}
+
+		auto requestID = result.success().requestID;
+		auto issuanceRequestFrameAfterTx = ReviewableRequestHelper::Instance()->loadRequest(requestID, db);
+		REQUIRE(!!issuanceRequestFrameAfterTx);
+
+		auto& issuanceRequestEntryAfterTx = issuanceRequestFrameAfterTx->getRequestEntry();
+		REQUIRE(issuanceRequestEntryAfterTx.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+		REQUIRE(issuanceRequestEntryAfterTx.ext.tasksExt().allTasks != 0);
+		REQUIRE(issuanceRequestEntryAfterTx.ext.tasksExt().pendingTasks != 0);
+
 
 		return result;
 	}
 
 	TransactionFramePtr
-    IssuanceRequestHelper::createIssuanceRequestTx(Account &source, const IssuanceRequest &request, std::string reference)
+    IssuanceRequestHelper::createIssuanceRequestTx(Account &source, const IssuanceRequest &request,
+												   std::string reference, uint32_t* allTasks)
 	{
 		Operation op;
 		op.body.type(OperationType::CREATE_ISSUANCE_REQUEST);
 		CreateIssuanceRequestOp& createIssuanceRequestOp = op.body.createIssuanceRequestOp();
 		createIssuanceRequestOp.request = request;
         createIssuanceRequestOp.reference = reference;
+		createIssuanceRequestOp.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+
+        if (allTasks != nullptr)
+		{
+			createIssuanceRequestOp.ext.allTasks().activate() = *allTasks;
+		}
+
 		return txFromOperation(source, op, nullptr);
 	}
 

@@ -5,6 +5,7 @@
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include <ledger/FeeHelper.h>
 #include <ledger/AccountHelper.h>
+#include <transactions/test/test_helper/ManageKeyValueTestHelper.h>
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
 #include "ledger/AssetHelper.h"
@@ -24,38 +25,44 @@ typedef std::unique_ptr<Application> appPtr;
 
 void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& assetOwner, Account& root) {
 	auto issuanceRequestHelper = IssuanceRequestHelper(testManager);
-	AssetCode assetCode = "EUR";
+	AssetCode assetToBeIssued = "EUR";
 	uint64_t preIssuedAmount = 10000;
-	issuanceRequestHelper.createAssetWithPreIssuedAmount(assetOwner, assetCode, preIssuedAmount, root);
+	issuanceRequestHelper.createAssetWithPreIssuedAmount(assetOwner, assetToBeIssued, preIssuedAmount, root);
 	// create new account with balance 
-	auto newAccountKP = SecretKey::random();
+	auto receiverKP = SecretKey::random();
     CreateAccountTestHelper createAccountTestHelper(testManager);
-    createAccountTestHelper.applyCreateAccountTx(root, newAccountKP.getPublicKey(), AccountType::GENERAL);
+    createAccountTestHelper.applyCreateAccountTx(root, receiverKP.getPublicKey(), AccountType::GENERAL);
 
 	auto balanceHelper = BalanceHelper::Instance();
-	auto newAccountBalance = balanceHelper->loadBalance(newAccountKP.getPublicKey(), assetCode, testManager->getDB(), nullptr);
-	REQUIRE(newAccountBalance);
+	auto receiverBalance = balanceHelper->loadBalance(receiverKP.getPublicKey(), assetToBeIssued, testManager->getDB(), nullptr);
+	REQUIRE(receiverBalance);
 
 	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
 
+    ManageKeyValueTestHelper manageKeyValueHelper(testManager);
+    longstring key = ManageKeyValueOpFrame::makeIssuanceTasksKey(assetToBeIssued);
+    manageKeyValueHelper.setKey(key)->setValue(0);
+    manageKeyValueHelper.doApply(testManager->getApp(), ManageKVAction::PUT, true);
+
 	SECTION("Auto review of issuance request")
 	{
-		auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, preIssuedAmount,
-                                                                                      newAccountBalance->getBalanceID(),
-                                                                                      newAccountKP.getStrKeyPublic());
+	    uint32_t allTasks = 0;
+		auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetToBeIssued, preIssuedAmount,
+                                                                                      receiverBalance->getBalanceID(),
+                                                                                      receiverKP.getStrKeyPublic(),
+                                                                                      CreateIssuanceRequestResultCode::SUCCESS,
+                                                                                      "{}", &allTasks);
 		REQUIRE(issuanceRequestResult.success().fulfilled);
 		auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
 		REQUIRE(!issuanceRequest);
 	}
-        SECTION("Auto review is disabled")
+    SECTION("Auto review is disabled")
 	{
-            ManageAssetTestHelper(testManager).updateAsset(assetOwner, assetCode, root, uint32(AssetPolicy::ISSUANCE_MANUAL_REVIEW_REQUIRED));
-            auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, preIssuedAmount,
-                newAccountBalance->getBalanceID(),
-                newAccountKP.getStrKeyPublic());
-            REQUIRE(!issuanceRequestResult.success().fulfilled);
-            auto issuanceRequest = reviewableRequestHelper->loadRequest(issuanceRequestResult.success().requestID, testManager->getDB());
-            REQUIRE(issuanceRequest);
+        uint32_t allTasks = 4;
+        auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetToBeIssued, preIssuedAmount,
+            receiverBalance->getBalanceID(),
+            receiverKP.getStrKeyPublic(),CreateIssuanceRequestResultCode::SUCCESS, "{}", &allTasks);
+        REQUIRE(!issuanceRequestResult.success().fulfilled);
 	}
     
     SECTION("charge fee on issuance") 
@@ -63,19 +70,19 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
         //set ISSUANCE_FEE for newAccount
         uint64_t percentFee = 1 * ONE;
         uint64_t fixedFee = preIssuedAmount/2;
-        AccountID account = newAccountKP.getPublicKey();
-        auto feeEntry = createFeeEntry(FeeType::ISSUANCE_FEE, fixedFee, percentFee, assetCode, &account, nullptr);
+        AccountID account = receiverKP.getPublicKey();
+        auto feeEntry = createFeeEntry(FeeType::ISSUANCE_FEE, fixedFee, percentFee, assetToBeIssued, &account, nullptr);
         applySetFees(testManager->getApp(), root.key, root.getNextSalt(), &feeEntry, false);
 
         auto accountFrame = AccountHelper::Instance()->loadAccount(account, testManager->getDB());
-        auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::ISSUANCE_FEE, assetCode, FeeFrame::SUBTYPE_ANY,
+        auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::ISSUANCE_FEE, assetToBeIssued, FeeFrame::SUBTYPE_ANY,
                                                               accountFrame, preIssuedAmount, testManager->getDB());
         REQUIRE(feeFrame);
 
         SECTION("successful issuance")
         {
-            auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, preIssuedAmount,
-                                                                                          newAccountBalance->getBalanceID(), newAccountKP.getStrKeyPublic());
+            auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetToBeIssued, preIssuedAmount,
+                                                                                          receiverBalance->getBalanceID(), receiverKP.getStrKeyPublic());
             uint64_t percentFeeToPay = 0;
             feeFrame->calculatePercentFee(preIssuedAmount, percentFeeToPay, ROUND_UP);
 
@@ -86,10 +93,10 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
         SECTION("total fee exceeds issuance amount")
         {
             uint64_t insufficientAmount = fixedFee;
-            auto result = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode,
+            auto result = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetToBeIssued,
                                                                            insufficientAmount,
-                                                                           newAccountBalance->getBalanceID(),
-                                                                           newAccountKP.getStrKeyPublic(),
+                                                                           receiverBalance->getBalanceID(),
+                                                                           receiverKP.getStrKeyPublic(),
                                                                            CreateIssuanceRequestResultCode::FEE_EXCEEDS_AMOUNT);
         }
 
@@ -99,10 +106,10 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 	{
 		// request was create but not fulfilleds as amount of pre issued asset is insufficient
 		uint64_t issuanceRequestAmount = preIssuedAmount + 1;
-		auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode,
-			issuanceRequestAmount, newAccountBalance->getBalanceID(), newAccountKP.getStrKeyPublic());
+		auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetToBeIssued,
+			issuanceRequestAmount, receiverBalance->getBalanceID(), receiverKP.getStrKeyPublic());
 		REQUIRE(!issuanceRequestResult.success().fulfilled);
-		auto newAccountBalanceAfterRequest = balanceHelper->loadBalance(newAccountBalance->getBalanceID(), testManager->getDB());
+		auto newAccountBalanceAfterRequest = balanceHelper->loadBalance(receiverBalance->getBalanceID(), testManager->getDB());
 		REQUIRE(newAccountBalanceAfterRequest->getAmount() == 0);
 
 		// try to review request
@@ -111,18 +118,18 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 			ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT);
 
 		// authorized more asset to be issued & review request
-		issuanceRequestHelper.authorizePreIssuedAmount(assetOwner, assetOwner.key, assetCode, issuanceRequestAmount, root);
+		issuanceRequestHelper.authorizePreIssuedAmount(assetOwner, assetOwner.key, assetToBeIssued, issuanceRequestAmount, root);
 
 		// try review request
 		reviewIssuanceRequestHelper.applyReviewRequestTx(assetOwner, issuanceRequestResult.success().requestID,
 			ReviewRequestOpAction::APPROVE, "");
 
 		// check state after request approval
-		newAccountBalanceAfterRequest = balanceHelper->loadBalance(newAccountBalance->getBalanceID(), testManager->getDB());
+		newAccountBalanceAfterRequest = balanceHelper->loadBalance(receiverBalance->getBalanceID(), testManager->getDB());
 		REQUIRE(newAccountBalanceAfterRequest->getAmount() == issuanceRequestAmount);
 
 		auto assetHelper = AssetHelper::Instance();
-		auto assetFrame = assetHelper->loadAsset(assetCode, testManager->getDB());
+		auto assetFrame = assetHelper->loadAsset(assetToBeIssued, testManager->getDB());
 		REQUIRE(assetFrame->getIssued() == issuanceRequestAmount);
 		REQUIRE(assetFrame->getAvailableForIssuance() == preIssuedAmount);
 	}
@@ -146,6 +153,11 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
 
     uint64 amount = 10000;
     std::string reference = SecretKey::random().getStrKeyPublic();
+
+    ManageKeyValueTestHelper manageKeyValueHelper(testManager);
+    longstring key = ManageKeyValueOpFrame::makeIssuanceTasksKey(assetCode);
+    manageKeyValueHelper.setKey(key)->setValue(0);
+    manageKeyValueHelper.doApply(testManager->getApp(), ManageKVAction::PUT, true);
 
     SECTION("asset code malformed")
     {
@@ -292,6 +304,18 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     std::string reference = SecretKey::random().getStrKeyPublic();
     uint64 amount = 10000;
 
+    SECTION("Issuance tasks don't exist")
+    {
+        issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetCode, amount, receiverBalance->getBalanceID(),
+                                                         reference, CreateIssuanceRequestResultCode::ISSUANCE_TASKS_NOT_FOUND);
+    }
+
+    ManageKeyValueTestHelper manageKeyValueHelper(testManager);
+    longstring key = ManageKeyValueOpFrame::makeIssuanceTasksKey(assetCode);
+    manageKeyValueHelper.setKey(key)->setValue(0);
+    manageKeyValueHelper.doApply(testManager->getApp(), ManageKVAction::PUT, true);
+
+
     SECTION("invalid asset code")
     {
         AssetCode invalidAssetCode = "U0H";
@@ -417,6 +441,7 @@ TEST_CASE("Issuance", "[tx][issuance]")
 	Application& app = *appPtr;
 	app.start();
 	auto testManager = TestManager::make(app);
+	TestManager::upgradeToCurrentLedgerVersion(app);
 
 	auto root = Account{ getRoot(), Salt(0) };
 	SECTION("Root happy path")

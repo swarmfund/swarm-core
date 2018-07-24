@@ -38,6 +38,8 @@ namespace stellar {
 
         void setErrorCode(AccountManager::Result transferResult);
 
+        bool isSendToSelf(LedgerManager& lm, BalanceID sourceBalanceID, BalanceID destBalanceID);
+
     public:
         PaymentOpV2Frame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);
 

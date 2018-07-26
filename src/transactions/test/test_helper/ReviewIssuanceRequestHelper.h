@@ -14,32 +14,39 @@ namespace stellar
 {
 namespace txtest 
 {	
-        class ReviewIssuanceChecker : public ReviewChecker
-        {
-        public:
-            ReviewIssuanceChecker(
-                const TestManager::pointer& testManager, const uint64_t requestID);
-            ReviewIssuanceChecker(const TestManager::pointer& testManager, std::shared_ptr<IssuanceRequest> issuanceRequest);
+	class ReviewIssuanceChecker : public ReviewChecker
+	{
+	public:
+		ReviewIssuanceChecker(const TestManager::pointer& testManager, const uint64_t requestID);
+		ReviewIssuanceChecker(const TestManager::pointer& testManager,
+							  std::shared_ptr<IssuanceRequest> issuanceRequest);
 
-            void checkApprove(ReviewableRequestFrame::pointer) override;
-        protected:
-            std::shared_ptr<IssuanceRequest> issuanceRequest;
-            AssetFrame::pointer assetFrameBeforeTx;
-            BalanceFrame::pointer balanceBeforeTx;
-            BalanceFrame::pointer commissionBalanceBeforeTx;
-            
-        };
+		void checkApprove(ReviewableRequestFrame::pointer) override;
+
+	protected:
+		std::shared_ptr<IssuanceRequest> issuanceRequest;
+		AssetFrame::pointer assetFrameBeforeTx;
+		BalanceFrame::pointer balanceBeforeTx;
+		BalanceFrame::pointer commissionBalanceBeforeTx;
+	};
 	class ReviewIssuanceRequestHelper : public ReviewRequestHelper
 	{
 	public:
-		ReviewIssuanceRequestHelper(TestManager::pointer testManager);
+		explicit ReviewIssuanceRequestHelper(TestManager::pointer testManager);
 
-		ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
-			ReviewRequestOpAction action, std::string rejectReason,
-			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS) override;
+		ReviewRequestResult
+		applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
+							 ReviewRequestOpAction action, std::string rejectReason,
+							 ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS) override;
 
-		ReviewRequestResult applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason,
-			ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS);
+        ReviewRequestResult
+        applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action,
+                             std::string rejectReason,
+                             ReviewRequestResultCode expectedResult = ReviewRequestResultCode::SUCCESS);
+
+        TransactionFramePtr
+        createReviewRequestTx(Account& source, uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
+                              ReviewRequestOpAction action, std::string rejectReason) override;
 
 	};
 }

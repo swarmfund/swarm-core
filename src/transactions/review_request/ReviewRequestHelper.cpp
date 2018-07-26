@@ -70,6 +70,14 @@ std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(Trans
         reviewRequestOp.requestDetails.updateKYC().externalDetails = "{}";
     }
 
+    if (mRequest->getRequestType() == ReviewableRequestType::ISSUANCE_CREATE)
+    {
+        reviewRequestOp.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+        reviewRequestOp.ext.reviewerResponse().tasksToAdd = 0;
+        reviewRequestOp.ext.reviewerResponse().tasksToRemove = 0;
+        reviewRequestOp.ext.reviewerResponse().externalDetails = "{}";
+    }
+
     OperationResult opRes;
     opRes.code(OperationResultCode::opINNER);
     opRes.tr().type(OperationType::REVIEW_REQUEST);

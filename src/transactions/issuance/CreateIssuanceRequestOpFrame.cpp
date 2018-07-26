@@ -125,9 +125,6 @@ bool CreateIssuanceRequestOpFrame::doApplyV2(Application& app, LedgerDelta& delt
         throw runtime_error("Failed to load asset for issuance request");
     }
 
-	ReviewRequestResultCode reviewRequestResultCode =
-			ReviewRequestResultCode ::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
-
 	if (assetFrame->isPolicySet(AssetPolicy::ISSUANCE_MANUAL_REVIEW_REQUIRED))
 	{
 		allTasks |= ISSUANCE_MANUAL_REVIEW_REQUIRED;
@@ -135,6 +132,7 @@ bool CreateIssuanceRequestOpFrame::doApplyV2(Application& app, LedgerDelta& delt
 		EntryHelperProvider::storeChangeEntry(delta, db, requestFrame->mEntry);
 	}
 
+	ReviewRequestResultCode reviewRequestResultCode = ReviewRequestResultCode::SUCCESS;
 	if (allTasks == 0)
 	{
 		reviewRequestResultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta,
@@ -145,12 +143,7 @@ bool CreateIssuanceRequestOpFrame::doApplyV2(Application& app, LedgerDelta& delt
 	switch (reviewRequestResultCode) {
 		case ReviewRequestResultCode::SUCCESS:
 		{
-			isFulfilled = true;
-			break;
-		}
-		case ReviewRequestResultCode::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT:
-		{
-			isFulfilled = false;
+            isFulfilled = !ReviewableRequestHelper::Instance()->exists(db, requestFrame->getKey());
 			break;
 		}
 		case ReviewRequestResultCode::FULL_LINE:
@@ -212,6 +205,15 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 	{
 		innerResult().code(CreateIssuanceRequestResultCode::INVALID_EXTERNAL_DETAILS);
         return false;
+	}
+
+	int32_t systemTasks = CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT |
+						  CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED;
+
+	if (mCreateIssuanceRequest.ext.allTasks() && (*mCreateIssuanceRequest.ext.allTasks() & systemTasks) != 0)
+	{
+		innerResult().code(CreateIssuanceRequestResultCode::SYSTEM_TASKS_NOT_ALLOWED);
+		return false;
 	}
 	
     return true;

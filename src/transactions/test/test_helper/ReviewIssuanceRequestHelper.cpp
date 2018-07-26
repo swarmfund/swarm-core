@@ -84,24 +84,45 @@ void ReviewIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer)
 }
 
 ReviewIssuanceRequestHelper::ReviewIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)
-	{
-	}
+{
+}
 
-	ReviewRequestResult ReviewIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash,
-		ReviewableRequestType requestType, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
-	{
-            auto issuanceChecker = ReviewIssuanceChecker(mTestManager, requestID);
-		return ReviewRequestHelper::applyReviewRequestTx(source, requestID, requestHash, requestType, action, rejectReason, expectedResult,
-                    issuanceChecker);
-	}
+ReviewRequestResult ReviewIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, Hash requestHash,
+    ReviewableRequestType requestType, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
+{
+        auto issuanceChecker = ReviewIssuanceChecker(mTestManager, requestID);
+    return ReviewRequestHelper::applyReviewRequestTx(source, requestID, requestHash, requestType, action, rejectReason, expectedResult,
+                issuanceChecker);
+}
 
-	ReviewRequestResult ReviewIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
-	{
-		auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-		auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
-		REQUIRE(request);
-		return applyReviewRequestTx(source, requestID, request->getHash(), request->getRequestType(), action, rejectReason, expectedResult);
-	}
+TransactionFramePtr
+ReviewIssuanceRequestHelper::createReviewRequestTx(Account &source, uint64_t requestID, Hash requestHash,
+                                                   ReviewableRequestType requestType, ReviewRequestOpAction action,
+                                                   std::string rejectReason)
+{
+    Operation op;
+    op.body.type(OperationType::REVIEW_REQUEST);
+    ReviewRequestOp& reviewRequestOp = op.body.reviewRequestOp();
+    reviewRequestOp.action = action;
+    reviewRequestOp.reason = rejectReason;
+    reviewRequestOp.requestHash = requestHash;
+    reviewRequestOp.requestID = requestID;
+    reviewRequestOp.requestDetails.requestType(requestType);
+    reviewRequestOp.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+    reviewRequestOp.ext.reviewerResponse().tasksToAdd = 0;
+    reviewRequestOp.ext.reviewerResponse().tasksToRemove = action == ReviewRequestOpAction::APPROVE ? 4 : 0;
+    reviewRequestOp.ext.reviewerResponse().externalDetails = "{}";
+
+    return txFromOperation(source, op, nullptr);
+}
+
+    ReviewRequestResult ReviewIssuanceRequestHelper::applyReviewRequestTx(Account & source, uint64_t requestID, ReviewRequestOpAction action, std::string rejectReason, ReviewRequestResultCode expectedResult)
+{
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    auto request = reviewableRequestHelper->loadRequest(requestID, mTestManager->getDB());
+    REQUIRE(request);
+    return applyReviewRequestTx(source, requestID, request->getHash(), request->getRequestType(), action, rejectReason, expectedResult);
+}
 
 
 }

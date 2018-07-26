@@ -16,8 +16,9 @@
 #include "test_helper/ReviewIssuanceRequestHelper.h"
 #include "test_helper/ReviewPreIssuanceRequestHelper.h"
 #include "test/test_marshaler.h"
+#include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
 
-
+using namespace std;
 using namespace stellar;
 using namespace stellar::txtest;
 
@@ -104,7 +105,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 
     }
     
-	SECTION("Request was created but was not auto reviwed")
+	SECTION("Request was created but was not auto reviewed")
 	{
 		// request was create but not fulfilleds as amount of pre issued asset is insufficient
 		uint64_t issuanceRequestAmount = preIssuedAmount + 1;
@@ -462,14 +463,92 @@ TEST_CASE("Issuance", "[tx][issuance]")
 		createIssuanceRequestHappyPath(testManager, root, root);
 	}
 
-    SECTION("create pre-issuance request hard path")
-    {
-        createPreIssuanceRequestHardPath(testManager, root, root);
-    }
-
-    SECTION("create issuance request hard path")
-    {
-        createIssuanceRequestHardPath(testManager, root, root);
-    }
+//    SECTION("create pre-issuance request hard path")
+//    {
+//        createPreIssuanceRequestHardPath(testManager, root, root);
+//    }
+//
+//    SECTION("create issuance request hard path")
+//    {
+//        createIssuanceRequestHardPath(testManager, root, root);
+//    }
+//
+//    SECTION("Create and review issuance request with tasks")
+//    {
+//        auto issuanceRequestHelper = IssuanceRequestHelper(testManager);
+//        AssetCode assetToBeIssued = "EUR";
+//        uint64_t preIssuedAmount = 10000;
+//        auto issuerSecret = SecretKey::random();
+//        auto issuer = Account{ issuerSecret, Salt(0) };
+//        CreateAccountTestHelper createAccountTestHelper(testManager);
+//        createAccountTestHelper.applyCreateAccountTx(root, issuerSecret.getPublicKey(), AccountType::SYNDICATE);
+//        issuanceRequestHelper.createAssetWithPreIssuedAmount(issuer, assetToBeIssued, preIssuedAmount, root);
+//
+//        auto& db = testManager->getDB();
+//        auto issuerBalance = BalanceHelper::Instance()->loadBalance(issuerSecret.getPublicKey(), assetToBeIssued,
+//                                                                    db, nullptr);
+//        auto issuerBalanceID = issuerBalance->getBalanceID();
+//
+////        ManageKeyValueTestHelper manageKeyValueHelper(testManager);
+////        longstring key = ManageKeyValueOpFrame::makeIssuanceTasksKey(assetToBeIssued);
+////        manageKeyValueHelper.setKey(key)->setValue(4);
+////        manageKeyValueHelper.doApply(testManager->getApp(), ManageKVAction::PUT, true);
+//
+//        auto reference = "6146ccf6a66d994f7c363db875e31ca35581450a4bf6d3be6cc9ac79233a69d0";
+//        uint32_t issuanceTasks = 4;
+//
+////        SECTION("Create issuance request")
+////        {
+////            SECTION("Issuance tasks not found")
+////            {
+////                issuanceRequestHelper.applyCreateIssuanceRequest(issuer, assetToBeIssued, preIssuedAmount,
+////                                                                 issuerBalanceID, reference, nullptr,
+////                                                                 CreateIssuanceRequestResultCode::ISSUANCE_TASKS_NOT_FOUND);
+////            }
+////            SECTION("Trying to set system task")
+////            {
+////                uint32_t systemTask = CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED;
+////                issuanceRequestHelper.applyCreateIssuanceRequest(issuer, assetToBeIssued, preIssuedAmount,
+////                                                                 issuerBalanceID, reference, &systemTask,
+////                                                                 CreateIssuanceRequestResultCode::SYSTEM_TASKS_NOT_ALLOWED);
+////            }
+////            SECTION("Insufficient amount to be issued")
+////            {
+////                issuanceTasks = 0;
+////                auto createIssuanceResult =
+////                        issuanceRequestHelper.applyCreateIssuanceRequest(issuer, assetToBeIssued, preIssuedAmount * 2,
+////                                                                         issuerBalanceID, reference, &issuanceTasks);
+////
+////                REQUIRE(!createIssuanceResult.success().fulfilled);
+////
+////                auto requestID = createIssuanceResult.success().requestID;
+////                auto request = ReviewableRequestHelper::Instance()->loadRequest(requestID, db);
+////                REQUIRE(request->getAllTasks() ==
+////                        CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT);
+////            }
+////            SECTION("Issuance request autoapproved")
+////            {
+////                issuanceTasks = 0;
+////                auto createIssuanceResult =
+////                        issuanceRequestHelper.applyCreateIssuanceRequest(issuer, assetToBeIssued, preIssuedAmount,
+////                                                                         issuerBalanceID, reference, &issuanceTasks);
+////            }
+////            SECTION("Issuance request created. Review issuance request")
+////            {
+////                auto assetHelper = ManageAssetTestHelper(testManager);
+////                assetHelper.updateAsset(issuer, assetToBeIssued, root,
+////                                        static_cast<uint32_t>(AssetPolicy::ISSUANCE_MANUAL_REVIEW_REQUIRED));
+////                auto createIssuanceResult =
+////                        issuanceRequestHelper.applyCreateIssuanceRequest(issuer, assetToBeIssued, preIssuedAmount,
+////                                                                         issuerBalanceID, reference, &issuanceTasks);
+////                auto requestID = createIssuanceResult.success().requestID;
+////                SECTION("Success")
+////                {
+////                    auto reviewRequestHelper = ReviewIssuanceRequestHelper(testManager);
+////                    reviewRequestHelper.applyReviewRequestTx(issuer, requestID, ReviewRequestOpAction::APPROVE, "");
+////                }
+////            }
+////        }
+//    }
 
 }

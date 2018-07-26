@@ -282,4 +282,15 @@ void ReviewableRequestFrame::checkRequestType(ReviewableRequestType requestType)
     }
 }
 
+bool ReviewableRequestFrame::canBeFulfilled(LedgerManager& lm) const
+{
+    if (!lm.shouldUse(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST) ||
+        mRequest.ext.v() != LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+    {
+        return true;
+    }
+
+    return mRequest.ext.tasksExt().pendingTasks == 0;
+}
+
 }

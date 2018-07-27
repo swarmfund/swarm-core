@@ -11,6 +11,11 @@
 #include "test/test_marshaler.h"
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "transactions/test/mocks/MockApplication.h"
+/*#include "transactions/test/mocks/MockOperation.h"
+#include "transactions/test/mocks/MockOperationFrame.h"
+#include "transactions/test/mocks/MockTransactionFrame.h"
+#include "transactions/test/mocks/MockLedgerDelta.h"*/
+#include "transactions/test/mocks/MockLedgerManager.h"
 #include "util/StatusManager.h"
 #include "util/Timer.h"
 #include "util/TmpDir.h"
@@ -22,24 +27,24 @@ typedef std::unique_ptr<Application> appPtr;
 TEST_CASE("bind external system account_id - unit test",
           "[tx][bind_external_system_account_id_unit_test]")
 {
-    /*
-    MockOperation operationMock;
-    MockOperationFrame operationFrameMock;
-    MockTransactionFrame parentTxFrameMock;
     MockApplication appMock;
-    MockLedgerDelta ledgerDeltaMock;
     MockLedgerManager ledgerManagerMock;
+    MockTransactionFrame transactionFrameMock;
+    MockLedgerDelta ledgerDeltaMock;
+
+	Operation operation;
+    OperationResult operationResult;
 
     SECTION("Happy path")
     {
-        BindExternalSystemAccountIdOpFrame opFrame(operationMock,
-    operationFrameMock, parentTxFrameMock);
+        BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
+                                                   transactionFrameMock);
 
         EXPECT_CALL( ... );
         opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);
     }
 
-    SECTION("Checking validity of valid frame")
+    /*SECTION("Checking validity of valid frame")
     {
         BindExternalSystemAccountIdOpFrame opFrame(operationMock,
     operationFrameMock, parentTxFrameMock);
@@ -51,8 +56,5 @@ TEST_CASE("bind external system account_id - unit test",
         BindExternalSystemAccountIdOpFrame opFrame(operationMock,
     operationFrameMock, parentTxFrameMock);
         EXCEPT_FALSE(opFrame.doCheckValid(appMock));
-    }
-        */
-    MockApplication mockApp;
-    EXPECT_CALL(mockApp, getState());
+    }*/
 }

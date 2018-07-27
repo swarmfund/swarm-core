@@ -2109,6 +2109,9 @@
     <ClInclude Include="..\..\src\transactions\test\mocks\MockApplication.h">
       <Filter>transactions\test\mocks</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockLedgerManager.h">
+      <Filter>transactions\test\mocks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />

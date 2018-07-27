@@ -24,9 +24,7 @@ private:
     ReviewRequestHelper(Application &app, LedgerManager &ledgerManager, LedgerDelta &delta,
                         ReviewableRequestFrame::pointer reviewableRequest);
 
-    ReviewRequestResultCode tryApproveRequest(TransactionFrame &parentTx);
-
-    ReviewRequestResult tryApproveRequestWithResult(TransactionFrame &parentTx);
+    ReviewRequestResult tryApproveRequest(TransactionFrame &parentTx);
 
 public:
 

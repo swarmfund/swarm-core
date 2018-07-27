@@ -210,6 +210,11 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
         return false;
 	}
 
+	if (mCreateIssuanceRequest.ext.v() != LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+	{
+		return true;
+	}
+
 	int32_t systemTasks = CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT |
 						  CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED;
 

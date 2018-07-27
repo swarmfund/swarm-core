@@ -15,21 +15,7 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
                                                                LedgerManager &ledgerManager, LedgerDelta &delta,
                                                                ReviewableRequestFrame::pointer reviewableRequest)
 {
-    Database& db = ledgerManager.getDatabase();
-    // shield outer scope of any side effects by using
-    // a sql transaction for ledger state and LedgerDelta
-    soci::transaction reviewRequestTx(db.getSession());
-    LedgerDelta reviewRequestDelta(delta);
-
-    auto helper = ReviewRequestHelper(app, ledgerManager, reviewRequestDelta, reviewableRequest);
-    auto resultCode = helper.tryApproveRequest(parentTx);
-    if (resultCode != ReviewRequestResultCode::SUCCESS)
-        return resultCode;
-
-    reviewRequestTx.commit();
-    reviewRequestDelta.commit();
-
-    return resultCode;
+    return tryApproveRequestWithResult(parentTx, app, ledgerManager, delta, reviewableRequest).code();
 }
 
 ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(TransactionFrame &parentTx, Application &app,
@@ -44,7 +30,7 @@ ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(Transaction
     LedgerDelta reviewRequestDelta(delta);
 
     auto helper = ReviewRequestHelper(app, ledgerManager, reviewRequestDelta, reviewableRequest);
-    auto result = helper.tryApproveRequestWithResult(parentTx);
+    auto result = helper.tryApproveRequest(parentTx);
     if (result.code() != ReviewRequestResultCode::SUCCESS)
     {
         return result;
@@ -56,20 +42,14 @@ ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(Transaction
     return result;
 }
 
-ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(TransactionFrame &parentTx)
-{
-    auto result = tryReviewRequest(parentTx);
-    return result.second;
-}
-
-ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame &parentTx)
+    ReviewRequestResult ReviewRequestHelper::tryApproveRequest(TransactionFrame &parentTx)
 {
     auto result = tryReviewRequest(parentTx);
     bool isApplied = result.first;
     ReviewRequestResult reviewRequestResult = result.second;
     if (!isApplied)
     {
-        return reviewRequestResult.code();
+        return reviewRequestResult;
     }
 
     auto resultCode = reviewRequestResult.code();
@@ -79,7 +59,7 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
         throw std::runtime_error("Unexpected state: doApply returned true, but result code is not success.");
     }
 
-    return resultCode;
+    return reviewRequestResult;
 }
 
 std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(TransactionFrame &parentTx)

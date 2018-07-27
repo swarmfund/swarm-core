@@ -121,9 +121,9 @@ ReviewIssuanceRequestHelper::createReviewRequestTx(Account &source, uint64_t req
     reviewRequestOp.requestID = requestID;
     reviewRequestOp.requestDetails.requestType(requestType);
     reviewRequestOp.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
-    reviewRequestOp.ext.reviewerResponse().tasksToAdd = 0;
-    reviewRequestOp.ext.reviewerResponse().tasksToRemove = action == ReviewRequestOpAction::APPROVE ? 4 : 0;
-    reviewRequestOp.ext.reviewerResponse().externalDetails = "{}";
+    reviewRequestOp.ext.reviewDetails().tasksToAdd = 0;
+    reviewRequestOp.ext.reviewDetails().tasksToRemove = action == ReviewRequestOpAction::APPROVE ? 4 : 0;
+    reviewRequestOp.ext.reviewDetails().externalDetails = "{}";
 
     return txFromOperation(source, op, nullptr);
 }

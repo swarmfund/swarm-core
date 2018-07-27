@@ -83,9 +83,9 @@ std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(Trans
     if (mRequest->getRequestType() == ReviewableRequestType::ISSUANCE_CREATE)
     {
         reviewRequestOp.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
-        reviewRequestOp.ext.reviewerResponse().tasksToAdd = 0;
-        reviewRequestOp.ext.reviewerResponse().tasksToRemove = 0;
-        reviewRequestOp.ext.reviewerResponse().externalDetails = "{}";
+        reviewRequestOp.ext.reviewDetails().tasksToAdd = 0;
+        reviewRequestOp.ext.reviewDetails().tasksToRemove = 0;
+        reviewRequestOp.ext.reviewDetails().externalDetails = "{}";
     }
 
     OperationResult opRes;

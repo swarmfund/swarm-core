@@ -115,10 +115,10 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 
 	requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
 
-	requestEntry.ext.tasksExt().allTasks |= mReviewRequest.ext.reviewerResponse().tasksToAdd;
-	requestEntry.ext.tasksExt().pendingTasks &= ~mReviewRequest.ext.reviewerResponse().tasksToRemove;
-	requestEntry.ext.tasksExt().pendingTasks |= mReviewRequest.ext.reviewerResponse().tasksToAdd;
-	requestEntry.ext.tasksExt().externalDetails.emplace_back(mReviewRequest.ext.reviewerResponse().externalDetails);
+	requestEntry.ext.tasksExt().allTasks |= mReviewRequest.ext.reviewDetails().tasksToAdd;
+	requestEntry.ext.tasksExt().pendingTasks &= ~mReviewRequest.ext.reviewDetails().tasksToRemove;
+	requestEntry.ext.tasksExt().pendingTasks |= mReviewRequest.ext.reviewDetails().tasksToAdd;
+	requestEntry.ext.tasksExt().externalDetails.emplace_back(mReviewRequest.ext.reviewDetails().externalDetails);
 
 	ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
 
@@ -242,14 +242,14 @@ bool ReviewIssuanceCreationRequestOpFrame::doCheckValid(Application &app)
 	int32_t systemTasks = CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT |
 						  CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED;
 
-	if ((mReviewRequest.ext.reviewerResponse().tasksToAdd & systemTasks) != 0 ||
-        (mReviewRequest.ext.reviewerResponse().tasksToRemove & systemTasks) != 0)
+	if ((mReviewRequest.ext.reviewDetails().tasksToAdd & systemTasks) != 0 ||
+        (mReviewRequest.ext.reviewDetails().tasksToRemove & systemTasks) != 0)
 	{
 		innerResult().code(ReviewRequestResultCode::SYSTEM_TASKS_NOT_ALLOWED);
 		return false;
 	}
 
-	if (!isValidJson(mReviewRequest.ext.reviewerResponse().externalDetails))
+	if (!isValidJson(mReviewRequest.ext.reviewDetails().externalDetails))
 	{
 		innerResult().code(ReviewRequestResultCode::INVALID_EXTERNAL_DETAILS);
 		return false;

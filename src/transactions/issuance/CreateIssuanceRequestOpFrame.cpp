@@ -135,11 +135,11 @@ bool CreateIssuanceRequestOpFrame::doApplyV2(Application& app, LedgerDelta& delt
     bool isFulfilled = false;
 	ReviewRequestResultCode reviewRequestResultCode = ReviewRequestResultCode::SUCCESS;
 
-	ReviewRequestResult reviewRequestResult;
 	if (allTasks == 0)
 	{
-		reviewRequestResult = ReviewRequestHelper::tryApproveRequestWithResult(mParentTx, app, ledgerManager, delta,
-																			   requestFrame);
+		ReviewRequestResult reviewRequestResult = ReviewRequestHelper::tryApproveRequestWithResult(mParentTx, app,
+																								   ledgerManager, delta,
+																								   requestFrame);
 		reviewRequestResultCode = reviewRequestResult.code();
 		isFulfilled = reviewRequestResult.success().ext.extendedResult().fulfilled;
 	}

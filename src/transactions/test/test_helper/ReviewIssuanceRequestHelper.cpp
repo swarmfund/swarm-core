@@ -49,8 +49,20 @@ ReviewIssuanceChecker::ReviewIssuanceChecker(
                                                                        nullptr);
 }
 
-void ReviewIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer)
+void ReviewIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer request)
 {
+    // checkApprove can be called during auto approve, so the request can be nullptr
+    if (request != nullptr)
+    {
+        auto& requestEntry = request->getRequestEntry();
+        // if a request has pending tasks - no need to check approval effects
+        if (requestEntry.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST &&
+            requestEntry.ext.tasksExt().pendingTasks != 0)
+        {
+            return;
+        }
+    }
+
     // check asset
     REQUIRE(!!issuanceRequest);
     REQUIRE(!!assetFrameBeforeTx);

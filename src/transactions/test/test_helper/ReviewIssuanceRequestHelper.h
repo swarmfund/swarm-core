@@ -21,7 +21,7 @@ namespace txtest
 		ReviewIssuanceChecker(const TestManager::pointer& testManager,
 							  std::shared_ptr<IssuanceRequest> issuanceRequest);
 
-		void checkApprove(ReviewableRequestFrame::pointer) override;
+		void checkApprove(ReviewableRequestFrame::pointer request) override;
 
 	protected:
 		std::shared_ptr<IssuanceRequest> issuanceRequest;

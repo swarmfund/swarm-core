@@ -182,6 +182,9 @@ test(int argc, char* argv[], el::Level ll,
     LOG(INFO) << "Testing stellar-core " << STELLAR_CORE_VERSION;
     LOG(INFO) << "Logging to " << cfg.LOG_FILE_PATH;
 
+	::testing::GTEST_FLAG(throw_on_failure) = true;
+    ::testing::InitGoogleMock(&argc, argv);
+
     return Catch::Session().run(argc, argv);
 }
 }

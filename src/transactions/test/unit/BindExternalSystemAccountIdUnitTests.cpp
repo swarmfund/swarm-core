@@ -54,4 +54,5 @@ TEST_CASE("bind external system account_id - unit test",
     }
         */
     MockApplication mockApp;
+    EXPECT_CALL(mockApp, getState());
 }

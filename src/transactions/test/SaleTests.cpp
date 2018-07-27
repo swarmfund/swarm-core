@@ -643,6 +643,16 @@ TEST_CASE("Sale", "[tx][sale]")
         auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
         auto requestID = requestCreationResult.success().requestID;
 
+        SECTION("Check new review sale request result")
+        {
+            auto reviewSaleRequestResult = saleReviewer.applyReviewRequestTx(root, requestID,
+                                                                             ReviewRequestOpAction::APPROVE, "");
+            REQUIRE(reviewSaleRequestResult.success().ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+            REQUIRE(reviewSaleRequestResult.success().ext.extendedResult().fulfilled);
+            REQUIRE(reviewSaleRequestResult.success().ext.extendedResult().typeExt.requestType() ==
+                    ReviewableRequestType::SALE);
+            REQUIRE(reviewSaleRequestResult.success().ext.extendedResult().typeExt.saleExtended().saleID != 0);
+        }
         SECTION("Max issuance or preissued amount is less then hard cap")
         {
             const AssetCode asset = "GSC";

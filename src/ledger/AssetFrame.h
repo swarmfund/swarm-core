@@ -97,6 +97,8 @@ public:
 
     // returns true, if specified amount was successfully issued
     bool tryIssue(uint64_t amount);
+    // returns true, if specified amount was successfully unissued
+    bool tryUnIssue(uint64_t amount);
     // returns true, if specified amount can be authorzied to be issued in the future
     bool canAddAvailableForIssuance(uint64_t amount);
     // returns true, if specified amount can be authorized to be issued

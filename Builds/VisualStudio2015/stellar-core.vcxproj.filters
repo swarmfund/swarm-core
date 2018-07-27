@@ -1074,6 +1074,18 @@
     <ClCompile Include="..\..\src\transactions\test\StatisticsV2Tests.cpp">
       <Filter>transactions\test</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewPromotionUpdateRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\review_request\ReviewUpdateSaleEndTimeRequestOpFrame.cpp">
+      <Filter>transactions\review_request</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewPromotionUpdateRequestTestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleEndTimeRequestHelper.cpp">
+      <Filter>transactions\test\helper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -2073,6 +2085,18 @@
     <ClInclude Include="..\..\src\transactions\CreateManageLimitsRequestOpFrame.h">
       <Filter>transactions</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewPromotionUpdateRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateSaleEndTimeRequestOpFrame.h">
+      <Filter>transactions\review_request</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewPromotionUpdateRequestTestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleEndTimeRequestHelper.h">
+      <Filter>transactions\test\helper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />
@@ -2348,6 +2372,12 @@
       <Filter>xdr</Filter>
     </CustomBuild>
     <CustomBuild Include="..\..\src\xdr\Stellar-operation-create-manage-limits-request.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-sale-end-time.x">
+      <Filter>xdr</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\xdr\Stellar-reviewable-request-update-promotion.x">
       <Filter>xdr</Filter>
     </CustomBuild>
   </ItemGroup>

@@ -87,8 +87,9 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
     }
     SECTION("Given valid crowdfund")
     {
+        auto maxAmountToBeSold = preIssuedAmount / 2;
         const auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
-            endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, ONE) }, &saleType, &preIssuedAmount, SaleState::PROMOTION);
+            endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, ONE) }, &saleType, &maxAmountToBeSold, SaleState::PROMOTION);
         saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
         auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
         REQUIRE(sales.size() == 1);
@@ -115,6 +116,22 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
         issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalance,
             SecretKey::random().getStrKeyPublic(), &allTasks);
 
+        SECTION("Happy path")
+        {
+            auto saleTestHelper = ManageSaleTestHelper(testManager);
+            auto saleStateData = saleTestHelper.setSaleState(SaleState::NONE);
+            saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
+            // exchange rate for quote asset changed, so now amount to recieve is 0
+            quoteDefaultQuotePrice = 542680000;
+            assetPairHelper.applyManageAssetPairTx(root, quoteAsset, defaultQuoteAsset, quoteDefaultQuotePrice, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
+            // buy whole sale
+            const auto hardCapInQuoteAsset = bigDivide(hardCap, ONE, quoteDefaultQuotePrice, ROUND_UP);
+            auto manageOffer = OfferManager::buildManageOfferOp(baseBalance, quoteBalance, true, hardCapInQuoteAsset,
+                ONE, 0, 0, saleID);
+            ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer);
+            // close the sale
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
+        }
         SECTION("Participation amount is too small")
         {
             auto saleTestHelper = ManageSaleTestHelper(testManager);
@@ -145,6 +162,8 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
             // so quote balance should be charged with only second order
             quoteBalanceAfterTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
             REQUIRE(quoteBalanceAfterTx->getAmount() == quoteBalanceBeforeTx->getAmount() - hardCapInQuoteAsset);
+            // close the sale
+            CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
         }
         SECTION("Not able to invest into sale in voting state")
         {

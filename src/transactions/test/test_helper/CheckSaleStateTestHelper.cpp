@@ -70,10 +70,11 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     auto hardCapBaseAsset = sale->getSaleEntry().maxAmountToBeSold;
     REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + hardCapBaseAsset);
 
-    // can't issue after sale is closed
-    auto currentCupBaseAsset = std::min(sale->getBaseAmountForCurrentCap(), baseAssetBeforeTx.maxIssuanceAmount);
-    REQUIRE(baseAssetAfterTx->getAvailableForIssuance() == 0);
-    REQUIRE(baseAssetAfterTx->getIssued() == baseAssetBeforeTx.issued + currentCupBaseAsset);
+    // check state of the asset
+    auto issuedOnTheSale = baseAssetAfterTx->getIssued()- baseAssetBeforeTx.issued;
+    auto expectedAvailableForIssuance = baseAssetBeforeTx.availableForIssueance + baseAssetBeforeTx.pendingIssuance - issuedOnTheSale;
+    REQUIRE(baseAssetAfterTx->getAvailableForIssuance() + baseAssetAfterTx->getPendingIssuance() == expectedAvailableForIssuance);
+    REQUIRE(baseAssetAfterTx->getIssued() - baseAssetBeforeTx.issued <= sale->getMaxAmountToBeSold());
     REQUIRE(baseAssetAfterTx->getMaxIssuanceAmount() == baseAssetAfterTx->getMaxIssuanceAmount());
 
     // check that sale owner have expected quote on balance
@@ -82,6 +83,10 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
         const auto quoteAssetResult = getOfferResultForQuoteBalance(result, quoteAsset.quoteBalance);
         checkBalancesAfterApproval(stateBeforeTx, sale, quoteAsset, quoteAssetResult, saleAntesBeforeTx);
     }
+
+    auto baseBalanceBeforeTx = stateBeforeTx.getBalance(sale->getBaseBalanceID());
+    auto baseBalanceAfterTx = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), mTestManager->getDB());
+    REQUIRE(baseBalanceBeforeTx->mEntry.data.balance() == baseBalanceAfterTx->mEntry.data.balance());
 }
 
 void CheckSaleStateHelper::ensureUpdated(const CheckSaleStateSuccess result,

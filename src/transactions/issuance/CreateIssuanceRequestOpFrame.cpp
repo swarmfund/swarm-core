@@ -132,18 +132,21 @@ bool CreateIssuanceRequestOpFrame::doApplyV2(Application& app, LedgerDelta& delt
 		EntryHelperProvider::storeChangeEntry(delta, db, requestFrame->mEntry);
 	}
 
+    bool isFulfilled = false;
 	ReviewRequestResultCode reviewRequestResultCode = ReviewRequestResultCode::SUCCESS;
+
+	ReviewRequestResult reviewRequestResult;
 	if (allTasks == 0)
 	{
-		reviewRequestResultCode = ReviewRequestHelper::tryApproveRequest(mParentTx, app, ledgerManager, delta,
-																		 requestFrame);
+		reviewRequestResult = ReviewRequestHelper::tryApproveRequestWithResult(mParentTx, app, ledgerManager, delta,
+																			   requestFrame);
+		reviewRequestResultCode = reviewRequestResult.code();
+		isFulfilled = reviewRequestResult.success().ext.extendedResult().fulfilled;
 	}
 
-	bool isFulfilled;
 	switch (reviewRequestResultCode) {
 		case ReviewRequestResultCode::SUCCESS:
 		{
-            isFulfilled = !ReviewableRequestHelper::Instance()->exists(db, requestFrame->getKey());
 			break;
 		}
 		case ReviewRequestResultCode::FULL_LINE:

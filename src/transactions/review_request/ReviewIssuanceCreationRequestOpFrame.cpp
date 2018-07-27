@@ -108,6 +108,8 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 		requestEntry.ext.tasksExt().pendingTasks |= CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
 		EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
 		innerResult().code(ReviewRequestResultCode::SUCCESS);
+		innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+		innerResult().success().ext.extendedResult().fulfilled = false;
 		return true;
 	}
 
@@ -123,6 +125,8 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 	if (!request->canBeFulfilled(ledgerManager))
 	{
 		innerResult().code(ReviewRequestResultCode::SUCCESS);
+        innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+        innerResult().success().ext.extendedResult().fulfilled = false;
 		return true;
 	}
 
@@ -175,6 +179,8 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 
 	EntryHelperProvider::storeChangeEntry(delta, db, receiver->mEntry);
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
+    innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+    innerResult().success().ext.extendedResult().fulfilled = true;
 	return true;
 }
 

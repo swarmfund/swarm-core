@@ -32,6 +32,36 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
     return resultCode;
 }
 
+ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(TransactionFrame &parentTx, Application &app,
+                                                                     LedgerManager &ledgerManager,
+                                                                     LedgerDelta &delta,
+                                                                     ReviewableRequestFrame::pointer reviewableRequest)
+{
+    Database& db = ledgerManager.getDatabase();
+    // shield outer scope of any side effects by using
+    // a sql transaction for ledger state and LedgerDelta
+    soci::transaction reviewRequestTx(db.getSession());
+    LedgerDelta reviewRequestDelta(delta);
+
+    auto helper = ReviewRequestHelper(app, ledgerManager, reviewRequestDelta, reviewableRequest);
+    auto result = helper.tryApproveRequestWithResult(parentTx);
+    if (result.code() != ReviewRequestResultCode::SUCCESS)
+    {
+        return result;
+    }
+
+    reviewRequestTx.commit();
+    reviewRequestDelta.commit();
+
+    return result;
+}
+
+ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(TransactionFrame &parentTx)
+{
+    auto result = tryReviewRequest(parentTx);
+    return result.second;
+}
+
 ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame &parentTx)
 {
     auto result = tryReviewRequest(parentTx);

@@ -12,9 +12,9 @@
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "transactions/test/mocks/MockApplication.h"
 /*#include "transactions/test/mocks/MockOperation.h"
-#include "transactions/test/mocks/MockOperationFrame.h"
+#include "transactions/test/mocks/MockOperationFrame.h"*/
 #include "transactions/test/mocks/MockTransactionFrame.h"
-#include "transactions/test/mocks/MockLedgerDelta.h"*/
+//#include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
 #include "util/StatusManager.h"
 #include "util/Timer.h"
@@ -29,7 +29,7 @@ TEST_CASE("bind external system account_id - unit test",
 {
     MockApplication appMock;
     MockLedgerManager ledgerManagerMock;
-    //MockTransactionFrame transactionFrameMock;
+    MockTransactionFrame transactionFrameMock;
     //MockLedgerDelta ledgerDeltaMock;
 
     Operation operation;

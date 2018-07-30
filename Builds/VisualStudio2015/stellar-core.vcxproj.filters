@@ -2118,6 +2118,9 @@
     <ClInclude Include="..\..\src\transactions\TransactionFrameImpl.h">
       <Filter>transactions</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockTransactionFrame.h">
+      <Filter>transactions\test\mocks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\AUTHORS" />

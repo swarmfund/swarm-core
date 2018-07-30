@@ -720,6 +720,7 @@
     <ClInclude Include="..\..\src\transactions\StatisticsV2Processor.h" />
     <ClInclude Include="..\..\src\transactions\test\mocks\MockApplication.h" />
     <ClInclude Include="..\..\src\transactions\test\mocks\MockLedgerManager.h" />
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockTransactionFrame.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\Account.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\BindExternalSystemAccountIdTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.h" />

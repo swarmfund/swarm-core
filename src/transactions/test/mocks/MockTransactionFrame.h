@@ -1,3 +1,5 @@
+#pragma once
+
 #include "transactions/TransactionFrame.h"
 
 namespace stellar

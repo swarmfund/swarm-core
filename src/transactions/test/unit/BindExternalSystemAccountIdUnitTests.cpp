@@ -30,17 +30,19 @@ TEST_CASE("bind external system account_id - unit test",
     MockApplication appMock;
     MockLedgerManager ledgerManagerMock;
     MockTransactionFrame transactionFrameMock;
-    //MockLedgerDelta ledgerDeltaMock;
+    // MockLedgerDelta ledgerDeltaMock;
 
     Operation operation;
+	operation.body = Operation::_body_t(
+        stellar::OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID);
     OperationResult operationResult;
 
     SECTION("Happy path")
     {
-        /*BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
+        BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
                                                    transactionFrameMock);
 
-        EXPECT_CALL( ... );
+        /*EXPECT_CALL( ... );
         opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);*/
     }
 

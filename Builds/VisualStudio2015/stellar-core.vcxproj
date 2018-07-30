@@ -463,6 +463,7 @@
     <ClCompile Include="..\..\src\transactions\SetOptionsOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\SignatureValidator.cpp" />
     <ClCompile Include="..\..\lib\util\crc16.cpp" />
+    <ClCompile Include="..\..\src\transactions\TransactionFrameImpl.cpp" />
     <ClCompile Include="..\..\src\util\BitsetEnumerator.cpp" />
     <ClCompile Include="..\..\src\util\BitsetEnumeratorTests.cpp" />
     <ClCompile Include="..\..\src\util\Fs.cpp" />
@@ -768,6 +769,7 @@
     <ClInclude Include="..\..\src\transactions\SignatureValidator.h" />
     <ClInclude Include="..\..\src\transactions\SourceDetails.h" />
     <ClInclude Include="..\..\src\transactions\TransactionFrame.h" />
+    <ClInclude Include="..\..\src\transactions\TransactionFrameImpl.h" />
     <ClInclude Include="..\..\src\util\asio.h" />
     <ClInclude Include="..\..\lib\util\basen.h" />
     <ClInclude Include="..\..\lib\util\crc16.h" />

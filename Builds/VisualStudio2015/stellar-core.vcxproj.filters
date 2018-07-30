@@ -1095,6 +1095,9 @@
     <ClCompile Include="..\..\src\transactions\test\unit\BindExternalSystemAccountIdUnitTests.cpp">
       <Filter>transactions\test\unit</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\transactions\TransactionFrameImpl.cpp">
+      <Filter>transactions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -2111,6 +2114,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\mocks\MockLedgerManager.h">
       <Filter>transactions\test\mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\TransactionFrameImpl.h">
+      <Filter>transactions</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

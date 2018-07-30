@@ -2,22 +2,23 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "main/Application.h"
-#include "util/Timer.h"
-#include "overlay/LoopbackPeer.h"
-#include "util/make_unique.h"
-#include "main/test.h"
-#include "lib/json/json.h"
-#include "ledger/LedgerManager.h"
-#include "ledger/LedgerDelta.h"
-#include "transactions/payment/PaymentOpFrame.h"
-#include "transactions/SetOptionsOpFrame.h"
-#include "transactions/CreateAccountOpFrame.h"
-#include "transactions/manage_asset/ManageAssetOpFrame.h"
-#include "transactions/ManageBalanceOpFrame.h"
-#include "transactions/test/TxTests.h"
 #include "crypto/SHA.h"
+#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerManager.h"
+#include "lib/json/json.h"
+#include "main/Application.h"
+#include "main/test.h"
+#include "overlay/LoopbackPeer.h"
 #include "test/test_marshaler.h"
+#include "transactions/TransactionFrameImpl.h"
+#include "transactions/CreateAccountOpFrame.h"
+#include "transactions/ManageBalanceOpFrame.h"
+#include "transactions/SetOptionsOpFrame.h"
+#include "transactions/manage_asset/ManageAssetOpFrame.h"
+#include "transactions/payment/PaymentOpFrame.h"
+#include "transactions/test/TxTests.h"
+#include "util/Timer.h"
+#include "util/make_unique.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -248,7 +249,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
             te.tx.sourceAccount = root.getPublicKey();
             te.tx.salt = rootSeq++;
             TransactionFramePtr tx =
-                std::make_shared<TransactionFrame>(networkID, te);
+                std::make_shared<TransactionFrameImpl>(networkID, te);
             tx->addSignature(root);
             LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
                               app.getDatabase());

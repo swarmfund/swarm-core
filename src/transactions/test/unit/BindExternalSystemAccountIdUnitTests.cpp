@@ -29,19 +29,19 @@ TEST_CASE("bind external system account_id - unit test",
 {
     MockApplication appMock;
     MockLedgerManager ledgerManagerMock;
-    MockTransactionFrame transactionFrameMock;
-    MockLedgerDelta ledgerDeltaMock;
+    //MockTransactionFrame transactionFrameMock;
+    //MockLedgerDelta ledgerDeltaMock;
 
-	Operation operation;
+    Operation operation;
     OperationResult operationResult;
 
     SECTION("Happy path")
     {
-        BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
+        /*BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
                                                    transactionFrameMock);
 
         EXPECT_CALL( ... );
-        opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);
+        opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);*/
     }
 
     /*SECTION("Checking validity of valid frame")

@@ -94,7 +94,7 @@ namespace stellar {
 
         // These must be constructed _after_ because they frequently call back
         // into App.getFoo() to get information / start up.
-        mDatabase = make_unique<Database>(*this);
+        mDatabase = make_unique<DatabaseImpl>(*this);
         mPersistentState = make_unique<PersistentState>(*this);
 
         mTmpDirManager = make_unique<TmpDirManager>(cfg.TMP_DIR_PATH);

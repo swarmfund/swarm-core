@@ -110,6 +110,7 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 		innerResult().code(ReviewRequestResultCode::SUCCESS);
 		innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
 		innerResult().success().ext.extendedResult().fulfilled = false;
+		innerResult().success().ext.extendedResult().typeExt.requestType(ReviewableRequestType::NONE);
 		return true;
 	}
 
@@ -127,6 +128,7 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 		innerResult().code(ReviewRequestResultCode::SUCCESS);
         innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
         innerResult().success().ext.extendedResult().fulfilled = false;
+		innerResult().success().ext.extendedResult().typeExt.requestType(ReviewableRequestType::NONE);
 		return true;
 	}
 
@@ -181,6 +183,7 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 	innerResult().code(ReviewRequestResultCode::SUCCESS);
     innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
     innerResult().success().ext.extendedResult().fulfilled = true;
+	innerResult().success().ext.extendedResult().typeExt.requestType(ReviewableRequestType::NONE);
 	return true;
 }
 

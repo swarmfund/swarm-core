@@ -170,15 +170,6 @@ ManageInvoiceRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
-    if (mManageInvoiceRequest.details.action() == ManageInvoiceRequestAction::CREATE &&
-        mManageInvoiceRequest.details.invoiceRequest().isSecured)
-    {
-        app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "malformed-zero-amount"},
-                                  "operation").Mark();
-        innerResult().code(ManageInvoiceRequestResultCode::IS_SECURED_MUST_BE_FALSE);
-        return false;
-    }
-
     return true;
 }
 

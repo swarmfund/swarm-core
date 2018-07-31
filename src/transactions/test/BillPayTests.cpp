@@ -164,12 +164,6 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
                         ReviewRequestOpAction::PERMANENT_REJECT, "Some reason",
                         ReviewRequestResultCode::PERMANENT_REJECT_NOT_ALLOWED);
             }
-
-            SECTION("Not allowed to approve second time")
-            {
-                reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
-                        ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::ALREADY_APPROVED);
-            }
         }
 
         SECTION("Only sender allowed to approve")

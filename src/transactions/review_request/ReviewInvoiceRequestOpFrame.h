@@ -14,7 +14,7 @@ class ReviewInvoiceRequestOpFrame : public ReviewRequestOpFrame
 
     std::map<PaymentV2ResultCode, ReviewRequestResultCode> paymentCodeToReviewRequestCode =
     {
-        {PaymentV2ResultCode::MALFORMED, ReviewRequestResultCode::MALFORMED},
+        {PaymentV2ResultCode::MALFORMED, ReviewRequestResultCode::PAYMENT_V2_MALFORMED},
         {PaymentV2ResultCode::UNDERFUNDED, ReviewRequestResultCode::UNDERFUNDED},
         {PaymentV2ResultCode::LINE_FULL, ReviewRequestResultCode::LINE_FULL},
         {PaymentV2ResultCode::FEE_ASSET_MISMATCHED, ReviewRequestResultCode::FEE_ASSET_MISMATCHED},

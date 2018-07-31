@@ -9,6 +9,7 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AssetHelper.h"
+#include "ledger/ContractHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "main/Application.h"
 
@@ -76,9 +77,15 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
         return true;
 
     auto contractHelper = ContractHelper::Instance();
-    auto contractFrame = contractHelper->loadContract(*invoiceRequest.contractID)
+    auto contractFrame = contractHelper->loadContract(*invoiceRequest.contractID, db, &delta);
 
-    return true;
+    if (!contractFrame)
+    {
+        innerResult().code(ReviewRequestResultCode::CONTRACT_NOT_FOUND);
+        return false;
+    }
+
+    return tryLockAmount(receiverBalance, invoiceRequest.amount);
 }
 
     bool
@@ -94,7 +101,7 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
             }
             case BalanceFrame::LINE_FULL:
             {
-                innerResult().code(ReviewRequestResultCode::LOCKED_AMOUNT_OVERFLOW);
+                innerResult().code(ReviewRequestResultCode::INVOICE_RECIEVER_BALANCE_LOCK_AMOUNT_OVERFLOW);
                 return false;
             }
             case BalanceFrame::UNDERFUNDED:
@@ -125,7 +132,7 @@ ReviewInvoiceRequestOpFrame::checkPaymentDetails(ReviewableRequestEntry& request
         {
             if (!(receiverBalance == paymentDetails.destination.balanceID()))
             {
-                innerResult().code(BillPayResultCode::DESTINATION_BALANCE_MISMATCHED);
+                innerResult().code(ReviewRequestResultCode::DESTINATION_BALANCE_MISMATCHED);
                 return false;
             }
             break;
@@ -134,7 +141,7 @@ ReviewInvoiceRequestOpFrame::checkPaymentDetails(ReviewableRequestEntry& request
         {
             if (!(requestEntry.requestor == paymentDetails.destination.accountID()))
             {
-                innerResult().code(BillPayResultCode::DESTINATION_ACCOUNT_MISMATCHED);
+                innerResult().code(ReviewRequestResultCode::DESTINATION_ACCOUNT_MISMATCHED);
                 return false;
             }
             break;
@@ -145,19 +152,19 @@ ReviewInvoiceRequestOpFrame::checkPaymentDetails(ReviewableRequestEntry& request
 
     if (invoiceRequest.amount != paymentDetails.amount)
     {
-        innerResult().code(BillPayResultCode::AMOUNT_MISMATCHED);
+        innerResult().code(ReviewRequestResultCode::AMOUNT_MISMATCHED);
         return false;
     }
 
     if (!(paymentDetails.sourceBalanceID == senderBalance))
     {
-        innerResult().code(BillPayResultCode::SOURCE_BALANCE_MISMATCHED);
+        innerResult().code(ReviewRequestResultCode::SOURCE_BALANCE_MISMATCHED);
         return false;
     }
 
     if (!paymentDetails.feeData.sourcePaysForDest)
     {
-        innerResult().code(BillPayResultCode::REQUIRED_SOURCE_PAY_FOR_DESTINATION);
+        innerResult().code(ReviewRequestResultCode::REQUIRED_SOURCE_PAY_FOR_DESTINATION);
         return false;
     }
 
@@ -185,7 +192,12 @@ ReviewInvoiceRequestOpFrame::processPaymentV2(Application &app, LedgerDelta &del
         return false;
     }
 
-    innerResult().success().paymentV2Response = opRes.tr().paymentV2Result().paymentV2Response();
+    if (ledgerManager.shouldUse(LedgerVersion::ADD_REVIEW_INVOICE_REQUEST_PAYMENT_RESPONSE))
+    {
+        innerResult().success().ext.v(LedgerVersion::ADD_REVIEW_INVOICE_REQUEST_PAYMENT_RESPONSE);
+        innerResult().success().ext.paymentV2Response() = opRes.tr().paymentV2Result().paymentV2Response();
+    }
+
     return true;
 }
 
@@ -194,7 +206,7 @@ ReviewInvoiceRequestOpFrame::trySetErrorCode(PaymentV2ResultCode paymentResult)
 {
     try
     {
-        innerResult().code(paymentCodeToBillPayCode[paymentResult]);
+        innerResult().code(paymentCodeToReviewRequestCode[paymentResult]);
     }
     catch(...)
     {

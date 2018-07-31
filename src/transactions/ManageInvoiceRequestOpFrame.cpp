@@ -117,7 +117,7 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     if (reviewableRequestHelper->isReferenceExist(db, getSourceID(), reference))
     {
-        innerResult().code(ManageInvoiceRequestResultCode::MANAGE_INVOICE_REQUEST_REFERENCE_DUPLICATION);
+        innerResult().code(ManageInvoiceRequestResultCode::INVOICE_REQUEST_REFERENCE_DUPLICATION);
         return false;
     }
 

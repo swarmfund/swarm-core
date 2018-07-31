@@ -38,7 +38,7 @@ set(NOT_COMMON_SOURCE_FILES
         process/ProcessManager.h
         transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
-        transactions/test/test_helper/Account.h ledger/ContractFrame.cpp ledger/ContractFrame.h ledger/ContractHelper.cpp ledger/ContractHelper.h)
+        transactions/test/test_helper/Account.h ledger/ContractFrame.cpp ledger/ContractFrame.h ledger/ContractHelper.cpp ledger/ContractHelper.h transactions/ManageContractRequestOpFrame.cpp transactions/ManageContractRequestOpFrame.h)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

@@ -3,6 +3,7 @@
 #include "invariant/Invariants.h"
 #include "main/CommandHandler.h"
 #include "main/PersistentState.h"
+#include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "overlay/BanManager.h"
 #include "overlay/OverlayManager.h"
@@ -11,8 +12,7 @@
 #include "test/test_marshaler.h"
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "transactions/test/mocks/MockApplication.h"
-/*#include "transactions/test/mocks/MockOperation.h"
-#include "transactions/test/mocks/MockOperationFrame.h"*/
+#include "transactions/test/mocks/MockDatabase.h"
 #include "transactions/test/mocks/MockTransactionFrame.h"
 //#include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
@@ -31,19 +31,22 @@ TEST_CASE("bind external system account_id - unit test",
     MockLedgerManager ledgerManagerMock;
     MockTransactionFrame transactionFrameMock;
     // MockLedgerDelta ledgerDeltaMock;
+    MockDatabase dbMock;
 
     Operation operation;
-	operation.body = Operation::_body_t(
+    operation.body = Operation::_body_t(
         stellar::OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID);
     OperationResult operationResult;
+
+    ON_CALL(appMock, getDatabase()).WillByDefault(::testing::ReturnRef(dbMock));
 
     SECTION("Happy path")
     {
         BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
                                                    transactionFrameMock);
 
-        /*EXPECT_CALL( ... );
-        opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);*/
+        // EXPECT_CALL( ... );
+        // opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);
     }
 
     /*SECTION("Checking validity of valid frame")

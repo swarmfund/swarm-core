@@ -4,15 +4,15 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include <string>
+#include "database/Marshaler.h"
+#include "medida/timer_context.h"
+#include "overlay/StellarXDR.h"
+#include "util/NonCopyable.h"
+#include "util/Timer.h"
+#include "util/lrucache.hpp"
 #include <set>
 #include <soci.h>
-#include "overlay/StellarXDR.h"
-#include "medida/timer_context.h"
-#include "util/NonCopyable.h"
-#include "util/lrucache.hpp"
-#include "util/Timer.h"
-#include "database/Marshaler.h"
+#include <string>
 
 namespace medida
 {
@@ -83,7 +83,7 @@ class StatementContext : NonCopyable
  * (SQL isolation level 'SERIALIZABLE' in Postgresql and Sqlite, neither of
  * which provide true serializability).
  */
-class Database : NonMovableOrCopyable
+class Database
 {
   public:
     // Return a crude meter of total queries to the db, for use in
@@ -108,7 +108,8 @@ class Database : NonMovableOrCopyable
     // Return a logging helper that will capture all SQL statements made
     // on the main connection while active, and will log those statements
     // to the process' log for diagnostics. For testing and perf tuning.
-    virtual std::shared_ptr<SQLLogContext> captureAndLogSQL(std::string contextName) = 0;
+    virtual std::shared_ptr<SQLLogContext>
+    captureAndLogSQL(std::string contextName) = 0;
 
     // Return a helper object that borrows, from the Database, a prepared
     // statement handle for the provided query. The prepared statement handle
@@ -123,10 +124,14 @@ class Database : NonMovableOrCopyable
     // Return metric-gathering timers for various families of SQL operation.
     // These timers automatically count the time they are alive for,
     // so only acquire them immediately before executing an SQL statement.
-    virtual medida::TimerContext getInsertTimer(std::string const& entityName) = 0;
-    virtual medida::TimerContext getSelectTimer(std::string const& entityName) = 0;
-    virtual medida::TimerContext getDeleteTimer(std::string const& entityName) = 0;
-    virtual medida::TimerContext getUpdateTimer(std::string const& entityName) = 0;
+    virtual medida::TimerContext
+    getInsertTimer(std::string const& entityName) = 0;
+    virtual medida::TimerContext
+    getSelectTimer(std::string const& entityName) = 0;
+    virtual medida::TimerContext
+    getDeleteTimer(std::string const& entityName) = 0;
+    virtual medida::TimerContext
+    getUpdateTimer(std::string const& entityName) = 0;
 
     // If possible (i.e. "on postgres") issue an SQL pragma that marks
     // the current transaction as read-only. The effects of this last
@@ -169,9 +174,13 @@ class Database : NonMovableOrCopyable
     typedef cache::lru_cache<std::string, std::shared_ptr<LedgerEntry const>>
         EntryCache;
     virtual EntryCache& getEntryCache() = 0;
+
+    virtual ~Database()
+    {
+    }
 };
 
-class DatabaseImpl : public Database
+class DatabaseImpl : public Database, public NonMovableOrCopyable
 {
     Application& mApp;
     medida::Meter& mQueryMeter;
@@ -211,7 +220,8 @@ class DatabaseImpl : public Database
 
     virtual uint32_t recentIdleDbPercent();
 
-    virtual std::shared_ptr<SQLLogContext> captureAndLogSQL(std::string contextName);
+    virtual std::shared_ptr<SQLLogContext>
+    captureAndLogSQL(std::string contextName);
 
     virtual StatementContext getPreparedStatement(std::string const& query);
 

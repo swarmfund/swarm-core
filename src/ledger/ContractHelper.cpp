@@ -142,7 +142,8 @@ namespace stellar
     EntryFrame::pointer
     ContractHelper::storeLoad(LedgerKey const &key, Database &db)
     {
-
+        auto const &contract = key.contract();
+        return loadContract(contract.contractID, db);
     }
 
     EntryFrame::pointer
@@ -155,15 +156,15 @@ namespace stellar
     ContractHelper::countObjects(soci::session &sess)
     {
         uint64_t count = 0;
-        sess << "SELECT COUNT(*) FROM contracts;" into(count);
+        sess << "SELECT COUNT(*) FROM contracts;", into(count);
         return count;
     }
 
     void
     ContractHelper::load(StatementContext& prep,
-                         function<void(LedgerEntry const&)> balanceProcessor)
+                         function<void(LedgerEntry const&)> processor)
     {
-        string contractorID, customerID, judgeID;
+        string contractorID, customerID, judgeID, invoices;
 
         LedgerEntry le;
         le.data.type(LedgerEntryType::CONTRACT);
@@ -171,12 +172,52 @@ namespace stellar
         int32_t version = 0;
 
         auto& st = prep.statement();
-        st.exchange(into())
+        st.exchange(into(oe.contractID));
+        st.exchange(into(contractorID));
+        st.exchange(into(customerID));
+        st.exchange(into(judgeID));
+        st.exchange(into(invoices));
+        st.exchange(into(oe.startTime));
+        st.exchange(into(oe.endTime));
+        st.exchange(into(oe.details));
+        st.exchange(into(le.lastModifiedLedgerSeq));
+        st.exchange(into(version));
+        st.define_and_bind();
+        st.execute(true);
+
+        while (st.got_data())
+        {
+            oe.contractor = PubKeyUtils::fromStrKey(contractorID);
+            oe.customer = PubKeyUtils::fromStrKey(customerID);
+            oe.judge = PubKeyUtils::fromStrKey(judgeID);
+            bn::decode_b64(invoices.begin(), invoices.end(), oe.invoiceRequestIDs.begin());
+            oe.ext.v(static_cast<LedgerVersion>(version));
+
+            processor(le);
+            st.fetch();
+        }
     }
 
     ContractFrame::pointer
     ContractHelper::loadContract(uint64_t id, Database &db, LedgerDelta *delta)
     {
+        ContractFrame::pointer contractFrame;
 
+        string sql = contractSelector;
+        sql += " WHERE id = :id";
+        auto prep = db.getPreparedStatement(sql);
+        auto& st = prep.statement();
+        st.exchange(use(id, "id"));
+
+        auto timer = db.getSelectTimer("contract");
+        load(prep, [&contractFrame](LedgerEntry const& contract)
+        {
+            contractFrame = make_shared<ContractFrame>(contract);
+        });
+
+        if (delta && contractFrame)
+            delta->recordEntry(*contractFrame);
+
+        return contractFrame;
     }
 }

@@ -72,8 +72,46 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
 
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
+    if (!invoiceRequest.contractID)
+        return true;
+
+    auto contractHelper = ContractHelper::Instance();
+    auto contractFrame = contractHelper->loadContract(*invoiceRequest.contractID)
+
     return true;
 }
+
+    bool
+    ReviewInvoiceRequestOpFrame::tryLockAmount(BalanceFrame::pointer balance, uint64_t amount)
+    {
+        auto lockResult = balance->tryLock(amount);
+
+        switch (lockResult)
+        {
+            case BalanceFrame::SUCCESS:
+            {
+                return true;
+            }
+            case BalanceFrame::LINE_FULL:
+            {
+                innerResult().code(ReviewRequestResultCode::LOCKED_AMOUNT_OVERFLOW);
+                return false;
+            }
+            case BalanceFrame::UNDERFUNDED:
+            {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. There must be enough amount "
+                                                       << static_cast<int>(lockResult);
+                throw std::runtime_error("Unexpected state. There must be enough amount");
+            }
+            default:
+            {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from tryLock method: "
+                                                       << static_cast<int>(lockResult);
+                throw std::runtime_error("Unexpected result code from tryLock method");
+            }
+        }
+    }
+
 
 bool
 ReviewInvoiceRequestOpFrame::checkPaymentDetails(ReviewableRequestEntry& requestEntry,
@@ -152,7 +190,7 @@ ReviewInvoiceRequestOpFrame::processPaymentV2(Application &app, LedgerDelta &del
 }
 
 void
-BillPayOReviewInvoiceRequestOpFramepFrame::trySetErrorCode(PaymentV2ResultCode paymentResult)
+ReviewInvoiceRequestOpFrame::trySetErrorCode(PaymentV2ResultCode paymentResult)
 {
     try
     {

@@ -43,7 +43,7 @@ COPY --from=0 /build/entrypoint.sh /entrypoint.sh
 
 RUN true \
  && apt update \
- && apt install -y libpq5 libssl1.0.0 \
+ && apt install --no-install-recommends -y libpq5 libssl1.0.0 awscli \
  && rm -rf /var/lib/apt/lists/* /var/log/*.log /var/log/*/*.log \
  && mkdir /data \
  && chmod +x /entrypoint.sh 

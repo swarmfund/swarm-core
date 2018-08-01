@@ -18,6 +18,7 @@
 #include "herder/TxSetFrame.h"
 #include "crypto/Hex.h"
 #include "util/basen.h"
+#include "ledger/StorageHelperImpl.h"
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
@@ -390,7 +391,8 @@ bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
         {
             auto time = opTimer.TimeScope();
             LedgerDelta opDelta(thisTxDelta);
-            bool txRes = op->apply(opDelta, app);
+            StorageHelperImpl storageHelper(app.getDatabase(), opDelta);
+            bool txRes = op->apply(storageHelper, app);
 
             if (!txRes)
             {

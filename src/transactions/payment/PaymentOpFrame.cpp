@@ -3,18 +3,19 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "PaymentOpFrame.h"
-#include "ledger/ReferenceFrame.h"
+#include "database/Database.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/LedgerDelta.h"
-#include "ledger/ReferenceHelper.h"
 #include "ledger/InvoiceHelper.h"
-#include "database/Database.h"
+#include "ledger/LedgerDelta.h"
+#include "ledger/ReferenceFrame.h"
+#include "ledger/ReferenceHelper.h"
+#include "ledger/StorageHelper.h"
+#include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
-#include "main/Application.h"
 
 namespace stellar
 {
@@ -306,13 +307,14 @@ bool PaymentOpFrame::processFees_v2(Application& app, LedgerDelta& delta,
 }
 
 bool
-PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
+PaymentOpFrame::doApply(Application& app, StorageHelper& storageHelper,
                         LedgerManager& ledgerManager)
 {
     app.getMetrics().NewMeter({"op-payment", "success", "apply"}, "operation").Mark();
     innerResult().code(PaymentResultCode::SUCCESS);
     
     Database& db = ledgerManager.getDatabase();
+    LedgerDelta& delta = storageHelper.getLedgerDelta();
     
 	if (!tryLoadBalances(app, db, delta))
 	{
@@ -330,7 +332,6 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
         innerResult().code(PaymentResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
         return false;
     }
-
 
 	if (!checkFees(app, db, delta))
 	{
@@ -365,7 +366,7 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
             innerResult().code(PaymentResultCode::REFERENCE_DUPLICATION);
             return false;
         }
-        createReferenceEntry(mPayment.reference, &delta, db);
+        createReferenceEntry(mPayment.reference, storageHelper);
     }
 
     int64 sourceSentUniversal;
@@ -447,7 +448,6 @@ PaymentOpFrame::processInvoice(Application& app, LedgerDelta& delta, Database& d
     return true;
 }
 
-
 bool
 PaymentOpFrame::processBalanceChange(Application& app, AccountManager::Result balanceChangeResult)
 {
@@ -512,6 +512,4 @@ PaymentOpFrame::doCheckValid(Application& app)
 
     return true;
 }
-
-
 }

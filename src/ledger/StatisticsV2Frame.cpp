@@ -32,7 +32,9 @@ namespace stellar
     {
         bool res = se.dailyOutcome >= 0;
         res = res && (se.weeklyOutcome >= se.dailyOutcome);
-        res = res && (se.monthlyOutcome >= se.weeklyOutcome);
+        // there is case when month or year has changed, but week is still the same 
+        // so no need to check against them
+        res = res && (se.monthlyOutcome >= se.dailyOutcome);
         return res && (se.annualOutcome >= se.monthlyOutcome);
     }
 

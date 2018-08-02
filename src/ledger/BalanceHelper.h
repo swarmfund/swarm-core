@@ -62,6 +62,19 @@ namespace stellar
 			throw std::runtime_error("expected balance to exist");
 		}
 
+		BalanceFrame::pointer mustLoadBalance(AccountID accountID, AssetCode asset,
+											  Database& db, LedgerDelta* delta = nullptr)
+		{
+			auto result = loadBalance(accountID, asset, db, delta);
+			if (!!result) {
+				return result;
+			}
+
+			CLOG(ERROR, Logging::ENTRY_LOGGER) << "expected balance for account " << PubKeyUtils::toStrKey(accountID)
+											   << " to exist";
+			throw std::runtime_error("expected balance for account to exist");
+		}
+
 		// load all Balances from the database (very slow)
 		std::unordered_map<BalanceID, std::vector<BalanceFrame::pointer>>
 			loadAllBalances(Database& db);

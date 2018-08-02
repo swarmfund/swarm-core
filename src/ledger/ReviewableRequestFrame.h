@@ -34,7 +34,7 @@ class ReviewableRequestFrame : public EntryFrame
 	static void ensureAMLAlertValid(AMLAlertRequest const& request);
 	static void ensureUpdateKYCValid(UpdateKYCRequest const &request);
 	static void ensureUpdateSaleDetailsValid(UpdateSaleDetailsRequest const &request);
-	static void ensureInvoiceVaild(InvoiceRequest const& request);
+	static void ensureInvoiceValid(InvoiceRequest const& request);
 
 
   public:

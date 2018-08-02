@@ -8,7 +8,9 @@ using namespace soci;
 
 namespace stellar
 {
-    const char* contractSelector = "";
+    const char* contractSelector = "SELECT id, contractor, customer, judge, invoices, start_time,"
+                                   "       end_time, details, lastmodified, version "
+                                   "FROM   contracts";
 
     void ContractHelper::dropAll(Database &db)
     {
@@ -190,7 +192,13 @@ namespace stellar
             oe.contractor = PubKeyUtils::fromStrKey(contractorID);
             oe.customer = PubKeyUtils::fromStrKey(customerID);
             oe.judge = PubKeyUtils::fromStrKey(judgeID);
-            bn::decode_b64(invoices.begin(), invoices.end(), oe.invoiceRequestIDs.begin());
+
+            std::vector<uint8_t> decoded;
+            bn::decode_b64(invoices, decoded);
+            xdr::xdr_get unmarshaler(&decoded.front(), &decoded.back() + 1);
+            xdr::xdr_argpack_archive(unmarshaler, oe.invoiceRequestIDs);
+            unmarshaler.done();
+
             oe.ext.v(static_cast<LedgerVersion>(version));
 
             processor(le);

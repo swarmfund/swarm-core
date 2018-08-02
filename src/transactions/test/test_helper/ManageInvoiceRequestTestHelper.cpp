@@ -16,7 +16,7 @@ ManageInvoiceRequestTestHelper::ManageInvoiceRequestTestHelper(TestManager::poin
 
 ManageInvoiceRequestOp
 ManageInvoiceRequestTestHelper::createInvoiceRequest(AssetCode asset, AccountID sender,
-                                                     uint64_t amount, longstring details)
+                                                     uint64_t amount, longstring details, uint64_t* contractID)
 {
     ManageInvoiceRequestOp result;
     result.details.action(ManageInvoiceRequestAction::CREATE);
@@ -24,7 +24,10 @@ ManageInvoiceRequestTestHelper::createInvoiceRequest(AssetCode asset, AccountID 
     result.details.invoiceRequest().sender = sender;
     result.details.invoiceRequest().amount = amount;
     result.details.invoiceRequest().details = details;
-    result.details.invoiceRequest().isSecured = false;
+
+    if (contractID != nullptr)
+        result.details.invoiceRequest().contractID.activate() = *contractID;
+
     result.details.invoiceRequest().ext.v(LedgerVersion::EMPTY_VERSION);
     result.ext.v(LedgerVersion::EMPTY_VERSION);
 

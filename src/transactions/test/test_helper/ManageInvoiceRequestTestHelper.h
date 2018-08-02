@@ -20,7 +20,7 @@ public:
 
 
     ManageInvoiceRequestOp createInvoiceRequest(AssetCode asset, AccountID sender,
-                                                uint64_t amount, longstring details);
+                                                uint64_t amount, longstring details, uint64_t* contractID = nullptr);
 
     ManageInvoiceRequestOp createRemoveInvoiceRequest(uint64_t& requestID);
 

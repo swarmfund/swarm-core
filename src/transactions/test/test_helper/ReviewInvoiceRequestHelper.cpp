@@ -14,28 +14,6 @@ namespace txtest
 InvoiceReviewChecker::InvoiceReviewChecker(TestManager::pointer testManager,
                                            uint64_t requestID) : ReviewChecker(testManager)
 {
-    Database& db = mTestManager->getDB();
-
-    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-    auto request = reviewableRequestHelper->loadRequest(requestID, db);
-    if (!request || request->getType() != ReviewableRequestType::INVOICE)
-    {
-        return;
-    }
-}
-
-void
-InvoiceReviewChecker::checkApprove(ReviewableRequestFrame::pointer requestBeforeTx)
-{
-    Database& db = mTestManager->getDB();
-
-    auto requestAfterTx = ReviewableRequestHelper::Instance()->loadRequest(requestBeforeTx->getRequestID(), db);
-    auto invoiceRequestBeforeTx = requestBeforeTx->getRequestEntry().body.invoiceRequest();
-    auto invoiceRequestAfterTx = requestAfterTx->getRequestEntry().body.invoiceRequest();
-    REQUIRE(!invoiceRequestBeforeTx.isSecured);
-    REQUIRE(invoiceRequestAfterTx.isSecured);
-    REQUIRE(invoiceRequestBeforeTx.amount == invoiceRequestAfterTx.amount);
-    REQUIRE(invoiceRequestBeforeTx.sender == invoiceRequestAfterTx.sender);
 }
 
 void
@@ -56,12 +34,44 @@ ReviewInvoiceRequestHelper::applyReviewRequestTx(Account &source, uint64_t reque
                                                   ReviewRequestResultCode expectedResult)
 {
     auto checker = InvoiceReviewChecker(mTestManager, requestID);
-    requestMustBeDeletedAfterApproval = false;
+    requestMustBeDeletedAfterApproval = true;
     return ReviewRequestHelper::applyReviewRequestTx(source, requestID,
                                                      requestHash, requestType,
                                                      action, rejectReason,
                                                      expectedResult,
                                                      checker);
+}
+
+TransactionFramePtr
+ReviewInvoiceRequestHelper::createReviewRequestTx(Account& source,
+                                              uint64_t requestID, Hash requestHash,
+                                              ReviewableRequestType requestType,
+                                              ReviewRequestOpAction action,
+                                              std::string rejectReason)
+{
+    Operation op;
+    op.body.type(OperationType::REVIEW_REQUEST);
+    ReviewRequestOp& reviewRequestOp = op.body.reviewRequestOp();
+    reviewRequestOp.action = action;
+    reviewRequestOp.reason = rejectReason;
+    reviewRequestOp.requestHash = requestHash;
+    reviewRequestOp.requestID = requestID;
+    reviewRequestOp.requestDetails.requestType(requestType);
+    reviewRequestOp.requestDetails.billPay().paymentDetails = paymentDetails;
+    return txFromOperation(source, op, nullptr);
+}
+
+void
+ReviewInvoiceRequestHelper::initializePaymentDetails(PaymentOpV2::_destination_t& destination, uint64_t amount,
+                                                     PaymentFeeDataV2& feeData, std::string subject,
+                                                     std::string reference, BalanceID sourceBalance)
+{
+    paymentDetails.amount = amount;
+    paymentDetails.subject = subject;
+    paymentDetails.reference = reference;
+    paymentDetails.destination = destination;
+    paymentDetails.feeData = feeData;
+    paymentDetails.sourceBalanceID = sourceBalance;
 }
 
 }

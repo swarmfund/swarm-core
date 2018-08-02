@@ -13,21 +13,22 @@ namespace stellar
 namespace txtest
 {
 
-class InvoiceReviewChecker : public ReviewChecker
+class ContractReviewChecker : public ReviewChecker
 {
 
 public:
-    InvoiceReviewChecker(TestManager::pointer testManager, uint64_t requestID);
+    ContractReviewChecker(TestManager::pointer testManager);
+
+    void checkApprove(ReviewableRequestFrame::pointer) override;
 
     void checkPermanentReject(ReviewableRequestFrame::pointer) override;
 };
 
-class ReviewInvoiceRequestHelper : public ReviewRequestHelper
+class ReviewContractRequestHelper : public ReviewRequestHelper
 {
 public:
-    PaymentOpV2 paymentDetails;
 
-    explicit ReviewInvoiceRequestHelper(TestManager::pointer testManager);
+    explicit ReviewContractRequestHelper(TestManager::pointer testManager);
 
     using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source, uint64_t requestID,
@@ -35,16 +36,6 @@ public:
                                              ReviewRequestOpAction action, std::string rejectReason,
                                              ReviewRequestResultCode expectedResult =
                                              ReviewRequestResultCode::SUCCESS) override;
-
-    TransactionFramePtr createReviewRequestTx(Account& source,
-                                              uint64_t requestID, Hash requestHash,
-                                              ReviewableRequestType requestType,
-                                              ReviewRequestOpAction action,
-                                              std::string rejectReason) override;
-
-    void initializePaymentDetails(PaymentOpV2::_destination_t& destination, uint64_t amount,
-                                  PaymentFeeDataV2& feeData, std::string subject,
-                                  std::string reference, BalanceID sourceBalance);
 };
 
 }

@@ -191,6 +191,12 @@ struct LedgerEntryIdCmp
                 }
                 return asa.participantBalanceID < bsa.participantBalanceID;
             }
+            case LedgerEntryType::CONTRACT:
+            {
+                auto const& acon = a.contract();
+                auto const& bcon = b.contract();
+                return acon.contractID < bcon.contractID;
+            }
             default:
             {
                 throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");

@@ -9,6 +9,7 @@
 #include "medida/meter.h"
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>
+#include <ledger/ContractHelper.h>
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/BalanceHelper.h"
@@ -25,7 +26,7 @@ ManageInvoiceRequestOpFrame::getCounterpartyDetails(Database & db, LedgerDelta *
 		{mSourceAccount->getID(),
                 CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
                                      AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
-                                     AccountType::VERIFIED}, true, true)}
+                                     AccountType::VERIFIED, AccountType::MASTER}, true, true)}
 	};
 }
 
@@ -35,7 +36,7 @@ ManageInvoiceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountI
 {
     std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
                                                     AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
-                                                    AccountType::VERIFIED};
+                                                    AccountType::VERIFIED, AccountType::MASTER};
 
 	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::INVOICE_MANAGER),
@@ -130,6 +131,27 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
                                                              referencePtr, body, ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
+
+    if (invoiceRequest.contractID)
+    {
+        auto contractHelper = ContractHelper::Instance();
+        auto contractFrame = contractHelper->loadContract(*invoiceRequest.contractID, db, &delta);
+
+        if (!contractFrame)
+        {
+            innerResult().code(ManageInvoiceRequestResultCode::CONTRACT_NOT_FOUND);
+            return false;
+        }
+
+        if (!(contractFrame->getContractor() == getSourceID()))
+        {
+            innerResult().code(ManageInvoiceRequestResultCode::ONLY_CONTRACTOR_CAN_ATTACH_INVOICE_TO_CONTRACT);
+            return false;
+        }
+
+        contractFrame->addInvoiceRequest(request->getRequestID());
+        contractHelper->storeChange(delta, db, contractFrame->mEntry);
+    }
 
     auto receiverBalanceID = AccountManager::loadOrCreateBalanceForAsset(getSourceID(),
                                                                          invoiceRequest.asset, db, delta);

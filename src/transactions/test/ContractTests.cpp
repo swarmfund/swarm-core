@@ -9,9 +9,12 @@
 #include <transactions/test/test_helper/SetFeesTestHelper.h>
 #include <transactions/test/test_helper/ManageAssetPairTestHelper.h>
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
-#include <transactions/test/test_helper/BillPayTestHelper.h>
 #include <transactions/test/test_helper/LimitsUpdateRequestHelper.h>
 #include <transactions/test/test_helper/ReviewInvoiceRequestHelper.h>
+#include <transactions/test/test_helper/ManageContractRequestTestHelper.h>
+#include <transactions/test/test_helper/ReviewContractRequestHelper.h>
+#include <ledger/ContractHelper.h>
+#include <transactions/test/test_helper/AddContractDetailsTestHelper.h>
 #include "main/Application.h"
 #include "ledger/LedgerManager.h"
 #include "overlay/LoopbackPeer.h"
@@ -29,7 +32,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("Bill pay", "[tx][bill_pay]")
+TEST_CASE("Contract", "[tx][contract]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
@@ -37,9 +40,7 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
     Application& app = *appPtr;
     app.start();
     auto testManager = TestManager::make(app);
-
-    upgradeToCurrentLedgerVersion(app);
-
+    TestManager::upgradeToCurrentLedgerVersion(app);
 
     // test helpers
     auto createAccountTestHelper = CreateAccountTestHelper(testManager);
@@ -49,8 +50,10 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
     auto paymentV2TestHelper = PaymentV2TestHelper(testManager);
     auto setFeesTestHelper = SetFeesTestHelper(testManager);
     ManageInvoiceRequestTestHelper manageInvoiceRequestTestHelper(testManager);
-    BillPayTestHelper billPayTestHelper(testManager);
     ReviewInvoiceRequestHelper reviewInvoiceRequestHelper(testManager);
+    ManageContractRequestTestHelper manageContractRequestTestHelper(testManager);
+    ReviewContractRequestHelper reviewContractRequestHelper(testManager);
+    AddContractDetailsTestHelper addContractDetailsTestHelper(testManager);
 
     // set up world
     auto balanceHelper = BalanceHelper::Instance();
@@ -121,64 +124,98 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
                                                          incomingFee.ext.feeAsset());
     auto paymentFeeData = paymentV2TestHelper.createPaymentFeeData(sourceFeeData, destFeeData, true);
 
-	longstring details = " Bill for certain services";
+    longstring details = "Contract details";
 
-	SECTION("Success create invoice request")
+    SECTION("Success create contract request")
     {
-        auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                paymentAsset, payer.key.getPublicKey(), paymentAmount, details);
+        uint64_t startTime = testManager->getLedgerManager().getCloseTime() + 1234;
+        uint64_t endTime = testManager->getLedgerManager().getCloseTime() + ONE;
+        auto createContractRequestOp = manageContractRequestTestHelper.createContractRequest(
+                payer.key.getPublicKey(), startTime, endTime, details);
 
-        auto result = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp);
+        auto result = manageContractRequestTestHelper.applyManageContractRequest(recipient, createContractRequestOp);
         auto requestID = result.success().details.response().requestID;
-        REQUIRE(result.success().details.response().receiverBalance == receiverBalance->getBalanceID());
-        REQUIRE(result.success().details.response().senderBalance == payerBalance->getBalanceID());
 
-        SECTION("Success bill pay without approve")
+        SECTION("Approve contract request")
         {
-            auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                    destination, paymentAmount, paymentFeeData, "", "", nullptr);
-        }
+            auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(payer, requestID,
+                                                                                 ReviewRequestOpAction::APPROVE, "");
+            auto contractID = reviewResult.success().ext.contractID();
+            auto contractFrame = ContractHelper::Instance()->loadContract(contractID, db);
+            REQUIRE(!!contractFrame);
+            REQUIRE(contractFrame->getContractor() == recipient.key.getPublicKey());
+            REQUIRE(contractFrame->getCustomer() == payer.key.getPublicKey());
+            REQUIRE(contractFrame->getJudge() == root.key.getPublicKey());
+            REQUIRE(contractFrame->getStartTime() == startTime);
+            REQUIRE(contractFrame->getEndTime() == endTime);
 
-        SECTION("Approve invoice request")
-        {
-            auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
-                                                                                ReviewRequestOpAction::APPROVE, "");
-
-            SECTION("Success bill pay with approved invoice")
+            SECTION("Only contractor can add invoice with contract")
             {
-                auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID,
-                                                                 payerBalance->getBalanceID(),
-                                                                 destination, paymentAmount,
-                                                                 paymentFeeData, "", "", nullptr);
+                auto localDetails = details + " not success";
+                auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
+                        paymentAsset, payer.key.getPublicKey(), paymentAmount, localDetails, &contractID);
+
+                auto invoiceResult = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(root,
+                        createInvoiceRequestOp,
+                        ManageInvoiceRequestResultCode::ONLY_CONTRACTOR_CAN_ATTACH_INVOICE_TO_CONTRACT);
             }
 
-            SECTION("Not allowed to reject")
+            auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
+                    paymentAsset, payer.key.getPublicKey(), paymentAmount, details, &contractID);
+
+            auto invoiceResult = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient,
+                    createInvoiceRequestOp);
+            auto invoiceRequestID = invoiceResult.success().details.response().requestID;
+            REQUIRE(invoiceResult.success().details.response().receiverBalance == receiverBalance->getBalanceID());
+            REQUIRE(invoiceResult.success().details.response().senderBalance == payerBalance->getBalanceID());
+
+            SECTION("Add details to contract")
             {
-                reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
-                        ReviewRequestOpAction::REJECT, "Some reason", ReviewRequestResultCode::REJECT_NOT_ALLOWED);
+                addContractDetailsTestHelper.applyAddContractDetailsTx(recipient, contractID, details);
+                addContractDetailsTestHelper.applyAddContractDetailsTx(payer, contractID, details);
             }
 
-            SECTION("Not allowed to permanent reject")
+            SECTION("Not allowed to add details to contract")
             {
-                reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
-                        ReviewRequestOpAction::PERMANENT_REJECT, "Some reason",
-                        ReviewRequestResultCode::PERMANENT_REJECT_NOT_ALLOWED);
+                addContractDetailsTestHelper.applyAddContractDetailsTx(root, contractID, details,
+                                                                       AddContractDetailsResultCode::NOT_ALLOWED);
+            }
+
+            SECTION("Malformed")
+            {
+                addContractDetailsTestHelper.applyAddContractDetailsTx(recipient, contractID, "",
+                                                                       AddContractDetailsResultCode::MALFORMED);
+            }
+
+            SECTION("Approve invoice with contract")
+            {
+                reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
+                                                                    "", "", payerBalance->getBalanceID());
+                reviewInvoiceRequestHelper.applyReviewRequestTx(payer, invoiceRequestID,
+                                                                ReviewRequestOpAction::APPROVE, "");
             }
         }
 
         SECTION("Only sender allowed to approve")
         {
-            auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(root, requestID,
+            auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(root, requestID,
                     ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::NOT_FOUND);
+        }
+
+        SECTION("Only sender allowed to permanent reject")
+        {
+            auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(root, requestID,
+                    ReviewRequestOpAction::PERMANENT_REJECT, "Disagree with such amount",
+                    ReviewRequestResultCode::NOT_FOUND);
         }
 
         SECTION("Success permanent reject")
         {
-            auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
+            auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(payer, requestID,
                     ReviewRequestOpAction::PERMANENT_REJECT, "Some reason");
         }
 
-        SECTION("Invoice request not found")
+        /*SECTION("Invoice request not found")
         {
             billPayTestHelper.applyBillPayTx(payer, 123027538, payerBalance->getBalanceID(),
                                              destination, paymentAmount, paymentFeeData, "", "", nullptr,
@@ -229,7 +266,7 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
         SECTION("Reference duplication")
         {
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                         ManageInvoiceRequestResultCode::MANAGE_INVOICE_REQUEST_REFERENCE_DUPLICATION);
+                                                                     ManageInvoiceRequestResultCode::INVOICE_REQUEST_REFERENCE_DUPLICATION);
         }
 
         SECTION("Too many invoices")
@@ -248,7 +285,7 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
                     "expected to be excess");
 
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                    ManageInvoiceRequestResultCode::TOO_MANY_INVOICES);
+                                                                     ManageInvoiceRequestResultCode::TOO_MANY_INVOICES);
         }
 
         SECTION("Success remove")
@@ -260,20 +297,20 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
             SECTION("Already removed")
             {
                 manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, removeInvoiceRequestOp,
-                                         ManageInvoiceRequestResultCode::NOT_FOUND);
+                                                                         ManageInvoiceRequestResultCode::NOT_FOUND);
             }
         }
     }
 
-	SECTION("Unsuccessful manage invoice request")
-	{
-	    SECTION("Malformed")
+    SECTION("Unsuccessful manage invoice request")
+    {
+        SECTION("Malformed")
         {
             auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
                     paymentAsset, payer.key.getPublicKey(), 0, details);
 
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                    ManageInvoiceRequestResultCode::MALFORMED);
+                                                                     ManageInvoiceRequestResultCode::MALFORMED);
         }
 
         SECTION("Destination balance not found")
@@ -291,7 +328,7 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
             auto removeInvoiceRequestOp = manageInvoiceRequestTestHelper.createRemoveInvoiceRequest(notExistingRequestID);
 
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, removeInvoiceRequestOp,
-                    ManageInvoiceRequestResultCode::NOT_FOUND);
+                                                                     ManageInvoiceRequestResultCode::NOT_FOUND);
         }
 
         SECTION("Request not found")
@@ -299,13 +336,13 @@ TEST_CASE("Bill pay", "[tx][bill_pay]")
             auto limitsUpdateRequestHelper = LimitsUpdateRequestHelper(testManager);
             auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest("limitsRequestData");
             auto limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(payer,
-                    limitsUpdateRequest);
+                                                                                               limitsUpdateRequest);
 
             auto removeInvoiceRequestOp = manageInvoiceRequestTestHelper.createRemoveInvoiceRequest(
                     limitsUpdateResult.success().manageLimitsRequestID);
 
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, removeInvoiceRequestOp,
                                                                      ManageInvoiceRequestResultCode::NOT_FOUND);
-        }
-	}
+        }*/
+    }
 }

@@ -24,7 +24,7 @@ ManageContractRequestOpFrame::getCounterpartyDetails(Database & db, LedgerDelta 
         {mSourceAccount->getID(),
          CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
                               AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
-                              AccountType::VERIFIED}, true, true)}
+                              AccountType::VERIFIED, AccountType::MASTER}, true, true)}
     };
 }
 
@@ -35,7 +35,8 @@ ManageContractRequestOpFrame::getSourceAccountDetails(
 {
     std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED,
                                                     AccountType::EXCHANGE, AccountType::ACCREDITED_INVESTOR,
-                                                    AccountType::INSTITUTIONAL_INVESTOR, AccountType::VERIFIED};
+                                                    AccountType::INSTITUTIONAL_INVESTOR, AccountType::VERIFIED,
+                                                    AccountType::MASTER};
 
     return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::INVOICE_MANAGER),
@@ -127,11 +128,11 @@ bool
 ManageContractRequestOpFrame::doCheckValid(Application& app)
 {
     if (mManageContractRequest.details.action() == ManageContractRequestAction::CREATE &&
-        mManageContractRequest.details.)
+        mManageContractRequest.details.contractRequest().details.empty())
     {
         app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "malformed-zero-amount"},
                                   "operation").Mark();
-        innerResult().code(ManageInvoiceRequestResultCode::MALFORMED);
+        innerResult().code(ManageContractRequestResultCode::MALFORMED);
         return false;
     }
 

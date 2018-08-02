@@ -50,14 +50,7 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
     auto requestEntry = request->getRequestEntry();
     auto invoiceRequest = requestEntry.body.invoiceRequest();
 
-    if (!(invoiceRequest.sender == getSourceID()))
-    {
-        innerResult().code(ReviewRequestResultCode::ONLY_SENDER_CAN_APPROVE_INVOICE);
-        return false;
-    }
-
     Database& db = ledgerManager.getDatabase();
-
 
     auto balanceHelper = BalanceHelper::Instance();
     auto senderBalance = balanceHelper->mustLoadBalance(invoiceRequest.sender,
@@ -84,6 +77,10 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
         innerResult().code(ReviewRequestResultCode::CONTRACT_NOT_FOUND);
         return false;
     }
+
+    contractFrame->addContractDetails(invoiceRequest.details);
+    contractHelper->storeChange(delta, db, contractFrame->mEntry);
+    receiverBalance = balanceHelper->mustLoadBalance(receiverBalance->getBalanceID(), db, &delta);
 
     return tryLockAmount(receiverBalance, invoiceRequest.amount);
 }

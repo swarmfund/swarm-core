@@ -32,11 +32,45 @@ public:
         return EntryFrame::pointer(new ContractFrame(*this));
     }
 
-    ContractEntry const&
-    getContract() const
+    ContractEntry&
+    getContract()
     {
         return mContract;
     }
+
+    AccountID const&
+    getContractor() const
+    {
+        return mContract.contractor;
+    }
+
+    AccountID const&
+    getCustomer() const
+    {
+        return mContract.customer;
+    }
+
+    AccountID const&
+    getJudge() const
+    {
+        return mContract.judge;
+    }
+
+    uint64_t const&
+    getStartTime() const
+    {
+        return mContract.startTime;
+    }
+
+    uint64_t const&
+    getEndTime() const
+    {
+        return mContract.endTime;
+    }
+
+    void addContractDetails(longstring const& details);
+
+    void addInvoiceRequest(uint64_t const& requestID);
 };
 
 }

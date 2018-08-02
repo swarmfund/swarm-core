@@ -7,7 +7,6 @@
 #include "main/Application.h"
 #include "xdrpp/marshal.h"
 #include <string>
-#include <transactions/payment/BillPayOpFrame.h>
 #include "util/Logging.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
@@ -47,6 +46,8 @@
 #include "BindExternalSystemAccountIdOpFrame.h"
 #include "ManageKeyValueOpFrame.h"
 #include "CreateManageLimitsRequestOpFrame.h"
+#include "ManageContractRequestOpFrame.h"
+#include "AddContractDetailsOpFrame.h"
 
 namespace stellar
 {
@@ -114,8 +115,10 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
     case OperationType::CREATE_MANAGE_LIMITS_REQUEST:
         return shared_ptr<OperationFrame>(new CreateManageLimitsRequestOpFrame(op, res, tx));
-    case OperationType::BILL_PAY:
-        return shared_ptr<OperationFrame>(new BillPayOpFrame(op, res, tx));
+    case OperationType::MANAGE_CONTRACT_REQUEST:
+        return shared_ptr<OperationFrame>(new ManageContractRequestOpFrame(op, res, tx));
+    case OperationType::ADD_CONTRACT_DETAILS:
+        return shared_ptr<OperationFrame>(new AddContractDetailsOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

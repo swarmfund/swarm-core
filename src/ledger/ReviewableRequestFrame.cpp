@@ -198,7 +198,7 @@ void ReviewableRequestFrame::ensureUpdateSaleDetailsValid(UpdateSaleDetailsReque
     }
 }
 
-void ReviewableRequestFrame::ensureInvoiceVaild(InvoiceRequest const& request)
+void ReviewableRequestFrame::ensureInvoiceValid(InvoiceRequest const& request)
 {
     if (request.amount == 0)
         throw runtime_error("amount can not be 0");
@@ -250,11 +250,13 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
             ensureUpdateSaleDetailsValid(oe.body.updateSaleDetailsRequest());
             return;
         case ReviewableRequestType::INVOICE:
-            ensureInvoiceVaild(oe.body.invoiceRequest());
+            ensureInvoiceValid(oe.body.invoiceRequest());
             return;
         case ReviewableRequestType::UPDATE_SALE_END_TIME:
             return;
         case ReviewableRequestType ::UPDATE_PROMOTION:
+            return;
+        case ReviewableRequestType::CONTRACT:
             return;
         default:
             throw runtime_error("Unexpected reviewable request type");

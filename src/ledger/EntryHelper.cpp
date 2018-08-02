@@ -47,6 +47,7 @@
 #include "StatisticsV2Helper.h"
 #include "PendingStatisticsHelper.h"
 #include "SaleAnteHelper.h"
+#include "ContractHelper.h"
 
 namespace stellar
 {
@@ -193,6 +194,7 @@ namespace stellar
         { LedgerEntryType::LIMITS_V2, LimitsV2Helper::Instance() },
 		{ LedgerEntryType::STATISTICS_V2, StatisticsV2Helper::Instance() },
 		{ LedgerEntryType::PENDING_STATISTICS, PendingStatisticsHelper::Instance() },
-		{ LedgerEntryType::SALE_ANTE, SaleAnteHelper::Instance()}
+		{ LedgerEntryType::SALE_ANTE, SaleAnteHelper::Instance() },
+		{ LedgerEntryType::CONTRACT, ContractHelper::Instance() }
 	};
 }

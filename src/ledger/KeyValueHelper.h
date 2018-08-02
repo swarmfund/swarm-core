@@ -25,6 +25,8 @@ namespace stellar
     class KeyValueHelper : public EntryHelper {
 
     public:
+        KeyValueHelper() = default;
+
         KeyValueHelper(KeyValueHelper const &) = delete;
 
         KeyValueHelper &operator=(KeyValueHelper const &) = delete;
@@ -58,9 +60,6 @@ namespace stellar
         void loadKeyValues(StatementContext &prep, std::function<void(LedgerEntry const &)> keyValueProcessor);
 
     private:
-        KeyValueHelper() { ; }
-
-        ~KeyValueHelper() { ; }
 
         void storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, LedgerEntry const &entry);
     };

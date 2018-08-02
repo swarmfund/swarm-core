@@ -44,17 +44,31 @@ StorageHelperImpl::rollback()
 KeyValueHelper&
 StorageHelperImpl::getKeyValueHelper()
 {
-    return *KeyValueHelper::Instance(); // TMP
+    if (!mKeyValueHelper)
+    {
+        mKeyValueHelper = std::make_unique<KeyValueHelper>();
+	}
+    return *mKeyValueHelper;
 }
 ExternalSystemAccountIDHelper&
 StorageHelperImpl::getExternalSystemAccountIDHelper()
 {
-    return *ExternalSystemAccountIDHelper::Instance(); // TMP
+    if (!mExternalSystemAccountIDHelper)
+    {
+        mExternalSystemAccountIDHelper =
+            std::make_unique<ExternalSystemAccountIDHelper>();
+    }
+    return *mExternalSystemAccountIDHelper;
 }
 ExternalSystemAccountIDPoolEntryHelper&
 StorageHelperImpl::getExternalSystemAccountIDPoolEntryHelper()
 {
-    return *ExternalSystemAccountIDPoolEntryHelper::Instance(); // TMP
+	if (!mExternalSystemAccountIDPoolEntryHelper)
+	{
+            mExternalSystemAccountIDPoolEntryHelper =
+                std::make_unique<ExternalSystemAccountIDPoolEntryHelper>();
+	}
+    return *mExternalSystemAccountIDPoolEntryHelper;
 }
 
 } // namespace stellar

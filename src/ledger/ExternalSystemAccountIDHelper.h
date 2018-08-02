@@ -18,6 +18,7 @@ namespace stellar
 
 	class ExternalSystemAccountIDHelper : public EntryHelper {
 	public:
+		ExternalSystemAccountIDHelper() = default;
 
 		static ExternalSystemAccountIDHelper *Instance() {
 			static ExternalSystemAccountIDHelper singleton;
@@ -43,8 +44,6 @@ namespace stellar
 			load(const AccountID accountID, const int32 externalSystemType, Database& db, LedgerDelta* delta = nullptr);
 
 	private:
-		ExternalSystemAccountIDHelper() { ; }
-		~ExternalSystemAccountIDHelper() { ; }
 
 		ExternalSystemAccountIDHelper(ExternalSystemAccountIDHelper const&) = delete;
 		ExternalSystemAccountIDHelper& operator=(ExternalSystemAccountIDHelper const&) = delete;

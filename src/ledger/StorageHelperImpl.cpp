@@ -2,6 +2,7 @@
 #include "ledger/StorageHelperImpl.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/LedgerDelta.h"
 
 namespace stellar
 {
@@ -35,10 +36,12 @@ StorageHelperImpl::getLedgerDelta() const
 void
 StorageHelperImpl::commit()
 {
+    mLedgerDelta.commit();
 }
 void
 StorageHelperImpl::rollback()
 {
+    mLedgerDelta.rollback();
 }
 
 KeyValueHelper&

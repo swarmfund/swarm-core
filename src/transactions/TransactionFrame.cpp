@@ -391,7 +391,8 @@ bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
         {
             auto time = opTimer.TimeScope();
             LedgerDelta opDelta(thisTxDelta);
-            StorageHelperImpl storageHelper(app.getDatabase(), opDelta);
+            StorageHelperImpl storageHelperImpl(app.getDatabase(), opDelta);
+            StorageHelper& storageHelper = storageHelperImpl;
             bool txRes = op->apply(storageHelper, app);
 
             if (!txRes)
@@ -407,7 +408,7 @@ bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
             {
                 meta.operations().emplace_back(opDelta.getChanges());
             }
-            opDelta.commit();
+            storageHelper.commit();
         }
 
         if (!errorEncountered)

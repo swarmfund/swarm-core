@@ -17,6 +17,7 @@ namespace stellar {
 
     char const * ManageKeyValueOpFrame::kycRulesPrefix = "kyc_lvlup_rules";
     char const * ManageKeyValueOpFrame::externalSystemPrefix = "ext_sys_exp_period";
+    char const * ManageKeyValueOpFrame::transactionFeeAssetKey = "tx_fee_asset";
 
     ManageKeyValueOpFrame::ManageKeyValueOpFrame(const stellar::Operation &op, stellar::OperationResult &res,
                                                  stellar::TransactionFrame &parentTx)

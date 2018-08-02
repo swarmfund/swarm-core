@@ -1,6 +1,4 @@
-
-#ifndef STELLAR_MANAGEKEYVALUEOPFRAME_H
-#define STELLAR_MANAGEKEYVALUEOPFRAME_H
+#pragma once
 
 #include <transactions/kyc/CreateKYCReviewableRequestOpFrame.h>
 #include "transactions/OperationFrame.h"
@@ -58,8 +56,7 @@ namespace stellar {
 
         static const char * kycRulesPrefix;
         static const char * externalSystemPrefix;
+        static const char * transactionFeeAssetKey;
     };
 
 }
-
-#endif //STELLAR_MANAGEKEYVALUEOPFRAME_H

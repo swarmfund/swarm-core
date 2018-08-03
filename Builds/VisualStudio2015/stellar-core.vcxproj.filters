@@ -1098,6 +1098,9 @@
     <ClCompile Include="..\..\src\transactions\TransactionFrameImpl.cpp">
       <Filter>transactions</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ledger\StorageHelperImpl.cpp">
+      <Filter>ledger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ledger\LedgerManager.h">
@@ -2123,6 +2126,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\mocks\MockDatabase.h">
       <Filter>transactions\test\mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\StorageHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\StorageHelperImpl.h">
+      <Filter>ledger</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

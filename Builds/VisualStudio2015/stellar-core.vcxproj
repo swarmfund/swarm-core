@@ -304,6 +304,7 @@
     <ClCompile Include="..\..\src\ledger\StatisticsTests.cpp" />
     <ClCompile Include="..\..\src\ledger\StatisticsV2Frame.cpp" />
     <ClCompile Include="..\..\src\ledger\StatisticsV2Helper.cpp" />
+    <ClCompile Include="..\..\src\ledger\StorageHelperImpl.cpp" />
     <ClCompile Include="..\..\src\ledger\TrustFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\TrustHelper.cpp" />
     <ClCompile Include="..\..\src\main\Application.cpp" />
@@ -595,6 +596,8 @@
     <ClInclude Include="..\..\src\ledger\StatisticsHelper.h" />
     <ClInclude Include="..\..\src\ledger\StatisticsV2Frame.h" />
     <ClInclude Include="..\..\src\ledger\StatisticsV2Helper.h" />
+    <ClInclude Include="..\..\src\ledger\StorageHelper.h" />
+    <ClInclude Include="..\..\src\ledger\StorageHelperImpl.h" />
     <ClInclude Include="..\..\src\ledger\TrustFrame.h" />
     <ClInclude Include="..\..\src\ledger\TrustHelper.h" />
     <ClInclude Include="..\..\src\main\ExternalQueue.h" />

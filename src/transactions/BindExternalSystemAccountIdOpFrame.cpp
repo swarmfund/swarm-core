@@ -5,6 +5,7 @@
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/StorageHelper.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "ManageKeyValueOpFrame.h"
@@ -42,26 +43,33 @@ BindExternalSystemAccountIdOpFrame::BindExternalSystemAccountIdOpFrame(Operation
 }
 
 bool
-BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager)
+BindExternalSystemAccountIdOpFrame::doApply(Application& app,
+                                            StorageHelper& storageHelper,
+                                            LedgerManager& ledgerManager)
 {
-    Database& db = app.getDatabase();
+    Database& db = storageHelper.getDatabase();
+    LedgerDelta& delta = storageHelper.getLedgerDelta();
 
-    auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
-    auto externalSystemAccountIDPoolEntryHelper = ExternalSystemAccountIDPoolEntryHelper::Instance();
+    auto& externalSystemAccountIDHelper =
+        storageHelper.getExternalSystemAccountIDHelper();
+    auto& externalSystemAccountIDPoolEntryHelper =
+        storageHelper.getExternalSystemAccountIDPoolEntryHelper();
 
-    auto existingPoolEntryFrame = externalSystemAccountIDPoolEntryHelper->load(mBindExternalSystemAccountId.externalSystemType,
-                                                                          mSourceAccount->getID(), db);
+    auto existingPoolEntryFrame = externalSystemAccountIDPoolEntryHelper.load(
+        mBindExternalSystemAccountId.externalSystemType,
+        mSourceAccount->getID(), db);
     if (!!existingPoolEntryFrame)
     {
         existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry().expiresAt = ledgerManager.getCloseTime() + dayInSeconds;
-        externalSystemAccountIDPoolEntryHelper->storeChange(delta, db, existingPoolEntryFrame->mEntry);
+        externalSystemAccountIDPoolEntryHelper.storeChange(delta, db, existingPoolEntryFrame->mEntry);
         innerResult().code(BindExternalSystemAccountIdResultCode::SUCCESS);
         innerResult().success().data = existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry().data;
         return true;
     }
 
-    auto poolEntryToBindFrame = externalSystemAccountIDPoolEntryHelper->loadAvailablePoolEntry(db, ledgerManager,
-                                                                                               mBindExternalSystemAccountId.externalSystemType);
+    auto poolEntryToBindFrame =
+        externalSystemAccountIDPoolEntryHelper.loadAvailablePoolEntry(
+            db, ledgerManager, mBindExternalSystemAccountId.externalSystemType);
     if (!poolEntryToBindFrame)
     {
         innerResult().code(BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
@@ -72,9 +80,10 @@ BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta
 
     if (poolEntryToBind.accountID)
     {
-        auto existingExternalSystemAccountIDFrame = externalSystemAccountIDHelper->load(*poolEntryToBind.accountID,
-                                                                                        mBindExternalSystemAccountId.externalSystemType,
-                                                                                        db, &delta);
+        auto existingExternalSystemAccountIDFrame =
+            externalSystemAccountIDHelper.load(
+                *poolEntryToBind.accountID,
+                mBindExternalSystemAccountId.externalSystemType, db, &delta);
         if (!existingExternalSystemAccountIDFrame)
         {
             auto accIDStr = PubKeyUtils::toStrKey(*poolEntryToBind.accountID);
@@ -83,12 +92,13 @@ BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta
             throw runtime_error("Unexpected state: external system account id expected to exist");
         }
 
-        externalSystemAccountIDHelper->storeDelete(delta, db, existingExternalSystemAccountIDFrame->getKey());
+        externalSystemAccountIDHelper.storeDelete(
+            delta, db, existingExternalSystemAccountIDFrame->getKey());
     }
 
     poolEntryToBind.accountID.activate() = mSourceAccount->getID();
 
-    int expiresAt = getExpiresAt(db, ledgerManager, mBindExternalSystemAccountId.externalSystemType);
+    int expiresAt = getExpiresAt(storageHelper, ledgerManager, mBindExternalSystemAccountId.externalSystemType);
     poolEntryToBind.expiresAt = ledgerManager.getCloseTime() + expiresAt;
 
     poolEntryToBind.bindedAt = ledgerManager.getCloseTime();
@@ -97,8 +107,10 @@ BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta
                                                                                 mBindExternalSystemAccountId.externalSystemType,
                                                                                 poolEntryToBind.data);
 
-    externalSystemAccountIDPoolEntryHelper->storeChange(delta, db, poolEntryToBindFrame->mEntry);
-    externalSystemAccountIDHelper->storeAdd(delta, db, externalSystemAccountIDFrame->mEntry);
+    externalSystemAccountIDPoolEntryHelper.storeChange(
+        delta, db, poolEntryToBindFrame->mEntry);
+    externalSystemAccountIDHelper.storeAdd(
+        delta, db, externalSystemAccountIDFrame->mEntry);
     innerResult().code(BindExternalSystemAccountIdResultCode::SUCCESS);
     innerResult().success().data = poolEntryToBind.data;
     return true;
@@ -117,7 +129,7 @@ BindExternalSystemAccountIdOpFrame::doCheckValid(Application &app)
 }
 
 int
-BindExternalSystemAccountIdOpFrame::getExpiresAt(Database &db, LedgerManager &ledgerManager, int32 externalSystemType)
+BindExternalSystemAccountIdOpFrame::getExpiresAt(StorageHelper& storageHelper, LedgerManager &ledgerManager, int32 externalSystemType)
 {
     if(!ledgerManager.shouldUse(LedgerVersion::KEY_VALUE_POOL_ENTRY_EXPIRES_AT))
     {
@@ -126,7 +138,8 @@ BindExternalSystemAccountIdOpFrame::getExpiresAt(Database &db, LedgerManager &le
 
     auto key = ManageKeyValueOpFrame::makeExternalSystemExpirationPeriodKey(externalSystemType);
 
-    auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key, db);
+	auto kvEntry = storageHelper.getKeyValueHelper().loadKeyValue(
+        key, storageHelper.getDatabase());
 
     if (!kvEntry)
     {

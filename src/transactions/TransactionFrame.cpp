@@ -12,6 +12,7 @@
 #include "herder/TxSetFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/StorageHelperImpl.h"
 #include "main/Application.h"
 #include "util/Logging.h"
 #include "util/XDRStream.h"

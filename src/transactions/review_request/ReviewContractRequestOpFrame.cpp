@@ -61,6 +61,7 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
     contractEntry.details = contractRequest.details;
     contractEntry.startTime = contractRequest.startTime;
     contractEntry.endTime = contractRequest.endTime;
+    contractEntry.status = ContractStatus::NO_SIGNATURES;
 
     EntryHelperProvider::storeAddEntry(delta, db, contractFrame->mEntry);
 

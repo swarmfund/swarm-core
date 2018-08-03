@@ -28,21 +28,38 @@ namespace stellar
 
     void ContractFrame::addContractDetails(longstring const& details)
     {
-        mContract.details += details;
+        mContract.details.emplace_back(details);
     }
 
-    void ContractFrame::addInvoiceRequest(uint64_t const& requestID)
+    bool ContractFrame::addContractorConfirmation()
     {
-        mContract.invoiceRequestIDs.emplace_back(requestID);
+        if ((mContract.status == ContractStatus::BOTH_CONFIRMED) ||
+            (mContract.status == ContractStatus::CONTRACTOR_CONFIRMED))
+            return false;
+
+        if (mContract.status == ContractStatus::CUSTOMER_CONFIRMED)
+        {
+            mContract.status = ContractStatus::BOTH_CONFIRMED;
+            return true;
+        }
+
+        mContract.status = ContractStatus::CONTRACTOR_CONFIRMED;
+        return true;
     }
 
-    /*ContractFrame::pointer
-    ContractFrame::createNew()
+    bool ContractFrame::addCustomerConfirmation()
     {
-        LedgerEntry le;
-        le.data.type(LedgerEntryType::CONTRACT);
-        ContractEntry& entry = le.data.contract();
+        if ((mContract.status == ContractStatus::BOTH_CONFIRMED) ||
+            (mContract.status == ContractStatus::CUSTOMER_CONFIRMED))
+            return false;
 
-        return std::make_shared<ContractFrame>(le);
-    }*/
+        if (mContract.status == ContractStatus::CONTRACTOR_CONFIRMED)
+        {
+            mContract.status = ContractStatus::BOTH_CONFIRMED;
+            return true;
+        }
+
+        mContract.status = ContractStatus::CUSTOMER_CONFIRMED;
+        return true;
+    }
 }

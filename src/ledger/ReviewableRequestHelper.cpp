@@ -305,6 +305,33 @@ loadRequests(AccountID const& rawRequestor, ReviewableRequestType requestType,
     return result;
 }
 
+vector<ReviewableRequestFrame::pointer>
+ReviewableRequestHelper::loadRequests(AccountID const& requestor, AccountID const& reviewer,
+                                      ReviewableRequestType requestType, Database& db)
+{
+    string sql = selectorReviewableRequest;
+    sql += " WHERE requestor = :requestor AND reviewer = :reviewer";
+    auto prep = db.getPreparedStatement(sql);
+    auto& st = prep.statement();
+    auto requestorStr = PubKeyUtils::toStrKey(requestor);
+    auto reviewerStr = PubKeyUtils::toStrKey(reviewer);
+    st.exchange(use(requestorStr, "requestor"));
+    st.exchange(use(reviewerStr, "reviewer"));
+
+    vector<ReviewableRequestFrame::pointer> result;
+    auto timer = db.getSelectTimer("reviewable_request");
+    loadRequests(prep, [&result,requestType](LedgerEntry const& entry)
+    {
+        auto request = make_shared<ReviewableRequestFrame>(entry);
+        if (request->getRequestType() != requestType)
+            return;
+
+        result.emplace_back(request);
+    });
+
+    return result;
+}
+
 ReviewableRequestFrame::pointer
     ReviewableRequestHelper::loadRequest(uint64 requestID, AccountID requestor, Database &db, LedgerDelta *delta) {
         auto request = loadRequest(requestID, db, delta);

@@ -153,6 +153,17 @@ TEST_CASE("Contract", "[tx][contract]")
             {
                 auto localDetails = details + " not success";
                 auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
+                        paymentAsset, root.key.getPublicKey(), paymentAmount, localDetails, &contractID);
+
+                auto invoiceResult = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient,
+                        createInvoiceRequestOp,
+                        ManageInvoiceRequestResultCode::SENDER_ACCOUNT_MISMATCHED);
+            }
+
+            SECTION("Only contractor can add invoice with contract")
+            {
+                auto localDetails = details + " not success";
+                auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
                         paymentAsset, payer.key.getPublicKey(), paymentAmount, localDetails, &contractID);
 
                 auto invoiceResult = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(root,
@@ -214,135 +225,5 @@ TEST_CASE("Contract", "[tx][contract]")
             auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(payer, requestID,
                     ReviewRequestOpAction::PERMANENT_REJECT, "Some reason");
         }
-
-        /*SECTION("Invoice request not found")
-        {
-            billPayTestHelper.applyBillPayTx(payer, 123027538, payerBalance->getBalanceID(),
-                                             destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::INVOICE_REQUEST_NOT_FOUND);
-        }
-
-        SECTION("Amount mismatched")
-        {
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount + 1, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::AMOUNT_MISMATCHED);
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount - 1, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::AMOUNT_MISMATCHED);
-        }
-
-        SECTION("Destination account mismatched")
-        {
-            destination = paymentV2TestHelper.createDestinationForAccount(SecretKey::random().getPublicKey());
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::DESTINATION_ACCOUNT_MISMATCHED);
-        }
-
-        SECTION("Destination balance mismatched")
-        {
-            destination = paymentV2TestHelper.createDestinationForBalance(SecretKey::random().getPublicKey());
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::DESTINATION_BALANCE_MISMATCHED);
-        }
-
-        SECTION("destination cannot pay fee for bill pay")
-        {
-            paymentFeeData = paymentV2TestHelper.createPaymentFeeData(sourceFeeData, destFeeData, false);
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::REQUIRED_SOURCE_PAY_FOR_DESTINATION);
-        }
-
-        SECTION("SOURCE BALANCE MISMATCHED")
-        {
-            auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID, SecretKey::random().getPublicKey(),
-                    destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                    BillPayResultCode::SOURCE_BALANCE_MISMATCHED);
-        }
-
-        SECTION("Reference duplication")
-        {
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                                                                     ManageInvoiceRequestResultCode::INVOICE_REQUEST_REFERENCE_DUPLICATION);
-        }
-
-        SECTION("Too many invoices")
-        {
-            for (int i = 1; i < app.getMaxInvoicesForReceiverAccount(); i++)
-            {
-                createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                        paymentAsset, payer.key.getPublicKey(), paymentAmount + i,
-                        details + std::to_string(i));
-
-                manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp);
-            }
-
-            createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                    paymentAsset, payer.key.getPublicKey(), paymentAmount + 23,
-                    "expected to be excess");
-
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                                                                     ManageInvoiceRequestResultCode::TOO_MANY_INVOICES);
-        }
-
-        SECTION("Success remove")
-        {
-            auto removeInvoiceRequestOp = manageInvoiceRequestTestHelper.createRemoveInvoiceRequest(requestID);
-
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, removeInvoiceRequestOp);
-
-            SECTION("Already removed")
-            {
-                manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, removeInvoiceRequestOp,
-                                                                         ManageInvoiceRequestResultCode::NOT_FOUND);
-            }
-        }
-    }
-
-    SECTION("Unsuccessful manage invoice request")
-    {
-        SECTION("Malformed")
-        {
-            auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                    paymentAsset, payer.key.getPublicKey(), 0, details);
-
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                                                                     ManageInvoiceRequestResultCode::MALFORMED);
-        }
-
-        SECTION("Destination balance not found")
-        {
-            auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                    paymentAsset, SecretKey::random().getPublicKey(), paymentAmount, details);
-
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                                                                     ManageInvoiceRequestResultCode::BALANCE_NOT_FOUND);
-        }
-
-        SECTION("Request not found")
-        {
-            uint64_t notExistingRequestID = 123;
-            auto removeInvoiceRequestOp = manageInvoiceRequestTestHelper.createRemoveInvoiceRequest(notExistingRequestID);
-
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, removeInvoiceRequestOp,
-                                                                     ManageInvoiceRequestResultCode::NOT_FOUND);
-        }
-
-        SECTION("Request not found")
-        {
-            auto limitsUpdateRequestHelper = LimitsUpdateRequestHelper(testManager);
-            auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest("limitsRequestData");
-            auto limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(payer,
-                                                                                               limitsUpdateRequest);
-
-            auto removeInvoiceRequestOp = manageInvoiceRequestTestHelper.createRemoveInvoiceRequest(
-                    limitsUpdateResult.success().manageLimitsRequestID);
-
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, removeInvoiceRequestOp,
-                                                                     ManageInvoiceRequestResultCode::NOT_FOUND);
-        }*/
     }
 }

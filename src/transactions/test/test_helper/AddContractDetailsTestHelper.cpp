@@ -1,4 +1,4 @@
-#include <transactions/AddContractDetailsOpFrame.h>
+#include <transactions/ManageContractOpFrame.h>
 #include "AddContractDetailsTestHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "test/test_marshaler.h"

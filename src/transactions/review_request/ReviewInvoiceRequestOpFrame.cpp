@@ -63,7 +63,7 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
 
     if (!processPaymentV2(app, delta, ledgerManager))
         return false;
-
+    // TODO don't delete invoice if contract
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
     if (!invoiceRequest.contractID)
@@ -98,7 +98,7 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
             }
             case BalanceFrame::LINE_FULL:
             {
-                innerResult().code(ReviewRequestResultCode::INVOICE_RECIEVER_BALANCE_LOCK_AMOUNT_OVERFLOW);
+                innerResult().code(ReviewRequestResultCode::INVOICE_RECEIVER_BALANCE_LOCK_AMOUNT_OVERFLOW);
                 return false;
             }
             case BalanceFrame::UNDERFUNDED:
@@ -220,21 +220,6 @@ ReviewInvoiceRequestOpFrame::handleReject(Application& app, LedgerDelta& delta, 
 {
     innerResult().code(ReviewRequestResultCode::REJECT_NOT_ALLOWED);
     return false;
-}
-
-bool
-ReviewInvoiceRequestOpFrame::handlePermanentReject(Application& app, LedgerDelta& delta,
-                                                   LedgerManager& ledgerManager,
-                                                   ReviewableRequestFrame::pointer request)
-{
-    if (request->getRequestType() != ReviewableRequestType::INVOICE)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected INVOICE, but got "
-                             << xdr::xdr_traits<ReviewableRequestType>::enum_name(request->getRequestType());
-        throw invalid_argument("Unexpected request type for review invoice request");
-    }
-
-    return ReviewRequestOpFrame::handlePermanentReject(app, delta, ledgerManager, request);
 }
 
 ReviewInvoiceRequestOpFrame::ReviewInvoiceRequestOpFrame(Operation const & op, OperationResult & res,

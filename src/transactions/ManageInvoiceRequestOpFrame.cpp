@@ -83,10 +83,22 @@ ManageInvoiceRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledge
         return false;
 	}
 
-    LedgerKey requestKey;
-    requestKey.type(LedgerEntryType::REVIEWABLE_REQUEST);
-    requestKey.reviewableRequest().requestID = mManageInvoiceRequest.details.requestID();
-	reviewableRequestHelper->storeDelete(delta, db, requestKey);
+	auto invoiceRequest = reviewableRequest->getRequestEntry().body.invoiceRequest();
+	if (!!invoiceRequest.contractID)
+	{
+	    auto contractHelper = ContractHelper::Instance();
+	    auto contractFrame = contractHelper->loadContract(*invoiceRequest.contractID, db, &delta);
+
+	    if (!contractFrame)
+	    {
+	        innerResult().code(ManageInvoiceRequestResultCode::CONTRACT_NOT_FOUND);
+            return false;
+	    }
+
+	    contractFrame->
+	}
+
+	reviewableRequestHelper->storeDelete(delta, db, reviewableRequest->getKey());
 
 	innerResult().success().details.action(ManageInvoiceRequestAction::REMOVE);
 
@@ -146,6 +158,12 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
         if (!(contractFrame->getContractor() == getSourceID()))
         {
             innerResult().code(ManageInvoiceRequestResultCode::ONLY_CONTRACTOR_CAN_ATTACH_INVOICE_TO_CONTRACT);
+            return false;
+        }
+
+        if (!(contractFrame->getCustomer() == invoiceRequest.sender))
+        {
+            innerResult().code(ManageInvoiceRequestResultCode::SENDER_ACCOUNT_MISMATCHED);
             return false;
         }
 

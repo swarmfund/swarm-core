@@ -47,7 +47,7 @@
 #include "ManageKeyValueOpFrame.h"
 #include "CreateManageLimitsRequestOpFrame.h"
 #include "ManageContractRequestOpFrame.h"
-#include "AddContractDetailsOpFrame.h"
+#include "ManageContractOpFrame.h"
 
 namespace stellar
 {
@@ -117,8 +117,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateManageLimitsRequestOpFrame(op, res, tx));
     case OperationType::MANAGE_CONTRACT_REQUEST:
         return shared_ptr<OperationFrame>(new ManageContractRequestOpFrame(op, res, tx));
-    case OperationType::ADD_CONTRACT_DETAILS:
-        return shared_ptr<OperationFrame>(new AddContractDetailsOpFrame(op, res, tx));
+    case OperationType::MANAGE_CONTRACT:
+        return shared_ptr<OperationFrame>(new ManageContractOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

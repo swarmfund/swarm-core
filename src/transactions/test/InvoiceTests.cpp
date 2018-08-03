@@ -134,37 +134,10 @@ TEST_CASE("Invoice", "[tx][invoice]")
         reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
                                                             "", "", payerBalance->getBalanceID());
 
-        /*SECTION("Success bill pay without approve")
-        {
-            auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                    destination, paymentAmount, paymentFeeData, "", "", nullptr);
-        }*/
-
         SECTION("Approve invoice request")
         {
             auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
                                                                                 ReviewRequestOpAction::APPROVE, "");
-
-            /*SECTION("Success bill pay with approved invoice")
-            {
-                auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID,
-                                                                 payerBalance->getBalanceID(),
-                                                                 destination, paymentAmount,
-                                                                 paymentFeeData, "", "", nullptr);
-            }
-
-            SECTION("Not allowed to reject")
-            {
-                reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
-                        ReviewRequestOpAction::REJECT, "Some reason", ReviewRequestResultCode::REJECT_NOT_ALLOWED);
-            }
-
-            SECTION("Not allowed to permanent reject")
-            {
-                reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
-                        ReviewRequestOpAction::PERMANENT_REJECT, "Some reason",
-                        ReviewRequestResultCode::PERMANENT_REJECT_NOT_ALLOWED);
-            }*/
         }
 
         SECTION("Only sender allowed to approve")
@@ -173,59 +146,65 @@ TEST_CASE("Invoice", "[tx][invoice]")
                     ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::NOT_FOUND);
         }
 
+        SECTION("Only sender allowed to permanent reject")
+        {
+            auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(root, requestID,
+                    ReviewRequestOpAction::PERMANENT_REJECT, "Some reason", ReviewRequestResultCode::NOT_FOUND);
+        }
+
         SECTION("Success permanent reject")
         {
             auto reviewResult = reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID,
                     ReviewRequestOpAction::PERMANENT_REJECT, "Some reason");
         }
 
-        /*SECTION("Invoice request not found")
-        {
-            billPayTestHelper.applyBillPayTx(payer, 123027538, payerBalance->getBalanceID(),
-                                             destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::INVOICE_REQUEST_NOT_FOUND);
-        }
-
         SECTION("Amount mismatched")
         {
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount + 1, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::AMOUNT_MISMATCHED);
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount - 1, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::AMOUNT_MISMATCHED);
+            reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount + 1, paymentFeeData,
+                                                                "", "", payerBalance->getBalanceID());
+            reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE,
+                                                            "", ReviewRequestResultCode::AMOUNT_MISMATCHED);
+
+            reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount - 1, paymentFeeData,
+                                                                "", "", payerBalance->getBalanceID());
+            reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE,
+                                                            "", ReviewRequestResultCode::AMOUNT_MISMATCHED);
         }
 
         SECTION("Destination account mismatched")
         {
             destination = paymentV2TestHelper.createDestinationForAccount(SecretKey::random().getPublicKey());
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::DESTINATION_ACCOUNT_MISMATCHED);
+            reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
+                                                                "", "", payerBalance->getBalanceID());
+            reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE, "",
+                                                            ReviewRequestResultCode::DESTINATION_ACCOUNT_MISMATCHED);
         }
 
         SECTION("Destination balance mismatched")
         {
             destination = paymentV2TestHelper.createDestinationForBalance(SecretKey::random().getPublicKey());
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::DESTINATION_BALANCE_MISMATCHED);
+            reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
+                                                                "", "", payerBalance->getBalanceID());
+            reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE, "",
+                                                            ReviewRequestResultCode::DESTINATION_BALANCE_MISMATCHED);
         }
 
         SECTION("destination cannot pay fee for bill pay")
         {
             paymentFeeData = paymentV2TestHelper.createPaymentFeeData(sourceFeeData, destFeeData, false);
-            billPayTestHelper.applyBillPayTx(payer, requestID, payerBalance->getBalanceID(),
-                                             destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                                             BillPayResultCode::REQUIRED_SOURCE_PAY_FOR_DESTINATION);
+            reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
+                                                                "", "", payerBalance->getBalanceID());
+            reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE, "",
+                                                            ReviewRequestResultCode::REQUIRED_SOURCE_PAY_FOR_DESTINATION);
         }
 
         SECTION("SOURCE BALANCE MISMATCHED")
         {
-            auto opResult = billPayTestHelper.applyBillPayTx(payer, requestID, SecretKey::random().getPublicKey(),
-                    destination, paymentAmount, paymentFeeData, "", "", nullptr,
-                    BillPayResultCode::SOURCE_BALANCE_MISMATCHED);
-        }*/
+            reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
+                                                                "", "", SecretKey::random().getPublicKey());
+            reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE, "",
+                                                            ReviewRequestResultCode::SOURCE_BALANCE_MISMATCHED);
+        }
 
         SECTION("Reference duplication")
         {

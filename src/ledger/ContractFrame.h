@@ -68,9 +68,22 @@ public:
         return mContract.endTime;
     }
 
+    ContractStatus const&
+    getStatus() const
+    {
+        return mContract.status;
+    }
+
+    uint64_t const&
+    getContractDetailsNumber()
+    {
+        return mContract.details.size();
+    }
+
     void addContractDetails(longstring const& details);
 
-    void addInvoiceRequest(uint64_t const& requestID);
+    bool addContractorConfirmation();
+    bool addCustomerConfirmation();
 };
 
 }

@@ -9,33 +9,42 @@
 
 namespace stellar
 {
-class AddContractDetailsOpFrame : public OperationFrame
+class ManageContractOpFrame : public OperationFrame
 {
     std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db,
                                                                               LedgerDelta* delta) const override;
     SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                           int32_t ledgerVersion) const override;
 
-    AddContractDetailsResult&
+    ManageContractResult&
     innerResult()
     {
-        return mResult.tr().addContractDetailsResult();
+        return mResult.tr().manageContractResult();
     }
 
-    AddContractDetailsOp const& mAddContractDetails;
+    ManageContractOp const& mManageContract;
+
+    bool checkContractDetails(ContractFrame::pointer contractFrame, Application& app,
+                              Database& db, LedgerDelta& delta);
+
+    uint64_t obtainMaxContractDetailsCount(Application& app, Database& db, LedgerDelta& delta);
+
+    uint64_t obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta);
+
+    bool confirmCompleted(ContractFrame::pointer contractFrame);
 
 public:
-    AddContractDetailsOpFrame(Operation const& op, OperationResult& res,
-                              TransactionFrame& parentTx);
+    ManageContractOpFrame(Operation const& op, OperationResult& res,
+                           TransactionFrame& parentTx);
 
     bool doApply(Application& app, LedgerDelta& delta,
                  LedgerManager& ledgerManager) override;
     bool doCheckValid(Application& app) override;
 
-    static AddContractDetailsResultCode
+    static ManageContractResultCode
     getInnerCode(OperationResult const& res)
     {
-        return res.tr().addContractDetailsResult().code();
+        return res.tr().manageContractResult().code();
     }
 
     std::string getInnerResultCodeAsStr() override;

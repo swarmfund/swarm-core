@@ -12,6 +12,7 @@
 #include "util/XDRStream.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
+#include "ledger/StorageHelperImpl.h"
 #include "crypto/SHA.h"
 #include "crypto/SecretKey.h"
 #include "database/Database.h"
@@ -383,7 +384,9 @@ bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
         {
             auto time = opTimer.TimeScope();
             LedgerDelta opDelta(thisTxDelta);
-            bool txRes = op->apply(opDelta, app);
+            StorageHelperImpl storageHelperImpl(app.getDatabase(), opDelta);
+            StorageHelper& storageHelper = storageHelperImpl;
+            bool txRes = op->apply(storageHelper, app);
 
             if (!txRes)
             {
@@ -398,7 +401,7 @@ bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
             {
                 meta.operations().emplace_back(opDelta.getChanges());
             }
-            opDelta.commit();
+            storageHelper.commit();
         }
 
         if (!errorEncountered)

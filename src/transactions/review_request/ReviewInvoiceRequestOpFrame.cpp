@@ -50,6 +50,12 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
     auto requestEntry = request->getRequestEntry();
     auto invoiceRequest = requestEntry.body.invoiceRequest();
 
+    if (invoiceRequest.isApproved)
+    {
+        innerResult().code(ReviewRequestResultCode::INVOICE_ALREADY_APPROVED);
+        return false;
+    }
+
     Database& db = ledgerManager.getDatabase();
 
     auto balanceHelper = BalanceHelper::Instance();
@@ -63,11 +69,12 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
 
     if (!processPaymentV2(app, delta, ledgerManager))
         return false;
-    // TODO don't delete invoice if contract
-    EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
     if (!invoiceRequest.contractID)
+    {
+        EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
         return true;
+    }
 
     auto contractHelper = ContractHelper::Instance();
     auto contractFrame = contractHelper->loadContract(*invoiceRequest.contractID, db, &delta);
@@ -85,36 +92,37 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
     return tryLockAmount(receiverBalance, invoiceRequest.amount);
 }
 
-    bool
-    ReviewInvoiceRequestOpFrame::tryLockAmount(BalanceFrame::pointer balance, uint64_t amount)
-    {
-        auto lockResult = balance->tryLock(amount);
+bool
+ReviewInvoiceRequestOpFrame::tryLockAmount(BalanceFrame::pointer balance, uint64_t amount)
+{
+    auto lockResult = balance->tryLock(amount);
 
-        switch (lockResult)
+    switch (lockResult)
+    {
+        case BalanceFrame::SUCCESS:
         {
-            case BalanceFrame::SUCCESS:
-            {
-                return true;
-            }
-            case BalanceFrame::LINE_FULL:
-            {
-                innerResult().code(ReviewRequestResultCode::INVOICE_RECEIVER_BALANCE_LOCK_AMOUNT_OVERFLOW);
-                return false;
-            }
-            case BalanceFrame::UNDERFUNDED:
-            {
-                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. There must be enough amount "
-                                                       << static_cast<int>(lockResult);
-                throw std::runtime_error("Unexpected state. There must be enough amount");
-            }
-            default:
-            {
-                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from tryLock method: "
-                                                       << static_cast<int>(lockResult);
-                throw std::runtime_error("Unexpected result code from tryLock method");
-            }
+            return true;
+        }
+        case BalanceFrame::LINE_FULL:
+        {
+            innerResult().code(ReviewRequestResultCode::INVOICE_RECEIVER_BALANCE_LOCK_AMOUNT_OVERFLOW);
+            return false;
+        }
+        case BalanceFrame::UNDERFUNDED:
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. There must be enough amount "
+                                                   << "actual: " << to_string(balance->getAmount())
+                                                   << "expected: " << to_string(amount);
+            throw std::runtime_error("Unexpected state. There must be enough amount");
+        }
+        default:
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from tryLock method: "
+                                                   << static_cast<int>(lockResult);
+            throw std::runtime_error("Unexpected result code from tryLock method");
         }
     }
+}
 
 
 bool

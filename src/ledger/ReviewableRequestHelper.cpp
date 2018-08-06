@@ -306,8 +306,8 @@ loadRequests(AccountID const& rawRequestor, ReviewableRequestType requestType,
 }
 
 vector<ReviewableRequestFrame::pointer>
-ReviewableRequestHelper::loadRequests(AccountID const& requestor, AccountID const& reviewer,
-                                      ReviewableRequestType requestType, Database& db)
+ReviewableRequestHelper::loadInvoiceRequests(AccountID const& requestor, AccountID const& reviewer,
+                                             uint64_t const& contractID, Database& db)
 {
     string sql = selectorReviewableRequest;
     sql += " WHERE requestor = :requestor AND reviewer = :reviewer";
@@ -320,10 +320,16 @@ ReviewableRequestHelper::loadRequests(AccountID const& requestor, AccountID cons
 
     vector<ReviewableRequestFrame::pointer> result;
     auto timer = db.getSelectTimer("reviewable_request");
-    loadRequests(prep, [&result,requestType](LedgerEntry const& entry)
+    loadRequests(prep, [&result, contractID](LedgerEntry const& entry)
     {
         auto request = make_shared<ReviewableRequestFrame>(entry);
-        if (request->getRequestType() != requestType)
+        if (request->getRequestType() != ReviewableRequestType::INVOICE)
+            return;
+
+        if (!request->getRequestEntry().body.invoiceRequest().contractID)
+            return;
+
+        if (*request->getRequestEntry().body.invoiceRequest().contractID != contractID)
             return;
 
         result.emplace_back(request);

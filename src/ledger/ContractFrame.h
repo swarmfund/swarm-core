@@ -38,6 +38,12 @@ public:
         return mContract;
     }
 
+    uint64_t const&
+    getContractID() const
+    {
+        return mContract.contractID;
+    }
+
     AccountID const&
     getContractor() const
     {
@@ -75,7 +81,7 @@ public:
     }
 
     uint64_t const&
-    getContractDetailsNumber()
+    getContractDetailsCount()
     {
         return mContract.details.size();
     }

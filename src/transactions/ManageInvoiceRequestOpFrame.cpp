@@ -84,6 +84,13 @@ ManageInvoiceRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledge
 	}
 
 	auto invoiceRequest = reviewableRequest->getRequestEntry().body.invoiceRequest();
+
+	if (invoiceRequest.isApproved)
+	{
+	    innerResult().code(ManageInvoiceRequestResultCode::INVOICE_IS_APPROVED);
+	    return false;
+	}
+
 	if (!!invoiceRequest.contractID)
 	{
 	    auto contractHelper = ContractHelper::Instance();
@@ -94,8 +101,6 @@ ManageInvoiceRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledge
 	        innerResult().code(ManageInvoiceRequestResultCode::CONTRACT_NOT_FOUND);
             return false;
 	    }
-
-	    contractFrame->
 	}
 
 	reviewableRequestHelper->storeDelete(delta, db, reviewableRequest->getKey());
@@ -137,6 +142,7 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::INVOICE);
     body.invoiceRequest() = invoiceRequest;
+    body.invoiceRequest().isApproved = false;
 
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), invoiceRequest.sender,
@@ -166,9 +172,6 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
             innerResult().code(ManageInvoiceRequestResultCode::SENDER_ACCOUNT_MISMATCHED);
             return false;
         }
-
-        contractFrame->addInvoiceRequest(request->getRequestID());
-        contractHelper->storeChange(delta, db, contractFrame->mEntry);
     }
 
     auto receiverBalanceID = AccountManager::loadOrCreateBalanceForAsset(getSourceID(),

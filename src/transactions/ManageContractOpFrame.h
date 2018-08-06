@@ -6,6 +6,7 @@
 
 #include "transactions/OperationFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "ledger/ContractFrame.h"
 
 namespace stellar
 {
@@ -32,6 +33,8 @@ class ManageContractOpFrame : public OperationFrame
     uint64_t obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta);
 
     bool confirmCompleted(ContractFrame::pointer contractFrame);
+
+    bool checkIsCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
 
 public:
     ManageContractOpFrame(Operation const& op, OperationResult& res,

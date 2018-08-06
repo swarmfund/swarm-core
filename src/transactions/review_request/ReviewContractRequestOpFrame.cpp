@@ -50,7 +50,10 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
     Database& db = ledgerManager.getDatabase();
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
-    auto contractFrame = make_shared<ContractFrame>();
+    LedgerEntry le;
+    le.data.type(LedgerEntryType::CONTRACT);
+
+    auto contractFrame = make_shared<ContractFrame>(le);
     auto& contractEntry = contractFrame->getContract();
     auto contractRequest = request->getRequestEntry().body.contractRequest();
 
@@ -58,10 +61,12 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
     contractEntry.contractor = request->getRequestor();
     contractEntry.customer = request->getReviewer();
     contractEntry.judge = app.getMasterID();
-    contractEntry.details = contractRequest.details;
+    contractEntry.details.emplace_back(contractRequest.details);
     contractEntry.startTime = contractRequest.startTime;
     contractEntry.endTime = contractRequest.endTime;
-    contractEntry.status = ContractStatus::NO_SIGNATURES;
+    contractEntry.status = ContractStatus::NO_CONFIRMATIONS;
+
+    CLOG(DEBUG, Logging::OPERATION_LOGGER) << (contractFrame->getContract().details[0]);
 
     EntryHelperProvider::storeAddEntry(delta, db, contractFrame->mEntry);
 

@@ -102,9 +102,8 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
                 return false;
 
             innerResult().response().data.action(ManageContractAction::CONFIRM_COMPLETED);
-            innerResult().response().data.isCompleted() = false;
-            if (contractFrame->getStatus() == ContractStatus::BOTH_CONFIRMED)
-                innerResult().response().data.isCompleted() = true;
+            if (!checkIsCompleted(contractFrame, db, delta))
+                return false;
 
             break;
         default:
@@ -124,7 +123,10 @@ ManageContractOpFrame::checkContractDetails(ContractFrame::pointer contractFrame
 {
     auto maxContractDetails = obtainMaxContractDetailsCount(app, db, delta);
 
-    if (contractFrame->getContractDetailsNumber() >= maxContractDetails)
+    //auto actualDetailsCount = contractFrame->getContractDetailsCount();
+    auto actualDetailsCount = contractFrame->getContract().details.size();
+
+    if (actualDetailsCount >= maxContractDetails)
     {
         innerResult().code(ManageContractResultCode::TOO_MANY_CONTRACT_DETAILS);
         return false;
@@ -225,6 +227,44 @@ ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame)
                                                << "Expected contractor, customer or master";
         throw std::runtime_error("Unexpected source account. Expected contractor, customer or master");
     }
+}
+
+bool
+ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta)
+{
+    if (contractFrame->getStatus() != ContractStatus::BOTH_CONFIRMED)
+    {
+        innerResult().response().data.isCompleted() = false;
+        return true;
+    }
+
+    innerResult().response().data.isCompleted() = true;
+
+    auto requestHelper = ReviewableRequestHelper::Instance();
+    auto invoiceRequests = requestHelper->loadInvoiceRequests(contractFrame->getContractor(),
+            contractFrame->getCustomer(), contractFrame->getContractID(), db);
+
+    for (ReviewableRequestFrame::pointer invoiceRequest : invoiceRequests)
+    {
+        auto invoice = invoiceRequest->getRequestEntry().body.invoiceRequest();
+        if (!invoice.isApproved)
+        {
+            innerResult().code(ManageContractResultCode::INVOICE_NOT_APPROVED);
+            return false;
+        }
+
+        auto balanceHelper = BalanceHelper::Instance();
+        auto balanceFrame = balanceHelper->mustLoadBalance(invoiceRequest->getRequestor(), invoice.asset, db, &delta);
+
+        if (!balanceFrame->unlock(invoice.amount))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected balance state. "
+                                                   << "Expected success unlock in manage contract. ";
+            throw std::runtime_error("Unexpected balance state. Expected success unlock in manage contract.");
+        }
+    }
+
+    return true;
 }
 
 bool

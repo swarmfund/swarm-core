@@ -14,7 +14,7 @@
 #include <transactions/test/test_helper/ManageContractRequestTestHelper.h>
 #include <transactions/test/test_helper/ReviewContractRequestHelper.h>
 #include <ledger/ContractHelper.h>
-#include <transactions/test/test_helper/AddContractDetailsTestHelper.h>
+#include <transactions/test/test_helper/ManageContractTestHelper.h>
 #include "main/Application.h"
 #include "ledger/LedgerManager.h"
 #include "overlay/LoopbackPeer.h"
@@ -53,7 +53,7 @@ TEST_CASE("Contract", "[tx][contract]")
     ReviewInvoiceRequestHelper reviewInvoiceRequestHelper(testManager);
     ManageContractRequestTestHelper manageContractRequestTestHelper(testManager);
     ReviewContractRequestHelper reviewContractRequestHelper(testManager);
-    AddContractDetailsTestHelper addContractDetailsTestHelper(testManager);
+    ManageContractTestHelper manageContractTestHelper(testManager);
 
     // set up world
     auto balanceHelper = BalanceHelper::Instance();
@@ -180,22 +180,32 @@ TEST_CASE("Contract", "[tx][contract]")
             REQUIRE(invoiceResult.success().details.response().receiverBalance == receiverBalance->getBalanceID());
             REQUIRE(invoiceResult.success().details.response().senderBalance == payerBalance->getBalanceID());
 
+            SECTION("Not allowed confirm contract with not approved invoices")
+            {
+
+            }
+
             SECTION("Add details to contract")
             {
-                addContractDetailsTestHelper.applyAddContractDetailsTx(recipient, contractID, details);
-                addContractDetailsTestHelper.applyAddContractDetailsTx(payer, contractID, details);
+                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(recipient, contractID, details);
+                manageContractTestHelper.applyManageContractTx(recipient, addDetailsOp);
+                addDetailsOp = manageContractTestHelper.createAddDetailsOp(payer, contractID, details);
+                manageContractTestHelper.applyManageContractTx(recipient, addDetailsOp);
             }
 
             SECTION("Not allowed to add details to contract")
             {
-                addContractDetailsTestHelper.applyAddContractDetailsTx(root, contractID, details,
-                                                                       AddContractDetailsResultCode::NOT_ALLOWED);
+                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(root, contractID, details);
+                manageContractTestHelper.applyManageContractTx(root, addDetailsOp,
+                                                               ManageContractResultCode::NOT_ALLOWED);
             }
 
             SECTION("Malformed")
             {
-                addContractDetailsTestHelper.applyAddContractDetailsTx(recipient, contractID, "",
-                                                                       AddContractDetailsResultCode::MALFORMED);
+                longstring malformedDetails = "";
+                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(root, contractID, malformedDetails);
+                manageContractTestHelper.applyManageContractTx(root, addDetailsOp,
+                                                               ManageContractResultCode::MALFORMED);
             }
 
             SECTION("Approve invoice with contract")

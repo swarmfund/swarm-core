@@ -8,8 +8,8 @@ using namespace soci;
 
 namespace stellar
 {
-    const char* contractSelector = "SELECT id, contractor, customer, judge, invoices, start_time,"
-                                   "       end_time, details, lastmodified, version "
+    const char* contractSelector = "SELECT id, contractor, customer, judge, start_time,"
+                                   "       end_time, details, status, lastmodified, version "
                                    "FROM   contracts";
 
     void ContractHelper::dropAll(Database &db)
@@ -21,10 +21,10 @@ namespace stellar
                            "contractor      VARCHAR(56) NOT NULL,"
                            "customer        VARCHAR(56) NOT NULL,"
                            "judge           VARCHAR(56) NOT NULL,"
-                           "invoices        TEXT        NOT NULL,"
                            "start_time      BIGINT      NOT NULL CHECK (start_time >= 0),"
                            "end_time        BIGINT      NOT NULL CHECK (end_time >= 0),"
                            "details         TEXT        NOT NULL,"
+                           "status          INT         NOT NULL,"
                            "lastmodified    INT         NOT NULL,"
                            "version         INT         NOT NULL"
                            ");";
@@ -44,24 +44,25 @@ namespace stellar
         string contractorID = PubKeyUtils::toStrKey(contractEntry.contractor);
         string customerID = PubKeyUtils::toStrKey(contractEntry.customer);
         string judgeID = PubKeyUtils::toStrKey(contractEntry.judge);
-        auto invoicesBytes = xdr::xdr_to_opaque(contractEntry.invoiceRequestIDs);
-        string strInvoices = bn::encode_b64(invoicesBytes);
+        auto detailsBytes = xdr::xdr_to_opaque(contractEntry.details);
+        string strDetails = bn::encode_b64(detailsBytes);
+        auto status = static_cast<int32_t>(contractEntry.status);
         auto version = static_cast<int32_t>(contractEntry.ext.v());
 
         string sql;
 
         if (insert)
         {
-            sql = "INSERT INTO contracts (id, contractor, customer, judge, invoices, start_time, end_time, "
-                  "                       details, lastmodified, version) "
-                  "VALUES (:id, :contractor, :customer, :judge, :invoices, :s_t, :e_t, :details, :lm, :v)";
+            sql = "INSERT INTO contracts (id, contractor, customer, judge, start_time, end_time, "
+                  "                       details, status, lastmodified, version) "
+                  "VALUES (:id, :contractor, :customer, :judge, :s_t, :e_t, :details, :status, :lm, :v)";
         }
         else
         {
             sql = "UPDATE contracts "
                   "SET    contractor = :contractor, customer = :customer, judge = :judge,"
-                  "       invoices = :invoices, start_time = :s_t, end_time = :e_t,"
-                  "       details = :details, lastmodified = :lm, version = :v "
+                  "       start_time = :s_t, end_time = :e_t, details = :details,"
+                  "       status = :status, lastmodified = :lm, version = :v "
                   "WHERE  id = :id";
         }
 
@@ -72,10 +73,10 @@ namespace stellar
         st.exchange(use(contractorID, "contractor"));
         st.exchange(use(customerID, "customer"));
         st.exchange(use(judgeID, "judge"));
-        st.exchange(use(strInvoices, "invoices"));
         st.exchange(use(contractEntry.startTime, "s_t"));
         st.exchange(use(contractEntry.endTime, "e_t"));
-        st.exchange(use(contractEntry.details, "details"));
+        st.exchange(use(strDetails, "details"));
+        st.exchange(use(status, "status"));
         st.exchange(use(contractFrame->getLastModified(), "lm"));
         st.exchange(use(version, "v"));
         st.define_and_bind();
@@ -166,11 +167,12 @@ namespace stellar
     ContractHelper::load(StatementContext& prep,
                          function<void(LedgerEntry const&)> processor)
     {
-        string contractorID, customerID, judgeID, invoices;
+        string contractorID, customerID, judgeID, details;
 
         LedgerEntry le;
         le.data.type(LedgerEntryType::CONTRACT);
         ContractEntry& oe = le.data.contract();
+        int32_t status = 0;
         int32_t version = 0;
 
         auto& st = prep.statement();
@@ -178,10 +180,10 @@ namespace stellar
         st.exchange(into(contractorID));
         st.exchange(into(customerID));
         st.exchange(into(judgeID));
-        st.exchange(into(invoices));
         st.exchange(into(oe.startTime));
         st.exchange(into(oe.endTime));
-        st.exchange(into(oe.details));
+        st.exchange(into(details));
+        st.exchange(into(status));
         st.exchange(into(le.lastModifiedLedgerSeq));
         st.exchange(into(version));
         st.define_and_bind();
@@ -194,12 +196,13 @@ namespace stellar
             oe.judge = PubKeyUtils::fromStrKey(judgeID);
 
             std::vector<uint8_t> decoded;
-            bn::decode_b64(invoices, decoded);
+            bn::decode_b64(details, decoded);
             xdr::xdr_get unmarshaler(&decoded.front(), &decoded.back() + 1);
-            xdr::xdr_argpack_archive(unmarshaler, oe.invoiceRequestIDs);
+            xdr::xdr_argpack_archive(unmarshaler, oe.details);
             unmarshaler.done();
 
             oe.ext.v(static_cast<LedgerVersion>(version));
+            oe.status = static_cast<ContractStatus>(status);
 
             processor(le);
             st.fetch();

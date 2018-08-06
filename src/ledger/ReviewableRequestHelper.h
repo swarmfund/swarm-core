@@ -51,9 +51,9 @@ namespace stellar
         std::vector<ReviewableRequestFrame::pointer> loadRequests(AccountID const& requestor, ReviewableRequestType requestType,
             Database& db);
 
-        std::vector<ReviewableRequestFrame::pointer> loadRequests(AccountID const& requestor,
+        std::vector<ReviewableRequestFrame::pointer> loadInvoiceRequests(AccountID const& requestor,
                                                                   AccountID const& reviewer,
-                                                                  ReviewableRequestType requestType,
+                                                                  uint64_t const& contractID,
                                                                   Database& db);
 
         bool exists(Database & db, AccountID const & requestor, stellar::string64 reference, uint64_t requestID = 0);

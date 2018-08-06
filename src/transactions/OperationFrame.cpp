@@ -205,9 +205,10 @@ OperationFrame::doCheckSignature(Application& app, Database& db, SourceDetails& 
 // TMP
 bool
 OperationFrame::doApply(Application& app, LedgerDelta& delta,
-	LedgerManager& ledgerManager){
-    return doApply(app, StorageHelperImpl(app.getDatabase(), delta),
-                   ledgerManager);
+	LedgerManager& ledgerManager)
+{
+    StorageHelperImpl storageHelper(app.getDatabase(), delta);
+    return doApply(app, storageHelper, ledgerManager);
 }
 
 // TMP

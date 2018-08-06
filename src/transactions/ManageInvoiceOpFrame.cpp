@@ -34,8 +34,10 @@ SourceDetails ManageInvoiceOpFrame::getSourceAccountDetails(std::unordered_map<A
                                                     AccountType::VERIFIED};
     // disallowed
 	return SourceDetails({}, mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t >(SignerType::INVOICE_MANAGER), static_cast<int32_t >(BlockReasons::KYC_UPDATE) |
-                                 static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t >(SignerType::INVOICE_MANAGER),
+                         static_cast<int32_t >(BlockReasons::KYC_UPDATE) |
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
 ManageInvoiceOpFrame::ManageInvoiceOpFrame(Operation const& op, OperationResult& res,

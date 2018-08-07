@@ -47,8 +47,8 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
         throw invalid_argument("Unexpected request type for review invoice request");
     }
 
-    auto requestEntry = request->getRequestEntry();
-    auto invoiceRequest = requestEntry.body.invoiceRequest();
+    auto& requestEntry = request->getRequestEntry();
+    auto& invoiceRequest = requestEntry.body.invoiceRequest();
 
     if (invoiceRequest.isApproved)
     {
@@ -85,11 +85,20 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
         return false;
     }
 
+    invoiceRequest.isApproved = true;
+    request->recalculateHashRejectReason();
+    EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
+
     contractFrame->addContractDetails(invoiceRequest.details);
     contractHelper->storeChange(delta, db, contractFrame->mEntry);
     receiverBalance = balanceHelper->mustLoadBalance(receiverBalance->getBalanceID(), db, &delta);
 
-    return tryLockAmount(receiverBalance, invoiceRequest.amount);
+    if (!tryLockAmount(receiverBalance, invoiceRequest.amount))
+        return false;
+
+    balanceHelper->storeChange(delta, db, receiverBalance->mEntry);
+
+    return true;
 }
 
 bool

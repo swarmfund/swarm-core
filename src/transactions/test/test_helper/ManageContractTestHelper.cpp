@@ -47,7 +47,7 @@ ManageContractOp
 ManageContractTestHelper::createStartDisputeOp(Account &source, uint64_t &contractID,
                                                longstring &disputeReason) {}
 
-void
+ManageContractResult
 ManageContractTestHelper::applyManageContractTx(Account &source, ManageContractOp manageContractOp,
                                                 ManageContractResultCode expectedResult)
 {
@@ -56,7 +56,10 @@ ManageContractTestHelper::applyManageContractTx(Account &source, ManageContractO
     auto txFrame = createManageContractTx(source, manageContractOp);
     mTestManager->applyCheck(txFrame);
 
-    REQUIRE(ManageContractOpFrame::getInnerCode(txFrame->getResult().result.results()[0]) == expectedResult);
+    auto result = txFrame->getResult().result.results()[0];
+    REQUIRE(ManageContractOpFrame::getInnerCode(result) == expectedResult);
+
+    return result.tr().manageContractResult();
 }
 }
 }

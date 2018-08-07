@@ -57,9 +57,9 @@ public:
     }
 
     AccountID const&
-    getJudge() const
+    getEscrow() const
     {
-        return mContract.judge;
+        return mContract.escrow;
     }
 
     uint64_t const&
@@ -74,17 +74,25 @@ public:
         return mContract.endTime;
     }
 
-    ContractStatus const&
+    ContractStatus const
     getStatus() const
     {
-        return mContract.status;
+        return mContract.statusInfo.status();
     }
 
-    uint64_t const&
+    uint64_t const
     getContractDetailsCount()
     {
         return mContract.details.size();
     }
+
+    void
+    setStatus(ContractStatus status)
+    {
+        mContract.statusInfo.status(status);
+    }
+
+    void setDisputer(AccountID const& disputer);
 
     void addContractDetails(longstring const& details);
 

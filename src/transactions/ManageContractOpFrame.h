@@ -25,6 +25,10 @@ class ManageContractOpFrame : public OperationFrame
 
     ManageContractOp const& mManageContract;
 
+    bool checkIsAllowed(ContractFrame::pointer contractFrame);
+
+    bool startDispute(ContractFrame::pointer contractFrame);
+
     bool checkContractDetails(ContractFrame::pointer contractFrame, Application& app,
                               Database& db, LedgerDelta& delta);
 
@@ -32,9 +36,13 @@ class ManageContractOpFrame : public OperationFrame
 
     uint64_t obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta);
 
-    bool confirmCompleted(ContractFrame::pointer contractFrame);
+    bool confirmCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
 
-    bool checkIsCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
+    bool checkIsCompleted(ContractFrame::pointer contractFrame,
+                          std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
+                          Database& db, LedgerDelta& delta);
+
+    bool checkInvoices(std::vector<ReviewableRequestFrame::pointer> invoiceRequests);
 
 public:
     ManageContractOpFrame(Operation const& op, OperationResult& res,

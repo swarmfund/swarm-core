@@ -24,7 +24,7 @@ public:
     ManageContractOp createConfirmOp(Account &source, uint64_t& contractID);
     ManageContractOp createStartDisputeOp(Account &source, uint64_t& contractID, longstring& disputeReason);
 
-    void applyManageContractTx(Account &source, ManageContractOp manageContractOp,
+    ManageContractResult applyManageContractTx(Account &source, ManageContractOp manageContractOp,
                                ManageContractResultCode expectedResult = ManageContractResultCode::SUCCESS);
 };
 }

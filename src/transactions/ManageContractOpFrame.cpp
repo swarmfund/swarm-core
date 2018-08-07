@@ -61,6 +61,18 @@ ManageContractOpFrame::getInnerResultCodeAsStr()
 }
 
 bool
+ManageContractOpFrame::checkIsAllowed(ContractFrame::pointer contractFrame)
+{
+    if (contractFrame->getStatus() != ContractStatus::DISPUTING)
+        return (contractFrame->getContractor() == getSourceID()) ||
+               (contractFrame->getCustomer() == getSourceID());
+
+    return (contractFrame->getContractor() == getSourceID()) ||
+           (contractFrame->getCustomer() == getSourceID()) ||
+           (contractFrame->getEscrow() == getSourceID());
+}
+
+bool
 ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
                                 LedgerManager& ledgerManager)
 {
@@ -78,8 +90,7 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    if (!(contractFrame->getContractor() == getSourceID()) &&
-        !(contractFrame->getCustomer() == getSourceID()))
+    if (!checkIsAllowed(contractFrame))
     {
         innerResult().code(ManageContractResultCode::NOT_ALLOWED);
         return false;
@@ -95,14 +106,12 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
             innerResult().response().data.action(ManageContractAction::ADD_DETAILS);
             break;
         case ManageContractAction::START_DISPUTE:
+            startDispute(contractFrame);
             innerResult().response().data.action(ManageContractAction::START_DISPUTE);
             break;
         case ManageContractAction::CONFIRM_COMPLETED:
-            if (!confirmCompleted(contractFrame))
-                return false;
-
             innerResult().response().data.action(ManageContractAction::CONFIRM_COMPLETED);
-            if (!checkIsCompleted(contractFrame, db, delta))
+            if (!confirmCompleted(contractFrame, db, delta))
                 return false;
 
             break;
@@ -123,8 +132,7 @@ ManageContractOpFrame::checkContractDetails(ContractFrame::pointer contractFrame
 {
     auto maxContractDetails = obtainMaxContractDetailsCount(app, db, delta);
 
-    //auto actualDetailsCount = contractFrame->getContractDetailsCount();
-    auto actualDetailsCount = contractFrame->getContract().details.size();
+    auto actualDetailsCount = contractFrame->getContractDetailsCount();
 
     if (actualDetailsCount >= maxContractDetails)
     {
@@ -189,35 +197,32 @@ ManageContractOpFrame::obtainMaxContractDetailLength(Application& app, Database&
 }
 
 bool
-ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame)
+ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta)
 {
-    if (contractFrame->getStatus() == ContractStatus::BOTH_CONFIRMED)
-    {
-        innerResult().code(ManageContractResultCode::ALREADY_BOTH_CONFIRMED);
+    auto invoiceRequests = ReviewableRequestHelper::Instance()->loadInvoiceRequests(
+            contractFrame->getContractor(), contractFrame->getCustomer(),
+            contractFrame->getContractID(), db);
+
+    if (!checkInvoices(invoiceRequests))
         return false;
-    }
 
     if (contractFrame->getContractor() == getSourceID())
     {
-        if (contractFrame->addContractorConfirmation())
+        if (!contractFrame->addContractorConfirmation())
         {
             innerResult().code(ManageContractResultCode::ALREADY_CONTRACTOR_CONFIRMED);
             return false;
         }
-
-        return true;
     }
     else if (contractFrame->getCustomer() == getSourceID())
     {
-        if (contractFrame->addCustomerConfirmation())
+        if (!contractFrame->addCustomerConfirmation())
         {
             innerResult().code(ManageContractResultCode::ALREADY_CUSTOMER_CONFIRMED);
             return false;
         }
-
-        return true;
     }
-    else if (contractFrame->getJudge() == getSourceID())
+    else if (contractFrame->getEscrow() == getSourceID())
     {
 
     }
@@ -227,10 +232,14 @@ ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame)
                                                << "Expected contractor, customer or master";
         throw std::runtime_error("Unexpected source account. Expected contractor, customer or master");
     }
+
+    return checkIsCompleted(contractFrame, invoiceRequests, db, delta);
 }
 
 bool
-ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta)
+ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame,
+                                        std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
+                                        Database& db, LedgerDelta& delta)
 {
     if (contractFrame->getStatus() != ContractStatus::BOTH_CONFIRMED)
     {
@@ -241,18 +250,10 @@ ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame, Da
     innerResult().response().data.isCompleted() = true;
 
     auto requestHelper = ReviewableRequestHelper::Instance();
-    auto invoiceRequests = requestHelper->loadInvoiceRequests(contractFrame->getContractor(),
-            contractFrame->getCustomer(), contractFrame->getContractID(), db);
 
     for (ReviewableRequestFrame::pointer invoiceRequest : invoiceRequests)
     {
         auto invoice = invoiceRequest->getRequestEntry().body.invoiceRequest();
-        if (!invoice.isApproved)
-        {
-            innerResult().code(ManageContractResultCode::INVOICE_NOT_APPROVED);
-            return false;
-        }
-
         auto balanceHelper = BalanceHelper::Instance();
         auto balanceFrame = balanceHelper->mustLoadBalance(invoiceRequest->getRequestor(), invoice.asset, db, &delta);
 
@@ -262,9 +263,34 @@ ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame, Da
                                                    << "Expected success unlock in manage contract. ";
             throw std::runtime_error("Unexpected balance state. Expected success unlock in manage contract.");
         }
+
+        balanceHelper->storeChange(delta, db, balanceFrame->mEntry);
+        requestHelper->storeDelete(delta, db, invoiceRequest->getKey());
     }
 
     return true;
+}
+
+bool ManageContractOpFrame::checkInvoices(std::vector<ReviewableRequestFrame::pointer> invoiceRequests)
+{
+    for (ReviewableRequestFrame::pointer invoiceRequest : invoiceRequests)
+    {
+        auto invoice = invoiceRequest->getRequestEntry().body.invoiceRequest();
+        if (!invoice.isApproved)
+        {
+            innerResult().code(ManageContractResultCode::INVOICE_NOT_APPROVED);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame)
+{
+    contractFrame->setDisputer(getSourceID());
+    contractFrame->addContractDetails(mManageContract.data.disputeReason());
 }
 
 bool

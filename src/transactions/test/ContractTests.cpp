@@ -145,7 +145,7 @@ TEST_CASE("Contract", "[tx][contract]")
             REQUIRE(!!contractFrame);
             REQUIRE(contractFrame->getContractor() == recipient.key.getPublicKey());
             REQUIRE(contractFrame->getCustomer() == payer.key.getPublicKey());
-            REQUIRE(contractFrame->getJudge() == root.key.getPublicKey());
+            REQUIRE(contractFrame->getEscrow() == root.key.getPublicKey());
             REQUIRE(contractFrame->getStartTime() == startTime);
             REQUIRE(contractFrame->getEndTime() == endTime);
 
@@ -182,7 +182,12 @@ TEST_CASE("Contract", "[tx][contract]")
 
             SECTION("Not allowed confirm contract with not approved invoices")
             {
-
+                auto confirmOp = manageContractTestHelper.createConfirmOp(recipient, contractID);
+                manageContractTestHelper.applyManageContractTx(recipient, confirmOp,
+                                                               ManageContractResultCode::INVOICE_NOT_APPROVED);
+                confirmOp = manageContractTestHelper.createConfirmOp(payer, contractID);
+                manageContractTestHelper.applyManageContractTx(payer, confirmOp,
+                                                               ManageContractResultCode::INVOICE_NOT_APPROVED);
             }
 
             SECTION("Add details to contract")
@@ -214,6 +219,21 @@ TEST_CASE("Contract", "[tx][contract]")
                                                                     "", "", payerBalance->getBalanceID());
                 reviewInvoiceRequestHelper.applyReviewRequestTx(payer, invoiceRequestID,
                                                                 ReviewRequestOpAction::APPROVE, "");
+
+                SECTION("Confirm contract")
+                {
+                    auto confirmOp = manageContractTestHelper.createConfirmOp(recipient, contractID);
+                    auto res = manageContractTestHelper.applyManageContractTx(recipient, confirmOp);
+
+                    REQUIRE(!res.response().data.isCompleted());
+
+                    confirmOp = manageContractTestHelper.createConfirmOp(payer, contractID);
+                    res = manageContractTestHelper.applyManageContractTx(payer, confirmOp);
+
+                    REQUIRE(res.response().data.isCompleted());
+
+                    //SECTION("Already both ")
+                }
             }
         }
 

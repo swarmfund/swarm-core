@@ -24,6 +24,8 @@ namespace stellar {
 
         bool mustEmptyFixed(FeeEntry const &fee, medida::MetricsRegistry &metrics);
 
+        bool mustEmptyPercent(FeeEntry const &fee, medida::MetricsRegistry &metrics);
+
         bool mustValidFeeAmounts(FeeEntry const &fee, medida::MetricsRegistry &media);
 
         bool mustFullRange(FeeEntry const &fee, medida::MetricsRegistry &media);
@@ -41,6 +43,8 @@ namespace stellar {
         bool isEmissionFeeValid(FeeEntry const &fee, medida::MetricsRegistry &media);
 
         bool isInvestFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics);
+
+        bool isOperationFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics);
 
         bool trySetFee(medida::MetricsRegistry &media, Database &db, LedgerDelta &delta);
 
@@ -61,6 +65,10 @@ namespace stellar {
         static SetFeesResultCode
         getInnerCode(OperationResult const &res) {
             return res.tr().setFeesResult().code();
+        }
+
+        std::string getInnerResultCodeAsStr() override {
+            return xdr::xdr_traits<SetFeesResultCode>::enum_name(innerResult().code());
         }
     };
 }

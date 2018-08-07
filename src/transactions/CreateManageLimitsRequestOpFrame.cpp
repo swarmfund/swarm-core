@@ -26,7 +26,8 @@ CreateManageLimitsRequestOpFrame::getSourceAccountDetails(
         int32_t ledgerVersion) const
 {
     return SourceDetails(getAllAccountTypes(), mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t>(SignerType::LIMITS_MANAGER)
+                         static_cast<int32_t>(SignerType::LIMITS_MANAGER),
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL)
     );
 }
 

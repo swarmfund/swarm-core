@@ -49,7 +49,8 @@ namespace stellar {
                                                         AccountType::VERIFIED};
 
         return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType,
-                             static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                             static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                             static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
     }
 
     bool PaymentOpV2Frame::processTransfer(AccountManager &accountManager, AccountFrame::pointer payer,

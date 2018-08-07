@@ -74,7 +74,7 @@ public:
         return mContract.endTime;
     }
 
-    ContractStatus const
+    ContractState const
     getStatus() const
     {
         return mContract.statusInfo.status();
@@ -87,12 +87,13 @@ public:
     }
 
     void
-    setStatus(ContractStatus status)
+    setStatus(ContractState status)
     {
         mContract.statusInfo.status(status);
     }
 
     void setDisputer(AccountID const& disputer);
+    void setDisputeReason(longstring const& reason);
 
     void addContractDetails(longstring const& details);
 

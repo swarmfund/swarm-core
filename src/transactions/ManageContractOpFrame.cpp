@@ -63,7 +63,7 @@ ManageContractOpFrame::getInnerResultCodeAsStr()
 bool
 ManageContractOpFrame::checkIsAllowed(ContractFrame::pointer contractFrame)
 {
-    if (contractFrame->getStatus() != ContractStatus::DISPUTING)
+    if (contractFrame->getStatus() != ContractState::DISPUTING)
         return (contractFrame->getContractor() == getSourceID()) ||
                (contractFrame->getCustomer() == getSourceID());
 
@@ -106,14 +106,23 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
             innerResult().response().data.action(ManageContractAction::ADD_DETAILS);
             break;
         case ManageContractAction::START_DISPUTE:
-            startDispute(contractFrame);
+            if (!startDispute(contractFrame))
+                return false;
+
             innerResult().response().data.action(ManageContractAction::START_DISPUTE);
             break;
         case ManageContractAction::CONFIRM_COMPLETED:
+            if (!confirmCompleted(contractFrame, db, delta)) {
+                return false;
+            }
+
             innerResult().response().data.action(ManageContractAction::CONFIRM_COMPLETED);
-            if (!confirmCompleted(contractFrame, db, delta))
+            break;
+        case ManageContractAction::RESOLVE_DISPUTE:
+            if (!resolveDispute())
                 return false;
 
+            innerResult().response().data.action(ManageContractAction::RESOLVE_DISPUTE);
             break;
         default:
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected source account. "
@@ -199,6 +208,12 @@ ManageContractOpFrame::obtainMaxContractDetailLength(Application& app, Database&
 bool
 ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta)
 {
+    if (contractFrame->getStatus() == ContractState::DISPUTING)
+    {
+        innerResult().code(ManageContractResultCode::CONFIRM_NOT_ALLOWED);
+        return false;
+    }
+
     auto invoiceRequests = ReviewableRequestHelper::Instance()->loadInvoiceRequests(
             contractFrame->getContractor(), contractFrame->getCustomer(),
             contractFrame->getContractID(), db);
@@ -222,10 +237,6 @@ ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame, Da
             return false;
         }
     }
-    else if (contractFrame->getEscrow() == getSourceID())
-    {
-
-    }
     else
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected source account. "
@@ -241,7 +252,7 @@ ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame,
                                         std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
                                         Database& db, LedgerDelta& delta)
 {
-    if (contractFrame->getStatus() != ContractStatus::BOTH_CONFIRMED)
+    if (contractFrame->getStatus() != ContractState::BOTH_CONFIRMED)
     {
         innerResult().response().data.isCompleted() = false;
         return true;
@@ -289,8 +300,59 @@ bool ManageContractOpFrame::checkInvoices(std::vector<ReviewableRequestFrame::po
 bool
 ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame)
 {
+    if (contractFrame->getEscrow() == getSourceID())
+    {
+        innerResult().code(ManageContractResultCode::DISPUTE_ALREADY_STARTED);
+        return false;
+    }
+
     contractFrame->setDisputer(getSourceID());
-    contractFrame->addContractDetails(mManageContract.data.disputeReason());
+    contractFrame->setDisputeReason(mManageContract.data.disputeReason());
+}
+
+bool
+ManageContractOpFrame::resolveDispute(ContractFrame::pointer contractFrame)
+{
+    if (!(contractFrame->getEscrow() == getSourceID()))
+    {
+        innerResult().code(ManageContractResultCode::RESOLVE_DISPUTE_NOW_ALLOWED);
+        return false;
+    }
+
+    if (mManageContract.data.isRevert())
+    {
+        return revertInvoicesAmounts()
+    }
+}
+
+bool ManageContractOpFrame::revertInvoicesAmounts(ContractFrame::pointer contractFrame)
+{
+    auto requestHelper = ReviewableRequestHelper::Instance();
+    auto invoiceRequests = requestHelper->loadInvoiceRequests(contractFrame->getContractor(), contractFrame->getCustomer(), contractFrame->getContractID(), db);
+
+    for (ReviewableRequestFrame::pointer request : invoiceRequests)
+    {
+        auto invoice = invoiceRequest->getRequestEntry().body.invoiceRequest();
+        if (!invoice.isApproved)
+        {
+            innerResult().code(ManageContractResultCode::INVOICE_NOT_APPROVED);
+            return false;
+        }
+
+        auto invoice = invoiceRequest->getRequestEntry().body.invoiceRequest();
+        auto balanceHelper = BalanceHelper::Instance();
+        auto balanceFrame = balanceHelper->mustLoadBalance(invoiceRequest->getRequestor(), invoice.asset, db, &delta);
+
+        if (!balanceFrame->unlock(invoice.amount))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected balance state. "
+                                                   << "Expected success unlock in manage contract. ";
+            throw std::runtime_error("Unexpected balance state. Expected success unlock in manage contract.");
+        }
+
+        balanceHelper->storeChange(delta, db, balanceFrame->mEntry);
+        requestHelper->storeDelete(delta, db, invoiceRequest->getKey());
+    }
 }
 
 bool

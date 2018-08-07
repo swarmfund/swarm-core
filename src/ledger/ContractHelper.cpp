@@ -8,8 +8,8 @@ using namespace soci;
 
 namespace stellar
 {
-    const char* contractSelector = "SELECT id, contractor, customer, escrow, start_time,"
-                                   "       end_time, details, status, lastmodified, version "
+    const char* contractSelector = "SELECT id, contractor, customer, escrow, disputer, start_time,"
+                                   "       end_time, details, state, lastmodified, version "
                                    "FROM   contracts";
 
     void ContractHelper::dropAll(Database &db)
@@ -25,7 +25,7 @@ namespace stellar
                            "start_time      BIGINT      NOT NULL CHECK (start_time >= 0),"
                            "end_time        BIGINT      NOT NULL CHECK (end_time >= 0),"
                            "details         TEXT        NOT NULL,"
-                           "status          INT         NOT NULL,"
+                           "state           INT         NOT NULL,"
                            "lastmodified    INT         NOT NULL,"
                            "version         INT         NOT NULL DEFAULT 0"
                            ");";
@@ -47,9 +47,9 @@ namespace stellar
         string escrowID = PubKeyUtils::toStrKey(contractEntry.escrow);
         string disputerID;
         indicator disputerIDIndicator = i_null;
-        if (contractEntry.statusInfo.status() == ContractStatus::DISPUTING)
+        if (contractEntry.stateInfo.state() == ContractState::DISPUTING)
         {
-            disputerID = PubKeyUtils::toStrKey(contractEntry.statusInfo.disputer());
+            disputerID = PubKeyUtils::toStrKey(contractEntry.stateInfo.disputer());
             disputerIDIndicator = i_ok;
         }
 
@@ -214,9 +214,9 @@ namespace stellar
             unmarshaler.done();
 
             oe.ext.v(static_cast<LedgerVersion>(version));
-            oe.statusInfo.status(static_cast<ContractStatus>(status));
+            oe.statusInfo.status(static_cast<ContractState>(status));
 
-            if ((oe.statusInfo.status() == ContractStatus::DISPUTING) && (disputerIDIndicator == i_ok))
+            if ((oe.statusInfo.status() == ContractState::DISPUTING) && (disputerIDIndicator == i_ok))
                 oe.statusInfo.disputer() = PubKeyUtils::fromStrKey(disputerID);
 
             processor(le);

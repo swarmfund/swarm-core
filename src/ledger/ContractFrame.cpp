@@ -33,42 +33,51 @@ namespace stellar
 
     bool ContractFrame::addContractorConfirmation()
     {
-        if ((mContract.statusInfo.status() == ContractStatus::BOTH_CONFIRMED) ||
-            (mContract.statusInfo.status() == ContractStatus::CONTRACTOR_CONFIRMED))
+        if ((mContract.statusInfo.status() == ContractState::BOTH_CONFIRMED) ||
+            (mContract.statusInfo.status() == ContractState::CONTRACTOR_CONFIRMED))
             return false;
 
-        if (mContract.statusInfo.status() == ContractStatus::CUSTOMER_CONFIRMED)
+        if (mContract.statusInfo.status() == ContractState::CUSTOMER_CONFIRMED)
         {
-            mContract.statusInfo.status(ContractStatus::BOTH_CONFIRMED);
+            mContract.statusInfo.status(ContractState::BOTH_CONFIRMED);
             return true;
         }
 
-        mContract.statusInfo.status(ContractStatus::CONTRACTOR_CONFIRMED);
+        mContract.statusInfo.status(ContractState::CONTRACTOR_CONFIRMED);
         return true;
     }
 
     bool ContractFrame::addCustomerConfirmation()
     {
-        if ((mContract.statusInfo.status() == ContractStatus::BOTH_CONFIRMED) ||
-            (mContract.statusInfo.status() == ContractStatus::CUSTOMER_CONFIRMED))
+        if ((mContract.statusInfo.status() == ContractState::BOTH_CONFIRMED) ||
+            (mContract.statusInfo.status() == ContractState::CUSTOMER_CONFIRMED))
             return false;
 
-        if (mContract.statusInfo.status() == ContractStatus::CONTRACTOR_CONFIRMED)
+        if (mContract.statusInfo.status() == ContractState::CONTRACTOR_CONFIRMED)
         {
-            mContract.statusInfo.status(ContractStatus::BOTH_CONFIRMED);
+            mContract.statusInfo.status(ContractState::BOTH_CONFIRMED);
             return true;
         }
 
-        mContract.statusInfo.status(ContractStatus::CUSTOMER_CONFIRMED);
+        mContract.statusInfo.status(ContractState::CUSTOMER_CONFIRMED);
         return true;
     }
 
     void
     ContractFrame::setDisputer(AccountID const& disputer)
     {
-        if (mContract.statusInfo.status() != ContractStatus::DISPUTING)
-            setStatus(ContractStatus::DISPUTING);
+        if (mContract.statusInfo.status() != ContractState::DISPUTING)
+            setStatus(ContractState::DISPUTING);
 
-        mContract.statusInfo.disputer() = disputer;
+        mContract.statusInfo.disputeDetails().disputer = disputer;
+    }
+
+    void
+    ContractFrame::setDisputeReason(longstring const& reason)
+    {
+        if (mContract.statusInfo.status() != ContractState::DISPUTING)
+            setStatus(ContractState::DISPUTING);
+
+        mContract.statusInfo.disputeDetails().reason = reason;
     }
 }

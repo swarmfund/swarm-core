@@ -398,3 +398,8 @@ LedgerDelta::checkAgainstDatabase(Application& app) const
     }
 }
 }
+
+bool LedgerDelta::isStateActive() const
+{
+    return static_cast<bool>(mHeader);
+}

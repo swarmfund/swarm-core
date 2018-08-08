@@ -11,6 +11,7 @@ class session;
 namespace stellar
 {
 class StatementContext;
+class LedgerManager;
 
 class ExternalSystemAccountIDPoolEntryHelper : public EntryHelper
 {

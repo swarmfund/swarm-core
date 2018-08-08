@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 namespace stellar
 {
 class Database;
@@ -22,6 +24,8 @@ class StorageHelper
 
     virtual void commit() = 0;
     virtual void rollback() = 0;
+
+    std::unique_ptr<StorageHelper> startNestedTransaction = 0;
 
     virtual KeyValueHelper& getKeyValueHelper() = 0;
     virtual ExternalSystemAccountIDHelper&

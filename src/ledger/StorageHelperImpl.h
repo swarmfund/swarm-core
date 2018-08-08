@@ -12,6 +12,7 @@ class StorageHelperImpl : public StorageHelper
 {
   public:
     StorageHelperImpl(Database& db, LedgerDelta& ledgerDelta);
+    virtual ~StorageHelperImpl();
 
   private:
     virtual Database& getDatabase();
@@ -22,6 +23,8 @@ class StorageHelperImpl : public StorageHelper
     virtual void commit();
     virtual void rollback();
 
+    virtual std::unique_ptr<StorageHelper> startNestedTransaction();
+
     virtual KeyValueHelper& getKeyValueHelper();
     virtual ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper();
     virtual ExternalSystemAccountIDPoolEntryHelper&
@@ -29,6 +32,7 @@ class StorageHelperImpl : public StorageHelper
 
     Database& mDatabase;
     LedgerDelta& mLedgerDelta;
+    std::unique_ptr<LedgerDelta> mNestedDelta;
 
     std::unique_ptr<soci::transaction> mTransaction;
 

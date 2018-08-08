@@ -1,7 +1,7 @@
-#include "ledger/KeyValueHelper.h"
 #include "ledger/StorageHelperImpl.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/KeyValueHelper.h"
 #include "ledger/LedgerDelta.h"
 
 namespace stellar
@@ -12,6 +12,20 @@ StorageHelperImpl::StorageHelperImpl(Database& db, LedgerDelta& ledgerDelta)
     , mLedgerDelta(ledgerDelta)
     , mTransaction(new soci::transaction(db.getSession()))
 {
+}
+
+StorageHelperImpl::~StorageHelperImpl()
+{
+    if (mTransaction)
+    {
+        try
+        {
+            mTransaction->rollback();
+        }
+        catch (...)
+        {
+        }
+    }
 }
 
 Database&
@@ -39,13 +53,33 @@ void
 StorageHelperImpl::commit()
 {
     mLedgerDelta.commit();
-    mTransaction->commit();
+    if (mTransaction)
+    {
+        mTransaction->commit();
+        mTransaction = nullptr;
+    }
 }
 void
 StorageHelperImpl::rollback()
 {
     mLedgerDelta.rollback();
-    mTransaction->rollback();
+    if (mTransaction)
+    {
+        mTransaction->rollback();
+        mTransaction = nullptr;
+    }
+}
+
+std::unique_ptr<StorageHelper>
+StorageHelperImpl::startNestedTransaction()
+{
+    if (mNestedDelta && mNestedDelta->isStateActive())
+    {
+        throw std::runtime_error("Invalid operation: this StorageHelper "
+                                 "already has an active nested StorageHelper");
+    }
+    mNestedDelta = std::make_unique<LedgerDelta>(mLedgerDelta);
+    return std::make_unique<StorageHelperImpl>(mDatabase, *mNestedDelta);
 }
 
 KeyValueHelper&

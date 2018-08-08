@@ -1,7 +1,7 @@
 #include "ledger/StorageHelperImpl.h"
-#include "ledger/ExternalSystemAccountIDHelper.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/ExternalSystemAccountIDHelperLegacy.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
+#include "ledger/KeyValueHelperLegacy.h"
 #include "ledger/LedgerDelta.h"
 
 namespace stellar
@@ -82,32 +82,32 @@ StorageHelperImpl::startNestedTransaction()
     return std::make_unique<StorageHelperImpl>(mDatabase, *mNestedDelta);
 }
 
-KeyValueHelper&
+KeyValueHelperLegacy&
 StorageHelperImpl::getKeyValueHelper()
 {
     if (!mKeyValueHelper)
     {
-        mKeyValueHelper = std::make_unique<KeyValueHelper>();
+        mKeyValueHelper = std::make_unique<KeyValueHelperLegacy>();
     }
     return *mKeyValueHelper;
 }
-ExternalSystemAccountIDHelper&
+ExternalSystemAccountIDHelperLegacy&
 StorageHelperImpl::getExternalSystemAccountIDHelper()
 {
     if (!mExternalSystemAccountIDHelper)
     {
         mExternalSystemAccountIDHelper =
-            std::make_unique<ExternalSystemAccountIDHelper>();
+            std::make_unique<ExternalSystemAccountIDHelperLegacy>();
     }
     return *mExternalSystemAccountIDHelper;
 }
-ExternalSystemAccountIDPoolEntryHelper&
+ExternalSystemAccountIDPoolEntryHelperLegacy&
 StorageHelperImpl::getExternalSystemAccountIDPoolEntryHelper()
 {
     if (!mExternalSystemAccountIDPoolEntryHelper)
     {
         mExternalSystemAccountIDPoolEntryHelper =
-            std::make_unique<ExternalSystemAccountIDPoolEntryHelper>();
+            std::make_unique<ExternalSystemAccountIDPoolEntryHelperLegacy>();
     }
     return *mExternalSystemAccountIDPoolEntryHelper;
 }

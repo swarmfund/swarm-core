@@ -34,11 +34,11 @@
 #include "ledger/InvoiceFrame.h"
 #include "ledger/InvoiceHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
-#include "ledger/ExternalSystemAccountIDHelper.h"
+#include "ledger/ExternalSystemAccountIDHelperLegacy.h"
 #include "ledger/KeyValueEntryFrame.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
 #include "ledger/ExternalSystemAccountIDPoolEntry.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
 #include "xdrpp/printer.h"
 #include "xdrpp/marshal.h"
 #include "crypto/Hex.h"
@@ -180,7 +180,7 @@ namespace stellar
 		{ LedgerEntryType::ASSET, AssetHelper::Instance() },
 		{ LedgerEntryType::ASSET_PAIR, AssetPairHelper::Instance() },
 		{ LedgerEntryType::BALANCE, BalanceHelper::Instance() },
-		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID, ExternalSystemAccountIDHelper::Instance() },
+		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID, ExternalSystemAccountIDHelperLegacy::Instance() },
 		{ LedgerEntryType::FEE, FeeHelper::Instance() },
 		{ LedgerEntryType::INVOICE, InvoiceHelper::Instance() },
 		{ LedgerEntryType::OFFER_ENTRY, OfferHelper::Instance() },
@@ -189,10 +189,10 @@ namespace stellar
 		{ LedgerEntryType::REVIEWABLE_REQUEST, ReviewableRequestHelper::Instance() },
 		{ LedgerEntryType::STATISTICS, StatisticsHelper::Instance() },
 		{ LedgerEntryType::TRUST, TrustHelper::Instance() },
-		{ LedgerEntryType::KEY_VALUE, KeyValueHelper::Instance()},
+		{ LedgerEntryType::KEY_VALUE, KeyValueHelperLegacy::Instance()},
         { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance()},
 		{ LedgerEntryType::SALE, SaleHelper::Instance() },
-		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY, ExternalSystemAccountIDPoolEntryHelper::Instance() },
+		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY, ExternalSystemAccountIDPoolEntryHelperLegacy::Instance() },
         { LedgerEntryType::LIMITS_V2, LimitsV2Helper::Instance() },
 		{ LedgerEntryType::STATISTICS_V2, StatisticsV2Helper::Instance() },
 		{ LedgerEntryType::PENDING_STATISTICS, PendingStatisticsHelper::Instance() },

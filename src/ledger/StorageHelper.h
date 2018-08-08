@@ -6,9 +6,9 @@ namespace stellar
 {
 class Database;
 class LedgerDelta;
-class KeyValueHelper;
-class ExternalSystemAccountIDHelper;
-class ExternalSystemAccountIDPoolEntryHelper;
+class KeyValueHelperLegacy;
+class ExternalSystemAccountIDHelperLegacy;
+class ExternalSystemAccountIDPoolEntryHelperLegacy;
 
 class StorageHelper
 {
@@ -27,10 +27,10 @@ class StorageHelper
 
     std::unique_ptr<StorageHelper> startNestedTransaction = 0;
 
-    virtual KeyValueHelper& getKeyValueHelper() = 0;
-    virtual ExternalSystemAccountIDHelper&
+    virtual KeyValueHelperLegacy& getKeyValueHelper() = 0;
+    virtual ExternalSystemAccountIDHelperLegacy&
     getExternalSystemAccountIDHelper() = 0;
-    virtual ExternalSystemAccountIDPoolEntryHelper&
+    virtual ExternalSystemAccountIDPoolEntryHelperLegacy&
     getExternalSystemAccountIDPoolEntryHelper() = 0;
 };
 } // namespace stellar

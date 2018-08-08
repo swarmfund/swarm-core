@@ -1,5 +1,5 @@
 
-#include "KeyValueHelper.h"
+#include "KeyValueHelperLegacy.h"
 #include "xdrpp/printer.h"
 #include "LedgerDelta.h"
 #include "util/basen.h"
@@ -13,7 +13,7 @@ namespace stellar {
 
     const char* selectorKeyValue = "SELECT key, value, version, lastmodified FROM key_value_entry";
 
-    void KeyValueHelper::dropAll(Database &db) {
+    void KeyValueHelperLegacy::dropAll(Database &db) {
         db.getSession() << "DROP TABLE IF EXISTS key_value_entry;";
         db.getSession() << "CREATE TABLE key_value_entry"
                            "("
@@ -25,15 +25,15 @@ namespace stellar {
                            ");";
     }
 
-    void KeyValueHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
+    void KeyValueHelperLegacy::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
         storeUpdateHelper(delta, db, true, entry);
     }
 
-    void KeyValueHelper::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
+    void KeyValueHelperLegacy::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry) {
         storeUpdateHelper(delta, db, false, entry);
     }
 
-    void KeyValueHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key) {
+    void KeyValueHelperLegacy::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key) {
         flushCachedEntry(key, db);
         auto timer = db.getDeleteTimer("key_value_entry");
         auto prep = db.getPreparedStatement("DELETE FROM key_value_entry WHERE key=:key");
@@ -45,7 +45,7 @@ namespace stellar {
         delta.deleteEntry(key);
     }
 
-    bool KeyValueHelper::exists(Database &db, LedgerKey const &key) {
+    bool KeyValueHelperLegacy::exists(Database &db, LedgerKey const &key) {
         if (cachedEntryExists(key, db)) {
             return true;
         }
@@ -64,7 +64,7 @@ namespace stellar {
         return exists != 0;
     }
 
-    void KeyValueHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, LedgerEntry const &entry) {
+    void KeyValueHelperLegacy::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, LedgerEntry const &entry) {
         auto keyValueFrame = make_shared<KeyValueEntryFrame>(entry);
         auto keyValueEntry = keyValueFrame->getKeyValue();
 
@@ -116,28 +116,28 @@ namespace stellar {
         }
     }
 
-    LedgerKey KeyValueHelper::getLedgerKey(LedgerEntry const &from) {
+    LedgerKey KeyValueHelperLegacy::getLedgerKey(LedgerEntry const &from) {
         LedgerKey ledgerKey;
         ledgerKey.type(from.data.type());
         ledgerKey.keyValue().key = from.data.keyValue().key;
         return ledgerKey;
     }
 
-    EntryFrame::pointer KeyValueHelper::storeLoad(LedgerKey const &key, Database &db) {
+    EntryFrame::pointer KeyValueHelperLegacy::storeLoad(LedgerKey const &key, Database &db) {
         return loadKeyValue(key.keyValue().key,db);
     }
 
-    EntryFrame::pointer KeyValueHelper::fromXDR(LedgerEntry const &from) {
+    EntryFrame::pointer KeyValueHelperLegacy::fromXDR(LedgerEntry const &from) {
         return std::make_shared<KeyValueEntryFrame>(from);
     }
 
-    uint64_t KeyValueHelper::countObjects(soci::session &sess) {
+    uint64_t KeyValueHelperLegacy::countObjects(soci::session &sess) {
         uint64_t count = 0;
         sess << "SELECT COUNT(*) FROM key_value_entry;", into(count);
         return count;
     }
 
-    KeyValueEntryFrame::pointer KeyValueHelper::loadKeyValue(string256 valueKey, Database &db, LedgerDelta *delta) {
+    KeyValueEntryFrame::pointer KeyValueHelperLegacy::loadKeyValue(string256 valueKey, Database &db, LedgerDelta *delta) {
         LedgerKey key;
         key.type(LedgerEntryType::KEY_VALUE);
         key.keyValue().key = valueKey;
@@ -177,7 +177,7 @@ namespace stellar {
     }
 
     void
-    KeyValueHelper::loadKeyValues(StatementContext &prep, std::function<void(LedgerEntry const &)> keyValueProcessor) {
+    KeyValueHelperLegacy::loadKeyValues(StatementContext &prep, std::function<void(LedgerEntry const &)> keyValueProcessor) {
         LedgerEntry le;
         le.data.type(LedgerEntryType::KEY_VALUE);
         KeyValueEntry& oe = le.data.keyValue();

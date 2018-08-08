@@ -30,7 +30,7 @@
 #include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -49,7 +49,7 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
-#include <ledger/KeyValueHelper.h>
+#include <ledger/KeyValueHelperLegacy.h>
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/StatisticsV2Helper.h>
 #include <ledger/PendingStatisticsHelper.h>
@@ -174,13 +174,13 @@ Database::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::EXTERNAL_POOL_FIX_DB_TYPES:
             break;
         case databaseSchemaVersion::EXTERNAL_POOL_FIX_MIGRATION:
-            ExternalSystemAccountIDPoolEntryHelper::Instance()->dropAll(*this);
+            ExternalSystemAccountIDPoolEntryHelperLegacy::Instance()->dropAll(*this);
             break;
         case databaseSchemaVersion::KEY_VALUE_FIX_MIGRATION:
-            KeyValueHelper::Instance()->dropAll(*this);
+            KeyValueHelperLegacy::Instance()->dropAll(*this);
             break;
         case databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE:
-            ExternalSystemAccountIDPoolEntryHelper::Instance()->parentToNumeric(*this);
+            ExternalSystemAccountIDPoolEntryHelperLegacy::Instance()->parentToNumeric(*this);
             break;
         case databaseSchemaVersion::ADD_SALE_ANTE:
             SaleAnteHelper::Instance()->dropAll(*this);

@@ -1,6 +1,6 @@
 #include "BindExternalSystemAccountIdTestHelper.h"
-#include "ledger/ExternalSystemAccountIDHelper.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/ExternalSystemAccountIDHelperLegacy.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
 #include "test/test_marshaler.h"
 
 namespace stellar
@@ -34,8 +34,8 @@ namespace txtest
     {
         TransactionFramePtr txFrame;
 
-        auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
-        auto externalSystemAccountIDPoolEntryHelper = ExternalSystemAccountIDPoolEntryHelper::Instance();
+        auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelperLegacy::Instance();
+        auto externalSystemAccountIDPoolEntryHelper = ExternalSystemAccountIDPoolEntryHelperLegacy::Instance();
 
         std::vector<ExternalSystemAccountIDFrame::pointer> externalSystemAccountIDs;
         Database& db = mTestManager->getDB();

@@ -22,17 +22,17 @@ namespace stellar
 
     class StatementContext;
 
-    class KeyValueHelper : public EntryHelperLegacy {
+    class KeyValueHelperLegacy : public EntryHelperLegacy {
 
     public:
-        KeyValueHelper() = default;
+        KeyValueHelperLegacy() = default;
 
-        KeyValueHelper(KeyValueHelper const &) = delete;
+        KeyValueHelperLegacy(KeyValueHelperLegacy const &) = delete;
 
-        KeyValueHelper &operator=(KeyValueHelper const &) = delete;
+        KeyValueHelperLegacy &operator=(KeyValueHelperLegacy const &) = delete;
 
-        static KeyValueHelper *Instance() {
-            static KeyValueHelper singleton;
+        static KeyValueHelperLegacy *Instance() {
+            static KeyValueHelperLegacy singleton;
             return &singleton;
         }
 

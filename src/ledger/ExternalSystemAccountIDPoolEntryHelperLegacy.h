@@ -13,19 +13,19 @@ namespace stellar
 class StatementContext;
 class LedgerManager;
 
-class ExternalSystemAccountIDPoolEntryHelper : public EntryHelperLegacy
+class ExternalSystemAccountIDPoolEntryHelperLegacy : public EntryHelperLegacy
 {
   public:
-    ExternalSystemAccountIDPoolEntryHelper() = default;
-    ExternalSystemAccountIDPoolEntryHelper(
-        ExternalSystemAccountIDPoolEntryHelper const&) = delete;
-    ExternalSystemAccountIDPoolEntryHelper&
-    operator=(ExternalSystemAccountIDPoolEntryHelper const&) = delete;
+    ExternalSystemAccountIDPoolEntryHelperLegacy() = default;
+    ExternalSystemAccountIDPoolEntryHelperLegacy(
+        ExternalSystemAccountIDPoolEntryHelperLegacy const&) = delete;
+    ExternalSystemAccountIDPoolEntryHelperLegacy&
+    operator=(ExternalSystemAccountIDPoolEntryHelperLegacy const&) = delete;
 
-    static ExternalSystemAccountIDPoolEntryHelper*
+    static ExternalSystemAccountIDPoolEntryHelperLegacy*
     Instance()
     {
-        static ExternalSystemAccountIDPoolEntryHelper singleton;
+        static ExternalSystemAccountIDPoolEntryHelperLegacy singleton;
         return &singleton;
     }
 

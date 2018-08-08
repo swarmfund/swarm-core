@@ -762,7 +762,7 @@
     <ClCompile Include="..\..\src\ledger\TrustHelper.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetHelper.cpp">
@@ -948,13 +948,13 @@
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\ledger\KeyValueEntryFrame.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\KeyValueHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\KeyValueHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\ManageKeyValueOpFrame.cpp">
@@ -1784,7 +1784,7 @@
     <ClInclude Include="..\..\src\ledger\TrustHelper.h">
       <Filter>ledger</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelper.h">
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetHelper.h">
@@ -1989,13 +1989,13 @@
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.h">
       <Filter>ledger</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.h">
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ledger\KeyValueEntryFrame.h">
       <Filter>ledger</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\KeyValueHelper.h">
+    <ClInclude Include="..\..\src\ledger\KeyValueHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\ManageKeyValueOpFrame.h">

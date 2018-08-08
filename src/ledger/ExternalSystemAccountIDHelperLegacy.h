@@ -16,12 +16,12 @@ namespace stellar
 {
 	class StatementContext;
 
-	class ExternalSystemAccountIDHelper : public EntryHelperLegacy {
+	class ExternalSystemAccountIDHelperLegacy : public EntryHelperLegacy {
 	public:
-		ExternalSystemAccountIDHelper() = default;
+		ExternalSystemAccountIDHelperLegacy() = default;
 
-		static ExternalSystemAccountIDHelper *Instance() {
-			static ExternalSystemAccountIDHelper singleton;
+		static ExternalSystemAccountIDHelperLegacy *Instance() {
+			static ExternalSystemAccountIDHelperLegacy singleton;
 			return&singleton;
 		}
 
@@ -45,8 +45,8 @@ namespace stellar
 
 	private:
 
-		ExternalSystemAccountIDHelper(ExternalSystemAccountIDHelper const&) = delete;
-		ExternalSystemAccountIDHelper& operator=(ExternalSystemAccountIDHelper const&) = delete;
+		ExternalSystemAccountIDHelperLegacy(ExternalSystemAccountIDHelperLegacy const&) = delete;
+		ExternalSystemAccountIDHelperLegacy& operator=(ExternalSystemAccountIDHelperLegacy const&) = delete;
 
 		static const char* select;
 

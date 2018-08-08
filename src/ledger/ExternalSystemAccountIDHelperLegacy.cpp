@@ -7,7 +7,7 @@
 #include "database/Database.h"
 #include "LedgerDelta.h"
 #include "ledger/LedgerManager.h"
-#include "ledger/ExternalSystemAccountIDHelper.h"
+#include "ledger/ExternalSystemAccountIDHelperLegacy.h"
 #include "util/basen.h"
 #include "util/types.h"
 #include "lib/util/format.h"
@@ -21,9 +21,9 @@ namespace stellar
 {
 	using xdr::operator<;
 
-	const char* ExternalSystemAccountIDHelper::select = "SELECT account_id, external_system_type, data, lastmodified, version FROM external_system_account_id";
+	const char* ExternalSystemAccountIDHelperLegacy::select = "SELECT account_id, external_system_type, data, lastmodified, version FROM external_system_account_id";
 
-	void ExternalSystemAccountIDHelper::storeUpdateHelper(LedgerDelta& delta, Database& db, const bool insert, LedgerEntry const& entry)
+	void ExternalSystemAccountIDHelperLegacy::storeUpdateHelper(LedgerDelta& delta, Database& db, const bool insert, LedgerEntry const& entry)
 	{
 		auto externalSystemAccountIDFrame = std::make_shared<ExternalSystemAccountIDFrame>(entry);
 		auto externalSystemAccountIDEntry = externalSystemAccountIDFrame->getExternalSystemAccountID();
@@ -84,17 +84,17 @@ namespace stellar
 		}
 	}
 
-	void ExternalSystemAccountIDHelper::storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry)
+	void ExternalSystemAccountIDHelperLegacy::storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry)
 	{
 		return storeUpdateHelper(delta, db, true, entry);
 	}
 
-	void ExternalSystemAccountIDHelper::storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry)
+	void ExternalSystemAccountIDHelperLegacy::storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry)
 	{
 		return storeUpdateHelper(delta, db, false, entry);
 	}
 
-	void ExternalSystemAccountIDHelper::storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key)
+	void ExternalSystemAccountIDHelperLegacy::storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key)
 	{
 		auto timer = db.getDeleteTimer("external_system_account_id");
 		auto prep = db.getPreparedStatement("DELETE FROM external_system_account_id WHERE account_id=:id AND external_system_type=:etype");
@@ -109,7 +109,7 @@ namespace stellar
 	}
 
 	void 
-	ExternalSystemAccountIDHelper::dropAll(Database& db)
+	ExternalSystemAccountIDHelperLegacy::dropAll(Database& db)
 	{
 		db.getSession() << "DROP TABLE IF EXISTS external_system_account_id;";
 		db.getSession() << "CREATE TABLE external_system_account_id"
@@ -123,13 +123,13 @@ namespace stellar
 			");";
 	}
 
-	bool ExternalSystemAccountIDHelper::exists(Database& db, LedgerKey const& key)
+	bool ExternalSystemAccountIDHelperLegacy::exists(Database& db, LedgerKey const& key)
 	{
 		const auto exSysAccountID = key.externalSystemAccountID();
 		return exists(db, exSysAccountID.accountID, exSysAccountID.externalSystemType);
 	}
 
-	bool ExternalSystemAccountIDHelper::exists(Database& db, AccountID rawAccountID,
+	bool ExternalSystemAccountIDHelperLegacy::exists(Database& db, AccountID rawAccountID,
 		int32 externalSystemType)
 	{
 		int exists = 0;
@@ -148,7 +148,7 @@ namespace stellar
 	}
 
 	LedgerKey
-	ExternalSystemAccountIDHelper::getLedgerKey(LedgerEntry const& from)
+	ExternalSystemAccountIDHelperLegacy::getLedgerKey(LedgerEntry const& from)
 	{
 		LedgerKey ledgerKey;
 		ledgerKey.type(from.data.type());
@@ -158,19 +158,19 @@ namespace stellar
 	}
 
 	EntryFrame::pointer 
-	ExternalSystemAccountIDHelper::storeLoad(LedgerKey const& key, Database& db)
+	ExternalSystemAccountIDHelperLegacy::storeLoad(LedgerKey const& key, Database& db)
 	{
 		auto const &externalSystemAccountID = key.externalSystemAccountID();
 		return load(externalSystemAccountID.accountID, externalSystemAccountID.externalSystemType, db);
 	}
 
 	EntryFrame::pointer
-	ExternalSystemAccountIDHelper::fromXDR(LedgerEntry const& from)
+	ExternalSystemAccountIDHelperLegacy::fromXDR(LedgerEntry const& from)
 	{
 		return std::make_shared<ExternalSystemAccountIDFrame>(from);
 	}
 
-	uint64_t ExternalSystemAccountIDHelper::countObjects(soci::session& sess)
+	uint64_t ExternalSystemAccountIDHelperLegacy::countObjects(soci::session& sess)
 	{
 		uint64_t count = 0;
 		sess << "SELECT COUNT(*) FROM external_system_account_id;", into(count);
@@ -178,7 +178,7 @@ namespace stellar
 	}
 
 	ExternalSystemAccountIDFrame::pointer 
-	ExternalSystemAccountIDHelper::	load(const AccountID rawAccountID,
+	ExternalSystemAccountIDHelperLegacy::	load(const AccountID rawAccountID,
 		const int32 externalSystemType,
 		Database& db, LedgerDelta* delta)
 	{
@@ -210,7 +210,7 @@ namespace stellar
 		return result;
 	}
 
-	void ExternalSystemAccountIDHelper::load(StatementContext& prep, const function<void(LedgerEntry const&)> processor)
+	void ExternalSystemAccountIDHelperLegacy::load(StatementContext& prep, const function<void(LedgerEntry const&)> processor)
 	{
 		LedgerEntry le;
 		le.data.type(LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID);
@@ -243,7 +243,7 @@ namespace stellar
 	}
 
 	std::vector<ExternalSystemAccountIDFrame::pointer>
-	ExternalSystemAccountIDHelper::loadAll(Database &db)
+	ExternalSystemAccountIDHelperLegacy::loadAll(Database &db)
 	{
 		std::vector<ExternalSystemAccountIDFrame::pointer> retExternalSystemAccountIDs;
 		std::string sql = select;

@@ -22,7 +22,7 @@ namespace stellar
 	class Database;
 	class LedgerDelta;
 
-	class EntryHelper {
+	class EntryHelperLegacy {
 	public:
 		virtual void dropAll(Database& db) = 0;
 
@@ -45,7 +45,7 @@ namespace stellar
 
 	class EntryHelperProvider {
 	public:
-		static EntryHelper *getHelper(LedgerEntryType type) {
+		static EntryHelperLegacy *getHelper(LedgerEntryType type) {
 			return helpers[type];
 		}
 
@@ -65,7 +65,7 @@ namespace stellar
 		static void checkAgainstDatabase(LedgerEntry const& entry, Database& db);
 
 	private:
-		typedef std::map<LedgerEntryType, EntryHelper*> helperMap;
+		typedef std::map<LedgerEntryType, EntryHelperLegacy*> helperMap;
 		static helperMap helpers;
 	};
 

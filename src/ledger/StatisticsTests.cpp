@@ -6,7 +6,7 @@
 #include "LedgerDelta.h"
 #include "ledger/LedgerManager.h"
 #include "StatisticsFrame.h"
-#include "EntryHelper.h"
+#include "EntryHelperLegacy.h"
 #include <src/transactions/test/TxTests.h>
 
 using namespace stellar;

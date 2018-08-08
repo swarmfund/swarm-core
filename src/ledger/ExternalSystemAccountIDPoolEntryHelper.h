@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/ExternalSystemAccountIDPoolEntry.h"
 
 namespace soci
@@ -13,7 +13,7 @@ namespace stellar
 class StatementContext;
 class LedgerManager;
 
-class ExternalSystemAccountIDPoolEntryHelper : public EntryHelper
+class ExternalSystemAccountIDPoolEntryHelper : public EntryHelperLegacy
 {
   public:
     ExternalSystemAccountIDPoolEntryHelper() = default;

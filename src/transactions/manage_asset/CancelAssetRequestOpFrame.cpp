@@ -5,7 +5,7 @@
 #include "CancelAssetRequestOpFrame.h"
 
 #include "ledger/LedgerDelta.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
 

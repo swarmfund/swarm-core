@@ -18,7 +18,7 @@
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/BalanceFrame.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/PaymentRequestFrame.h"

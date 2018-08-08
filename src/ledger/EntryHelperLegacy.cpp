@@ -2,7 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "LedgerManager.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AccountHelper.h"
@@ -56,30 +56,30 @@ namespace stellar
 
 	LedgerKey LedgerEntryKey(LedgerEntry const &e)
 	{
-		EntryHelper* helper = EntryHelperProvider::getHelper(e.data.type());
+		EntryHelperLegacy* helper = EntryHelperProvider::getHelper(e.data.type());
 		return helper->getLedgerKey(e);
 	}
 
-	void EntryHelper::flushCachedEntry(LedgerKey const &key, Database &db)
+	void EntryHelperLegacy::flushCachedEntry(LedgerKey const &key, Database &db)
 	{
 		auto s = binToHex(xdr::xdr_to_opaque(key));
 		db.getEntryCache().erase_if_exists(s);
 	}
 
-	bool EntryHelper::cachedEntryExists(LedgerKey const &key, Database &db)
+	bool EntryHelperLegacy::cachedEntryExists(LedgerKey const &key, Database &db)
 	{
 		auto s = binToHex(xdr::xdr_to_opaque(key));
 		return db.getEntryCache().exists(s);
 	}
 
 	std::shared_ptr<LedgerEntry const>
-	EntryHelper::getCachedEntry(LedgerKey const &key, Database &db)
+	EntryHelperLegacy::getCachedEntry(LedgerKey const &key, Database &db)
 	{
 		auto s = binToHex(xdr::xdr_to_opaque(key));
 		return db.getEntryCache().get(s);
 	}
 
-	void EntryHelper::putCachedEntry(LedgerKey const &key,
+	void EntryHelperLegacy::putCachedEntry(LedgerKey const &key,
 	std::shared_ptr<LedgerEntry const> p, Database &db)
 	{
 		auto s = binToHex(xdr::xdr_to_opaque(key));
@@ -105,14 +105,14 @@ namespace stellar
 	void
 	EntryHelperProvider::storeAddEntry(LedgerDelta& delta, Database& db, LedgerEntry const& entry)
 	{
-		EntryHelper* helper = getHelper(entry.data.type());
+		EntryHelperLegacy* helper = getHelper(entry.data.type());
 		return helper->storeAdd(delta, db, entry);
 	}
 
 	void
 	EntryHelperProvider::storeChangeEntry(LedgerDelta& delta, Database& db, LedgerEntry const& entry)
 	{
-		EntryHelper* helper = getHelper(entry.data.type());
+		EntryHelperLegacy* helper = getHelper(entry.data.type());
 		return helper->storeChange(delta, db, entry);
 	}
 
@@ -134,35 +134,35 @@ namespace stellar
 	void
 	EntryHelperProvider::storeDeleteEntry(LedgerDelta& delta, Database& db, LedgerKey const& key)
 	{
-		EntryHelper* helper = getHelper(key.type());
+		EntryHelperLegacy* helper = getHelper(key.type());
 		helper->storeDelete(delta, db, key);
 	}
 
 	bool
 	EntryHelperProvider::existsEntry(Database& db, LedgerKey const& key)
 	{
-		EntryHelper* helper = getHelper(key.type());
+		EntryHelperLegacy* helper = getHelper(key.type());
 		return helper->exists(db, key);
 	}
 
 	EntryFrame::pointer
 	EntryHelperProvider::storeLoadEntry(LedgerKey const& key, Database& db)
 	{
-		EntryHelper* helper = getHelper(key.type());
+		EntryHelperLegacy* helper = getHelper(key.type());
 		return helper->storeLoad(key, db);
 	}
 
 	EntryFrame::pointer
 	EntryHelperProvider::fromXDREntry(LedgerEntry const& from)
 	{
-		EntryHelper* helper = getHelper(from.data.type());
+		EntryHelperLegacy* helper = getHelper(from.data.type());
 		return helper->fromXDR(from);
 	}
 
 	uint64_t
 	EntryHelperProvider::countObjectsEntry(soci::session& sess, LedgerEntryType const& type)
 	{
-		EntryHelper* helper = getHelper(type);
+		EntryHelperLegacy* helper = getHelper(type);
 		return helper->countObjects(sess);
 	}
 

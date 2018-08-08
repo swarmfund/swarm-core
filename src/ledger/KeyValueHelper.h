@@ -5,7 +5,7 @@
 #ifndef STELLAR_KEYENTRYHELPER_H
 #define STELLAR_KEYENTRYHELPER_H
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
 #include <functional>
 #include <unordered_map>
@@ -22,7 +22,7 @@ namespace stellar
 
     class StatementContext;
 
-    class KeyValueHelper : public EntryHelper {
+    class KeyValueHelper : public EntryHelperLegacy {
 
     public:
         KeyValueHelper() = default;

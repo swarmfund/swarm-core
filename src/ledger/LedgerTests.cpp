@@ -8,7 +8,7 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerManager.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AccountHelper.h"
 #include <xdrpp/autocheck.h>

@@ -215,7 +215,7 @@
     <ClCompile Include="..\..\src\ledger\BalanceFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountID.cpp" />
     <ClCompile Include="..\..\src\ledger\BalanceHelper.cpp" />
-    <ClCompile Include="..\..\src\ledger\EntryHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\EntryHelperLegacy.cpp" />
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.cpp" />
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.cpp" />
@@ -562,7 +562,7 @@
     <ClInclude Include="..\..\src\ledger\BalanceFrame.h" />
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountID.h" />
     <ClInclude Include="..\..\src\ledger\BalanceHelper.h" />
-    <ClInclude Include="..\..\src\ledger\EntryHelper.h" />
+    <ClInclude Include="..\..\src\ledger\EntryHelperLegacy.h" />
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelper.h" />
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.h" />
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.h" />

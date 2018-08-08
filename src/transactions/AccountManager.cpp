@@ -15,7 +15,7 @@
 #include "ledger/AccountTypeLimitsHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/AssetHelper.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/StatisticsHelper.h"
 #include "ledger/FeeHelper.h"
 #include "StatisticsV2Processor.h"

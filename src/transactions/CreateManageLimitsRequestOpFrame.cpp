@@ -2,7 +2,7 @@
 // Created by artem on 16.06.18.
 //
 
-#include <ledger/EntryHelper.h>
+#include <ledger/EntryHelperLegacy.h>
 #include <ledger/ReviewableRequestFrame.h>
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>

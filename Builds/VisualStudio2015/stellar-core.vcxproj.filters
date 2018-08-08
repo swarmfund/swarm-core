@@ -717,7 +717,7 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\EntryHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\EntryHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\ledger\AccountHelper.cpp">
@@ -1739,7 +1739,7 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\EntryHelper.h">
+    <ClInclude Include="..\..\src\ledger\EntryHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ledger\AccountHelper.h">

@@ -37,8 +37,10 @@ SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<Acco
     // disallow to create update limits requests
 	return SourceDetails(allowedAccountTypes,
                          mSourceAccount->getHighThreshold(),
-                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
-                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER),
+                         static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
 SetOptionsOpFrame::SetOptionsOpFrame(Operation const& op, OperationResult& res,

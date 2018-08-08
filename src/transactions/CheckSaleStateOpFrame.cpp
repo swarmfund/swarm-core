@@ -93,9 +93,9 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
         throw runtime_error("Unexpected state; issuance request was not fulfilled on check sale state");
     }
 
-    updateAvailableForIssuance(sale, delta, db);
-
-    updateMaxIssuance(sale, delta, db, lm);
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_ISSUE_AFTER_SALE)) {
+        restrictIssuanceAfterSale(sale, delta, db, lm);
+    }
 }
 
 bool CheckSaleStateOpFrame::handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
@@ -148,24 +148,49 @@ void CheckSaleStateOpFrame::chargeSaleAntes(uint64_t saleID, AccountID const &co
 }
 
 
-void CheckSaleStateOpFrame::checkIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm, Database& db, BalanceFrame::pointer balanceBefore){
+void CheckSaleStateOpFrame::cleanupIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm, Database& db, LedgerDelta& delta, BalanceFrame::pointer balanceBefore){
     auto balanceAfter = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
-    if(lm.shouldUse(LedgerVersion::ALLOW_CLOSE_SALE_WITH_NON_ZERO_BALANCE)) {
-        auto balanceDelta = safeDelta(balanceBefore->getAmount(), balanceAfter->getAmount());
-        if (balanceDelta > ONE) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER)
-                    << "Unexpected state: after sale close issuer endup with balance different from before sale"
-                    << sale->getID();
-            throw runtime_error(
-                    "Unexpected state: after sale close issuer endup with balance different from before sale");
+    if(!lm.shouldUse(LedgerVersion::ALLOW_CLOSE_SALE_WITH_NON_ZERO_BALANCE)) {
+        
+        if (balanceAfter->getAmount() > ONE)
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();
+            throw runtime_error("Unexpected state: after sale close issuer endup with balance > ONE");
         }
         return;
     }
-    if (balanceAfter->getAmount() > ONE)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();
-        throw runtime_error("Unexpected state: after sale close issuer endup with balance > ONE");
+    
+    auto balanceDelta = safeDelta(balanceBefore->getAmount(), balanceAfter->getAmount());
+    if (balanceDelta > ONE) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER)
+            << "Unexpected state: after sale close issuer endup with balance different from before sale"
+            << sale->getID();
+        throw runtime_error(
+            "Unexpected state: after sale close issuer endup with balance different from before sale");
     }
+
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_ISSUE_AFTER_SALE)) {
+        return;
+    }
+
+    // return delta back to the asset
+    if (!balanceAfter->tryCharge(balanceDelta)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to clean up sale manager balance after sale been performed: " << sale->getID();
+        throw std::runtime_error("Unexpected state: failed to clean up sale manager balance after sale been performed");
+    }
+
+    BalanceHelper::Instance()->storeChange(delta, db, balanceAfter->mEntry);
+
+    // return base asset
+    auto asset = AssetHelper::Instance()->mustLoadAsset(balanceAfter->getAsset(), db, &delta);
+    if (!asset->tryUnIssue(balanceDelta)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to unissue redundant amount after sale been performed: "
+            << sale->getID();
+        throw std::runtime_error("Unexpected state: failed to unissue redundant amount after sale been performed");
+    }
+
+    AssetHelper::Instance()->storeChange(delta, db, asset->mEntry);
+
     return;
 }
 
@@ -209,7 +234,7 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
 
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
 
-    checkIssuerBalance(sale, lm, db, balanceBefore);
+    cleanupIssuerBalance(sale, lm, db, delta, balanceBefore);
 
     return true;
 }
@@ -241,6 +266,13 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     }
 
     return createIssuanceRequestOpFrame.getResult().tr().createIssuanceRequestResult();
+}
+
+void CheckSaleStateOpFrame::restrictIssuanceAfterSale(SaleFrame::pointer sale, LedgerDelta & delta, Database & db, LedgerManager & lm)
+{
+    updateAvailableForIssuance(sale, delta, db);
+
+    updateMaxIssuance(sale, delta, db, lm);
 }
 
 void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,

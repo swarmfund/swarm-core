@@ -20,9 +20,10 @@ public:
 
     TransactionFramePtr createManageContractTx(Account &source, ManageContractOp manageContractOp);
     
-    ManageContractOp createAddDetailsOp(Account &source, uint64_t& contractID, longstring& details);
-    ManageContractOp createConfirmOp(Account &source, uint64_t& contractID);
-    ManageContractOp createStartDisputeOp(Account &source, uint64_t& contractID, longstring& disputeReason);
+    ManageContractOp createAddDetailsOp(uint64_t& contractID, longstring& details);
+    ManageContractOp createConfirmOp(uint64_t& contractID);
+    ManageContractOp createStartDisputeOp(uint64_t& contractID, longstring disputeReason);
+    ManageContractOp createResolveDisputeOp(uint64_t &contractID, bool isRevert);
 
     ManageContractResult applyManageContractTx(Account &source, ManageContractOp manageContractOp,
                                ManageContractResultCode expectedResult = ManageContractResultCode::SUCCESS);

@@ -33,12 +33,11 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("Contract", "[tx][contract]")
-{
-    Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
+TEST_CASE("Contract", "[tx][contract]") {
+    Config const &cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
     Application::pointer appPtr = Application::create(clock, cfg);
-    Application& app = *appPtr;
+    Application &app = *appPtr;
     app.start();
     auto testManager = TestManager::make(app);
     TestManager::upgradeToCurrentLedgerVersion(app);
@@ -66,7 +65,7 @@ TEST_CASE("Contract", "[tx][contract]")
 
     // create two assets
     AssetCode paymentAsset = "USD";
-    issuanceTestHelper.createAssetWithPreIssuedAmount(root, paymentAsset, INT64_MAX, root);
+    issuanceTestHelper.createAssetWithPreIssuedAmount(root, paymentAsset, UINT64_MAX, root);
     manageAssetTestHelper.updateAsset(root, paymentAsset, root, static_cast<uint32_t>(AssetPolicy::BASE_ASSET) |
                                                                 static_cast<uint32_t>(AssetPolicy::TRANSFERABLE) |
                                                                 static_cast<uint32_t>(AssetPolicy::STATS_QUOTE_ASSET)
@@ -88,12 +87,14 @@ TEST_CASE("Contract", "[tx][contract]")
     manageAssetPairTestHelper.createAssetPair(root, paymentAsset, feeAsset, exchangeRatesETH_USD * ONE);
 
     // create fee charging rules for incoming and outgoing payments
-    auto incomingFee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, paymentAsset, 5 * ONE, 0, nullptr, nullptr,
+    auto incomingFee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, paymentAsset, 5 * ONE, 0, nullptr,
+                                                        nullptr,
                                                         static_cast<int64_t>(PaymentFeeType::INCOMING), 0, INT64_MAX,
                                                         &paymentAsset);
     setFeesTestHelper.applySetFeesTx(root, &incomingFee, false);
 
-    auto outgoingFee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, paymentAsset, 5 * ONE, 5 * ONE, nullptr, nullptr,
+    auto outgoingFee = setFeesTestHelper.createFeeEntry(FeeType::PAYMENT_FEE, paymentAsset, 5 * ONE, 5 * ONE, nullptr,
+                                                        nullptr,
                                                         static_cast<int64_t>(PaymentFeeType::OUTGOING), 0, INT64_MAX,
                                                         &paymentAsset);
     setFeesTestHelper.applySetFeesTx(root, &outgoingFee, false);
@@ -127,8 +128,7 @@ TEST_CASE("Contract", "[tx][contract]")
 
     longstring details = "Contract details";
 
-    SECTION("Success create contract request")
-    {
+    SECTION("Success create contract request") {
         uint64_t startTime = testManager->getLedgerManager().getCloseTime() + 1234;
         uint64_t endTime = testManager->getLedgerManager().getCloseTime() + ONE;
         auto createContractRequestOp = manageContractRequestTestHelper.createContractRequest(
@@ -137,8 +137,7 @@ TEST_CASE("Contract", "[tx][contract]")
         auto result = manageContractRequestTestHelper.applyManageContractRequest(recipient, createContractRequestOp);
         auto requestID = result.success().details.response().requestID;
 
-        SECTION("Approve contract request")
-        {
+        SECTION("Approve contract request") {
             auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(payer, requestID,
                                                                                  ReviewRequestOpAction::APPROVE, "");
             auto contractID = reviewResult.success().ext.contractID();
@@ -151,111 +150,135 @@ TEST_CASE("Contract", "[tx][contract]")
             REQUIRE(contractFrame->getStartTime() == startTime);
             REQUIRE(contractFrame->getEndTime() == endTime);
 
-            SECTION("Only contractor can add invoice with contract")
-            {
+            SECTION("Only contractor can add invoice with contract") {
                 auto localDetails = details + " not success";
                 auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
                         paymentAsset, root.key.getPublicKey(), paymentAmount, localDetails, &contractID);
 
                 auto invoiceResult = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient,
-                        createInvoiceRequestOp,
-                        ManageInvoiceRequestResultCode::SENDER_ACCOUNT_MISMATCHED);
+                                                                                              createInvoiceRequestOp,
+                                                                                              ManageInvoiceRequestResultCode::SENDER_ACCOUNT_MISMATCHED);
             }
 
-            SECTION("Only contractor can add invoice with contract")
-            {
+            SECTION("Only contractor can add invoice with contract") {
                 auto localDetails = details + " not success";
                 auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
                         paymentAsset, payer.key.getPublicKey(), paymentAmount, localDetails, &contractID);
 
                 auto invoiceResult = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(root,
-                        createInvoiceRequestOp,
-                        ManageInvoiceRequestResultCode::ONLY_CONTRACTOR_CAN_ATTACH_INVOICE_TO_CONTRACT);
+                                                                                              createInvoiceRequestOp,
+                                                                                              ManageInvoiceRequestResultCode::ONLY_CONTRACTOR_CAN_ATTACH_INVOICE_TO_CONTRACT);
             }
 
             auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
                     paymentAsset, payer.key.getPublicKey(), paymentAmount, details, &contractID);
 
             auto invoiceResult = manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient,
-                    createInvoiceRequestOp);
+                                                                                          createInvoiceRequestOp);
             auto invoiceRequestID = invoiceResult.success().details.response().requestID;
             REQUIRE(invoiceResult.success().details.response().receiverBalance == receiverBalance->getBalanceID());
             REQUIRE(invoiceResult.success().details.response().senderBalance == payerBalance->getBalanceID());
 
-            SECTION("Not allowed confirm contract with not approved invoices")
-            {
-                auto confirmOp = manageContractTestHelper.createConfirmOp(recipient, contractID);
+            SECTION("Not allowed confirm contract with not approved invoices") {
+                auto confirmOp = manageContractTestHelper.createConfirmOp(contractID);
                 manageContractTestHelper.applyManageContractTx(recipient, confirmOp,
                                                                ManageContractResultCode::INVOICE_NOT_APPROVED);
-                confirmOp = manageContractTestHelper.createConfirmOp(payer, contractID);
+                confirmOp = manageContractTestHelper.createConfirmOp(contractID);
                 manageContractTestHelper.applyManageContractTx(payer, confirmOp,
                                                                ManageContractResultCode::INVOICE_NOT_APPROVED);
             }
 
-            SECTION("Add details to contract")
-            {
-                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(recipient, contractID, details);
+            SECTION("Add details to contract") {
+                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(contractID, details);
                 manageContractTestHelper.applyManageContractTx(recipient, addDetailsOp);
-                addDetailsOp = manageContractTestHelper.createAddDetailsOp(payer, contractID, details);
+                addDetailsOp = manageContractTestHelper.createAddDetailsOp(contractID, details);
                 manageContractTestHelper.applyManageContractTx(recipient, addDetailsOp);
             }
 
-            SECTION("Not allowed to add details to contract")
-            {
-                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(root, contractID, details);
+            SECTION("Not allowed to add details to contract") {
+                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(contractID, details);
                 manageContractTestHelper.applyManageContractTx(root, addDetailsOp,
                                                                ManageContractResultCode::NOT_ALLOWED);
             }
 
-            SECTION("Malformed")
-            {
+            SECTION("Malformed") {
                 longstring malformedDetails = "";
-                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(root, contractID, malformedDetails);
+                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(contractID, malformedDetails);
                 manageContractTestHelper.applyManageContractTx(root, addDetailsOp,
                                                                ManageContractResultCode::MALFORMED);
             }
 
-            SECTION("Approve invoice with contract")
-            {
+            SECTION("Approve invoice with contract") {
                 reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
                                                                     "", "", payerBalance->getBalanceID());
                 reviewInvoiceRequestHelper.applyReviewRequestTx(payer, invoiceRequestID,
                                                                 ReviewRequestOpAction::APPROVE, "");
 
-                SECTION("Confirm contract")
-                {
-                    auto confirmOp = manageContractTestHelper.createConfirmOp(recipient, contractID);
+                SECTION("Confirm contract") {
+                    auto confirmOp = manageContractTestHelper.createConfirmOp(contractID);
                     auto res = manageContractTestHelper.applyManageContractTx(recipient, confirmOp);
 
                     REQUIRE(!res.response().data.isCompleted());
 
-                    confirmOp = manageContractTestHelper.createConfirmOp(payer, contractID);
+                    confirmOp = manageContractTestHelper.createConfirmOp(contractID);
                     res = manageContractTestHelper.applyManageContractTx(payer, confirmOp);
 
                     REQUIRE(res.response().data.isCompleted());
                     REQUIRE(!contractHelper->exists(db, contractFrame->getKey()));
                     REQUIRE(!ReviewableRequestHelper::Instance()->loadRequest(invoiceRequestID, db));
                 }
+
+                SECTION("Start dispute") {
+                    auto startDisputeOp = manageContractTestHelper.createStartDisputeOp(contractID,
+                                                                                        "Some reason");
+                    manageContractTestHelper.applyManageContractTx(recipient, startDisputeOp);
+
+                    SECTION("Resolve dispute (revert)") {
+                        auto resolveDisputeOp = manageContractTestHelper.createResolveDisputeOp(contractID, true);
+                        manageContractTestHelper.applyManageContractTx(root, resolveDisputeOp);
+                    }
+
+                    SECTION("Resolve dispute (not revert)") {
+                        auto resolveDisputeOp = manageContractTestHelper.createResolveDisputeOp(contractID, false);
+                        manageContractTestHelper.applyManageContractTx(root, resolveDisputeOp);
+                    }
+                }
+            }
+
+            SECTION("Start dispute") {
+                auto startDisputeOp = manageContractTestHelper.createStartDisputeOp(contractID,
+                                                                                    "Some reason");
+                manageContractTestHelper.applyManageContractTx(recipient, startDisputeOp);
+
+                SECTION("Resolve dispute (revert)") {
+                    auto resolveDisputeOp = manageContractTestHelper.createResolveDisputeOp(contractID, true);
+                    manageContractTestHelper.applyManageContractTx(root, resolveDisputeOp);
+                }
+
+                SECTION("Resolve dispute (not revert)") {
+                    auto resolveDisputeOp = manageContractTestHelper.createResolveDisputeOp(contractID, false);
+                    manageContractTestHelper.applyManageContractTx(root, resolveDisputeOp);
+                }
             }
         }
 
-        SECTION("Only sender allowed to approve")
-        {
+        SECTION("Only sender allowed to approve") {
             auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(root, requestID,
-                    ReviewRequestOpAction::APPROVE, "", ReviewRequestResultCode::NOT_FOUND);
+                                                                                 ReviewRequestOpAction::APPROVE, "",
+                                                                                 ReviewRequestResultCode::NOT_FOUND);
         }
 
-        SECTION("Only sender allowed to permanent reject")
-        {
+        SECTION("Only sender allowed to permanent reject") {
             auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(root, requestID,
-                    ReviewRequestOpAction::PERMANENT_REJECT, "Disagree with such amount",
-                    ReviewRequestResultCode::NOT_FOUND);
+                                                                                 ReviewRequestOpAction::PERMANENT_REJECT,
+                                                                                 "Disagree with such amount",
+                                                                                 ReviewRequestResultCode::NOT_FOUND);
         }
 
-        SECTION("Success permanent reject")
-        {
+        SECTION("Success permanent reject") {
             auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(payer, requestID,
-                    ReviewRequestOpAction::PERMANENT_REJECT, "Some reason");
+                                                                                 ReviewRequestOpAction::PERMANENT_REJECT,
+                                                                                 "Some reason");
         }
     }
 }

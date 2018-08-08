@@ -69,7 +69,7 @@ namespace stellar
             sql = "INSERT INTO contracts (id, contractor, customer, escrow, disputer, start_time, end_time, "
                   "                       details, dispute_reason, state, lastmodified, version) "
                   "VALUES (:id, :contractor, :customer, :escrow, :disputer, :s_t, :e_t,"
-                  "        :details, :dis_reason :state, :lm, :v)";
+                  "        :details, :dis_reason, :state, :lm, :v)";
         }
         else
         {
@@ -227,7 +227,7 @@ namespace stellar
             if ((oe.stateInfo.state() == ContractState::DISPUTING) && (disputeIndicator == i_ok))
             {
                 oe.stateInfo.disputeDetails().disputer = PubKeyUtils::fromStrKey(disputerID);
-                bn::decode_b64(disputerID, oe.stateInfo.disputeDetails().reason);
+                bn::decode_b64(disputeReason, oe.stateInfo.disputeDetails().reason);
             }
 
             processor(le);

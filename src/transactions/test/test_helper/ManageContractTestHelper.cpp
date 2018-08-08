@@ -22,7 +22,7 @@ ManageContractTestHelper::createManageContractTx(Account &source, ManageContract
 }
 
 ManageContractOp
-ManageContractTestHelper::createAddDetailsOp(Account &source, uint64_t &contractID,
+ManageContractTestHelper::createAddDetailsOp(uint64_t &contractID,
                                              longstring &details)
 {
     ManageContractOp result;
@@ -34,7 +34,7 @@ ManageContractTestHelper::createAddDetailsOp(Account &source, uint64_t &contract
 }
 
 ManageContractOp
-ManageContractTestHelper::createConfirmOp(Account &source, uint64_t &contractID)
+ManageContractTestHelper::createConfirmOp(uint64_t &contractID)
 {
     ManageContractOp result;
     result.contractID = contractID;
@@ -44,8 +44,27 @@ ManageContractTestHelper::createConfirmOp(Account &source, uint64_t &contractID)
 }
 
 ManageContractOp
-ManageContractTestHelper::createStartDisputeOp(Account &source, uint64_t &contractID,
-                                               longstring &disputeReason) {}
+ManageContractTestHelper::createStartDisputeOp(uint64_t &contractID,
+                                               longstring disputeReason)
+{
+    ManageContractOp result;
+    result.contractID = contractID;
+    result.data.action(ManageContractAction::START_DISPUTE);
+    result.data.disputeReason() = disputeReason;
+
+    return result;
+}
+
+ManageContractOp
+ManageContractTestHelper::createResolveDisputeOp(uint64_t &contractID, bool isRevert)
+{
+    ManageContractOp result;
+    result.contractID = contractID;
+    result.data.action(ManageContractAction::RESOLVE_DISPUTE);
+    result.data.isRevert() = isRevert;
+
+    return result;
+}
 
 ManageContractResult
 ManageContractTestHelper::applyManageContractTx(Account &source, ManageContractOp manageContractOp,

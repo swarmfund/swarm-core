@@ -99,32 +99,31 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
     switch (mManageContract.data.action())
     {
         case ManageContractAction::ADD_DETAILS:
+            innerResult().response().data.action(ManageContractAction::ADD_DETAILS);
             if (!checkContractDetails(contractFrame, app, db, delta))
                 return false;
 
             contractFrame->addContractDetails(mManageContract.data.details());
             contractHelper->storeChange(delta, db, contractFrame->mEntry);
-            innerResult().response().data.action(ManageContractAction::ADD_DETAILS);
             break;
         case ManageContractAction::START_DISPUTE:
+            innerResult().response().data.action(ManageContractAction::START_DISPUTE);
             if (!startDispute(contractFrame))
                 return false;
 
             contractHelper->storeChange(delta, db, contractFrame->mEntry);
-            innerResult().response().data.action(ManageContractAction::START_DISPUTE);
             break;
         case ManageContractAction::CONFIRM_COMPLETED:
-            if (!confirmCompleted(contractFrame, db, delta)) {
-                return false;
-            }
-
             innerResult().response().data.action(ManageContractAction::CONFIRM_COMPLETED);
+            if (!confirmCompleted(contractFrame, db, delta))
+                return false;
+
             break;
         case ManageContractAction::RESOLVE_DISPUTE:
+            innerResult().response().data.action(ManageContractAction::RESOLVE_DISPUTE);
             if (!resolveDispute(contractFrame, db, delta))
                 return false;
 
-            innerResult().response().data.action(ManageContractAction::RESOLVE_DISPUTE);
             break;
         default:
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected source account. "
@@ -311,6 +310,8 @@ ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame)
 
     contractFrame->setDisputer(getSourceID());
     contractFrame->setDisputeReason(mManageContract.data.disputeReason());
+
+    return true;
 }
 
 bool
@@ -364,7 +365,7 @@ ManageContractOpFrame::revertInvoicesAmounts(ContractFrame::pointer contractFram
 
         auto customerBalance = balanceHelper->mustLoadBalance(invoiceRequest->getReviewer(),
                                                               invoice.asset, db, &delta);
-        if (customerBalance->tryFundAccount(invoice.amount))
+        if (!customerBalance->tryFundAccount(invoice.amount))
         {
             innerResult().code(ManageContractResultCode::CUSTOMER_BALANCE_OVERFLOW);
             return false;

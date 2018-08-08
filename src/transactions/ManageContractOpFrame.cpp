@@ -40,9 +40,7 @@ ManageContractOpFrame::getSourceAccountDetails(
 
     return SourceDetails(allowedAccountTypes,
                          mSourceAccount->getHighThreshold(),
-                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER),
-                         static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
-                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t>(SignerType::CONTRACT_MANAGER));
 }
 
 ManageContractOpFrame::ManageContractOpFrame(Operation const& op, OperationResult& res,

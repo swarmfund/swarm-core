@@ -39,9 +39,7 @@ ManageInvoiceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountI
                                                     AccountType::VERIFIED, AccountType::MASTER};
 
 	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t>(SignerType::INVOICE_MANAGER),
-                         static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
-                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t>(SignerType::INVOICE_MANAGER));
 }
 
 ManageInvoiceRequestOpFrame::ManageInvoiceRequestOpFrame(Operation const& op, OperationResult& res,

@@ -39,9 +39,7 @@ ManageContractRequestOpFrame::getSourceAccountDetails(
                                                     AccountType::MASTER};
 
     return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t>(SignerType::INVOICE_MANAGER),
-                         static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
-                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t>(SignerType::CONTRACT_MANAGER));
 }
 
 ManageContractRequestOpFrame::ManageContractRequestOpFrame(Operation const& op, OperationResult& res,
@@ -113,8 +111,10 @@ ManageContractRequestOpFrame::createManageContractRequest(Application& app, Ledg
     body.contractRequest() = contractRequest;
 
     const auto referencePtr = xdr::pointer<string64>(new string64(reference));
-    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), contractRequest.customer,
-                                                             referencePtr, body, ledgerManager.getCloseTime());
+    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(),
+                                                             contractRequest.customer,
+                                                             referencePtr, body,
+                                                             ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 
@@ -130,8 +130,6 @@ ManageContractRequestOpFrame::doCheckValid(Application& app)
     if (mManageContractRequest.details.action() == ManageContractRequestAction::CREATE &&
         mManageContractRequest.details.contractRequest().details.empty())
     {
-        app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "malformed-zero-amount"},
-                                  "operation").Mark();
         innerResult().code(ManageContractRequestResultCode::MALFORMED);
         return false;
     }

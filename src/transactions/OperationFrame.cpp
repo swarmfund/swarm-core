@@ -54,7 +54,7 @@ namespace stellar
 
 using namespace std;
 
-    
+
 shared_ptr<OperationFrame>
 OperationFrame::makeHelper(Operation const& op, OperationResult& res,
                            TransactionFrame& tx)
@@ -168,7 +168,7 @@ int64_t OperationFrame::getPaidFee() const {
 	// default fee for all operations is 0, finantial operations must override this function
     return 0;
 }
-    
+
 bool
 OperationFrame::doCheckSignature(Application& app, Database& db, SourceDetails& sourceDetails)
 {
@@ -205,9 +205,10 @@ OperationFrame::doCheckSignature(Application& app, Database& db, SourceDetails& 
 // TMP
 bool
 OperationFrame::doApply(Application& app, LedgerDelta& delta,
-	LedgerManager& ledgerManager){
-    return doApply(app, StorageHelperImpl(app.getDatabase(), delta),
-                   ledgerManager);
+	LedgerManager& ledgerManager)
+{
+    StorageHelperImpl storageHelper(app.getDatabase(), delta);
+    return doApply(app, storageHelper, ledgerManager);
 }
 
 // TMP
@@ -250,7 +251,7 @@ OperationFrame::createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, 
     entry.createdAt = createdAt;
     if (invoiceID)
         entry.invoiceID.activate() = *invoiceID;
-    
+
     auto paymentRequestFrame = std::make_shared<PaymentRequestFrame>(le);
     EntryHelperProvider::storeAddEntry(storageHelper.getLedgerDelta(),
                                        storageHelper.getDatabase(),
@@ -337,7 +338,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 
     mResult.code(OperationResultCode::opINNER);
     mResult.tr().type(mOperation.body.type());
-    
+
     bool isValid = doCheckValid(app);
 	if (!isValid) {
 		app.getMetrics().NewMeter({ "operation", "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
@@ -351,7 +352,7 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
 {
 
 	auto& db = app.getDatabase();
-    
+
     for (auto& counterpartyPair : counterparties)
     {
 		auto accountHelper = AccountHelper::Instance();
@@ -374,7 +375,7 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
             mResult.code(OperationResultCode::opCOUNTERPARTY_BLOCKED);
             return false;
         }
-        
+
 		auto& allowedTypes = counterpartyPair.second.mAllowedAccountTypes;
         if(std::find(allowedTypes.begin(), allowedTypes.end(), counterpartyPair.second.mAccount->getAccountType()) == allowedTypes.end())
         {
@@ -383,7 +384,7 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
             return false;
         }
 
-        
+
     }
 
     return true;

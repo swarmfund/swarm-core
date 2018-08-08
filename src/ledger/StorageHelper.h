@@ -11,9 +11,10 @@ class ExternalSystemAccountIDPoolEntryHelper;
 class StorageHelper
 {
   public:
-    ~StorageHelper()
+    virtual ~StorageHelper()
     {
     }
+
     virtual Database& getDatabase() = 0;
     virtual const Database& getDatabase() const = 0;
     virtual LedgerDelta& getLedgerDelta() = 0;
@@ -28,4 +29,4 @@ class StorageHelper
     virtual ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper() = 0;
 };
-}
+} // namespace stellar

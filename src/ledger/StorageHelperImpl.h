@@ -30,6 +30,8 @@ class StorageHelperImpl : public StorageHelper
     Database& mDatabase;
     LedgerDelta& mLedgerDelta;
 
+    std::unique_ptr<soci::transaction> mTransaction;
+
     std::unique_ptr<KeyValueHelper> mKeyValueHelper;
     std::unique_ptr<ExternalSystemAccountIDHelper>
         mExternalSystemAccountIDHelper;

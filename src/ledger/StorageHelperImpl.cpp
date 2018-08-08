@@ -8,7 +8,9 @@ namespace stellar
 {
 
 StorageHelperImpl::StorageHelperImpl(Database& db, LedgerDelta& ledgerDelta)
-    : mDatabase(db), mLedgerDelta(ledgerDelta)
+    : mDatabase(db)
+    , mLedgerDelta(ledgerDelta)
+    , mTransaction(new soci::transaction(db.getSession()))
 {
 }
 
@@ -37,11 +39,13 @@ void
 StorageHelperImpl::commit()
 {
     mLedgerDelta.commit();
+    mTransaction->commit();
 }
 void
 StorageHelperImpl::rollback()
 {
     mLedgerDelta.rollback();
+    mTransaction->rollback();
 }
 
 KeyValueHelper&
@@ -50,7 +54,7 @@ StorageHelperImpl::getKeyValueHelper()
     if (!mKeyValueHelper)
     {
         mKeyValueHelper = std::make_unique<KeyValueHelper>();
-	}
+    }
     return *mKeyValueHelper;
 }
 ExternalSystemAccountIDHelper&
@@ -66,11 +70,11 @@ StorageHelperImpl::getExternalSystemAccountIDHelper()
 ExternalSystemAccountIDPoolEntryHelper&
 StorageHelperImpl::getExternalSystemAccountIDPoolEntryHelper()
 {
-	if (!mExternalSystemAccountIDPoolEntryHelper)
-	{
-            mExternalSystemAccountIDPoolEntryHelper =
-                std::make_unique<ExternalSystemAccountIDPoolEntryHelper>();
-	}
+    if (!mExternalSystemAccountIDPoolEntryHelper)
+    {
+        mExternalSystemAccountIDPoolEntryHelper =
+            std::make_unique<ExternalSystemAccountIDPoolEntryHelper>();
+    }
     return *mExternalSystemAccountIDPoolEntryHelper;
 }
 

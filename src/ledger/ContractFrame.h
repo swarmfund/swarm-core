@@ -75,9 +75,9 @@ public:
     }
 
     ContractState const
-    getStatus() const
+    getState() const
     {
-        return mContract.statusInfo.status();
+        return mContract.stateInfo.state();
     }
 
     uint64_t const
@@ -87,9 +87,9 @@ public:
     }
 
     void
-    setStatus(ContractState status)
+    setStatus(ContractState state)
     {
-        mContract.statusInfo.status(status);
+        mContract.stateInfo.state(state);
     }
 
     void setDisputer(AccountID const& disputer);

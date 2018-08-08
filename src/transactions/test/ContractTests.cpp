@@ -15,6 +15,7 @@
 #include <transactions/test/test_helper/ReviewContractRequestHelper.h>
 #include <ledger/ContractHelper.h>
 #include <transactions/test/test_helper/ManageContractTestHelper.h>
+#include <ledger/ReviewableRequestHelper.h>
 #include "main/Application.h"
 #include "ledger/LedgerManager.h"
 #include "overlay/LoopbackPeer.h"
@@ -141,7 +142,8 @@ TEST_CASE("Contract", "[tx][contract]")
             auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(payer, requestID,
                                                                                  ReviewRequestOpAction::APPROVE, "");
             auto contractID = reviewResult.success().ext.contractID();
-            auto contractFrame = ContractHelper::Instance()->loadContract(contractID, db);
+            auto contractHelper = ContractHelper::Instance();
+            auto contractFrame = contractHelper->loadContract(contractID, db);
             REQUIRE(!!contractFrame);
             REQUIRE(contractFrame->getContractor() == recipient.key.getPublicKey());
             REQUIRE(contractFrame->getCustomer() == payer.key.getPublicKey());
@@ -231,8 +233,8 @@ TEST_CASE("Contract", "[tx][contract]")
                     res = manageContractTestHelper.applyManageContractTx(payer, confirmOp);
 
                     REQUIRE(res.response().data.isCompleted());
-
-                    //SECTION("Already both ")
+                    REQUIRE(!contractHelper->exists(db, contractFrame->getKey()));
+                    REQUIRE(!ReviewableRequestHelper::Instance()->loadRequest(invoiceRequestID, db));
                 }
             }
         }

@@ -27,8 +27,6 @@ class ManageContractOpFrame : public OperationFrame
 
     bool checkIsAllowed(ContractFrame::pointer contractFrame);
 
-    bool startDispute(ContractFrame::pointer contractFrame);
-
     bool checkContractDetails(ContractFrame::pointer contractFrame, Application& app,
                               Database& db, LedgerDelta& delta);
 
@@ -43,6 +41,14 @@ class ManageContractOpFrame : public OperationFrame
                           Database& db, LedgerDelta& delta);
 
     bool checkInvoices(std::vector<ReviewableRequestFrame::pointer> invoiceRequests);
+
+    bool startDispute(ContractFrame::pointer contractFrame);
+
+    bool resolveDispute(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
+
+    bool revertInvoicesAmounts(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
+
+    void unlockApprovedInvoicesAmounts(ContractFrame::pointer contractFrame, Database& db, LedgerDelta & delta);
 
 public:
     ManageContractOpFrame(Operation const& op, OperationResult& res,

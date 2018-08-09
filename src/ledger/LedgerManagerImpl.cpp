@@ -871,6 +871,18 @@ LedgerManagerImpl::processFeesSeqNums(std::vector<TransactionFramePtr>& txs,
     }
 }
 
+void handle_eptr(std::exception_ptr eptr) // passing by value is ok
+{
+    try {
+        if (eptr) {
+            std::rethrow_exception(eptr);
+        }
+    }
+    catch (const std::exception& e) {
+        CLOG(ERROR, "Ledger") << "Caught exception during tx apply " << e.what();
+    }
+}
+
 void
 LedgerManagerImpl::applyTransactions(std::vector<TransactionFramePtr>& txs,
                                      LedgerDelta& ledgerDelta,
@@ -909,7 +921,8 @@ LedgerManagerImpl::applyTransactions(std::vector<TransactionFramePtr>& txs,
         }
         catch (...)
         {
-            CLOG(ERROR, "Ledger") << "Unknown exception during tx->apply";
+            std::exception_ptr eptr = std::current_exception();
+            handle_eptr(eptr);
             tx->getResult().result.code(TransactionResultCode::txINTERNAL_ERROR);
         }
         tx->storeTransaction(*this, tm, ++index, txResultSet);

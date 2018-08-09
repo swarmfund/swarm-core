@@ -86,19 +86,12 @@ public:
         return mContract.details.size();
     }
 
-    void
-    setStatus(ContractState state)
-    {
-        mContract.stateInfo.state(state);
-    }
-
-    void setDisputer(AccountID const& disputer);
-    void setDisputeReason(longstring const& reason);
+    void startDispute(AccountID const& disputer, longstring const& reason);
 
     void addContractDetails(longstring const& details);
+    void addInvoice(uint64_t const& requestID);
 
-    bool addContractorConfirmation();
-    bool addCustomerConfirmation();
+    bool addState(ContractState state);
 };
 
 }

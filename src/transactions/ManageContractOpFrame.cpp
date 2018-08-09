@@ -163,20 +163,20 @@ ManageContractOpFrame::obtainMaxContractDetailsCount(Application& app, Database&
     auto maxContractDetailsKey = ManageKeyValueOpFrame::makeMaxContractDetailsKey();
     auto maxContractDetailsKeyValue = KeyValueHelper::Instance()->loadKeyValue(maxContractDetailsKey, db, &delta);
 
-    if (!!maxContractDetailsKeyValue)
+    if (!maxContractDetailsKeyValue)
     {
-        if (maxContractDetailsKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
-                << "Expected max contract details key value to be UINT32. Actual: "
-                << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailsKeyValue->getKeyValueEntryType());
-            throw std::runtime_error("Unexpected database state, expected max contract details key value to be UINT32");
-        }
-
-        return maxContractDetailsKeyValue->getKeyValue().value.ui32Value();
+        return app.getMaxContractDetailsCount();
     }
 
-    return app.getMaxContractDetailsCount();
+    if (maxContractDetailsKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
+             << "Expected max contract details key value to be UINT32. Actual: "
+             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailsKeyValue->getKeyValueEntryType());
+        throw std::runtime_error("Unexpected database state, expected max contract details key value to be UINT32");
+    }
+
+    return maxContractDetailsKeyValue->getKeyValue().value.ui32Value();
 }
 
 uint64_t
@@ -186,20 +186,20 @@ ManageContractOpFrame::obtainMaxContractDetailLength(Application& app, Database&
     auto maxContractDetailLengthKetValue = KeyValueHelper::Instance()->
             loadKeyValue(maxContractDetailLengthKey, db, &delta);
 
-    if (!!maxContractDetailLengthKetValue)
+    if (!maxContractDetailLengthKetValue)
     {
-        if (maxContractDetailLengthKetValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
-                << "Expected max contract detail length key value to be UINT32. Actual: "
-                << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailLengthKetValue->getKeyValueEntryType());
-            throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
-        }
-
-        return maxContractDetailLengthKetValue->getKeyValue().value.ui32Value();
+        return app.getMaxContractDetailLength();
     }
 
-    return app.getMaxContractDetailLength();
+    if (maxContractDetailLengthKetValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
+             << "Expected max contract detail length key value to be UINT32. Actual: "
+             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailLengthKetValue->getKeyValueEntryType());
+        throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
+    }
+
+    return maxContractDetailLengthKetValue->getKeyValue().value.ui32Value();
 }
 
 bool
@@ -220,25 +220,25 @@ ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame, Da
 
     if (contractFrame->getContractor() == getSourceID())
     {
-        if (!contractFrame->addContractorConfirmation())
+        if (!contractFrame->addState(ContractState::CONTRACTOR_CONFIRMED))
         {
-            innerResult().code(ManageContractResultCode::ALREADY_CONTRACTOR_CONFIRMED);
+            innerResult().code(ManageContractResultCode::ALREADY_CONFIRMED);
             return false;
         }
     }
     else if (contractFrame->getCustomer() == getSourceID())
     {
-        if (!contractFrame->addCustomerConfirmation())
+        if (!contractFrame->addState(ContractState::CUSTOMER_CONFIRMED))
         {
-            innerResult().code(ManageContractResultCode::ALREADY_CUSTOMER_CONFIRMED);
+            innerResult().code(ManageContractResultCode::ALREADY_CONFIRMED);
             return false;
         }
     }
     else
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected source account. "
-                                               << "Expected contractor, customer or master";
-        throw std::runtime_error("Unexpected source account. Expected contractor, customer or master");
+                                               << "Expected contractor or customer";
+        throw std::runtime_error("Unexpected source account. Expected contractor or customer");
     }
 
     return checkIsCompleted(contractFrame, invoiceRequests, db, delta);
@@ -298,16 +298,23 @@ bool ManageContractOpFrame::checkInvoices(std::vector<ReviewableRequestFrame::po
 }
 
 bool
-ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame)
+ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame, Application& app, Database& db, LedgerDelta& delta)
 {
-    if (contractFrame->getState() == ContractState::DISPUTING)
+    if (static_cast<int32_t>(contractFrame->getState()) &
+        static_cast<int32_t>(ContractState::DISPUTING))
     {
         innerResult().code(ManageContractResultCode::DISPUTE_ALREADY_STARTED);
         return false;
     }
 
-    contractFrame->setDisputer(getSourceID());
-    contractFrame->setDisputeReason(mManageContract.data.disputeReason());
+    auto maxDisputeLength = obtainMaxContractDetailLength(app, db, delta);
+    if (mManageContract.data.disputeReason().size() > maxDisputeLength)
+    {
+        innerResult().code(ManageContractResultCode::DISPUTE_REASON_TOO_LONG);
+        return false;
+    }
+
+    contractFrame->startDispute(getSourceID(), mManageContract.data.disputeReason());
 
     return true;
 }

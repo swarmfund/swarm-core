@@ -90,6 +90,7 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
     EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
 
     contractFrame->addContractDetails(invoiceRequest.details);
+    contractFrame->addInvoice(request->getRequestID());
     contractHelper->storeChange(delta, db, contractFrame->mEntry);
     receiverBalance = balanceHelper->mustLoadBalance(receiverBalance->getBalanceID(), db, &delta);
 

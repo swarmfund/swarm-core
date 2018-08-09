@@ -8,8 +8,9 @@ using namespace soci;
 
 namespace stellar
 {
-    const char* contractSelector = "SELECT id, contractor, customer, escrow, disputer, start_time,"
-                                   "       end_time, details, dispute_reason, state, lastmodified, version "
+    const char* contractSelector = "SELECT id, contractor, customer, escrow, disputer,"
+                                   "       start_time, end_time, details, invoices,"
+                                   "       dispute_reason, state, lastmodified, version "
                                    "FROM   contracts";
 
     void ContractHelper::dropAll(Database &db)
@@ -25,6 +26,7 @@ namespace stellar
                            "start_time      BIGINT      NOT NULL CHECK (start_time >= 0),"
                            "end_time        BIGINT      NOT NULL CHECK (end_time >= 0),"
                            "details         TEXT        NOT NULL,"
+                           "invoices        TEXT        NOT NULL,"
                            "dispute_reason  TEXT        DEFAULT NULL,"
                            "state           INT         NOT NULL,"
                            "lastmodified    INT         NOT NULL,"
@@ -50,7 +52,8 @@ namespace stellar
         string disputerID;
         string disputeReason;
         indicator disputeIndicator = i_null;
-        if (contractEntry.stateInfo.state() == ContractState::DISPUTING)
+        if (static_cast<int32_t>(contractEntry.stateInfo.state()) &
+            static_cast<int32_t>(ContractState::DISPUTING))
         {
             disputerID = PubKeyUtils::toStrKey(contractEntry.stateInfo.disputeDetails().disputer);
             disputeReason = bn::encode_b64(contractEntry.stateInfo.disputeDetails().reason);
@@ -59,6 +62,7 @@ namespace stellar
 
         auto detailsBytes = xdr::xdr_to_opaque(contractEntry.details);
         string strDetails = bn::encode_b64(detailsBytes);
+        string strInvoices = bn::encode_b64(contractEntry.invoiceRequestsIDs);
         auto state = static_cast<int32_t>(contractEntry.stateInfo.state());
         auto version = static_cast<int32_t>(contractEntry.ext.v());
 
@@ -66,16 +70,18 @@ namespace stellar
 
         if (insert)
         {
-            sql = "INSERT INTO contracts (id, contractor, customer, escrow, disputer, start_time, end_time, "
-                  "                       details, dispute_reason, state, lastmodified, version) "
+            sql = "INSERT INTO contracts (id, contractor, customer, escrow, disputer,"
+                  "                       start_time, end_time, details, invoices, "
+                  "                       dispute_reason, state, lastmodified, version) "
                   "VALUES (:id, :contractor, :customer, :escrow, :disputer, :s_t, :e_t,"
-                  "        :details, :dis_reason, :state, :lm, :v)";
+                  "        :details, :invoices, :dis_reason, :state, :lm, :v)";
         }
         else
         {
             sql = "UPDATE contracts "
                   "SET    contractor = :contractor, customer = :customer, escrow = :escrow,"
-                  "       disputer = :disputer, start_time = :s_t, end_time = :e_t, details = :details,"
+                  "       disputer = :disputer, start_time = :s_t, end_time = :e_t,"
+                  "       details = :details, invoices = :invoices,"
                   "       dispute_reason = :dis_reason,"
                   "       state = :state, lastmodified = :lm, version = :v "
                   "WHERE  id = :id";
@@ -92,9 +98,10 @@ namespace stellar
         st.exchange(use(contractEntry.startTime, "s_t"));
         st.exchange(use(contractEntry.endTime, "e_t"));
         st.exchange(use(strDetails, "details"));
+        st.exchange(use(strInvoices, "invoices"));
         st.exchange(use(disputeReason, disputeIndicator, "dis_reason"));
         st.exchange(use(state, "state"));
-        st.exchange(use(contractFrame->getLastModified(), "lm"));
+        st.exchange(use(contractFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.exchange(use(version, "v"));
         st.define_and_bind();
 
@@ -184,7 +191,8 @@ namespace stellar
     ContractHelper::load(StatementContext& prep,
                          function<void(LedgerEntry const&)> processor)
     {
-        string contractorID, customerID, escrowID, disputerID, details, disputeReason;
+        string contractorID, customerID, escrowID, disputerID;
+        string details, invoices, disputeReason;
         indicator disputeIndicator = i_null;
 
         LedgerEntry le;
@@ -202,6 +210,7 @@ namespace stellar
         st.exchange(into(oe.startTime));
         st.exchange(into(oe.endTime));
         st.exchange(into(details));
+        st.exchange(into(invoices));
         st.exchange(into(disputeReason, disputeIndicator));
         st.exchange(into(state));
         st.exchange(into(le.lastModifiedLedgerSeq));
@@ -221,10 +230,22 @@ namespace stellar
             xdr::xdr_argpack_archive(unmarshaler, oe.details);
             unmarshaler.done();
 
+            bn::decode_b64(invoices.begin(), invoices.end(), oe.invoiceRequestsIDs.begin());
+
             oe.ext.v(static_cast<LedgerVersion>(version));
             oe.stateInfo.state(static_cast<ContractState>(state));
 
-            if ((oe.stateInfo.state() == ContractState::DISPUTING) && (disputeIndicator == i_ok))
+            if ((state & static_cast<int32_t>(ContractState::DISPUTING)) != (disputeIndicator == i_ok))
+            {
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected database state. "
+                              << "Expected contract with disputing state and disputing indicator "
+                              << "or not disputing state and not disputing indicator";
+                throw std::runtime_error("Unexpected database state. "
+                                         "Expected contract with disputing state and disputing indicator"
+                                         " or not disputing state and not disputing indicator");
+            }
+
+            if ((state & static_cast<int32_t>(ContractState::DISPUTING)) && (disputeIndicator == i_ok))
             {
                 oe.stateInfo.disputeDetails().disputer = PubKeyUtils::fromStrKey(disputerID);
                 bn::decode_b64(disputeReason, oe.stateInfo.disputeDetails().reason);

@@ -32,8 +32,6 @@ class ManageContractOpFrame : public OperationFrame
 
     uint64_t obtainMaxContractDetailsCount(Application& app, Database& db, LedgerDelta& delta);
 
-    uint64_t obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta);
-
     bool confirmCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
 
     bool checkIsCompleted(ContractFrame::pointer contractFrame,
@@ -42,7 +40,8 @@ class ManageContractOpFrame : public OperationFrame
 
     bool checkInvoices(std::vector<ReviewableRequestFrame::pointer> invoiceRequests);
 
-    bool startDispute(ContractFrame::pointer contractFrame);
+    bool startDispute(ContractFrame::pointer contractFrame,
+                      Application& app, Database& db, LedgerDelta& delta);
 
     bool resolveDispute(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
 
@@ -53,6 +52,8 @@ class ManageContractOpFrame : public OperationFrame
 public:
     ManageContractOpFrame(Operation const& op, OperationResult& res,
                            TransactionFrame& parentTx);
+
+    static uint64_t obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta);
 
     bool doApply(Application& app, LedgerDelta& delta,
                  LedgerManager& ledgerManager) override;

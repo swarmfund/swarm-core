@@ -348,6 +348,22 @@ namespace stellar
 		return retBalances;
 	}
 
+	bool
+	BalanceHelper::exists(Database& db, BalanceID balanceID)
+	{
+		int exists = 0;
+		auto timer = db.getSelectTimer("balance-exists");
+		auto prep =
+				db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM balance WHERE balance_id=:id)");
+		auto balIDStrKey = BalanceKeyUtils::toStrKey(balanceID);
+		auto& st = prep.statement();
+		st.exchange(use(balIDStrKey));
+		st.exchange(into(exists));
+		st.define_and_bind();
+		st.execute(true);
+		return exists != 0;
+	}
+
 	BalanceFrame::pointer
 	BalanceHelper::mustLoadBalance(AccountID account, AssetCode asset, Database& db, LedgerDelta *delta)
 	{

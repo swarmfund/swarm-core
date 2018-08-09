@@ -143,6 +143,7 @@ class Config : public std::enable_shared_from_this<Config>
     int64 TX_EXPIRATION_PERIOD_WINDOW = 60*60;
     
     uint64 MAX_INVOICES_FOR_RECEIVER_ACCOUNT = 20;
+    int64 MAX_CONTRACTS_FOR_CONTRACTOR = 20;
     int64 MAX_CONTRACT_DETAILS_COUNT = 100;
     int64 MAX_CONTRACT_DETAIL_LENGTH = 256;
 

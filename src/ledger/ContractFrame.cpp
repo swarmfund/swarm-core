@@ -26,58 +26,39 @@ namespace stellar
         return *this;
     }
 
-    void ContractFrame::addContractDetails(longstring const& details)
+    void
+    ContractFrame::addContractDetails(longstring const& details)
     {
         mContract.details.emplace_back(details);
     }
 
-    bool ContractFrame::addContractorConfirmation()
-    {
-        if ((mContract.stateInfo.state() == ContractState::BOTH_CONFIRMED) ||
-            (mContract.stateInfo.state() == ContractState::CONTRACTOR_CONFIRMED))
-            return false;
-
-        if (mContract.stateInfo.state() == ContractState::CUSTOMER_CONFIRMED)
-        {
-            mContract.stateInfo.state(ContractState::BOTH_CONFIRMED);
-            return true;
-        }
-
-        mContract.stateInfo.state(ContractState::CONTRACTOR_CONFIRMED);
-        return true;
-    }
-
-    bool ContractFrame::addCustomerConfirmation()
-    {
-        if ((mContract.stateInfo.state() == ContractState::BOTH_CONFIRMED) ||
-            (mContract.stateInfo.state() == ContractState::CUSTOMER_CONFIRMED))
-            return false;
-
-        if (mContract.stateInfo.state() == ContractState::CONTRACTOR_CONFIRMED)
-        {
-            mContract.stateInfo.state(ContractState::BOTH_CONFIRMED);
-            return true;
-        }
-
-        mContract.stateInfo.state(ContractState::CUSTOMER_CONFIRMED);
-        return true;
-    }
-
     void
-    ContractFrame::setDisputer(AccountID const& disputer)
+    ContractFrame::addInvoice(uint64_t const& requestID)
     {
-        if (mContract.stateInfo.state() != ContractState::DISPUTING)
-            setStatus(ContractState::DISPUTING);
+        mContract.invoiceRequestsIDs.emplace_back(requestID);
+    }
+
+    bool ContractFrame::addState(ContractState state)
+    {
+        if (!(static_cast<int32_t>(mContract.stateInfo.state()) &
+              static_cast<int32_t>(state)))
+            return false;
+
+        mContract.stateInfo.state(
+                static_cast<ContractState>(
+                static_cast<int32_t>(mContract.stateInfo.state()) |
+                static_cast<int32_t>(state)));
+        return true;
+    }
+
+    void ContractFrame::startDispute(AccountID const& disputer,
+                                     longstring const& reason)
+    {
+        if (!(static_cast<int32_t>(mContract.stateInfo.state()) &
+              static_cast<int32_t>(ContractState::DISPUTING)))
+            addState(ContractState::DISPUTING);
 
         mContract.stateInfo.disputeDetails().disputer = disputer;
-    }
-
-    void
-    ContractFrame::setDisputeReason(longstring const& reason)
-    {
-        if (mContract.stateInfo.state() != ContractState::DISPUTING)
-            setStatus(ContractState::DISPUTING);
-
         mContract.stateInfo.disputeDetails().reason = reason;
     }
 }

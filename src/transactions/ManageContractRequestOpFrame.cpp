@@ -9,9 +9,12 @@
 #include "medida/meter.h"
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>
+#include <ledger/KeyValueHelper.h>
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/BalanceHelper.h"
+#include "ManageContractOpFrame.h"
+#include "ManageKeyValueOpFrame.h"
 
 namespace stellar
 {
@@ -92,10 +95,12 @@ ManageContractRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledg
 
 bool
 ManageContractRequestOpFrame::createManageContractRequest(Application& app, LedgerDelta& delta,
-                                                        LedgerManager& ledgerManager)
+                                                          LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
     auto& contractRequest = mManageContractRequest.details.contractRequest();
+
+
 
     auto reference = getManageContractRequestReference(contractRequest.details);
 
@@ -122,6 +127,44 @@ ManageContractRequestOpFrame::createManageContractRequest(Application& app, Ledg
     innerResult().success().details.response().requestID = request->getRequestID();
 
     return true;
+}
+
+bool ManageContractRequestOpFrame::checkMaxContractsForContractor()
+{
+
+}
+
+uint64_t ManageContractRequestOpFrame::obtainMaxContractsForContractor()
+{
+    auto maxContractDetailLengthKey = ManageKeyValueOpFrame::makeMaxContractsForContractorKey();
+    auto maxContractDetailLengthKetValue = KeyValueHelper::Instance()->
+            loadKeyValue(maxContractDetailLengthKey, db, &delta);
+
+    if (!maxContractDetailLengthKetValue)
+    {
+        return app.getMaxContractDetailLength();
+    }
+
+    if (maxContractDetailLengthKetValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
+                                               << "Expected max contract detail length key value to be UINT32. Actual: "
+                                               << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailLengthKetValue->getKeyValueEntryType());
+        throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
+    }
+
+    return maxContractDetailLengthKetValue->getKeyValue().value.ui32Value();
+}
+
+bool ManageContractRequestOpFrame::checkMaxContractDetailLength()
+{
+    auto maxContractDetailLength = ManageContractOpFrame::obtainMaxContractDetailLength(app, db, delta);
+
+    if (mManageContractRequest.details.contractRequest().details > maxContractDetailLength)
+    {
+        innerResult().code(ManageContractResultCode::DETAILS_TOO_LONG);
+        return false;
+    }
 }
 
 bool

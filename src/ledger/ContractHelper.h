@@ -37,6 +37,7 @@ public:
     uint64_t countObjects(soci::session& sess) override;
 
     ContractFrame::pointer loadContract(uint64_t id, Database& db, LedgerDelta* delta = nullptr);
+    uint64_t countContracts(AccountID const& contractor, Database& db);
 
 private:
     ContractHelper() { ; }

@@ -40,7 +40,7 @@ namespace stellar
 
     bool ContractFrame::addState(ContractState state)
     {
-        if (!(static_cast<int32_t>(mContract.stateInfo.state()) &
+        if ((static_cast<int32_t>(mContract.stateInfo.state()) &
               static_cast<int32_t>(state)))
             return false;
 
@@ -60,5 +60,13 @@ namespace stellar
 
         mContract.stateInfo.disputeDetails().disputer = disputer;
         mContract.stateInfo.disputeDetails().reason = reason;
+    }
+
+    bool ContractFrame::isBothConfirmed()
+    {
+        return (static_cast<int32_t>(mContract.stateInfo.state()) &
+                static_cast<int32_t>(ContractState::CUSTOMER_CONFIRMED)) &&
+               (static_cast<int32_t>(mContract.stateInfo.state()) &
+                static_cast<int32_t>(ContractState::CONTRACTOR_CONFIRMED));
     }
 }

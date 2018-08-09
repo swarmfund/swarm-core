@@ -7,7 +7,6 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/BalanceHelper.h"
-#include "ledger/PaymentRequestHelper.h"
 #include "transactions/payment/PaymentOpFrame.h"
 #include "crypto/SHA.h"
 #include "test/test_marshaler.h"
@@ -70,7 +69,6 @@ TEST_CASE("payment", "[dep_tx][payment]")
     auto secondAsset = "AETH";
 
     auto balanceHelper = BalanceHelper::Instance();
-    auto paymentRequestHelper = PaymentRequestHelper::Instance();
 
     SECTION("Non base asset tests")
     {
@@ -163,7 +161,6 @@ TEST_CASE("payment", "[dep_tx][payment]")
 
         auto paymentID = paymentResult.paymentResponse().paymentID;
         soci::session& sess = app.getDatabase().getSession();
-        REQUIRE(paymentRequestHelper->countObjects(sess) == 0);
     }
     SECTION("send to self")
     {

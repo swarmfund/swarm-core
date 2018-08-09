@@ -8,7 +8,6 @@
 #include "crypto/SecretKey.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
-#include "ledger/PaymentRequestFrame.h"
 #include "util/optional.h"
 #include "ledger/FeeFrame.h"
 #include "herder/LedgerCloseData.h"
@@ -149,12 +148,6 @@ PaymentResult applyPaymentTx(Application& app, SecretKey& from, SecretKey& to,
 TransactionFramePtr
 createReviewPaymentRequestTx(Hash const& networkID, SecretKey& exchange,
                 Salt seq, int64 paymentID,  bool accept = true);
-
-int32
-applyReviewPaymentRequestTx(Application& app, SecretKey& from, 
-            Salt seq, int64 paymentID, 
-            bool accept = true, ReviewPaymentRequestResultCode result = ReviewPaymentRequestResultCode::SUCCESS);
-
 
 TransactionFramePtr createSetOptions(Hash const& networkID, SecretKey& source, Salt seq,
                                      ThresholdSetter* thrs, Signer* signer,

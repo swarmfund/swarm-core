@@ -1,7 +1,3 @@
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-
 #include <ledger/ContractHelper.h>
 #include <ledger/KeyValueHelper.h>
 #include "transactions/review_request/ReviewRequestHelper.h"
@@ -106,7 +102,7 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
             break;
         case ManageContractAction::START_DISPUTE:
             innerResult().response().data.action(ManageContractAction::START_DISPUTE);
-            if (!startDispute(contractFrame))
+            if (!startDispute(contractFrame, app, db, delta))
                 return false;
 
             contractHelper->storeChange(delta, db, contractFrame->mEntry);
@@ -205,17 +201,16 @@ ManageContractOpFrame::obtainMaxContractDetailLength(Application& app, Database&
 bool
 ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta)
 {
-    if (contractFrame->getState() == ContractState::DISPUTING)
+    if (contractFrame->getEscrow() == getSourceID())
     {
         innerResult().code(ManageContractResultCode::CONFIRM_NOT_ALLOWED);
         return false;
     }
 
-    auto invoiceRequests = ReviewableRequestHelper::Instance()->loadInvoiceRequests(
-            contractFrame->getContractor(), contractFrame->getCustomer(),
-            contractFrame->getContractID(), db);
+    auto invoiceRequests = ReviewableRequestHelper::Instance()->loadRequests(
+            contractFrame->getInvoiceRequestIDs(), db);
 
-    if (!checkInvoices(invoiceRequests))
+    if (!isInvoicesApproved(invoiceRequests))
         return false;
 
     if (contractFrame->getContractor() == getSourceID())
@@ -249,7 +244,7 @@ ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame,
                                         std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
                                         Database& db, LedgerDelta& delta)
 {
-    if (contractFrame->getState() != ContractState::BOTH_CONFIRMED)
+    if (!contractFrame->isBothConfirmed())
     {
         EntryHelperProvider::storeChangeEntry(delta, db, contractFrame->mEntry);
         innerResult().response().data.isCompleted() = false;
@@ -282,7 +277,7 @@ ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame,
     return true;
 }
 
-bool ManageContractOpFrame::checkInvoices(std::vector<ReviewableRequestFrame::pointer> invoiceRequests)
+bool ManageContractOpFrame::isInvoicesApproved(std::vector<ReviewableRequestFrame::pointer> invoiceRequests)
 {
     for (ReviewableRequestFrame::pointer invoiceRequest : invoiceRequests)
     {
@@ -298,7 +293,8 @@ bool ManageContractOpFrame::checkInvoices(std::vector<ReviewableRequestFrame::po
 }
 
 bool
-ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame, Application& app, Database& db, LedgerDelta& delta)
+ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame,
+                                    Application& app, Database& db, LedgerDelta& delta)
 {
     if (static_cast<int32_t>(contractFrame->getState()) &
         static_cast<int32_t>(ContractState::DISPUTING))
@@ -320,7 +316,8 @@ ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame, Applic
 }
 
 bool
-ManageContractOpFrame::resolveDispute(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta)
+ManageContractOpFrame::resolveDispute(ContractFrame::pointer contractFrame,
+                                      Database& db, LedgerDelta& delta)
 {
     if (!(contractFrame->getEscrow() == getSourceID()))
     {
@@ -341,12 +338,12 @@ ManageContractOpFrame::resolveDispute(ContractFrame::pointer contractFrame, Data
 }
 
 bool
-ManageContractOpFrame::revertInvoicesAmounts(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta)
+ManageContractOpFrame::revertInvoicesAmounts(ContractFrame::pointer contractFrame,
+                                             Database& db, LedgerDelta& delta)
 {
     auto balanceHelper = BalanceHelper::Instance();
     auto requestHelper = ReviewableRequestHelper::Instance();
-    auto invoiceRequests = requestHelper->loadInvoiceRequests(contractFrame->getContractor(),
-            contractFrame->getCustomer(), contractFrame->getContractID(), db);
+    auto invoiceRequests = requestHelper->loadRequests(contractFrame->getInvoiceRequestIDs(), db);
 
     for (ReviewableRequestFrame::pointer invoiceRequest : invoiceRequests)
     {
@@ -385,9 +382,7 @@ ManageContractOpFrame::unlockApprovedInvoicesAmounts(ContractFrame::pointer cont
 {
     auto balanceHelper = BalanceHelper::Instance();
     auto requestHelper = ReviewableRequestHelper::Instance();
-    auto invoiceRequests = requestHelper->loadInvoiceRequests(contractFrame->getContractor(),
-                                                              contractFrame->getCustomer(),
-                                                              contractFrame->getContractID(), db);
+    auto invoiceRequests = requestHelper->loadRequests(contractFrame->getInvoiceRequestIDs(), db);
 
     for (ReviewableRequestFrame::pointer invoiceRequest : invoiceRequests)
     {

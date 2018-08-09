@@ -1,7 +1,3 @@
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-
 #include <ledger/ReviewableRequestFrame.h>
 #include "transactions/ManageContractRequestOpFrame.h"
 #include "database/Database.h"
@@ -10,6 +6,7 @@
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>
 #include <ledger/KeyValueHelper.h>
+#include <ledger/ContractHelper.h>
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/BalanceHelper.h"
@@ -49,13 +46,6 @@ ManageContractRequestOpFrame::ManageContractRequestOpFrame(Operation const& op, 
         TransactionFrame& parentTx) : OperationFrame(op, res, parentTx),
         mManageContractRequest(mOperation.body.manageContractRequestOp())
 {
-}
-
-std::string
-ManageContractRequestOpFrame::getManageContractRequestReference(longstring const& details) const
-{
-    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::CONTRACT, details));
-    return binToHex(hash);
 }
 
 bool
@@ -100,25 +90,19 @@ ManageContractRequestOpFrame::createManageContractRequest(Application& app, Ledg
     Database& db = ledgerManager.getDatabase();
     auto& contractRequest = mManageContractRequest.details.contractRequest();
 
-
-
-    auto reference = getManageContractRequestReference(contractRequest.details);
-
-    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-    if (reviewableRequestHelper->isReferenceExist(db, getSourceID(), reference))
-    {
-        innerResult().code(ManageContractRequestResultCode::CONTRACT_REQUEST_REFERENCE_DUPLICATION);
+    if (!checkMaxContractsForContractor(app, db, delta))
         return false;
-    }
+
+    if (!checkMaxContractDetailLength(app, db, delta))
+        return false;
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::CONTRACT);
     body.contractRequest() = contractRequest;
 
-    const auto referencePtr = xdr::pointer<string64>(new string64(reference));
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(),
                                                              contractRequest.customer,
-                                                             referencePtr, body,
+                                                             nullptr, body,
                                                              ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
@@ -129,42 +113,57 @@ ManageContractRequestOpFrame::createManageContractRequest(Application& app, Ledg
     return true;
 }
 
-bool ManageContractRequestOpFrame::checkMaxContractsForContractor()
+bool
+ManageContractRequestOpFrame::checkMaxContractsForContractor(Application& app, Database& db, LedgerDelta& delta)
 {
+    auto maxContractsCount = obtainMaxContractsForContractor(app, db, delta);
+    auto contractsCount = ContractHelper::Instance()->countContracts(getSourceID(), db);
 
+    if (contractsCount >= maxContractsCount)
+    {
+        innerResult().code(ManageContractRequestResultCode::TOO_MANY_CONTRACTS);
+        return false;
+    }
+
+    return true;
+}
 }
 
-uint64_t ManageContractRequestOpFrame::obtainMaxContractsForContractor()
+uint64_t
+ManageContractRequestOpFrame::obtainMaxContractsForContractor(Application& app, Database& db, LedgerDelta& delta)
 {
-    auto maxContractDetailLengthKey = ManageKeyValueOpFrame::makeMaxContractsForContractorKey();
-    auto maxContractDetailLengthKetValue = KeyValueHelper::Instance()->
-            loadKeyValue(maxContractDetailLengthKey, db, &delta);
+    auto maxContractsCountKey = ManageKeyValueOpFrame::makeMaxContractsCountKey();
+    auto maxContractsCountKeyValue = KeyValueHelper::Instance()->
+            loadKeyValue(maxContractsCountKey, db, &delta);
 
-    if (!maxContractDetailLengthKetValue)
+    if (!maxContractsCountKeyValue)
     {
         return app.getMaxContractDetailLength();
     }
 
-    if (maxContractDetailLengthKetValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
+    if (maxContractsCountKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
-                                               << "Expected max contract detail length key value to be UINT32. Actual: "
-                                               << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailLengthKetValue->getKeyValueEntryType());
-        throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
+             << "Expected max contracts count key value to be UINT32. Actual: "
+             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractsCountKeyValue->getKeyValueEntryType());
+        throw std::runtime_error("Unexpected database state, expected max contracts count key value to be UINT32");
     }
 
-    return maxContractDetailLengthKetValue->getKeyValue().value.ui32Value();
+    return maxContractsCountKeyValue->getKeyValue().value.ui32Value();
 }
 
-bool ManageContractRequestOpFrame::checkMaxContractDetailLength()
+bool
+ManageContractRequestOpFrame::checkMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta)
 {
     auto maxContractDetailLength = ManageContractOpFrame::obtainMaxContractDetailLength(app, db, delta);
 
-    if (mManageContractRequest.details.contractRequest().details > maxContractDetailLength)
+    if (mManageContractRequest.details.contractRequest().details.size() > maxContractDetailLength)
     {
-        innerResult().code(ManageContractResultCode::DETAILS_TOO_LONG);
+        innerResult().code(ManageContractRequestResultCode::DETAILS_TOO_LONG);
         return false;
     }
+
+    return true;
 }
 
 bool
@@ -177,7 +176,28 @@ ManageContractRequestOpFrame::doCheckValid(Application& app)
         return false;
     }
 
+    if (mManageContractRequest.details.action() == ManageContractRequestAction::CREATE &&
+        mManageContractRequest.details.contractRequest().customer == getSourceID())
+    {
+        innerResult().code(ManageContractRequestResultCode::MALFORMED);
+        return false;
+    }
+
+    if (mManageContractRequest.details.action() == ManageContractRequestAction::CREATE &&
+        mManageContractRequest.details.contractRequest().escrow == getSourceID())
+    {
+        innerResult().code(ManageContractRequestResultCode::MALFORMED);
+        return false;
+    }
+
+    if (mManageContractRequest.details.action() == ManageContractRequestAction::CREATE &&
+        mManageContractRequest.details.contractRequest().customer ==
+        mManageContractRequest.details.contractRequest().escrow)
+    {
+        innerResult().code(ManageContractRequestResultCode::MALFORMED);
+        return false;
+    }
+
     return true;
 }
 
-}

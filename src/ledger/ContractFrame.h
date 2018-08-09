@@ -86,6 +86,14 @@ public:
         return mContract.details.size();
     }
 
+    xdr::xvector<uint64_t> const
+    getInvoiceRequestIDs()
+    {
+        return mContract.invoiceRequestsIDs;
+    }
+
+    bool isBothConfirmed();
+
     void startDispute(AccountID const& disputer, longstring const& reason);
 
     void addContractDetails(longstring const& details);

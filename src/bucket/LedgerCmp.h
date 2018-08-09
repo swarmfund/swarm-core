@@ -66,11 +66,6 @@ struct LedgerEntryIdCmp
                 auto const &bb = b.balance();
                 return ab.balanceID < bb.balanceID;
             }
-            case LedgerEntryType::PAYMENT_REQUEST: {
-                auto const &ab = a.paymentRequest();
-                auto const &bb = b.paymentRequest();
-                return ab.paymentID < bb.paymentID;
-            }
             case LedgerEntryType::ASSET: {
                 auto const &aa = a.asset();
                 auto const &ba = b.asset();

@@ -60,10 +60,19 @@ namespace stellar {
 
         static longstring makeMaxContractDetailLengthKey();
 
+        static longstring makeMaxContractsCountKey();
+
+        static longstring makeMaxInvoicesCountKey();
+
+        static longstring makeMaxInvoiceDetailLengthKey();
+
         static const char * kycRulesPrefix;
         static const char * externalSystemPrefix;
         static const char * maxContractDetailsPrefix;
         static const char * maxContractDetailLengthPrefix;
+        static const char * maxContractsCountPrefix;
+        static const char * maxInvoicesCountPrefix;
+        static const char * maxInvoiceDetailLengthPrefix;
     };
 
 }

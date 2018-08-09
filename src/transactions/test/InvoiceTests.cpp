@@ -177,7 +177,7 @@ TEST_CASE("Invoice", "[tx][invoice]")
             reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
                                                                 "", "", payerBalance->getBalanceID());
             reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE, "",
-                                                            ReviewRequestResultCode::DESTINATION_ACCOUNT_MISMATCHED);
+                                                            ReviewRequestResultCode::NOT_ALLOWED_ACCOUNT_DESTINATION);
         }
 
         SECTION("Destination balance mismatched")
@@ -204,12 +204,6 @@ TEST_CASE("Invoice", "[tx][invoice]")
                                                                 "", "", SecretKey::random().getPublicKey());
             reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE, "",
                                                             ReviewRequestResultCode::SOURCE_BALANCE_MISMATCHED);
-        }
-
-        SECTION("Reference duplication")
-        {
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                         ManageInvoiceRequestResultCode::INVOICE_REQUEST_REFERENCE_DUPLICATION);
         }
 
         SECTION("Too many invoices")

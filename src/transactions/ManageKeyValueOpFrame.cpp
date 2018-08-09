@@ -19,6 +19,9 @@ namespace stellar {
     char const * ManageKeyValueOpFrame::externalSystemPrefix = "ext_sys_exp_period";
     char const * ManageKeyValueOpFrame::maxContractDetailsPrefix = "max_contract_details";
     char const * ManageKeyValueOpFrame::maxContractDetailLengthPrefix = "max_contract_detail_length";
+    char const * ManageKeyValueOpFrame::maxContractsCountPrefix = "max_contracts_count";
+    char const * ManageKeyValueOpFrame::maxInvoicesCountPrefix = "max_invoices_count";
+    char const * ManageKeyValueOpFrame::maxInvoiceDetailLengthPrefix = "max_invoice_detail_length";
 
     ManageKeyValueOpFrame::ManageKeyValueOpFrame(const stellar::Operation &op, stellar::OperationResult &res,
                                                  stellar::TransactionFrame &parentTx)
@@ -126,5 +129,23 @@ namespace stellar {
     ManageKeyValueOpFrame::makeMaxContractDetailLengthKey()
     {
         return maxContractDetailLengthPrefix;
+    }
+
+    longstring
+    ManageKeyValueOpFrame::makeMaxContractsCountKey()
+    {
+        return maxContractsCountPrefix;
+    }
+
+    longstring
+    ManageKeyValueOpFrame::makeMaxInvoicesCountKey()
+    {
+        return maxInvoicesCountPrefix;
+    }
+
+    longstring
+    ManageKeyValueOpFrame::makeMaxInvoiceDetailLengthKey()
+    {
+        return maxInvoiceDetailLengthPrefix;
     }
 }

@@ -14,7 +14,6 @@
 #include "ledger/BalanceFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
-#include "ledger/PaymentRequestFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/ReviewableRequestFrame.h"

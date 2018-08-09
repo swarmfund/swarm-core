@@ -33,7 +33,8 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("Contract", "[tx][contract]") {
+TEST_CASE("Contract", "[tx][contract]")
+{
     Config const &cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
     Application::pointer appPtr = Application::create(clock, cfg);
@@ -201,14 +202,17 @@ TEST_CASE("Contract", "[tx][contract]") {
                                                                ManageContractResultCode::NOT_ALLOWED);
             }
 
-            SECTION("Malformed") {
+            SECTION("Malformed")
+            {
                 longstring malformedDetails = "";
                 auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(contractID, malformedDetails);
                 manageContractTestHelper.applyManageContractTx(root, addDetailsOp,
                                                                ManageContractResultCode::MALFORMED);
             }
 
-            SECTION("Approve invoice with contract") {
+            SECTION("Approve invoice with contract")
+            {
+                destination = paymentV2TestHelper.createDestinationForBalance(receiverBalance->getBalanceID());
                 reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
                                                                     "", "", payerBalance->getBalanceID());
                 reviewInvoiceRequestHelper.applyReviewRequestTx(payer, invoiceRequestID,
@@ -238,7 +242,8 @@ TEST_CASE("Contract", "[tx][contract]") {
                         manageContractTestHelper.applyManageContractTx(root, resolveDisputeOp);
                     }
 
-                    SECTION("Resolve dispute (not revert)") {
+                    SECTION("Resolve dispute (not revert)")
+                    {
                         auto resolveDisputeOp = manageContractTestHelper.createResolveDisputeOp(contractID, false);
                         manageContractTestHelper.applyManageContractTx(root, resolveDisputeOp);
                     }

@@ -90,7 +90,6 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
     EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
 
     contractFrame->addContractDetails(invoiceRequest.details);
-    contractFrame->addInvoice(request->getRequestID());
     contractHelper->storeChange(delta, db, contractFrame->mEntry);
     receiverBalance = balanceHelper->mustLoadBalance(receiverBalance->getBalanceID(), db, &delta);
 
@@ -154,12 +153,9 @@ ReviewInvoiceRequestOpFrame::checkPaymentDetails(ReviewableRequestEntry& request
         }
         case PaymentDestinationType::ACCOUNT:
         {
-            if (!(requestEntry.requestor == paymentDetails.destination.accountID()))
-            {
-                innerResult().code(ReviewRequestResultCode::DESTINATION_ACCOUNT_MISMATCHED);
-                return false;
-            }
-            break;
+
+            innerResult().code(ReviewRequestResultCode::NOT_ALLOWED_ACCOUNT_DESTINATION);
+            return false;
         }
         default:
             throw std::runtime_error("Unexpected payment v2 destination type in BillPay");

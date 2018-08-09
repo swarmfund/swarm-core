@@ -20,7 +20,6 @@
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
-#include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageLimitsOpFrame.h"
 #include "transactions/ManageInvoiceRequestOpFrame.h"
@@ -28,7 +27,6 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/PaymentRequestHelper.h"
 #include "ledger/StatisticsHelper.h"
 #include "crypto/SHA.h"
 #include "test_helper/TestManager.h"
@@ -47,7 +45,6 @@ namespace txtest
 	auto assetHelper = AssetHelper::Instance();
 	auto balanceHelper = BalanceHelper::Instance();
 	auto feeHelper = FeeHelper::Instance();
-	auto paymentRequestHelper = PaymentRequestHelper::Instance();
 	auto statisticsHelper = StatisticsHelper::Instance();
 
 
@@ -629,60 +626,6 @@ applyPaymentTx(Application& app, SecretKey& from, BalanceID fromBalanceID,
     REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
 
     return txResult.result.results()[0].tr().paymentResult();
-}
-
-TransactionFramePtr
-createReviewPaymentRequestTx(Hash const& networkID, SecretKey& exchange, 
-                Salt seq, int64 paymentID, bool accept)
-{
-    Operation op;
-    op.body.type(OperationType::REVIEW_PAYMENT_REQUEST);
-    op.body.reviewPaymentRequestOp().paymentID = paymentID;
-    op.body.reviewPaymentRequestOp().accept = accept;
-
-    return transactionFromOperation(networkID, exchange, seq, op);
-}
-
-int32
-applyReviewPaymentRequestTx(Application& app, SecretKey& from, Salt seq,
-            int64 paymentID, bool accept, ReviewPaymentRequestResultCode result )
-{
-    TransactionFramePtr txFrame;
-
-
-    txFrame = createReviewPaymentRequestTx(app.getNetworkID(), from, seq, paymentID, accept);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-
-    auto requests = paymentRequestHelper->countObjects(app.getDatabase().getSession());
-
-    auto request = paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr);
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    auto txResult = txFrame->getResult();
-    auto innerCode = ReviewPaymentRequestOpFrame::getInnerCode(txResult.result.results()[0]);
-    REQUIRE(innerCode == result);
-
-    REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
-
-    auto newRequests = paymentRequestHelper->countObjects(app.getDatabase().getSession());
-
-    if (innerCode == ReviewPaymentRequestResultCode::SUCCESS)
-    {
-        if (accept)
-            REQUIRE(requests == newRequests + 1);
-        REQUIRE(!paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
-        return (int32_t)txResult.result.results()[0].tr().reviewPaymentRequestResult().reviewPaymentResponse().state;
-    }
-    else
-    {
-        REQUIRE(requests == newRequests);
-        if (innerCode != ReviewPaymentRequestResultCode::NOT_FOUND)
-            REQUIRE(paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
-        return -1;
-    }
 }
 
 TransactionFramePtr

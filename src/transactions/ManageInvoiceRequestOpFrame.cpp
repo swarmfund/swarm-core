@@ -1,7 +1,3 @@
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-
 #include <ledger/ReviewableRequestFrame.h>
 #include "transactions/ManageInvoiceRequestOpFrame.h"
 #include "database/Database.h"
@@ -47,13 +43,6 @@ ManageInvoiceRequestOpFrame::ManageInvoiceRequestOpFrame(Operation const& op, Op
     : OperationFrame(op, res, parentTx)
     , mManageInvoiceRequest(mOperation.body.manageInvoiceRequestOp())
 {
-}
-
-std::string
-ManageInvoiceRequestOpFrame::getManageInvoiceRequestReference(longstring const& details) const
-{
-    const auto hash = sha256(xdr::xdr_to_opaque(ReviewableRequestType::INVOICE, details));
-    return binToHex(hash);
 }
 
 bool
@@ -119,8 +108,6 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
                                                                 invoiceRequest.asset, db, &delta);
     if (!senderBalance)
     {
-        app.getMetrics().NewMeter({ "op-manage-invoice", "invalid", "sender-balance-not-found" },
-                                  "operation").Mark();
         innerResult().code(ManageInvoiceRequestResultCode::BALANCE_NOT_FOUND);
         return false;
     }
@@ -128,23 +115,13 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     if (!checkMaxInvoicesForReceiverAccount(app, db))
         return false;
 
-    auto reference = getManageInvoiceRequestReference(invoiceRequest.details);
-
-    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-    if (reviewableRequestHelper->isReferenceExist(db, getSourceID(), reference))
-    {
-        innerResult().code(ManageInvoiceRequestResultCode::INVOICE_REQUEST_REFERENCE_DUPLICATION);
-        return false;
-    }
-
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::INVOICE);
     body.invoiceRequest() = invoiceRequest;
     body.invoiceRequest().isApproved = false;
 
-    const auto referencePtr = xdr::pointer<string64>(new string64(reference));
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), invoiceRequest.sender,
-                                                             referencePtr, body, ledgerManager.getCloseTime());
+                                                             nullptr, body, ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 
@@ -170,6 +147,9 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
             innerResult().code(ManageInvoiceRequestResultCode::SENDER_ACCOUNT_MISMATCHED);
             return false;
         }
+
+        contractFrame->addInvoice(request->getRequestID());
+        contractHelper->storeChange(delta, db, contractFrame->mEntry);
     }
 
     auto receiverBalanceID = AccountManager::loadOrCreateBalanceForAsset(getSourceID(),
@@ -190,8 +170,6 @@ ManageInvoiceRequestOpFrame::checkMaxInvoicesForReceiverAccount(Application& app
     auto allRequests = reviewableRequestHelper->loadRequests(getSourceID(), ReviewableRequestType::INVOICE, db);
     if (allRequests.size() >= app.getMaxInvoicesForReceiverAccount())
     {
-        app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "too-many-invoices"},
-                                  "operation").Mark();
         innerResult().code(ManageInvoiceRequestResultCode::TOO_MANY_INVOICES);
         return false;
     }
@@ -205,8 +183,13 @@ ManageInvoiceRequestOpFrame::doCheckValid(Application& app)
     if (mManageInvoiceRequest.details.action() == ManageInvoiceRequestAction::CREATE &&
         mManageInvoiceRequest.details.invoiceRequest().amount == 0)
     {
-        app.getMetrics().NewMeter({"op-manage-invoice", "invalid", "malformed-zero-amount"},
-                         "operation").Mark();
+        innerResult().code(ManageInvoiceRequestResultCode::MALFORMED);
+        return false;
+    }
+
+    if (mManageInvoiceRequest.details.action() == ManageInvoiceRequestAction::CREATE &&
+        mManageInvoiceRequest.details.invoiceRequest().sender == getSourceID())
+    {
         innerResult().code(ManageInvoiceRequestResultCode::MALFORMED);
         return false;
     }

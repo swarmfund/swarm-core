@@ -233,6 +233,11 @@ namespace stellar {
         return mConfig.MAX_INVOICES_FOR_RECEIVER_ACCOUNT;
     }
 
+    uint64 ApplicationImpl::getMaxInvoiceDetailLength() const {
+        assert(mConfig.MAX_INVOICE_DETAIL_LENGTH >= 0);
+        return mConfig.MAX_INVOICE_DETAIL_LENGTH;
+    }
+
     uint64 ApplicationImpl::getMaxContractDetailsCount() const {
         assert(mConfig.MAX_CONTRACT_DETAILS_COUNT >= 0);
         return mConfig.MAX_CONTRACT_DETAILS_COUNT;

@@ -305,34 +305,31 @@ loadRequests(AccountID const& rawRequestor, ReviewableRequestType requestType,
     return result;
 }
 
+string
+ReviewableRequestHelper::obtainSqlRequestIDsString(std::vector<uint64_t> requestIDs)
+{
+    string result;
+    for (auto requestID : requestIDs)
+    {
+        result += to_string(requestID);
+        result += ", ";
+    }
+
+    return result.substr(0, result.size() - 2);
+}
+
 vector<ReviewableRequestFrame::pointer>
-ReviewableRequestHelper::loadInvoiceRequests(AccountID const& requestor, AccountID const& reviewer,
-                                             uint64_t const& contractID, Database& db)
+ReviewableRequestHelper::loadRequests(std::vector<uint64_t> requestIDs, Database& db)
 {
     string sql = selectorReviewableRequest;
-    sql += " WHERE requestor = :requestor AND reviewer = :reviewer";
+    sql += " WHERE id in (" + obtainSqlRequestIDsString(requestIDs) + ")";
     auto prep = db.getPreparedStatement(sql);
-    auto& st = prep.statement();
-    auto requestorStr = PubKeyUtils::toStrKey(requestor);
-    auto reviewerStr = PubKeyUtils::toStrKey(reviewer);
-    st.exchange(use(requestorStr, "requestor"));
-    st.exchange(use(reviewerStr, "reviewer"));
 
     vector<ReviewableRequestFrame::pointer> result;
     auto timer = db.getSelectTimer("reviewable_request");
-    loadRequests(prep, [&result, contractID](LedgerEntry const& entry)
+    loadRequests(prep, [&result](LedgerEntry const& entry)
     {
-        auto request = make_shared<ReviewableRequestFrame>(entry);
-        if (request->getRequestType() != ReviewableRequestType::INVOICE)
-            return;
-
-        if (!request->getRequestEntry().body.invoiceRequest().contractID)
-            return;
-
-        if (*request->getRequestEntry().body.invoiceRequest().contractID != contractID)
-            return;
-
-        result.emplace_back(request);
+        result.emplace_back(make_shared<ReviewableRequestFrame>(entry));
     });
 
     return result;

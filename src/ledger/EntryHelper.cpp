@@ -23,8 +23,6 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/PaymentRequestFrame.h"
-#include "ledger/PaymentRequestHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/TrustFrame.h"
@@ -182,7 +180,6 @@ namespace stellar
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID, ExternalSystemAccountIDHelper::Instance() },
 		{ LedgerEntryType::FEE, FeeHelper::Instance() },
 		{ LedgerEntryType::OFFER_ENTRY, OfferHelper::Instance() },
-		{ LedgerEntryType::PAYMENT_REQUEST, PaymentRequestHelper::Instance() },
 		{ LedgerEntryType::REFERENCE_ENTRY, ReferenceHelper::Instance() },
 		{ LedgerEntryType::REVIEWABLE_REQUEST, ReviewableRequestHelper::Instance() },
 		{ LedgerEntryType::STATISTICS, StatisticsHelper::Instance() },

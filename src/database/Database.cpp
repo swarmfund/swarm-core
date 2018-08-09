@@ -21,7 +21,6 @@
 #include "ledger/EntryHelper.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/PaymentRequestFrame.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/StatisticsFrame.h"
 #include "ledger/AssetPairFrame.h"

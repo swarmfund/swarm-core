@@ -148,7 +148,7 @@ namespace stellar {
     }
 
     BalanceFrame::pointer
-    PaymentOpV2Frame::tryLoadDestinationBalance(AssetCode asset, Database &db, LedgerDelta &delta) {
+    PaymentOpV2Frame::tryLoadDestinationBalance(AssetCode asset, Database &db, LedgerDelta &delta, LedgerManager& lm) {
         switch (mPayment.destination.type()) {
             case PaymentDestinationType::BALANCE: {
                 auto dest = BalanceHelper::Instance()->loadBalance(mPayment.destination.balanceID(), db,
@@ -166,6 +166,12 @@ namespace stellar {
                 return dest;
             }
             case PaymentDestinationType::ACCOUNT: {
+                if (lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_DEST_ACCOUNT_NOT_FOUND) &&
+                    !AccountHelper::Instance()->exists(mPayment.destination.accountID(), db)) {
+                    innerResult().code(PaymentV2ResultCode::DESTINATION_ACCOUNT_NOT_FOUND);
+                    return nullptr;
+                }
+
                 auto dest = AccountManager::loadOrCreateBalanceFrameForAsset(mPayment.destination.accountID(),
                                                                              asset, db,
                                                                              delta);
@@ -289,7 +295,7 @@ namespace stellar {
             return false;
         }
 
-        auto destBalance = tryLoadDestinationBalance(sourceBalance->getAsset(), db, delta);
+        auto destBalance = tryLoadDestinationBalance(sourceBalance->getAsset(), db, delta, ledgerManager);
         if (!destBalance) {
             return false;
         }

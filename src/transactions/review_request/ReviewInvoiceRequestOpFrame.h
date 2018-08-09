@@ -29,6 +29,7 @@ class ReviewInvoiceRequestOpFrame : public ReviewRequestOpFrame
         {PaymentV2ResultCode::INSUFFICIENT_FEE_AMOUNT, ReviewRequestResultCode::INSUFFICIENT_FEE_AMOUNT},
         {PaymentV2ResultCode::BALANCE_TO_CHARGE_FEE_FROM_NOT_FOUND, ReviewRequestResultCode::BALANCE_TO_CHARGE_FEE_FROM_NOT_FOUND},
         {PaymentV2ResultCode::PAYMENT_AMOUNT_IS_LESS_THAN_DEST_FEE, ReviewRequestResultCode::PAYMENT_AMOUNT_IS_LESS_THAN_DEST_FEE},
+        {PaymentV2ResultCode::DESTINATION_ACCOUNT_NOT_FOUND, ReviewRequestResultCode::DESTINATION_ACCOUNT_NOT_FOUND},
     };
 
     bool checkPaymentDetails(ReviewableRequestEntry& requestEntry,

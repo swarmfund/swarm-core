@@ -171,6 +171,14 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
                                                              destination, paymentAmount * 4, paymentFeeData, "", "",
                                                              nullptr, PaymentV2ResultCode::UNDERFUNDED);
     }
+    SECTION("Destination account not found") {
+        AccountID nonExistingAccount = SecretKey::random().getPublicKey();
+        auto accountDestination = paymentV2TestHelper.createDestinationForAccount(nonExistingAccount);
+        auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
+                                                             accountDestination, paymentAmount, paymentFeeData, "",
+                                                             "", nullptr,
+                                                             PaymentV2ResultCode::DESTINATION_ACCOUNT_NOT_FOUND);
+    }
     SECTION("Destination balance not found") {
         BalanceID nonExistingBalance = SecretKey::random().getPublicKey();
         auto balanceDestination = paymentV2TestHelper.createDestinationForBalance(nonExistingBalance);

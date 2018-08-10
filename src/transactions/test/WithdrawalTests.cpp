@@ -163,6 +163,15 @@ TEST_CASE("Withdraw", "[tx][withdraw]")
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest);
         }
 
+        SECTION("Account with block reason 'WITHDRAWAL' not allowed")
+        {
+            manageAccountTestHelper.applyManageAccount(root, withdrawer.key.getPublicKey(), AccountType::GENERAL,
+                                                       {BlockReasons::WITHDRAWAL}, {});
+            auto createWithdrawRequestTx = withdrawRequestHelper.createWithdrawalRequestTx(withdrawer, withdrawRequest);
+            REQUIRE(!testManager->applyCheck(createWithdrawRequestTx));
+            auto opResult = getFirstResultCode(*createWithdrawRequestTx);
+            REQUIRE(opResult == OperationResultCode::opACCOUNT_BLOCKED);
+        }
         SECTION("Try to withdraw zero amount")
         {
             withdrawRequest.amount = 0;

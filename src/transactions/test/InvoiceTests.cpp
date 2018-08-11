@@ -111,7 +111,7 @@ TEST_CASE("Invoice", "[tx][invoice]")
                                                   SecretKey::random().getStrKeyPublic());
 
     // create destination and feeData for further tests
-    auto destination = paymentV2TestHelper.createDestinationForAccount(recipient.key.getPublicKey());
+    auto destination = paymentV2TestHelper.createDestinationForBalance(receiverBalance->getBalanceID());
 
     auto sourceFeeData = paymentV2TestHelper.createFeeData(outgoingFee.fixedFee, outgoingFee.percentFee,
                                                            outgoingFee.ext.feeAsset());
@@ -171,9 +171,9 @@ TEST_CASE("Invoice", "[tx][invoice]")
                                                             "", ReviewRequestResultCode::AMOUNT_MISMATCHED);
         }
 
-        SECTION("Destination account mismatched")
+        SECTION("Destination account not allowed")
         {
-            destination = paymentV2TestHelper.createDestinationForAccount(SecretKey::random().getPublicKey());
+            destination = paymentV2TestHelper.createDestinationForAccount(recipient.key.getPublicKey());
             reviewInvoiceRequestHelper.initializePaymentDetails(destination, paymentAmount, paymentFeeData,
                                                                 "", "", payerBalance->getBalanceID());
             reviewInvoiceRequestHelper.applyReviewRequestTx(payer, requestID, ReviewRequestOpAction::APPROVE, "",

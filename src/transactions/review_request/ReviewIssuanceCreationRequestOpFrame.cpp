@@ -116,6 +116,27 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 
 	requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
 
+	uint64_t universalAmount = 0;
+	AccountManager accountManager(app, db, delta, ledgerManager);
+    auto balanceFrame = accountManager.loadOrCreateBalanceFrameForAsset(requestEntry.requestor, asset, db, delta);
+
+
+	if (!processStatistics(accountManager, db, delta, ledgerManager,
+    		balanceFrame, issuanceRequest.amount,
+    		universalAmount, request->getRequestID())){
+
+    	requestEntry.ext.tasksExt().allTasks |= CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
+    	requestEntry.ext.tasksExt().pendingTasks |= CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
+    	EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
+    	innerResult().code(ReviewRequestResultCode::SUCCESS);
+    	innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+    	innerResult().success().ext.extendedResult().fulfilled = false;
+    	innerResult().success().ext.extendedResult().typeExt.requestType(ReviewableRequestType::NONE);
+		return true;
+    }
+
+	requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
+
 	requestEntry.ext.tasksExt().allTasks |= mReviewRequest.ext.reviewDetails().tasksToAdd;
 	requestEntry.ext.tasksExt().pendingTasks &= ~mReviewRequest.ext.reviewDetails().tasksToRemove;
 	requestEntry.ext.tasksExt().pendingTasks |= mReviewRequest.ext.reviewDetails().tasksToAdd;
@@ -169,7 +190,6 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV2(Application &app, Led
 	}
 
 	//transfer fee
-	AccountManager accountManager(app, db, delta, ledgerManager);
 	accountManager.transferFee(issuanceRequest.asset, totalFee);
 
 	uint64_t destinationReceive = issuanceRequest.amount - totalFee;
@@ -259,6 +279,38 @@ bool ReviewIssuanceCreationRequestOpFrame::doCheckValid(Application &app)
 	}
 
     return true;
+}
+
+
+bool ReviewIssuanceCreationRequestOpFrame::processStatistics(AccountManager& accountManager, Database& db,
+													   LedgerDelta& delta, LedgerManager& ledgerManager,
+													   BalanceFrame::pointer balanceFrame, const uint64_t amountToAdd,
+													   uint64_t& universalAmount, const uint64_t requestID)
+{
+	StatisticsV2Processor statisticsV2Processor(db, delta, ledgerManager);
+	return tryAddStatsV2(statisticsV2Processor, balanceFrame, amountToAdd, universalAmount, requestID);
+}
+
+bool ReviewIssuanceCreationRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor,
+                                                       const BalanceFrame::pointer balance, const uint64_t amountToAdd,
+                                                       uint64_t& universalAmount, uint64_t requestID)
+{
+	const auto result = statisticsV2Processor.addStatsV2(StatisticsV2Processor::SpendType::WITHDRAW, amountToAdd,
+														 universalAmount, mSourceAccount, balance, &requestID);
+	switch (result)
+	{
+		case StatisticsV2Processor::SUCCESS:
+			return true;
+		case StatisticsV2Processor::STATS_V2_OVERFLOW:
+			return false;
+		case StatisticsV2Processor::LIMITS_V2_EXCEEDED:
+			return false;
+		default:
+			CLOG(ERROR, Logging::OPERATION_LOGGER)
+					<< "Unexpeced result from statisticsV2Processor when updating statsV2:" << result;
+			throw std::runtime_error("Unexpected state from statisticsV2Processor when updating statsV2");
+	}
+
 }
 
 }

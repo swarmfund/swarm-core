@@ -30,6 +30,7 @@ using xdr::operator==;
 
 const uint32_t CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
 const uint32_t CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED;
+const uint32_t CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
 
 CreateIssuanceRequestOpFrame::CreateIssuanceRequestOpFrame(Operation const& op,
                                        OperationResult& res,

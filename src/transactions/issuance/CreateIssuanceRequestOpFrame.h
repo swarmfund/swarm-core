@@ -74,5 +74,6 @@ public:
     // flags for issuance tasks
     static const uint32_t INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT = 1;
     static const uint32_t ISSUANCE_MANUAL_REVIEW_REQUIRED = 2;
+    static const uint32_t DEPOSIT_LIMIT_EXCEEDED = 4;
 };
 }

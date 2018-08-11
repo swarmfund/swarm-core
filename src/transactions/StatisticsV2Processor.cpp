@@ -56,6 +56,9 @@ namespace stellar
             case SpendType::PAYMENT:
                 statsOpTypes.emplace_back(StatsOpType::PAYMENT_OUT);
                 break;
+            case SpendType::DEPOSIT:
+                statsOpTypes.emplace_back(StatsOpType::DEPOSIT);
+                break;
             default:
                 throw std::runtime_error("Unexpected spend type");
         }

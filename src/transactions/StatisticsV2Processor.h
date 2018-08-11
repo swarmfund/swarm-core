@@ -26,7 +26,8 @@ public:
     enum SpendType
     {
         PAYMENT,
-        WITHDRAW
+        WITHDRAW,
+        DEPOSIT
     };
 
     StatisticsV2Processor::Result addStatsV2(SpendType spendType, uint64_t amountToAdd, uint64_t& universalAmount,

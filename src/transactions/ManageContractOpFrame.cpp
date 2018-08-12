@@ -57,13 +57,14 @@ ManageContractOpFrame::getInnerResultCodeAsStr()
 bool
 ManageContractOpFrame::checkIsAllowed(ContractFrame::pointer contractFrame)
 {
-    if (contractFrame->getState() != ContractState::DISPUTING)
+    if (contractFrame->getState() &
+        static_cast<uint32_t>(ContractState::DISPUTING))
         return (contractFrame->getContractor() == getSourceID()) ||
-               (contractFrame->getCustomer() == getSourceID());
+               (contractFrame->getCustomer() == getSourceID()) ||
+               (contractFrame->getEscrow() == getSourceID());
 
     return (contractFrame->getContractor() == getSourceID()) ||
-           (contractFrame->getCustomer() == getSourceID()) ||
-           (contractFrame->getEscrow() == getSourceID());
+           (contractFrame->getCustomer() == getSourceID());
 }
 
 bool
@@ -296,8 +297,8 @@ bool
 ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame,
                                     Application& app, Database& db, LedgerDelta& delta)
 {
-    if (static_cast<int32_t>(contractFrame->getState()) &
-        static_cast<int32_t>(ContractState::DISPUTING))
+    if (contractFrame->getState() &
+        static_cast<uint32_t>(ContractState::DISPUTING))
     {
         innerResult().code(ManageContractResultCode::DISPUTE_ALREADY_STARTED);
         return false;

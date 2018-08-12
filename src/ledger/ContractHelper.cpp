@@ -52,11 +52,10 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     string disputerID;
     string disputeReason;
     indicator disputeIndicator = i_null;
-    if (static_cast<int32_t>(contractEntry.stateInfo.state()) &
-        static_cast<int32_t>(ContractState::DISPUTING))
+    if (contractEntry.state & static_cast<uint32_t>(ContractState::DISPUTING))
     {
-        disputerID = PubKeyUtils::toStrKey(contractEntry.stateInfo.disputeDetails().disputer);
-        disputeReason = bn::encode_b64(contractEntry.stateInfo.disputeDetails().reason);
+        disputerID = PubKeyUtils::toStrKey(contractEntry.disputeDetails->disputer);
+        disputeReason = bn::encode_b64(contractEntry.disputeDetails->reason);
         disputeIndicator = i_ok;
     }
 
@@ -64,7 +63,7 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     string strDetails = bn::encode_b64(detailsBytes);
     auto invoicesBytes = xdr::xdr_to_opaque(contractEntry.invoiceRequestsIDs);
     string strInvoices = bn::encode_b64(invoicesBytes);
-    auto state = static_cast<int32_t>(contractEntry.stateInfo.state());
+    auto state = static_cast<int32_t>(contractEntry.state);
     auto version = static_cast<int32_t>(contractEntry.ext.v());
 
     string sql;
@@ -199,7 +198,6 @@ ContractHelper::load(StatementContext& prep,
     LedgerEntry le;
     le.data.type(LedgerEntryType::CONTRACT);
     ContractEntry& oe = le.data.contract();
-    int32_t state = 0;
     int32_t version = 0;
 
     auto& st = prep.statement();
@@ -213,7 +211,7 @@ ContractHelper::load(StatementContext& prep,
     st.exchange(into(details));
     st.exchange(into(invoices));
     st.exchange(into(disputeReason, disputeIndicator));
-    st.exchange(into(state));
+    st.exchange(into(oe.state));
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.exchange(into(version));
     st.define_and_bind();
@@ -231,7 +229,6 @@ ContractHelper::load(StatementContext& prep,
         xdr::xdr_argpack_archive(unmarshaler, oe.details);
         unmarshaler.done();
 
-
         std::vector<uint8_t> decodedInv;
         bn::decode_b64(invoices, decodedInv);
         xdr::xdr_get unmarshalerInv(&decodedInv.front(), &decodedInv.back() + 1);
@@ -239,23 +236,25 @@ ContractHelper::load(StatementContext& prep,
         unmarshalerInv.done();
 
         oe.ext.v(static_cast<LedgerVersion>(version));
-        oe.stateInfo.state(static_cast<ContractState>(state));
 
-        if (((state & static_cast<int32_t>(ContractState::DISPUTING)) != 0) != (disputeIndicator == i_ok))
+        if (((oe.state & static_cast<uint32_t>(ContractState::DISPUTING)) != 0) != (disputeIndicator == i_ok))
         {
             CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected database state. "
                           << "Expected contract with disputing state and disputing indicator "
                           << "or not disputing state and not disputing indicator"
-                          << "actual state: " + to_string(state) + ", actual indicator: " + to_string(disputeIndicator);
+                          << "actual state: " + to_string(oe.state) + ", actual indicator: "
+                          << to_string(disputeIndicator);
             throw std::runtime_error("Unexpected database state. "
                                      "Expected contract with disputing state and disputing indicator"
                                      " or not disputing state and not disputing indicator");
         }
 
-        if ((state & static_cast<int32_t>(ContractState::DISPUTING)) && (disputeIndicator == i_ok))
+        if ((oe.state & static_cast<uint32_t>(ContractState::DISPUTING)) && (disputeIndicator == i_ok))
         {
-            oe.stateInfo.disputeDetails().disputer = PubKeyUtils::fromStrKey(disputerID);
-            bn::decode_b64(disputeReason, oe.stateInfo.disputeDetails().reason);
+            DisputeDetails disputeDetails;
+            disputeDetails.disputer = PubKeyUtils::fromStrKey(disputerID);
+            bn::decode_b64(disputeReason, disputeDetails.reason);
+            oe.disputeDetails.activate() = disputeDetails;
         }
 
         processor(le);

@@ -74,10 +74,10 @@ public:
         return mContract.endTime;
     }
 
-    ContractState const
+    uint32_t const
     getState() const
     {
-        return mContract.stateInfo.state();
+        return mContract.state;
     }
 
     uint64_t const

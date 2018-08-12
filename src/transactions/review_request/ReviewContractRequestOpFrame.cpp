@@ -61,7 +61,7 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
     contractEntry.details.emplace_back(contractRequest.details);
     contractEntry.startTime = contractRequest.startTime;
     contractEntry.endTime = contractRequest.endTime;
-    contractEntry.stateInfo.state(ContractState::NO_CONFIRMATIONS);
+    contractEntry.state = static_cast<uint32_t>(ContractState::NO_CONFIRMATIONS);
 
     EntryHelperProvider::storeAddEntry(delta, db, contractFrame->mEntry);
 

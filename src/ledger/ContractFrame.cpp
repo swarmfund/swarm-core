@@ -40,33 +40,31 @@ namespace stellar
 
     bool ContractFrame::addState(ContractState state)
     {
-        if ((static_cast<int32_t>(mContract.stateInfo.state()) &
-              static_cast<int32_t>(state)))
+        if (mContract.state & static_cast<uint32_t>(state))
             return false;
 
-        mContract.stateInfo.state(
-                static_cast<ContractState>(
-                static_cast<int32_t>(mContract.stateInfo.state()) |
-                static_cast<int32_t>(state)));
+        mContract.state |= static_cast<uint32_t>(state);
         return true;
     }
 
     void ContractFrame::startDispute(AccountID const& disputer,
                                      longstring const& reason)
     {
-        if (!(static_cast<int32_t>(mContract.stateInfo.state()) &
-              static_cast<int32_t>(ContractState::DISPUTING)))
+        if (!(mContract.state & static_cast<uint32_t>(ContractState::DISPUTING)))
             addState(ContractState::DISPUTING);
 
-        mContract.stateInfo.disputeDetails().disputer = disputer;
-        mContract.stateInfo.disputeDetails().reason = reason;
+        DisputeDetails disputeDetails;
+        disputeDetails.disputer = disputer;
+        disputeDetails.reason = reason;
+
+        mContract.disputeDetails.activate() = disputeDetails;
     }
 
     bool ContractFrame::isBothConfirmed()
     {
-        return (static_cast<int32_t>(mContract.stateInfo.state()) &
+        return (mContract.state &
                 static_cast<int32_t>(ContractState::CUSTOMER_CONFIRMED)) &&
-               (static_cast<int32_t>(mContract.stateInfo.state()) &
+               (mContract.state &
                 static_cast<int32_t>(ContractState::CONTRACTOR_CONFIRMED));
     }
 }

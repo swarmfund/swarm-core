@@ -21,6 +21,13 @@ namespace stellar {
             return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                                  static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
         }
+
+        if (ledgerVersion >= static_cast<int32_t>(LedgerVersion::FIX_CREATE_KYC_REQUEST_AUTO_APPROVE)) {
+            return SourceDetails(getAllAccountTypes(), mSourceAccount->getHighThreshold(),
+                                 static_cast<int32_t>(SignerType::KYC_ACC_MANAGER) |
+                                 static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
+        }
+
         return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t>(SignerType::KYC_ACC_MANAGER) |
                              static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));

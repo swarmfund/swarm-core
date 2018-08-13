@@ -28,7 +28,6 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
         return resultCode;
 
     storageHelper.commit();
-    reviewRequestDelta.commit();
 
     return resultCode;
 }

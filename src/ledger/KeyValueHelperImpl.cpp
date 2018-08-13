@@ -1,10 +1,10 @@
-#include "ledger/KeyValueHelperLegacy.h"
+#include "ledger/KeyValueHelperImpl.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/StorageHelper.h"
+#include <memory>
 #include "util/basen.h"
-#include "xdrpp/printer.h"
 
 using namespace soci;
-using namespace std;
 
 namespace stellar
 {
@@ -14,9 +14,16 @@ using xdr::operator<;
 static const char* selectorKeyValue =
     "SELECT key, value, version, lastmodified FROM key_value_entry";
 
-void
-KeyValueHelperLegacy::dropAll(Database& db)
+KeyValueHelperImpl::KeyValueHelperImpl(StorageHelper& storageHelper)
+    : mStorageHelper(storageHelper)
 {
+}
+
+void
+KeyValueHelperImpl::dropAll()
+{
+    Database& db = mStorageHelper.getDatabase();
+
     db.getSession() << "DROP TABLE IF EXISTS key_value_entry;";
     db.getSession() << "CREATE TABLE key_value_entry"
                        "("
@@ -29,24 +36,25 @@ KeyValueHelperLegacy::dropAll(Database& db)
 }
 
 void
-KeyValueHelperLegacy::storeAdd(LedgerDelta& delta, Database& db,
-                               LedgerEntry const& entry)
+KeyValueHelperImpl::storeAdd(LedgerEntry const& entry)
 {
-    storeUpdateHelper(delta, db, true, entry);
+    storeUpdateHelper(mStorageHelper.getLedgerDelta(),
+                      mStorageHelper.getDatabase(), true, entry);
 }
 
 void
-KeyValueHelperLegacy::storeChange(LedgerDelta& delta, Database& db,
-                                  LedgerEntry const& entry)
+KeyValueHelperImpl::storeChange(LedgerEntry const& entry)
 {
-    storeUpdateHelper(delta, db, false, entry);
+    storeUpdateHelper(mStorageHelper.getLedgerDelta(),
+                      mStorageHelper.getDatabase(), false, entry);
 }
 
 void
-KeyValueHelperLegacy::storeDelete(LedgerDelta& delta, Database& db,
-                                  LedgerKey const& key)
+KeyValueHelperImpl::storeDelete(LedgerKey const& key)
 {
-    flushCachedEntry(key, db);
+    flushCachedEntry(key);
+
+    Database& db = mStorageHelper.getDatabase();
     auto timer = db.getDeleteTimer("key_value_entry");
     auto prep =
         db.getPreparedStatement("DELETE FROM key_value_entry WHERE key=:key");
@@ -55,17 +63,18 @@ KeyValueHelperLegacy::storeDelete(LedgerDelta& delta, Database& db,
     st.exchange(use(keyStr));
     st.define_and_bind();
     st.execute(true);
-    delta.deleteEntry(key);
+    mStorageHelper.getLedgerDelta().deleteEntry(key);
 }
 
 bool
-KeyValueHelperLegacy::exists(Database& db, LedgerKey const& key)
+KeyValueHelperImpl::exists(LedgerKey const& key)
 {
-    if (cachedEntryExists(key, db))
+    if (cachedEntryExists(key))
     {
         return true;
     }
 
+    Database& db = mStorageHelper.getDatabase();
     auto timer = db.getSelectTimer("key_value_entry_exists");
     auto prep = db.getPreparedStatement(
         "SELECT EXISTS (SELECT NULL FROM key_value_entry WHERE key=:key)");
@@ -81,17 +90,17 @@ KeyValueHelperLegacy::exists(Database& db, LedgerKey const& key)
 }
 
 void
-KeyValueHelperLegacy::storeUpdateHelper(LedgerDelta& delta, Database& db,
-                                        bool insert, LedgerEntry const& entry)
+KeyValueHelperImpl::storeUpdateHelper(LedgerDelta& delta, Database& db,
+                                      bool insert, LedgerEntry const& entry)
 {
-    auto keyValueFrame = make_shared<KeyValueEntryFrame>(entry);
+    auto keyValueFrame = std::make_shared<KeyValueEntryFrame>(entry);
     auto keyValueEntry = keyValueFrame->getKeyValue();
 
     keyValueFrame->touch(delta);
 
     auto key = keyValueFrame->getKey();
-    flushCachedEntry(key, db);
-    string sql;
+    flushCachedEntry(key);
+    std::string sql;
 
     auto valueBytes = xdr::xdr_to_opaque(keyValueEntry.value);
     std::string strValue = bn::encode_b64(valueBytes);
@@ -138,7 +147,7 @@ KeyValueHelperLegacy::storeUpdateHelper(LedgerDelta& delta, Database& db,
 }
 
 LedgerKey
-KeyValueHelperLegacy::getLedgerKey(LedgerEntry const& from)
+KeyValueHelperImpl::getLedgerKey(LedgerEntry const& from)
 {
     LedgerKey ledgerKey;
     ledgerKey.type(from.data.type());
@@ -147,40 +156,40 @@ KeyValueHelperLegacy::getLedgerKey(LedgerEntry const& from)
 }
 
 EntryFrame::pointer
-KeyValueHelperLegacy::storeLoad(LedgerKey const& key, Database& db)
+KeyValueHelperImpl::storeLoad(LedgerKey const& key)
 {
-    return loadKeyValue(key.keyValue().key, db);
+    return loadKeyValue(key.keyValue().key);
 }
 
 EntryFrame::pointer
-KeyValueHelperLegacy::fromXDR(LedgerEntry const& from)
+KeyValueHelperImpl::fromXDR(LedgerEntry const& from)
 {
     return std::make_shared<KeyValueEntryFrame>(from);
 }
 
 uint64_t
-KeyValueHelperLegacy::countObjects(soci::session& sess)
+KeyValueHelperImpl::countObjects()
 {
     uint64_t count = 0;
-    sess << "SELECT COUNT(*) FROM key_value_entry;", into(count);
+    getDatabase().getSession() << "SELECT COUNT(*) FROM key_value_entry;", into(count);
     return count;
 }
 
 KeyValueEntryFrame::pointer
-KeyValueHelperLegacy::loadKeyValue(string256 valueKey, Database& db,
-                                   LedgerDelta* delta)
+KeyValueHelperImpl::loadKeyValue(string256 valueKey)
 {
     LedgerKey key;
     key.type(LedgerEntryType::KEY_VALUE);
     key.keyValue().key = valueKey;
-    if (cachedEntryExists(key, db))
+    if (cachedEntryExists(key))
     {
-        auto p = getCachedEntry(key, db);
+        auto p = getCachedEntry(key);
         return p ? std::make_shared<KeyValueEntryFrame>(*p) : nullptr;
     }
 
     std::string sql = selectorKeyValue;
     sql += " WHERE key = :key";
+    Database& db = getDatabase();
     auto prep = db.getPreparedStatement(sql);
     auto& st = prep.statement();
     st.exchange(use(valueKey, "key"));
@@ -188,27 +197,24 @@ KeyValueHelperLegacy::loadKeyValue(string256 valueKey, Database& db,
     KeyValueEntryFrame::pointer retKeyValue;
     auto timer = db.getSelectTimer("key_value_entry");
     loadKeyValues(prep, [&retKeyValue](LedgerEntry const& entry) {
-        retKeyValue = make_shared<KeyValueEntryFrame>(entry);
+        retKeyValue = std::make_shared<KeyValueEntryFrame>(entry);
     });
 
     if (!retKeyValue)
     {
-        putCachedEntry(key, nullptr, db);
+        putCachedEntry(key, nullptr);
         return nullptr;
     }
 
-    if (delta)
-    {
-        delta->recordEntry(*retKeyValue);
-    }
+    mStorageHelper.getLedgerDelta().recordEntry(*retKeyValue);
 
     auto pEntry = std::make_shared<LedgerEntry>(retKeyValue->mEntry);
-    putCachedEntry(key, pEntry, db);
+    putCachedEntry(key, pEntry);
     return retKeyValue;
 }
 
 void
-KeyValueHelperLegacy::loadKeyValues(
+KeyValueHelperImpl::loadKeyValues(
     StatementContext& prep,
     std::function<void(LedgerEntry const&)> keyValueProcessor)
 {
@@ -242,5 +248,11 @@ KeyValueHelperLegacy::loadKeyValues(
         keyValueProcessor(le);
         st.fetch();
     }
+}
+
+Database&
+KeyValueHelperImpl::getDatabase()
+{
+    return mStorageHelper.getDatabase();
 }
 } // namespace stellar

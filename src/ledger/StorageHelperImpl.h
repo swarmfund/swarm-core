@@ -1,13 +1,20 @@
 #pragma once
 
-#include "ledger/ExternalSystemAccountIDHelperLegacy.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
-#include "ledger/KeyValueHelperLegacy.h"
 #include "ledger/StorageHelper.h"
 #include <memory>
 
+namespace soci
+{
+class transaction;
+}
+
 namespace stellar
 {
+
+class KeyValueHelper;
+class ExternalSystemAccountIDHelper;
+class ExternalSystemAccountIDPoolEntryHelper;
+
 class StorageHelperImpl : public StorageHelper
 {
   public:
@@ -25,9 +32,9 @@ class StorageHelperImpl : public StorageHelper
 
     virtual std::unique_ptr<StorageHelper> startNestedTransaction();
 
-    virtual KeyValueHelperLegacy& getKeyValueHelper();
-    virtual ExternalSystemAccountIDHelperLegacy& getExternalSystemAccountIDHelper();
-    virtual ExternalSystemAccountIDPoolEntryHelperLegacy&
+    virtual KeyValueHelper& getKeyValueHelper();
+    virtual ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper();
+    virtual ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper();
 
     Database& mDatabase;
@@ -36,10 +43,10 @@ class StorageHelperImpl : public StorageHelper
 
     std::unique_ptr<soci::transaction> mTransaction;
 
-    std::unique_ptr<KeyValueHelperLegacy> mKeyValueHelper;
-    std::unique_ptr<ExternalSystemAccountIDHelperLegacy>
+    std::unique_ptr<KeyValueHelper> mKeyValueHelper;
+    std::unique_ptr<ExternalSystemAccountIDHelper>
         mExternalSystemAccountIDHelper;
-    std::unique_ptr<ExternalSystemAccountIDPoolEntryHelperLegacy>
+    std::unique_ptr<ExternalSystemAccountIDPoolEntryHelper>
         mExternalSystemAccountIDPoolEntryHelper;
 };
-}
+} // namespace stellar

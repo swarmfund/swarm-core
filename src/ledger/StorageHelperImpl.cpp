@@ -52,6 +52,10 @@ StorageHelperImpl::getLedgerDelta() const
 void
 StorageHelperImpl::commit()
 {
+    if (mIsReleased)
+    {
+        throw std::runtime_error("Cannot commit a released StorageHelper.");
+    }
     mLedgerDelta.commit();
     if (mTransaction)
     {
@@ -62,7 +66,21 @@ StorageHelperImpl::commit()
 void
 StorageHelperImpl::rollback()
 {
+    if (mIsReleased)
+    {
+        throw std::runtime_error("Cannot rollback a released StorageHelper.");
+    }
     mLedgerDelta.rollback();
+    if (mTransaction)
+    {
+        mTransaction->rollback();
+        mTransaction = nullptr;
+    }
+}
+void
+StorageHelperImpl::release()
+{
+    mIsReleased = true;
     if (mTransaction)
     {
         mTransaction->rollback();

@@ -24,6 +24,7 @@ class StorageHelper
 
     virtual void commit() = 0;
     virtual void rollback() = 0;
+    virtual void release() = 0;
 
     std::unique_ptr<StorageHelper> startNestedTransaction = 0;
 

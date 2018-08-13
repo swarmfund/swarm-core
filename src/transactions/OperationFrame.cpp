@@ -208,6 +208,7 @@ OperationFrame::doApply(Application& app, LedgerDelta& delta,
 	LedgerManager& ledgerManager)
 {
     StorageHelperImpl storageHelper(app.getDatabase(), delta);
+    static_cast<StorageHelper&>(storageHelper).release();
     return doApply(app, storageHelper, ledgerManager);
 }
 

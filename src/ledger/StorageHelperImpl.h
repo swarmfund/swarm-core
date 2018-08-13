@@ -29,6 +29,7 @@ class StorageHelperImpl : public StorageHelper
 
     virtual void commit();
     virtual void rollback();
+    virtual void release();
 
     virtual std::unique_ptr<StorageHelper> startNestedTransaction();
 
@@ -39,8 +40,8 @@ class StorageHelperImpl : public StorageHelper
 
     Database& mDatabase;
     LedgerDelta& mLedgerDelta;
+    bool mIsReleased = false;
     std::unique_ptr<LedgerDelta> mNestedDelta;
-
     std::unique_ptr<soci::transaction> mTransaction;
 
     std::unique_ptr<KeyValueHelper> mKeyValueHelper;

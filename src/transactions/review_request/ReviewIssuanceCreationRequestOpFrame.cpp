@@ -102,13 +102,15 @@ handleApproveV2(Application &app, LedgerDelta &delta,
 	auto& requestEntry = request->getRequestEntry();
 
 	auto ledgerVersion = static_cast<int32_t>(request->mEntry.ext.v());
-	auto accountDetails = getSourceAccountDetails(getCounterpartyDetails(db, &delta), ledgerVersion).mAllowedSourceAccountTypes;
+	auto sourceAccount = getSourceAccountDetails(getCounterpartyDetails(db, &delta), ledgerVersion);
+	auto allowedAccountTypes = sourceAccount.mAllowedSourceAccountTypes;
 	AccountFrame reviewer(requestEntry.reviewer);
-	if (std::find(accountDetails.begin(), accountDetails.end(), reviewer.getAccountType()) != accountDetails.end() ){
+
+	if (checkValid(app)){
         requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED;
     }
 
-    requestEntry.ext.tasksExt().allTasks |= getInternalTasksToAdd(app, delta, ledgerManager, request);
+    requestEntry.ext.tasksExt().allTasks |= getTasksToAdd(app, delta, ledgerManager, request);
 
 	requestEntry.ext.tasksExt().allTasks |= mReviewRequest.ext.reviewDetails().tasksToAdd;
 	requestEntry.ext.tasksExt().pendingTasks &= ~mReviewRequest.ext.reviewDetails().tasksToRemove;
@@ -299,7 +301,7 @@ bool ReviewIssuanceCreationRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& 
 	}
 
 }
-uint32_t ReviewIssuanceCreationRequestOpFrame::getInternalTasksToAdd( Application &app, LedgerDelta &delta,
+uint32_t ReviewIssuanceCreationRequestOpFrame::getTasksToAdd( Application &app, LedgerDelta &delta,
 		LedgerManager &ledgerManager,
 	ReviewableRequestFrame::pointer request)
 	{

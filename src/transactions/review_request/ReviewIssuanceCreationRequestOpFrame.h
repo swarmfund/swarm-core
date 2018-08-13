@@ -28,7 +28,7 @@ protected:
 	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID,
 			CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const override;
 
-    uint32_t getInternalTasksToAdd( Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+    uint32_t getTasksToAdd( Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
             ReviewableRequestFrame::pointer request);
 public:
 

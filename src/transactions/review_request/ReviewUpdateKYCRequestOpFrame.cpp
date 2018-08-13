@@ -21,6 +21,7 @@ namespace stellar {
             return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                                  static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));
         }
+
         return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t>(SignerType::KYC_ACC_MANAGER) |
                              static_cast<int32_t>(SignerType::KYC_SUPER_ADMIN));

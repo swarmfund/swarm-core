@@ -42,7 +42,8 @@ SourceDetails DirectDebitOpFrame::getSourceAccountDetails(std::unordered_map<Acc
     // disallowed
 	return SourceDetails({}, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t >(SignerType::DIRECT_DEBIT_OPERATOR),
-                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
 DirectDebitOpFrame::DirectDebitOpFrame(Operation const& op, OperationResult& res,

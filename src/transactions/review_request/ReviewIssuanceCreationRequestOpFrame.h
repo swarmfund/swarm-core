@@ -27,6 +27,9 @@ protected:
                                                                  uint64_t& universalAmount, const uint64_t requestID);
 	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID,
 			CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const override;
+
+    uint32_t getInternalTasksToAdd( Application &app, LedgerDelta &delta, LedgerManager &ledgerManager,
+            ReviewableRequestFrame::pointer request);
 public:
 
     ReviewIssuanceCreationRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx);

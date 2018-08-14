@@ -197,6 +197,7 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_REVIEWABLE_REQUEST_TASKS:
             ReviewableRequestHelper::Instance()->addTasks(*this);
+            PendingStatisticsHelper::Instance()->restrictUpdateDelete(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

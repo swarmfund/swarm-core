@@ -1,6 +1,7 @@
 #include <ledger/AccountHelper.h>
 #include <transactions/issuance/CreateIssuanceRequestOpFrame.h>
 #include <ledger/ReviewableRequestHelper.h>
+#include <ledger/PendingStatisticsHelper.h>
 #include "ledger/LedgerDelta.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
@@ -101,16 +102,9 @@ handleApproveV2(Application &app, LedgerDelta &delta,
 
 	auto& requestEntry = request->getRequestEntry();
 
-	auto ledgerVersion = static_cast<int32_t>(request->mEntry.ext.v());
-	auto sourceAccount = getSourceAccountDetails(getCounterpartyDetails(db, &delta), ledgerVersion);
-	auto allowedAccountTypes = sourceAccount.mAllowedSourceAccountTypes;
-	AccountFrame reviewer(requestEntry.reviewer);
-
-	if (checkValid(app)){
-        requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED;
-    }
-
-    requestEntry.ext.tasksExt().allTasks |= getTasksToAdd(app, delta, ledgerManager, request);
+	auto internalTasksToAdd = getInternalTasksToAdd(app, db, delta, ledgerManager, request);
+    requestEntry.ext.tasksExt().allTasks |= internalTasksToAdd;
+	requestEntry.ext.tasksExt().pendingTasks |= internalTasksToAdd;
 
 	requestEntry.ext.tasksExt().allTasks |= mReviewRequest.ext.reviewDetails().tasksToAdd;
 	requestEntry.ext.tasksExt().pendingTasks &= ~mReviewRequest.ext.reviewDetails().tasksToRemove;
@@ -252,7 +246,8 @@ bool ReviewIssuanceCreationRequestOpFrame::doCheckValid(Application &app)
         return true;
     }
 
-	int32_t systemTasks = CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
+	int32_t systemTasks = CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT |
+			              CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
 
 	if ((mReviewRequest.ext.reviewDetails().tasksToAdd & systemTasks) != 0 ||
         (mReviewRequest.ext.reviewDetails().tasksToRemove & systemTasks) != 0)
@@ -271,13 +266,21 @@ bool ReviewIssuanceCreationRequestOpFrame::doCheckValid(Application &app)
 }
 
 
-bool ReviewIssuanceCreationRequestOpFrame::processStatistics(AccountManager& accountManager, Database& db,
+bool ReviewIssuanceCreationRequestOpFrame::addStatistics(Database& db,
 													   LedgerDelta& delta, LedgerManager& ledgerManager,
 													   BalanceFrame::pointer balanceFrame, const uint64_t amountToAdd,
 													   uint64_t& universalAmount, const uint64_t requestID)
 {
 	StatisticsV2Processor statisticsV2Processor(db, delta, ledgerManager);
 	return tryAddStatsV2(statisticsV2Processor, balanceFrame, amountToAdd, universalAmount, requestID);
+}
+
+void ReviewIssuanceCreationRequestOpFrame::revertStatistics(Database& db,
+													   LedgerDelta& delta, LedgerManager& ledgerManager,
+													   const uint64_t requestID)
+{
+	StatisticsV2Processor statisticsV2Processor(db, delta, ledgerManager);
+	tryRevertStatsV2(statisticsV2Processor, requestID);
 }
 
 bool ReviewIssuanceCreationRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor,
@@ -301,51 +304,59 @@ bool ReviewIssuanceCreationRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& 
 	}
 
 }
-uint32_t ReviewIssuanceCreationRequestOpFrame::getTasksToAdd( Application &app, LedgerDelta &delta,
+
+void ReviewIssuanceCreationRequestOpFrame::tryRevertStatsV2(StatisticsV2Processor& statisticsV2Processor,
+        uint64_t requestID)
+{
+     statisticsV2Processor.revertStatsV2(requestID);
+
+}
+
+uint32_t ReviewIssuanceCreationRequestOpFrame::getInternalTasksToAdd( Application &app, Database& db,  LedgerDelta &delta,
 		LedgerManager &ledgerManager,
 	ReviewableRequestFrame::pointer request)
 	{
-		LedgerDelta localDelta(delta);
-		uint32_t allTasks = 0;
-
+        //localDelta is used to protect
 		request->checkRequestType(ReviewableRequestType::ISSUANCE_CREATE);
 		auto& requestEntry = request->getRequestEntry();
-		Database& db = ledgerManager.getDatabase();
-		auto& issuanceRequest = request->getRequestEntry().body.issuanceRequest();
+        soci::transaction localTx(db.getSession());
+        LedgerDelta localDelta(delta);
+        auto& issuanceRequest = request->getRequestEntry().body.issuanceRequest();
 		auto asset = AssetHelper::Instance()->mustLoadAsset(issuanceRequest.asset, db, &localDelta);
+
+		uint32_t allTasks = 0;
+
+        uint64_t universalAmount = 0;
+        auto balanceFrame = AccountManager::loadOrCreateBalanceFrameForAsset(requestEntry.requestor, issuanceRequest.asset, db, localDelta);
 
 		if (!asset->isAvailableForIssuanceAmountSufficient(issuanceRequest.amount))
 		{
 			allTasks |= CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
-			innerResult().code(ReviewRequestResultCode::SUCCESS);
-			innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
-			innerResult().success().ext.extendedResult().fulfilled = false;
-			innerResult().success().ext.extendedResult().typeExt.requestType(ReviewableRequestType::NONE);
-			localDelta.rollback();
-			return allTasks;
 		}
-		requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
+		else
+		{
+			requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT;
+		}
 
-		uint64_t universalAmount = 0;
-		AccountManager accountManager(app, db, localDelta, ledgerManager);
-		auto balanceFrame = AccountManager::loadOrCreateBalanceFrameForAsset(requestEntry.requestor, asset, db, localDelta);
-
-		if (!processStatistics(accountManager, db, localDelta, ledgerManager,
+		if (!addStatistics(db, localDelta, ledgerManager,
 							   balanceFrame, issuanceRequest.amount,
-							   universalAmount, request->getRequestID())){
-
+							   universalAmount, request->getRequestID()))
+		{
 			allTasks |= CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
-			innerResult().code(ReviewRequestResultCode::SUCCESS);
-			innerResult().success().ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
-			innerResult().success().ext.extendedResult().fulfilled = false;
-			innerResult().success().ext.extendedResult().typeExt.requestType(ReviewableRequestType::NONE);
-			localDelta.rollback();
-			return allTasks;
 		}
-		requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
+		else
+		{
+			requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
+		}
 
-		localDelta.commit();
-		return allTasks;
+
+		if (allTasks == 0)
+        {
+		    localTx.commit();
+		    localDelta.commit();
+            return allTasks;
+        }
+        return allTasks;
 	}
 
 }

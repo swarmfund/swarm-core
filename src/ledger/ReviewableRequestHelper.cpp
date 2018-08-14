@@ -321,8 +321,11 @@ ReviewableRequestHelper::obtainSqlRequestIDsString(std::vector<uint64_t> request
 vector<ReviewableRequestFrame::pointer>
 ReviewableRequestHelper::loadRequests(std::vector<uint64_t> requestIDs, Database& db)
 {
+    if (requestIDs.size() == 0)
+        return vector<ReviewableRequestFrame::pointer>{};
+
     string sql = selectorReviewableRequest;
-    sql += " WHERE id in (" + obtainSqlRequestIDsString(requestIDs) + ")";
+    sql += " WHERE id IN (" + obtainSqlRequestIDsString(requestIDs) + ")";
     auto prep = db.getPreparedStatement(sql);
 
     vector<ReviewableRequestFrame::pointer> result;

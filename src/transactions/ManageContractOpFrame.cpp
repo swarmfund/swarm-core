@@ -375,6 +375,8 @@ ManageContractOpFrame::revertInvoicesAmounts(ContractFrame::pointer contractFram
         }
         balanceHelper->storeChange(delta, db, customerBalance->mEntry);
     }
+
+    return true;
 }
 
 void

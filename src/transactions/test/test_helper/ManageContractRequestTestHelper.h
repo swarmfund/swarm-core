@@ -19,7 +19,8 @@ public:
                                                          ManageContractRequestResultCode expectedResult = ManageContractRequestResultCode::SUCCESS);
 
 
-    ManageContractRequestOp createContractRequest(AccountID customer, uint64_t startTime,
+    ManageContractRequestOp createContractRequest(AccountID customer, AccountID escrow,
+                                                  uint64_t startTime,
                                                   uint64_t endTime, longstring details);
 
     ManageContractRequestOp createRemoveContractRequest(uint64_t& requestID);

@@ -15,12 +15,14 @@ ManageContractRequestTestHelper::ManageContractRequestTestHelper(TestManager::po
 }
 
 ManageContractRequestOp
-ManageContractRequestTestHelper::createContractRequest(AccountID customer, uint64_t startTime,
-                                                       uint64_t endTime, longstring details)
+ManageContractRequestTestHelper::createContractRequest(AccountID customer, AccountID escrow,
+                                                       uint64_t startTime, uint64_t endTime,
+                                                       longstring details)
 {
     ManageContractRequestOp result;
     result.details.action(ManageContractRequestAction::CREATE);
     result.details.contractRequest().customer = customer;
+    result.details.contractRequest().escrow = escrow;
     result.details.contractRequest().startTime = startTime;
     result.details.contractRequest().endTime = endTime;
     result.details.contractRequest().details = details;

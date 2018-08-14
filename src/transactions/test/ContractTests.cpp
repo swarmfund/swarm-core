@@ -133,7 +133,7 @@ TEST_CASE("Contract", "[tx][contract]")
         uint64_t startTime = testManager->getLedgerManager().getCloseTime() + 1234;
         uint64_t endTime = testManager->getLedgerManager().getCloseTime() + ONE;
         auto createContractRequestOp = manageContractRequestTestHelper.createContractRequest(
-                payer.key.getPublicKey(), startTime, endTime, details);
+                payer.key.getPublicKey(), root.key.getPublicKey(), startTime, endTime, details);
 
         auto result = manageContractRequestTestHelper.applyManageContractRequest(recipient, createContractRequestOp);
         auto requestID = result.success().details.response().requestID;
@@ -179,6 +179,10 @@ TEST_CASE("Contract", "[tx][contract]")
             auto invoiceRequestID = invoiceResult.success().details.response().requestID;
             REQUIRE(invoiceResult.success().details.response().receiverBalance == receiverBalance->getBalanceID());
             REQUIRE(invoiceResult.success().details.response().senderBalance == payerBalance->getBalanceID());
+            std::vector<uint64_t> invoiceRequestsIDs;
+            invoiceRequestsIDs.emplace_back(invoiceRequestID);
+            auto invoiceRequests = ReviewableRequestHelper::Instance()->loadRequests(invoiceRequestsIDs, db);
+            REQUIRE(invoiceRequestsIDs.size() == invoiceRequestsIDs.size());
 
             SECTION("Not allowed confirm contract with not approved invoices") {
                 auto confirmOp = manageContractTestHelper.createConfirmOp(contractID);

@@ -57,7 +57,7 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
     contractEntry.contractID = delta.getHeaderFrame().generateID(LedgerEntryType::CONTRACT);
     contractEntry.contractor = request->getRequestor();
     contractEntry.customer = request->getReviewer();
-    contractEntry.escrow = app.getMasterID();
+    contractEntry.escrow = contractRequest.escrow;
     contractEntry.details.emplace_back(contractRequest.details);
     contractEntry.startTime = contractRequest.startTime;
     contractEntry.endTime = contractRequest.endTime;

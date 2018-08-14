@@ -16,7 +16,8 @@ namespace stellar {
 
             CreateUpdateKYCRequestResult
             applyCreateUpdateKYCRequest(Account &source, uint64_t requestID, AccountID accountToUpdateKYC,
-                                        AccountType accountType, longstring kycData, uint32 kycLevel, uint32 *allTasks,
+                                        AccountType accountType, longstring kycData, uint32 kycLevel,
+                                        uint32 *allTasks = nullptr,
                                         CreateUpdateKYCRequestResultCode expectedResultCode =
                                         CreateUpdateKYCRequestResultCode::SUCCESS);
 

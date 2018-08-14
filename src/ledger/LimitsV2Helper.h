@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EntryHelper.h"
+#include "EntryHelperLegacy.h"
 #include <functional>
 #include <unordered_map>
 #include "AccountLimitsFrame.h"
@@ -18,7 +18,7 @@ namespace stellar
 class StatementContext;
 
 
-class LimitsV2Helper : public EntryHelper
+class LimitsV2Helper : public EntryHelperLegacy
 {
 public:
     static LimitsV2Helper *Instance() {

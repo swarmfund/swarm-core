@@ -3,7 +3,7 @@
 #include <transactions/ManageKeyValueOpFrame.h>
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
 #include "test/test_marshaler.h"
 #include "TxTests.h"
 
@@ -28,7 +28,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
     testHelper.setKey(key);
     testHelper.setValue(30);
 
-    auto keyValueHelper = KeyValueHelper::Instance();
+    auto keyValueHelper = KeyValueHelperLegacy::Instance();
 
     SECTION("Can`t delete before create"){
         testHelper.setResult(ManageKeyValueResultCode::NOT_FOUND);

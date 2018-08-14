@@ -1,17 +1,25 @@
 #pragma once
 
-#include "ledger/ExternalSystemAccountIDHelper.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
-#include "ledger/KeyValueHelper.h"
 #include "ledger/StorageHelper.h"
 #include <memory>
 
+namespace soci
+{
+class transaction;
+}
+
 namespace stellar
 {
+
+class KeyValueHelper;
+class ExternalSystemAccountIDHelper;
+class ExternalSystemAccountIDPoolEntryHelper;
+
 class StorageHelperImpl : public StorageHelper
 {
   public:
     StorageHelperImpl(Database& db, LedgerDelta& ledgerDelta);
+    virtual ~StorageHelperImpl();
 
   private:
     virtual Database& getDatabase();
@@ -21,6 +29,9 @@ class StorageHelperImpl : public StorageHelper
 
     virtual void commit();
     virtual void rollback();
+    virtual void release();
+
+    virtual std::unique_ptr<StorageHelper> startNestedTransaction();
 
     virtual KeyValueHelper& getKeyValueHelper();
     virtual ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper();
@@ -29,6 +40,9 @@ class StorageHelperImpl : public StorageHelper
 
     Database& mDatabase;
     LedgerDelta& mLedgerDelta;
+    bool mIsReleased = false;
+    std::unique_ptr<LedgerDelta> mNestedDelta;
+    std::unique_ptr<soci::transaction> mTransaction;
 
     std::unique_ptr<KeyValueHelper> mKeyValueHelper;
     std::unique_ptr<ExternalSystemAccountIDHelper>
@@ -36,4 +50,4 @@ class StorageHelperImpl : public StorageHelper
     std::unique_ptr<ExternalSystemAccountIDPoolEntryHelper>
         mExternalSystemAccountIDPoolEntryHelper;
 };
-}
+} // namespace stellar

@@ -5,7 +5,7 @@
 #include "bucket/Bucket.h"
 #include "bucket/BucketApplicator.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "util/Logging.h"
 
 namespace stellar

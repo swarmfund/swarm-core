@@ -89,6 +89,12 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                                                                  kycData, kycLevel,
                                                                                                  &tasks);
         }
+        SECTION("source general, autoapprove") {
+            auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
+                                                                                                 updatedAccountID.getPublicKey(),
+                                                                                                 AccountType::GENERAL,
+                                                                                                 kycData, kycLevel);
+        }
         SECTION("source is general, create -> reject -> update -> approve") {
             auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
                                                                                                  updatedAccountID.getPublicKey(),
@@ -152,6 +158,10 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
 
 
         SECTION("double creating, request exists") {
+            tasks = 30;
+            manageKVHelper.setValue(tasks);
+            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+
             testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
                                                              AccountType::GENERAL, kycData, kycLevel, nullptr,
                                                              CreateUpdateKYCRequestResultCode::SUCCESS);
@@ -168,6 +178,10 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
 
         }
         SECTION("update pending is not allowed for user") {
+            tasks = 30;
+            manageKVHelper.setValue(tasks);
+            manageKVHelper.doApply(app, ManageKVAction::PUT, true);
+
             auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
                                                                                                  updatedAccountID.getPublicKey(),
                                                                                                  AccountType::GENERAL,

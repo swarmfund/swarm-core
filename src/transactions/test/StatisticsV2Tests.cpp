@@ -10,7 +10,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/StatisticsFrame.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include <src/transactions/test/TxTests.h>
 #include <transactions/test/test_helper/TestManager.h>
 

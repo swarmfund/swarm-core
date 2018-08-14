@@ -2,7 +2,7 @@
 // Created by artem on 16.06.18.
 //
 
-#include <ledger/EntryHelper.h>
+#include <ledger/EntryHelperLegacy.h>
 #include <ledger/ReviewableRequestFrame.h>
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>
@@ -26,7 +26,8 @@ CreateManageLimitsRequestOpFrame::getSourceAccountDetails(
         int32_t ledgerVersion) const
 {
     return SourceDetails(getAllAccountTypes(), mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t>(SignerType::LIMITS_MANAGER)
+                         static_cast<int32_t>(SignerType::LIMITS_MANAGER),
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL)
     );
 }
 

@@ -9,7 +9,7 @@
 #include "main/test.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
-#include "ledger/ExternalSystemAccountIDHelper.h"
+#include "ledger/ExternalSystemAccountIDHelperLegacy.h"
 #include "test/test_marshaler.h"
 
 using namespace stellar;
@@ -39,7 +39,7 @@ TEST_CASE("create account", "[tx][create_account]") {
     auto createAccountHelper = CreateAccountTestHelper(testManager);
 
     SECTION("External system account id are generated") {
-        auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
+        auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelperLegacy::Instance();
         createAccountHelper.applyTx(createAccountTestBuilder);
         const auto btcKey = externalSystemAccountIDHelper->load(randomAccount.getPublicKey(),
                                                                 BitcoinExternalSystemType, app.getDatabase());

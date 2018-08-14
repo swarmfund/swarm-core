@@ -1,6 +1,6 @@
-#include <ledger/ExternalSystemAccountIDHelper.h>
+#include <ledger/ExternalSystemAccountIDHelperLegacy.h>
 #include "ManageExternalSystemAccountIDPoolEntryTestHelper.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "test/test_marshaler.h"
 
@@ -35,7 +35,7 @@ namespace txtest
     {
         TransactionFramePtr txFrame;
 
-        auto poolEntryHelper = ExternalSystemAccountIDPoolEntryHelper::Instance();
+        auto poolEntryHelper = ExternalSystemAccountIDPoolEntryHelperLegacy::Instance();
 
         std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> pool;
         Database& db = mTestManager->getDB();
@@ -90,7 +90,7 @@ namespace txtest
     {
         TransactionFramePtr txFrame;
 
-        auto poolEntryHelper = ExternalSystemAccountIDPoolEntryHelper::Instance();
+        auto poolEntryHelper = ExternalSystemAccountIDPoolEntryHelperLegacy::Instance();
 
         std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> pool;
         Database& db = mTestManager->getDB();
@@ -131,7 +131,7 @@ namespace txtest
         REQUIRE(poolEntryFrame->getExternalSystemAccountIDPoolEntry().isDeleted);
 
         auto poolEntry = poolEntryFrame->getExternalSystemAccountIDPoolEntry();
-        auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
+        auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelperLegacy::Instance();
         auto externalSystemAccountIDFrame = externalSystemAccountIDHelper->load(
                 *poolEntry.accountID, poolEntry.externalSystemType, db);
 

@@ -3,7 +3,7 @@
 #include "database/Database.h"
 #include "LedgerDelta.h"
 #include "ledger/LedgerManager.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
 #include "lib/util/format.h"
 #include "xdrpp/printer.h"
 
@@ -14,10 +14,10 @@ namespace stellar
 {
 using xdr::operator<;
 
-    const char* ExternalSystemAccountIDPoolEntryHelper::select = "SELECT id, external_system_type, data, parent, "
+    const char* ExternalSystemAccountIDPoolEntryHelperLegacy::select = "SELECT id, external_system_type, data, parent, "
            "is_deleted, account_id, expires_at, binded_at, lastmodified, version FROM external_system_account_id_pool";
 
-    void ExternalSystemAccountIDPoolEntryHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
+    void ExternalSystemAccountIDPoolEntryHelperLegacy::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
                                                                   LedgerEntry const &entry)
     {
         try
@@ -97,17 +97,17 @@ using xdr::operator<;
         }
     }
 
-    void ExternalSystemAccountIDPoolEntryHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
+    void ExternalSystemAccountIDPoolEntryHelperLegacy::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
     {
         return storeUpdateHelper(delta, db, true, entry);
     }
 
-    void ExternalSystemAccountIDPoolEntryHelper::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
+    void ExternalSystemAccountIDPoolEntryHelperLegacy::storeChange(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
     {
         return storeUpdateHelper(delta, db, false, entry);
     }
 
-    void ExternalSystemAccountIDPoolEntryHelper::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key)
+    void ExternalSystemAccountIDPoolEntryHelperLegacy::storeDelete(LedgerDelta &delta, Database &db, LedgerKey const &key)
     {
         auto timer = db.getDeleteTimer("external_system_account_id_pool");
         auto prep = db.getPreparedStatement("DELETE FROM external_system_account_id_pool WHERE id = :id");
@@ -120,7 +120,7 @@ using xdr::operator<;
     }
 
     void
-    ExternalSystemAccountIDPoolEntryHelper::dropAll(Database &db)
+    ExternalSystemAccountIDPoolEntryHelperLegacy::dropAll(Database &db)
     {
         db.getSession() << "DROP TABLE IF EXISTS external_system_account_id_pool;";
         db.getSession() << "CREATE TABLE external_system_account_id_pool"
@@ -141,24 +141,24 @@ using xdr::operator<;
         fixTypes(db);
     }
 
-    void ExternalSystemAccountIDPoolEntryHelper::fixTypes(Database & db)
+    void ExternalSystemAccountIDPoolEntryHelperLegacy::fixTypes(Database & db)
     {
         db.getSession() << "ALTER TABLE external_system_account_id_pool ALTER parent SET DATA TYPE BIGINT;";
         db.getSession() << "ALTER TABLE external_system_account_id_pool ALTER external_system_type SET DATA TYPE BIGINT;";
     }
 
-    void ExternalSystemAccountIDPoolEntryHelper::parentToNumeric(Database & db)
+    void ExternalSystemAccountIDPoolEntryHelperLegacy::parentToNumeric(Database & db)
     {
         db.getSession() << "ALTER TABLE external_system_account_id_pool ALTER parent SET DATA TYPE NUMERIC(20, 0);";
     }
 
-    bool ExternalSystemAccountIDPoolEntryHelper::exists(Database &db, LedgerKey const &key)
+    bool ExternalSystemAccountIDPoolEntryHelperLegacy::exists(Database &db, LedgerKey const &key)
     {
         auto const &poolEntry = key.externalSystemAccountIDPoolEntry();
         return exists(db, poolEntry.poolEntryID);
     }
 
-    bool ExternalSystemAccountIDPoolEntryHelper::exists(Database &db, uint64_t poolEntryID)
+    bool ExternalSystemAccountIDPoolEntryHelperLegacy::exists(Database &db, uint64_t poolEntryID)
     {
         int exists = 0;
         auto timer = db.getSelectTimer("external_system_account_id_pool_exists");
@@ -173,7 +173,7 @@ using xdr::operator<;
         return exists != 0;
     }
 
-    bool ExternalSystemAccountIDPoolEntryHelper::existsForAccount(Database &db, int32 externalSystemType,
+    bool ExternalSystemAccountIDPoolEntryHelperLegacy::existsForAccount(Database &db, int32 externalSystemType,
                                                         AccountID accountID) {
         int exists = 0;
         auto timer = db.getSelectTimer("external_system_account_id_pool_exists");
@@ -193,7 +193,7 @@ using xdr::operator<;
     }
 
     LedgerKey
-    ExternalSystemAccountIDPoolEntryHelper::getLedgerKey(LedgerEntry const &from)
+    ExternalSystemAccountIDPoolEntryHelperLegacy::getLedgerKey(LedgerEntry const &from)
     {
         LedgerKey ledgerKey;
         ledgerKey.type(from.data.type());
@@ -202,19 +202,19 @@ using xdr::operator<;
     }
 
     EntryFrame::pointer
-    ExternalSystemAccountIDPoolEntryHelper::storeLoad(LedgerKey const &key, Database &db)
+    ExternalSystemAccountIDPoolEntryHelperLegacy::storeLoad(LedgerKey const &key, Database &db)
     {
         auto const &poolEntry = key.externalSystemAccountIDPoolEntry();
         return load(poolEntry.poolEntryID, db);
     }
 
     EntryFrame::pointer
-    ExternalSystemAccountIDPoolEntryHelper::fromXDR(LedgerEntry const &from)
+    ExternalSystemAccountIDPoolEntryHelperLegacy::fromXDR(LedgerEntry const &from)
     {
         return std::make_shared<ExternalSystemAccountIDPoolEntryFrame>(from);
     }
 
-    uint64_t ExternalSystemAccountIDPoolEntryHelper::countObjects(soci::session &sess)
+    uint64_t ExternalSystemAccountIDPoolEntryHelperLegacy::countObjects(soci::session &sess)
     {
         uint64_t count = 0;
         sess << "SELECT COUNT(*) FROM external_system_account_id_pool;", into(count);
@@ -222,7 +222,7 @@ using xdr::operator<;
     }
 
     ExternalSystemAccountIDPoolEntryFrame::pointer
-    ExternalSystemAccountIDPoolEntryHelper::load(uint64_t poolEntryID, Database &db, LedgerDelta *delta)
+    ExternalSystemAccountIDPoolEntryHelperLegacy::load(uint64_t poolEntryID, Database &db, LedgerDelta *delta)
     {
         string sql = select;
         sql += +" WHERE id = :id";
@@ -251,7 +251,7 @@ using xdr::operator<;
     }
 
     ExternalSystemAccountIDPoolEntryFrame::pointer
-    ExternalSystemAccountIDPoolEntryHelper::load(int32 type, std::string const data, Database &db, LedgerDelta *delta)
+    ExternalSystemAccountIDPoolEntryHelperLegacy::load(int32 type, std::string const data, Database &db, LedgerDelta *delta)
     {
         string sql = select;
         sql += +" WHERE external_system_type = :ex_sys_type AND data = :data ";
@@ -281,7 +281,7 @@ using xdr::operator<;
     }
 
     ExternalSystemAccountIDPoolEntryFrame::pointer
-    ExternalSystemAccountIDPoolEntryHelper::load(int32 externalSystemType, AccountID accountID,
+    ExternalSystemAccountIDPoolEntryHelperLegacy::load(int32 externalSystemType, AccountID accountID,
                                                  Database &db, LedgerDelta *delta)
     {
         string sql = select;
@@ -313,7 +313,7 @@ using xdr::operator<;
         return result;
     }
 
-    void ExternalSystemAccountIDPoolEntryHelper::load(StatementContext &prep,
+    void ExternalSystemAccountIDPoolEntryHelperLegacy::load(StatementContext &prep,
                                                      std::function<void(LedgerEntry const &)> processor)
     {
         try
@@ -361,7 +361,7 @@ using xdr::operator<;
     }
 
     ExternalSystemAccountIDPoolEntryFrame::pointer
-    ExternalSystemAccountIDPoolEntryHelper::loadAvailablePoolEntry(Database &db, LedgerManager &ledgerManager,
+    ExternalSystemAccountIDPoolEntryHelperLegacy::loadAvailablePoolEntry(Database &db, LedgerManager &ledgerManager,
                                                                    int32 externalSystemType)
     {
         string sql = select;
@@ -390,7 +390,7 @@ using xdr::operator<;
     }
 
     std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer>
-    ExternalSystemAccountIDPoolEntryHelper::loadPool(Database &db)
+    ExternalSystemAccountIDPoolEntryHelperLegacy::loadPool(Database &db)
     {
         std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> retPool;
         std::string sql = select;

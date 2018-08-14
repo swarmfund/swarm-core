@@ -105,5 +105,7 @@ private:
     {
         return mPrevious;
     }
+
+    bool isStateActive() const;
 };
 }

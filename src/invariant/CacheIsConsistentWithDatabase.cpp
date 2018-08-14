@@ -4,7 +4,7 @@
 
 #include "CacheIsConsistentWithDatabase.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "lib/util/format.h"
 #include "xdrpp/printer.h"
 

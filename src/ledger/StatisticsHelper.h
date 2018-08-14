@@ -4,7 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
 #include <functional>
 #include <unordered_map>
@@ -19,7 +19,7 @@ namespace stellar
 {
     class StatementContext;
 
-    class StatisticsHelper : public EntryHelper {
+    class StatisticsHelper : public EntryHelperLegacy {
     public:
         StatisticsHelper(StatisticsHelper const&) = delete;
         StatisticsHelper& operator= (StatisticsHelper const&) = delete;

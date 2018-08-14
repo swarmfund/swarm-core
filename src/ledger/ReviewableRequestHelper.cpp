@@ -212,6 +212,9 @@ namespace stellar {
             oe.rejectReason = rejectReason;
             oe.ext.v(static_cast<LedgerVersion>(version));
 
+            if(oe.ext.v() != LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST && allTasks != 0)
+                throw std::runtime_error("version is incorrect but AllTasks in not empty");
+
             if (oe.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
             {
                 oe.ext.tasksExt().allTasks = allTasks;

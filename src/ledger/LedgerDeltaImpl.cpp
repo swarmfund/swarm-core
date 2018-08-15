@@ -27,6 +27,16 @@ LedgerDeltaImpl::LedgerDeltaImpl(LedgerDelta& outerDelta)
 {
 }
 
+LedgerDeltaImpl::LedgerDeltaImpl(LedgerDeltaImpl& outerDelta)
+    : mOuterDelta(&outerDelta)
+    , mHeader(&outerDelta.getHeader())
+    , mCurrentHeader(outerDelta.getHeader())
+    , mPreviousHeaderValue(outerDelta.getHeader())
+    , mDb(outerDelta.getDatabase())
+    , mUpdateLastModified(outerDelta.updateLastModified())
+{
+}
+
 LedgerDeltaImpl::LedgerDeltaImpl(LedgerHeader& header, Database& db,
                                  bool updateLastModified)
     : mOuterDelta(nullptr)
@@ -430,19 +440,23 @@ LedgerDeltaImpl::getDatabase()
     return mDb;
 }
 
-const LedgerDeltaImpl::KeyEntryMap& LedgerDeltaImpl::getPreviousFrames() const
+const LedgerDeltaImpl::KeyEntryMap&
+LedgerDeltaImpl::getPreviousFrames() const
 {
     return mPrevious;
 }
-const std::set<LedgerKey, LedgerEntryIdCmp>& LedgerDeltaImpl::getDeletionFramesSet() const
+const std::set<LedgerKey, LedgerEntryIdCmp>&
+LedgerDeltaImpl::getDeletionFramesSet() const
 {
     return mDelete;
 }
-const LedgerDeltaImpl::KeyEntryMap& LedgerDeltaImpl::getCreationFrames() const
+const LedgerDeltaImpl::KeyEntryMap&
+LedgerDeltaImpl::getCreationFrames() const
 {
     return mNew;
 }
-const LedgerDeltaImpl::KeyEntryMap& LedgerDeltaImpl::getModificationFrames() const
+const LedgerDeltaImpl::KeyEntryMap&
+LedgerDeltaImpl::getModificationFrames() const
 {
     return mMod;
 }

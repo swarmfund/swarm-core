@@ -57,7 +57,11 @@ class LedgerDeltaImpl : public LedgerDelta
   public:
     // keeps an internal reference to the outerDelta,
     // will apply changes to the outer scope on commit
-    explicit LedgerDeltaImpl(LedgerDelta& outerDelta);
+    LedgerDeltaImpl(LedgerDelta& outerDelta);
+
+    // keeps an internal reference to the outerDelta,
+    // will apply changes to it on commit
+    LedgerDeltaImpl(LedgerDeltaImpl& outerDelta);
 
     // keeps an internal reference to ledgerHeader,
     // will apply changes to ledgerHeader on commit,

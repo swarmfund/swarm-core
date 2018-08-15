@@ -14,7 +14,7 @@
 #include "transactions/test/mocks/MockApplication.h"
 #include "transactions/test/mocks/MockDatabase.h"
 #include "transactions/test/mocks/MockTransactionFrame.h"
-//#include "transactions/test/mocks/MockLedgerDelta.h"
+#include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
 #include "util/StatusManager.h"
 #include "util/Timer.h"
@@ -30,7 +30,7 @@ TEST_CASE("bind external system account_id - unit test",
     MockApplication appMock;
     MockLedgerManager ledgerManagerMock;
     MockTransactionFrame transactionFrameMock;
-    // MockLedgerDelta ledgerDeltaMock;
+    MockLedgerDelta ledgerDeltaMock;
     MockDatabase dbMock;
 
     Operation operation;
@@ -46,7 +46,7 @@ TEST_CASE("bind external system account_id - unit test",
                                                    transactionFrameMock);
 
         // EXPECT_CALL( ... );
-        // opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);
+        opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);
     }
 
     /*SECTION("Checking validity of valid frame")

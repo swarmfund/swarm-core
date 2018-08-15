@@ -57,14 +57,13 @@ ManageContractOpFrame::getInnerResultCodeAsStr()
 bool
 ManageContractOpFrame::checkIsAllowed(ContractFrame::pointer contractFrame)
 {
-    if (contractFrame->getState() &
-        static_cast<uint32_t>(ContractState::DISPUTING))
-        return (contractFrame->getContractor() == getSourceID()) ||
-               (contractFrame->getCustomer() == getSourceID()) ||
-               (contractFrame->getEscrow() == getSourceID());
+    bool isAllowed = contractFrame->getContractor() == getSourceID();
+    isAllowed = isAllowed || (contractFrame->getCustomer() == getSourceID());
 
-    return (contractFrame->getContractor() == getSourceID()) ||
-           (contractFrame->getCustomer() == getSourceID());
+    if (contractFrame->getState() & static_cast<uint32_t>(ContractState::DISPUTING))
+        isAllowed = isAllowed || (contractFrame->getEscrow() == getSourceID());
+
+    return isAllowed;
 }
 
 bool
@@ -76,8 +75,7 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     innerResult().code(ManageContractResultCode::SUCCESS);
 
-    auto contractHelper = ContractHelper::Instance();
-    auto contractFrame = contractHelper->loadContract(mManageContract.contractID, db, &delta);
+    auto contractFrame = ContractHelper::Instance()->loadContract(mManageContract.contractID, db, &delta);
 
     if (!contractFrame)
     {
@@ -94,45 +92,26 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
     switch (mManageContract.data.action())
     {
         case ManageContractAction::ADD_DETAILS:
-            innerResult().response().data.action(ManageContractAction::ADD_DETAILS);
-            if (!checkContractDetails(contractFrame, app, db, delta))
-                return false;
-
-            contractFrame->addContractDetails(mManageContract.data.details());
-            contractHelper->storeChange(delta, db, contractFrame->mEntry);
-            break;
+            return tryAddContractDetails(contractFrame, app, db, delta);
         case ManageContractAction::START_DISPUTE:
-            innerResult().response().data.action(ManageContractAction::START_DISPUTE);
-            if (!startDispute(contractFrame, app, db, delta))
-                return false;
-
-            contractHelper->storeChange(delta, db, contractFrame->mEntry);
-            break;
+            return tryStartDispute(contractFrame, app, db, delta);
         case ManageContractAction::CONFIRM_COMPLETED:
-            innerResult().response().data.action(ManageContractAction::CONFIRM_COMPLETED);
-            if (!confirmCompleted(contractFrame, db, delta))
-                return false;
-
-            break;
+            return tryConfirmCompleted(contractFrame, db, delta);
         case ManageContractAction::RESOLVE_DISPUTE:
-            innerResult().response().data.action(ManageContractAction::RESOLVE_DISPUTE);
-            if (!resolveDispute(contractFrame, db, delta))
-                return false;
-
-            break;
+            return tryResolveDispute(contractFrame, db, delta);
         default:
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected source account. "
                                                    << "Expected contractor, customer or master";
             throw std::runtime_error("Unexpected source account. Expected contractor, customer or master");
     }
-
-    return true;
 }
 
 bool
-ManageContractOpFrame::checkContractDetails(ContractFrame::pointer contractFrame,
-                                            Application& app, Database& db, LedgerDelta& delta)
+ManageContractOpFrame::tryAddContractDetails(ContractFrame::pointer contractFrame,
+                                             Application &app, Database &db, LedgerDelta &delta)
 {
+    innerResult().response().data.action(ManageContractAction::ADD_DETAILS);
+
     auto maxContractDetails = obtainMaxContractDetailsCount(app, db, delta);
 
     auto actualDetailsCount = contractFrame->getContractDetailsCount();
@@ -150,6 +129,9 @@ ManageContractOpFrame::checkContractDetails(ContractFrame::pointer contractFrame
         innerResult().code(ManageContractResultCode::DETAILS_TOO_LONG);
         return false;
     }
+
+    contractFrame->addContractDetails(mManageContract.data.details());
+    ContractHelper::Instance()->storeChange(delta, db, contractFrame->mEntry);
 
     return true;
 }
@@ -200,8 +182,10 @@ ManageContractOpFrame::obtainMaxContractDetailLength(Application& app, Database&
 }
 
 bool
-ManageContractOpFrame::confirmCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta)
+ManageContractOpFrame::tryConfirmCompleted(ContractFrame::pointer contractFrame, Database &db, LedgerDelta &delta)
 {
+    innerResult().response().data.action(ManageContractAction::CONFIRM_COMPLETED);
+
     if (contractFrame->getEscrow() == getSourceID())
     {
         innerResult().code(ManageContractResultCode::CONFIRM_NOT_ALLOWED);
@@ -294,9 +278,11 @@ bool ManageContractOpFrame::isInvoicesApproved(std::vector<ReviewableRequestFram
 }
 
 bool
-ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame,
-                                    Application& app, Database& db, LedgerDelta& delta)
+ManageContractOpFrame::tryStartDispute(ContractFrame::pointer contractFrame,
+                                       Application &app, Database &db, LedgerDelta &delta)
 {
+    innerResult().response().data.action(ManageContractAction::START_DISPUTE);
+
     if (contractFrame->getState() &
         static_cast<uint32_t>(ContractState::DISPUTING))
     {
@@ -312,14 +298,17 @@ ManageContractOpFrame::startDispute(ContractFrame::pointer contractFrame,
     }
 
     contractFrame->startDispute(getSourceID(), mManageContract.data.disputeReason());
+    ContractHelper::Instance()->storeChange(delta, db, contractFrame->mEntry);
 
     return true;
 }
 
 bool
-ManageContractOpFrame::resolveDispute(ContractFrame::pointer contractFrame,
-                                      Database& db, LedgerDelta& delta)
+ManageContractOpFrame::tryResolveDispute(ContractFrame::pointer contractFrame,
+                                         Database &db, LedgerDelta &delta)
 {
+    innerResult().response().data.action(ManageContractAction::RESOLVE_DISPUTE);
+
     if (!(contractFrame->getEscrow() == getSourceID()))
     {
         innerResult().code(ManageContractResultCode::RESOLVE_DISPUTE_NOW_ALLOWED);

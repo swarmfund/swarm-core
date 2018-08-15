@@ -23,12 +23,12 @@ class ManageContractOpFrame : public OperationFrame
 
     bool checkIsAllowed(ContractFrame::pointer contractFrame);
 
-    bool checkContractDetails(ContractFrame::pointer contractFrame, Application& app,
-                              Database& db, LedgerDelta& delta);
+    bool tryAddContractDetails(ContractFrame::pointer contractFrame, Application &app,
+                               Database &db, LedgerDelta &delta);
 
     uint64_t obtainMaxContractDetailsCount(Application& app, Database& db, LedgerDelta& delta);
 
-    bool confirmCompleted(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
+    bool tryConfirmCompleted(ContractFrame::pointer contractFrame, Database &db, LedgerDelta &delta);
 
     bool checkIsCompleted(ContractFrame::pointer contractFrame,
                           std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
@@ -36,10 +36,10 @@ class ManageContractOpFrame : public OperationFrame
 
     bool isInvoicesApproved(std::vector<ReviewableRequestFrame::pointer> invoiceRequests);
 
-    bool startDispute(ContractFrame::pointer contractFrame,
-                      Application& app, Database& db, LedgerDelta& delta);
+    bool tryStartDispute(ContractFrame::pointer contractFrame,
+                         Application &app, Database &db, LedgerDelta &delta);
 
-    bool resolveDispute(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
+    bool tryResolveDispute(ContractFrame::pointer contractFrame, Database &db, LedgerDelta &delta);
 
     bool revertInvoicesAmounts(ContractFrame::pointer contractFrame, Database& db, LedgerDelta& delta);
 

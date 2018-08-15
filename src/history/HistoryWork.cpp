@@ -12,7 +12,7 @@
 #include "history/HistoryManager.h"
 #include "history/HistoryWork.h"
 #include "history/StateSnapshot.h"
-#include "ledger/LedgerHeaderFrame.h"
+#include "ledger/LedgerHeaderFrameImpl.h"
 #include "ledger/LedgerManager.h"
 #include "main/Config.h"
 #include "process/ProcessManager.h"
@@ -355,7 +355,7 @@ VerifyLedgerChainWork::onReset()
 static HistoryManager::VerifyHashStatus
 verifyLedgerHistoryEntry(LedgerHeaderHistoryEntry const& hhe)
 {
-    LedgerHeaderFrame lFrame(hhe.header);
+    LedgerHeaderFrameImpl lFrame(hhe.header);
     Hash calculated = lFrame.getHash();
     if (calculated != hhe.hash)
     {

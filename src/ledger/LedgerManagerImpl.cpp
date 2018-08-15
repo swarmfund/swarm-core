@@ -74,7 +74,7 @@ LedgerManager::ledgerAbbrev(LedgerHeaderFrame::pointer p)
     {
         return "[empty]";
     }
-    return ledgerAbbrev(p->mHeader, p->getHash());
+    return ledgerAbbrev(p->getHeader(), p->getHash());
 }
 
 std::string
@@ -185,7 +185,7 @@ LedgerManagerImpl::startNewLedger()
 
     delta.commit();
 
-    mCurrentLedger = make_shared<LedgerHeaderFrame>(genesisHeader);
+    mCurrentLedger = make_shared<LedgerHeaderFrameImpl>(genesisHeader);
 	
 	CLOG(INFO, "Ledger") << "Established genesis ledger, ";
     CLOG(INFO, "Ledger") << "Master account id: " << PubKeyUtils::toStrKey(mApp.getMasterID());
@@ -281,58 +281,58 @@ LedgerManagerImpl::getDatabase()
 int64_t
 LedgerManagerImpl::getTxFee() const
 {
-    return mCurrentLedger->mHeader.baseFee;
+    return mCurrentLedger->getHeader().baseFee;
 }
 
 uint32_t
 LedgerManagerImpl::getMaxTxSetSize() const
 {
-    return mCurrentLedger->mHeader.maxTxSetSize;
+    return mCurrentLedger->getHeader().maxTxSetSize;
 }
 
 uint64
 LedgerManagerImpl::getTxExpirationPeriod() const
 {
-	assert(mCurrentLedger->mHeader.txExpirationPeriod >= 0);
-    return mCurrentLedger->mHeader.txExpirationPeriod;
+	assert(mCurrentLedger->getHeader().txExpirationPeriod >= 0);
+    return mCurrentLedger->getHeader().txExpirationPeriod;
 }
 
 
 int64_t
 LedgerManagerImpl::getMinBalance(uint32_t ownerCount) const
 {
-    return (2 + ownerCount) * mCurrentLedger->mHeader.baseReserve;
+    return (2 + ownerCount) * mCurrentLedger->getHeader().baseReserve;
 }
 
 uint32_t
 LedgerManagerImpl::getLedgerNum() const
 {
-    return mCurrentLedger->mHeader.ledgerSeq;
+    return mCurrentLedger->getHeader().ledgerSeq;
 }
 
 uint64_t
 LedgerManagerImpl::getCloseTime() const
 {
-    return mCurrentLedger->mHeader.scpValue.closeTime;
+    return mCurrentLedger->getHeader().scpValue.closeTime;
 }
 
 tm
 LedgerManagerImpl::getTmCloseTime() const
 {
-    return VirtualClock::tm_from_time_t(mCurrentLedger->mHeader.scpValue.closeTime);
+    return VirtualClock::tm_from_time_t(mCurrentLedger->getHeader().scpValue.closeTime);
 }
 
 
 LedgerHeader const&
 LedgerManagerImpl::getCurrentLedgerHeader() const
 {
-    return mCurrentLedger->mHeader;
+    return mCurrentLedger->getHeader();
 }
 
 LedgerHeader&
 LedgerManagerImpl::getCurrentLedgerHeader()
 {
-    return mCurrentLedger->mHeader;
+    return mCurrentLedger->getHeader();
 }
 
     LedgerHeaderHistoryEntry const&
@@ -507,9 +507,9 @@ LedgerManagerImpl::verifyCatchupCandidate(
                candidate.header.ledgerSeq + 1,
                mLastClosedLedger.header.previousLedgerHash, candidate.hash);
 
-    CHECK_PAIR(mCurrentLedger->mHeader.ledgerSeq,
+    CHECK_PAIR(mCurrentLedger->getHeader().ledgerSeq,
                candidate.header.ledgerSeq + 1,
-               mCurrentLedger->mHeader.previousLedgerHash, candidate.hash);
+               mCurrentLedger->getHeader().previousLedgerHash, candidate.hash);
 
     for (auto const& ld : mSyncingLedgers)
     {
@@ -543,7 +543,7 @@ LedgerManagerImpl::historyCaughtup(asio::error_code const& ec,
             mLastClosedLedger = lastClosed;
             CLOG(INFO, "Ledger") << "First phase of CATCHUP_RECENT done: "
                                  << ledgerAbbrev(mLastClosedLedger);
-            mCurrentLedger = make_shared<LedgerHeaderFrame>(lastClosed);
+            mCurrentLedger = make_shared<LedgerHeaderFrameImpl>(lastClosed);
             return;
         }
 
@@ -552,7 +552,7 @@ LedgerManagerImpl::historyCaughtup(asio::error_code const& ec,
         if (mode == HistoryManager::CATCHUP_MINIMAL)
         {
             mLastClosedLedger = lastClosed;
-            mCurrentLedger = make_shared<LedgerHeaderFrame>(lastClosed);
+            mCurrentLedger = make_shared<LedgerHeaderFrameImpl>(lastClosed);
         }
         else
         {
@@ -681,7 +681,7 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const& ledgerData)
 {
     DBTimeExcluder qtExclude(mApp);
     CLOG(DEBUG, "Ledger") << "starting closeLedger() on ledgerSeq="
-                          << mCurrentLedger->mHeader.ledgerSeq;
+                          << mCurrentLedger->getHeader().ledgerSeq;
 
     auto now = mApp.getClock().now();
     mLedgerAgeClosed.Update(now - mLastClose);
@@ -713,9 +713,9 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const& ledgerData)
     auto ledgerTime = mLedgerClose.TimeScope();
 
     auto const& sv = ledgerData.mValue;
-    mCurrentLedger->mHeader.scpValue = sv;
+    mCurrentLedger->getHeader().scpValue = sv;
 
-    LedgerDeltaImpl ledgerDeltaImpl(mCurrentLedger->mHeader, getDatabase());
+    LedgerDeltaImpl ledgerDeltaImpl(mCurrentLedger->getHeader(), getDatabase());
     LedgerDelta& ledgerDelta = ledgerDeltaImpl;
 
     // the transaction set that was agreed upon by consensus
@@ -839,10 +839,10 @@ LedgerManagerImpl::advanceLedgerPointers()
                           << ledgerAbbrev(mCurrentLedger);
 
     mLastClosedLedger.hash = mCurrentLedger->getHash();
-    mLastClosedLedger.header = mCurrentLedger->mHeader;
-    mCurrentLedger = make_shared<LedgerHeaderFrame>(mLastClosedLedger);
+    mLastClosedLedger.header = mCurrentLedger->getHeader();
+    mCurrentLedger = make_shared<LedgerHeaderFrameImpl>(mLastClosedLedger);
     CLOG(DEBUG, "Ledger") << "New current ledger: seq="
-                          << mCurrentLedger->mHeader.ledgerSeq;
+                          << mCurrentLedger->getHeader().ledgerSeq;
 }
 
 void
@@ -891,7 +891,7 @@ LedgerManagerImpl::applyTransactions(std::vector<TransactionFramePtr>& txs,
                                      TransactionResultSet& txResultSet)
 {
     CLOG(DEBUG, "Tx") << "applyTransactions: ledger = "
-                      << mCurrentLedger->mHeader.ledgerSeq;
+                      << mCurrentLedger->getHeader().ledgerSeq;
     int index = 0;
     for (auto tx : txs)
     {
@@ -936,11 +936,11 @@ void
 LedgerManagerImpl::closeLedgerHelper(LedgerDelta const& delta)
 {
     delta.markMeters(mApp);
-    mApp.getBucketManager().addBatch(mApp, mCurrentLedger->mHeader.ledgerSeq,
+    mApp.getBucketManager().addBatch(mApp, mCurrentLedger->getHeader().ledgerSeq,
                                      delta.getLiveEntries(),
                                      delta.getDeadEntries());
 
-    mApp.getBucketManager().snapshotLedger(mCurrentLedger->mHeader);
+    mApp.getBucketManager().snapshotLedger(mCurrentLedger->getHeader());
 
     mCurrentLedger->storeInsert(*this);
 
@@ -949,7 +949,7 @@ LedgerManagerImpl::closeLedgerHelper(LedgerDelta const& delta)
 
     // Store the current HAS in the database; this is really just to checkpoint
     // the bucketlist so we can survive a restart and re-attach to the buckets.
-    HistoryArchiveState has(mCurrentLedger->mHeader.ledgerSeq,
+    HistoryArchiveState has(mCurrentLedger->getHeader().ledgerSeq,
                             mApp.getBucketManager().getBucketList());
 
     // We almost always want to try to resolve completed merges to single

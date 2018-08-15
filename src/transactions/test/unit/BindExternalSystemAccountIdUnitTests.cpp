@@ -13,13 +13,18 @@
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "transactions/test/mocks/MockApplication.h"
 #include "transactions/test/mocks/MockDatabase.h"
-#include "transactions/test/mocks/MockTransactionFrame.h"
 #include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
+#include "transactions/test/mocks/MockStorageHelper.h"
+#include "transactions/test/mocks/MockTransactionFrame.h"
+#include "transactions/test/mocks/MockKeyValueHelper.h"
+#include "transactions/test/mocks/MockExternalSystemAccountIDHelper.h"
+#include "transactions/test/mocks/MockExternalSystemAccountIDPoolEntryHelper.h"
 #include "util/StatusManager.h"
 #include "util/Timer.h"
 #include "util/TmpDir.h"
 #include "work/WorkManager.h"
+#include "ledger/LedgerHeaderFrame.h"
 
 using namespace stellar;
 typedef std::unique_ptr<Application> appPtr;
@@ -32,6 +37,10 @@ TEST_CASE("bind external system account_id - unit test",
     MockTransactionFrame transactionFrameMock;
     MockLedgerDelta ledgerDeltaMock;
     MockDatabase dbMock;
+    MockStorageHelper storageHelper;
+    MockKeyValueHelper keyValueHelperMock;
+    MockExternalSystemAccountIDHelper externalSystemAccountIDHelperMock;
+    MockExternalSystemAccountIDPoolEntryHelper externalSystemAccountIDPoolEntryHelperMock;
 
     Operation operation;
     operation.body = Operation::_body_t(
@@ -46,7 +55,7 @@ TEST_CASE("bind external system account_id - unit test",
                                                    transactionFrameMock);
 
         // EXPECT_CALL( ... );
-        opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock);
+        opFrame.doApply(appMock, storageHelper, ledgerManagerMock);
     }
 
     /*SECTION("Checking validity of valid frame")

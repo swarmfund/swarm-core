@@ -36,7 +36,7 @@ ExternalSystemIDGenerators::ExternalSystemIDGenerators(Application& app,
                                                        Database&
                                                        db): mDelta(delta)
 {
-    for (auto generatorType : mDelta.getHeaderFrame().mHeader.
+    for (auto generatorType : mDelta.getHeaderFrame().getHeader().
                                      externalSystemIDGenerators)
     {
         mGenerators.push_back(getGeneratorForType(app, db, generatorType));

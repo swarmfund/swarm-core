@@ -4,6 +4,7 @@
 
 #include "util/asio.h"
 #include "LedgerHeaderFrame.h"
+#include "LedgerHeaderFrameImpl.h"
 #include "LedgerManager.h"
 #include "util/XDRStream.h"
 #include "util/Logging.h"
@@ -21,111 +22,6 @@ namespace stellar
 using namespace soci;
 using namespace std;
 
-LedgerHeaderFrame::LedgerHeaderFrame(LedgerHeader const& lh) : mHeader(lh)
-{
-    mHash.fill(0);
-}
-
-LedgerHeaderFrame::LedgerHeaderFrame(LedgerHeaderHistoryEntry const& lastClosed)
-    : mHeader(lastClosed.header)
-{
-    if (getHash() != lastClosed.hash)
-    {
-        throw std::invalid_argument("provided ledger header is invalid");
-    }
-    mHeader.ledgerSeq++;
-    mHeader.previousLedgerHash = lastClosed.hash;
-    mHash.fill(0);
-}
-
-Hash const&
-LedgerHeaderFrame::getHash() const
-{
-    if (isZero(mHash))
-    {
-        mHash = sha256(xdr::xdr_to_opaque(mHeader));
-        assert(!isZero(mHash));
-    }
-    return mHash;
-}
-
-IdGenerator& LedgerHeaderFrame::getIDGenerator(const LedgerEntryType entryType)
-{
-    for (auto& generator : mHeader.idGenerators)
-    {
-        if (generator.entryType == entryType)
-        {
-            return generator;
-        }
-    }
-
-    const auto generator = IdGenerator(entryType, 0);
-    mHeader.idGenerators.push_back(generator);
-    return mHeader.idGenerators[mHeader.idGenerators.size() - 1];
-}
-
-uint64_t
-LedgerHeaderFrame::getLastGeneratedID(const LedgerEntryType ledgerEntryType) const
-{
-    for (auto& generator : mHeader.idGenerators)
-    {
-        if (generator.entryType == ledgerEntryType)
-        {
-            return generator.idPool;
-        }
-    }
-
-    return 0;
-}
-
-uint64_t
-LedgerHeaderFrame::generateID(const LedgerEntryType ledgerEntryType)
-{
-    return ++getIDGenerator(ledgerEntryType).idPool;
-}
-
-void
-LedgerHeaderFrame::storeInsert(LedgerManager& ledgerManager) const
-{
-    getHash();
-
-    string hash(binToHex(mHash)),
-        prevHash(binToHex(mHeader.previousLedgerHash)),
-        bucketListHash(binToHex(mHeader.bucketListHash));
-
-    auto headerBytes(xdr::xdr_to_opaque(mHeader));
-
-    std::string headerEncoded;
-    headerEncoded = bn::encode_b64(headerBytes);
-    int32_t headerVersion = static_cast<int32_t >(mHeader.ext.v());
-
-    auto& db = ledgerManager.getDatabase();
-
-    // note: columns other than "data" are there to faciliate lookup/processing
-    auto prep = db.getPreparedStatement(
-        "INSERT INTO ledgerheaders "
-        "(ledgerhash, prevhash, bucketlisthash, ledgerseq, closetime, data, version) "
-        "VALUES "
-        "(:h,        :ph,      :blh,            :seq,     :ct,       :data, :v)");
-    auto& st = prep.statement();
-    st.exchange(use(hash));
-    st.exchange(use(prevHash));
-    st.exchange(use(bucketListHash));
-    st.exchange(use(mHeader.ledgerSeq));
-    st.exchange(use(mHeader.scpValue.closeTime));
-    st.exchange(use(headerEncoded));
-    st.exchange(use(headerVersion));
-    st.define_and_bind();
-    {
-        auto timer = db.getInsertTimer("ledger-header");
-        st.execute(true);
-    }
-    if (st.get_affected_rows() != 1)
-    {
-        throw std::runtime_error("Could not update data in SQL");
-    }
-}
-
 LedgerHeaderFrame::pointer
 LedgerHeaderFrame::decodeFromData(std::string const& data)
 {
@@ -137,7 +33,7 @@ LedgerHeaderFrame::decodeFromData(std::string const& data)
     xdr::xdr_argpack_archive(g, lh);
     g.done();
 
-    return make_shared<LedgerHeaderFrame>(lh);
+    return make_shared<LedgerHeaderFrameImpl>(lh);
 }
 
 LedgerHeaderFrame::pointer
@@ -187,7 +83,7 @@ LedgerHeaderFrame::loadBySequence(uint32_t seq, Database& db,
     if (sess.got_data())
     {
         lhf = decodeFromData(headerEncoded);
-        uint32_t loadedSeq = lhf->mHeader.ledgerSeq;
+        uint32_t loadedSeq = lhf->getHeader().ledgerSeq;
 
         if (loadedSeq != seq)
         {
@@ -227,7 +123,7 @@ LedgerHeaderFrame::copyLedgerHeadersToStream(Database& db, soci::session& sess,
         LedgerHeaderHistoryEntry lhe;
         LedgerHeaderFrame::pointer lhf = decodeFromData(headerEncoded);
         lhe.hash = lhf->getHash();
-        lhe.header = lhf->mHeader;
+        lhe.header = lhf->getHeader();
         CLOG(DEBUG, "Ledger") << "Streaming ledger-header "
                               << lhe.header.ledgerSeq;
         headersOut.writeOne(lhe);

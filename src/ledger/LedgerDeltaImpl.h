@@ -6,7 +6,7 @@
 
 #include "bucket/LedgerCmp.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/LedgerHeaderFrame.h"
+#include "ledger/LedgerHeaderFrameImpl.h"
 #include "xdrpp/marshal.h"
 #include <set>
 
@@ -24,7 +24,7 @@ class LedgerDeltaImpl : public LedgerDelta
 
     // objects to keep track of changes
     // ledger header itself
-    LedgerHeaderFrame mCurrentHeader;
+    LedgerHeaderFrameImpl mCurrentHeader;
     LedgerHeader mPreviousHeaderValue;
     // ledger entries
     KeyEntryMap mNew;

@@ -59,13 +59,13 @@ LedgerDeltaImpl::~LedgerDeltaImpl()
 LedgerHeader&
 LedgerDeltaImpl::getHeader()
 {
-    return mCurrentHeader.mHeader;
+    return mCurrentHeader.getHeader();
 }
 
 LedgerHeader const&
 LedgerDeltaImpl::getHeader() const
 {
-    return mCurrentHeader.mHeader;
+    return mCurrentHeader.getHeader();
 }
 
 LedgerHeaderFrame&
@@ -249,7 +249,7 @@ LedgerDeltaImpl::commit()
         mOuterDelta->mergeEntries(*this);
         mOuterDelta = nullptr;
     }
-    *mHeader = mCurrentHeader.mHeader;
+    *mHeader = mCurrentHeader.getHeader();
     mHeader = nullptr;
 }
 
@@ -285,7 +285,7 @@ LedgerDeltaImpl::addCurrentMeta(LedgerEntryChanges& changes,
     {
         // if the old value is from a previous ledger we emit it
         auto const& e = it->second->mEntry;
-        if (e.lastModifiedLedgerSeq != mCurrentHeader.mHeader.ledgerSeq)
+        if (e.lastModifiedLedgerSeq != mCurrentHeader.getHeader().ledgerSeq)
         {
             changes.emplace_back(LedgerEntryChangeType::STATE);
             changes.back().state() = e;

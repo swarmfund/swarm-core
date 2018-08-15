@@ -21,7 +21,7 @@ class ManageContractOpFrame : public OperationFrame
 
     ManageContractOp const& mManageContract;
 
-    bool checkIsAllowed(ContractFrame::pointer contractFrame);
+    bool ensureIsAllowed(std::vector<AccountID> validSources)
 
     bool tryAddContractDetails(ContractFrame::pointer contractFrame, Application &app,
                                Database &db, LedgerDelta &delta);
@@ -30,9 +30,9 @@ class ManageContractOpFrame : public OperationFrame
 
     bool tryConfirmCompleted(ContractFrame::pointer contractFrame, Database &db, LedgerDelta &delta);
 
-    bool checkIsCompleted(ContractFrame::pointer contractFrame,
-                          std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
-                          Database& db, LedgerDelta& delta);
+    bool tryCompleted(ContractFrame::pointer contractFrame,
+                      std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
+                      Database &db, LedgerDelta &delta);
 
     bool checkIsInvoicesApproved(std::vector<ReviewableRequestFrame::pointer> invoiceRequests);
 

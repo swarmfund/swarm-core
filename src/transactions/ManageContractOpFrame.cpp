@@ -55,15 +55,17 @@ ManageContractOpFrame::getInnerResultCodeAsStr()
 }
 
 bool
-ManageContractOpFrame::checkIsAllowed(ContractFrame::pointer contractFrame)
+ManageContractOpFrame::ensureIsAllowed(std::vector<AccountID> validSources)
 {
-    bool isAllowed = contractFrame->getContractor() == getSourceID();
-    isAllowed = isAllowed || (contractFrame->getCustomer() == getSourceID());
+    auto source = getSourceID();
+    for (AccountID validSource : validSources)
+    {
+        if (validSource == source)
+            return true;
+    }
 
-    if (contractFrame->getState() & static_cast<uint32_t>(ContractState::DISPUTING))
-        isAllowed = isAllowed || (contractFrame->getEscrow() == getSourceID());
-
-    return isAllowed;
+    innerResult().code(ManageContractResultCode::NOT_ALLOWED);
+    return false;
 }
 
 bool
@@ -80,12 +82,6 @@ ManageContractOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (!contractFrame)
     {
         innerResult().code(ManageContractResultCode::NOT_FOUND);
-        return false;
-    }
-
-    if (!checkIsAllowed(contractFrame))
-    {
-        innerResult().code(ManageContractResultCode::NOT_ALLOWED);
         return false;
     }
 
@@ -110,6 +106,14 @@ bool
 ManageContractOpFrame::tryAddContractDetails(ContractFrame::pointer contractFrame,
                                              Application &app, Database &db, LedgerDelta &delta)
 {
+    std::vector<AccountID> validSources = {contractFrame->getContractor(), contractFrame->getCustomer()};
+    if (contractFrame->isInState(ContractState::DISPUTING))
+        validSources.emplace_back(contractFrame->getEscrow());
+
+    if (!ensureIsAllowed(validSources)) {
+        return false;
+    }
+
     innerResult().response().data.action(ManageContractAction::ADD_DETAILS);
 
     auto maxContractDetails = obtainMaxContractDetailsCount(app, db, delta);
@@ -184,13 +188,10 @@ ManageContractOpFrame::obtainMaxContractDetailLength(Application& app, Database&
 bool
 ManageContractOpFrame::tryConfirmCompleted(ContractFrame::pointer contractFrame, Database &db, LedgerDelta &delta)
 {
-    innerResult().response().data.action(ManageContractAction::CONFIRM_COMPLETED);
-
-    if (contractFrame->getEscrow() == getSourceID())
-    {
-        innerResult().code(ManageContractResultCode::CONFIRM_NOT_ALLOWED);
+    if (!ensureIsAllowed({contractFrame->getContractor(), contractFrame->getCustomer()}))
         return false;
-    }
+
+    innerResult().response().data.action(ManageContractAction::CONFIRM_COMPLETED);
 
     auto invoiceRequests = ReviewableRequestHelper::Instance()->loadRequests(
             contractFrame->getInvoiceRequestIDs(), db);
@@ -211,17 +212,18 @@ ManageContractOpFrame::tryConfirmCompleted(ContractFrame::pointer contractFrame,
         return false;
     }
 
-    return checkIsCompleted(contractFrame, invoiceRequests, db, delta);
+    EntryHelperProvider::storeChangeEntry(delta, db, contractFrame->mEntry);
+
+    return tryCompleted(contractFrame, invoiceRequests, db, delta);
 }
 
 bool
-ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame,
-                                        std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
-                                        Database& db, LedgerDelta& delta)
+ManageContractOpFrame::tryCompleted(ContractFrame::pointer contractFrame,
+                                    std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
+                                    Database &db, LedgerDelta &delta)
 {
     if (!contractFrame->isBothConfirmed())
     {
-        EntryHelperProvider::storeChangeEntry(delta, db, contractFrame->mEntry);
         innerResult().response().data.isCompleted() = false;
         return true;
     }
@@ -273,10 +275,13 @@ ManageContractOpFrame::tryStartDispute(ContractFrame::pointer contractFrame,
 {
     innerResult().response().data.action(ManageContractAction::START_DISPUTE);
 
-    if (contractFrame->getState() &
-        static_cast<uint32_t>(ContractState::DISPUTING))
+    if (contractFrame->isInState(ContractState::DISPUTING))
     {
         innerResult().code(ManageContractResultCode::DISPUTE_ALREADY_STARTED);
+        return false;
+    }
+
+    if (!ensureIsAllowed({contractFrame->getContractor(), contractFrame->getCustomer()})) {
         return false;
     }
 
@@ -297,13 +302,10 @@ bool
 ManageContractOpFrame::tryResolveDispute(ContractFrame::pointer contractFrame,
                                          Database &db, LedgerDelta &delta)
 {
-    innerResult().response().data.action(ManageContractAction::RESOLVE_DISPUTE);
-
-    if (!(contractFrame->getEscrow() == getSourceID()))
-    {
-        innerResult().code(ManageContractResultCode::RESOLVE_DISPUTE_NOW_ALLOWED);
+    if (!ensureIsAllowed({contractFrame->getEscrow()}))
         return false;
-    }
+
+    innerResult().response().data.action(ManageContractAction::RESOLVE_DISPUTE);
 
     EntryHelperProvider::storeDeleteEntry(delta, db, contractFrame->getKey());
 

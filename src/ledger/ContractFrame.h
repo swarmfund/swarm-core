@@ -80,6 +80,11 @@ public:
         return mContract.state;
     }
 
+    bool isInState(ContractState state) const
+    {
+        return (mContract.state & static_cast<int32_t>(state)) != 0;
+    }
+
     uint64_t const
     getContractDetailsCount()
     {

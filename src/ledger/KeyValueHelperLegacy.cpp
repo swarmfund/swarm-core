@@ -2,6 +2,7 @@
 #include "ledger/LedgerDelta.h"
 #include "util/basen.h"
 #include "xdrpp/printer.h"
+#include "xdrpp/marshal.h"
 
 using namespace soci;
 using namespace std;

@@ -2,7 +2,7 @@
 #include "ledger/ExternalSystemAccountIDHelperImpl.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelperImpl.h"
 #include "ledger/KeyValueHelperImpl.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 
 namespace stellar
 {
@@ -96,7 +96,7 @@ StorageHelperImpl::startNestedTransaction()
         throw std::runtime_error("Invalid operation: this StorageHelper "
                                  "already has an active nested StorageHelper");
     }
-    mNestedDelta = std::make_unique<LedgerDelta>(mLedgerDelta);
+    mNestedDelta = std::make_unique<LedgerDeltaImpl>(mLedgerDelta);
     return std::make_unique<StorageHelperImpl>(mDatabase, *mNestedDelta);
 }
 

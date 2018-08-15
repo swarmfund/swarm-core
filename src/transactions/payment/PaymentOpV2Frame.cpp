@@ -7,6 +7,7 @@
 #include <ledger/AssetPairHelper.h>
 #include <ledger/BalanceHelper.h>
 #include <ledger/FeeHelper.h>
+#include <ledger/LedgerHeaderFrame.h>
 #include <ledger/ReferenceHelper.h>
 #include <transactions/AccountManager.h>
 

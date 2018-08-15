@@ -13,6 +13,7 @@
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "xdrpp/marshal.h"
 
 namespace stellar
 {

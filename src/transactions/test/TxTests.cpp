@@ -13,7 +13,7 @@
 #include "TxTests.h"
 #include "util/types.h"
 #include "transactions/TransactionFrame.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/StatisticsFrame.h"
 #include "transactions/payment/PaymentOpFrame.h"
@@ -362,8 +362,8 @@ checkTransaction(TransactionFrame& txFrame)
 void
 checkTransactionForOpResult(TransactionFramePtr txFrame, Application& app, OperationResultCode opCode)
 {
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
     applyCheck(txFrame, delta, app);
     REQUIRE(getFirstResult(*txFrame).code() == opCode);
 }
@@ -437,8 +437,8 @@ applyCreateAccountTx(Application& app, SecretKey& from, SecretKey& to,
 		txFrame->addSignature(*signer);
 	}
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
     applyCheck(txFrame, delta, app);
 
     checkTransaction(*txFrame);
@@ -513,8 +513,8 @@ applyManageBalanceTx(Application& app, SecretKey& from, SecretKey& account,
     
     txFrame = createManageBalanceTx(app.getNetworkID(), from, account, seq, asset, action);
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
     applyCheck(txFrame, delta, app);
 
     checkTransaction(*txFrame);
@@ -619,8 +619,8 @@ applyPaymentTx(Application& app, SecretKey& from, BalanceID fromBalanceID,
     txFrame = createPaymentTx(app.getNetworkID(), from, fromBalanceID, toBalanceID,
         seq, amount, paymentFee, isSourceFee, subject, reference, nullptr, invoiceReference);
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
     applyCheck(txFrame, delta, app);
 
     checkTransaction(*txFrame);
@@ -660,8 +660,8 @@ applyManageInvoice(Application& app, SecretKey& from, AccountID sender,
     txFrame = createManageInvoice(app.getNetworkID(), from, sender, 
         receiverBalance, amount, invoiceID);
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
 
 
     applyCheck(txFrame, delta, app);
@@ -718,8 +718,8 @@ applyReviewPaymentRequestTx(Application& app, SecretKey& from, Salt seq,
 
     txFrame = createReviewPaymentRequestTx(app.getNetworkID(), from, seq, paymentID, accept);
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
 
     auto requests = paymentRequestHelper->countObjects(app.getDatabase().getSession());
 
@@ -806,7 +806,7 @@ applySetOptions(Application& app, SecretKey& source, Salt seq,
 		txFrame->addSignature(*txSiger);
 	}
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
                       app.getDatabase());
     applyCheck(txFrame, delta, app);
 
@@ -835,7 +835,7 @@ applyDirectDebitTx(Application& app, SecretKey& source, Salt seq,
 
 	txFrame = createDirectDebitTx(app.getNetworkID(), source, seq, from, paymentOp);
 
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
 	applyCheck(txFrame, delta, app);
 
@@ -869,7 +869,7 @@ applyManageAccountTx(Application& app, SecretKey& source, SecretKey& account, Sa
 	TransactionFramePtr txFrame = createManageAccount(app.getNetworkID(), source, account,
         seq, blockReasonsToAdd, blockReasonsToRemove, accountType);
 
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
     
     auto accountFrameBefore = loadAccount(account, app, false);
@@ -909,7 +909,7 @@ void applySetFees(Application& app, SecretKey& source, Salt seq, FeeEntry* fee, 
 		txFrame->addSignature(*signer);
 	}
 
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
 
 	applyCheck(txFrame, delta, app);

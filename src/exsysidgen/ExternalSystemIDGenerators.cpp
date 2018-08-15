@@ -7,6 +7,7 @@
 #include "BTCIDGenerator.h"
 #include "ETHIDGenerator.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 
 namespace stellar
 {

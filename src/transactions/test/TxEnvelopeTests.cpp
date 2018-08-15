@@ -3,7 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "crypto/SHA.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/LedgerManager.h"
 #include "lib/json/json.h"
 #include "main/Application.h"
@@ -53,8 +53,8 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
     SECTION("outer envelope")
     {
         TransactionFramePtr txFrame;
-        LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                          app.getDatabase());
+        LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                              app.getDatabase());
 
         SECTION("Should throw if in tx internal list")
         {
@@ -146,7 +146,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 			applyPaymentTx(app, account, commission, 0, amount, getNoPaymentFee(), false);
 			auto commissionSeq = 1;
 			auto tx = createPaymentTx(app.getNetworkID(), commission, account, commissionSeq++, amount, getNoPaymentFee());
-			LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+			LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 				app.getDatabase());
 			SECTION("Master can sign")
 			{
@@ -168,8 +168,8 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
             tx->getEnvelope().signatures.clear();
             tx->addSignature(s1);
 
-            LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                              app.getDatabase());
+            LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                                  app.getDatabase());
 
             applyCheck(tx, delta, app);
             REQUIRE(tx->getResultCode() == TransactionResultCode::txBAD_AUTH);
@@ -185,8 +185,8 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
             tx->getEnvelope().signatures.clear();
             tx->addSignature(s2);
 
-            LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                              app.getDatabase());
+            LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                                  app.getDatabase());
 
             applyCheck(tx, delta, app);
             REQUIRE(tx->getResultCode() == TransactionResultCode::txFAILED);
@@ -207,7 +207,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 			tx->addSignature(s1);
 			tx->addSignature(s1Bakup);
 
-			LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+			LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 				app.getDatabase());
 
 			applyCheck(tx, delta, app);
@@ -231,8 +231,8 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
             tx->addSignature(s1);
             tx->addSignature(s2);
 
-            LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                              app.getDatabase());
+            LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                                  app.getDatabase());
 
             applyCheck(tx, delta, app);
             REQUIRE(tx->getResultCode() == TransactionResultCode::txSUCCESS);
@@ -251,8 +251,8 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
             TransactionFramePtr tx =
                 std::make_shared<TransactionFrameImpl>(networkID, te);
             tx->addSignature(root);
-            LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                              app.getDatabase());
+            LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                                  app.getDatabase());
 
             REQUIRE(!tx->checkValid(app));
 
@@ -288,7 +288,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 
                 SECTION("missing signature")
                 {
-                    LedgerDelta delta(
+                    LedgerDeltaImpl delta(
                         app.getLedgerManager().getCurrentLedgerHeader(),
                         app.getDatabase());
 
@@ -302,7 +302,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                 SECTION("success signature check")
                 {
                     tx->addSignature(b1);
-                    LedgerDelta delta(
+                    LedgerDeltaImpl delta(
                         app.getLedgerManager().getCurrentLedgerHeader(),
                         app.getDatabase());
 
@@ -343,7 +343,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                     tx->addSignature(a1);
                     tx->addSignature(b1);
 
-                    LedgerDelta delta(
+                    LedgerDeltaImpl delta(
                         app.getLedgerManager().getCurrentLedgerHeader(),
                         app.getDatabase());
 
@@ -379,7 +379,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                     tx->addSignature(a1);
                     tx->addSignature(b1);
 
-                    LedgerDelta delta(
+                    LedgerDeltaImpl delta(
                         app.getLedgerManager().getCurrentLedgerHeader(),
                         app.getDatabase());
 
@@ -417,7 +417,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
                     tx->addSignature(a1);
                     tx->addSignature(b1);
 
-                    LedgerDelta delta(
+                    LedgerDeltaImpl delta(
                         app.getLedgerManager().getCurrentLedgerHeader(),
                         app.getDatabase());
 
@@ -450,7 +450,7 @@ TEST_CASE("txenvelope", "[dep_tx][envelope]")
 			closeLedgerOn(app, ledgerSeq, closeTime, txSet);
 		};
 		auto applyCheckTxFrame = [&app, &root, &a1, &closeLedger](TransactionFramePtr txFrame, TransactionResultCode expectedResult) {
-			LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+			LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 				app.getDatabase());
 
 			applyCheck(txFrame, delta, app);			

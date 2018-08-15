@@ -7,7 +7,7 @@
 #include "crypto/SHA.h"
 #include "herder/Herder.h"
 #include "herder/LedgerCloseData.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/LedgerManagerImpl.h"
 #include "ledger/AssetPairFrame.h"
 #include "ledger/AccountHelper.h"
@@ -172,7 +172,8 @@ LedgerManagerImpl::startNewLedger()
    
     genesisHeader.txExpirationPeriod = mApp.getConfig().TX_EXPIRATION_PERIOD;
 
-    LedgerDelta delta(genesisHeader, getDatabase());
+    LedgerDeltaImpl deltaImpl(genesisHeader, getDatabase());
+    LedgerDelta& delta = deltaImpl;
 
 	AccountManager accountManager(mApp, this->getDatabase(), delta, mApp.getLedgerManager());
 	for (auto systemAccount : systemAccounts)
@@ -181,7 +182,6 @@ LedgerManagerImpl::startNewLedger()
 		accountManager.createStats(systemAccount);
 		
 	}
-
 
     delta.commit();
 
@@ -715,7 +715,8 @@ LedgerManagerImpl::closeLedger(LedgerCloseData const& ledgerData)
     auto const& sv = ledgerData.mValue;
     mCurrentLedger->mHeader.scpValue = sv;
 
-    LedgerDelta ledgerDelta(mCurrentLedger->mHeader, getDatabase());
+    LedgerDeltaImpl ledgerDeltaImpl(mCurrentLedger->mHeader, getDatabase());
+    LedgerDelta& ledgerDelta = ledgerDeltaImpl;
 
     // the transaction set that was agreed upon by consensus
     // was sorted by hash; we reorder it so that transactions are
@@ -855,7 +856,8 @@ LedgerManagerImpl::processFeesSeqNums(std::vector<TransactionFramePtr>& txs,
         soci::transaction sqlTx(mApp.getDatabase().getSession());
         for (auto tx : txs)
         {
-            LedgerDelta thisTxDelta(delta);
+            LedgerDeltaImpl thisTxDeltaImpl(delta);
+            LedgerDelta& thisTxDelta = thisTxDeltaImpl;
             tx->storeTransactionFee(*this, thisTxDelta.getChanges(), ++index);
             tx->processSeqNum();
             tx->storeTransactionTiming(*this, tx->getTimeBounds().maxTime);
@@ -894,7 +896,8 @@ LedgerManagerImpl::applyTransactions(std::vector<TransactionFramePtr>& txs,
     for (auto tx : txs)
     {
         auto txTime = mTransactionApply.TimeScope();
-        LedgerDelta delta(ledgerDelta);
+        LedgerDeltaImpl deltaImpl(ledgerDelta);
+        LedgerDelta& delta = deltaImpl;
         TransactionMeta tm;
         try
         {

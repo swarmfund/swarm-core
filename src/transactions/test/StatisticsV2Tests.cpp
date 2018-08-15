@@ -7,7 +7,7 @@
 #include <src/main/test.h>
 #include <util/Timer.h>
 #include <main/Application.h>
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/StatisticsFrame.h"
 #include "ledger/EntryHelperLegacy.h"
@@ -35,7 +35,7 @@ TEST_CASE("StatisticsV2 tests", "[tx][stats_v2]")
 
     Database& db = app->getDatabase();
     LedgerManager& ledgerManager(app->getLedgerManager());
-    LedgerDelta delta(ledgerManager.getCurrentLedgerHeader(), db);
+    LedgerDeltaImpl delta(ledgerManager.getCurrentLedgerHeader(), db);
 
     LedgerEntry ledgerEntry;
     ledgerEntry.data.type(LedgerEntryType::STATISTICS_V2);
@@ -46,7 +46,7 @@ TEST_CASE("StatisticsV2 tests", "[tx][stats_v2]")
     statisticsV2Frame.add(amount, startingPoint);
 
     EntryHelperProvider::storeAddEntry(delta, db, statisticsV2Frame.mEntry);
-    delta.commit();
+    static_cast<LedgerDelta&>(delta).commit();
     uint32 ledgerSeq = 3;
     txtest::closeLedgerOn(*app, ledgerSeq++, startingPoint);
 

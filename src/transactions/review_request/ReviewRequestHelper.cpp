@@ -1,7 +1,8 @@
-#include <ledger/StorageHelperImpl.h>
+#include "ledger/AccountHelper.h"
+#include "ledger/LedgerDeltaImpl.h"
+#include "ledger/StorageHelperImpl.h"
 #include "ReviewRequestHelper.h"
 #include "ReviewRequestOpFrame.h"
-#include "ledger/AccountHelper.h"
 
 
 namespace stellar {
@@ -18,7 +19,7 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
 {
     // shield outer scope of any side effects by using
     // a StorageHelper and LedgerDelta
-    LedgerDelta reviewRequestDelta(delta);
+    LedgerDeltaImpl reviewRequestDelta(delta);
     StorageHelperImpl storageHelperImpl(ledgerManager.getDatabase(), reviewRequestDelta);
     StorageHelper& storageHelper = storageHelperImpl;
 

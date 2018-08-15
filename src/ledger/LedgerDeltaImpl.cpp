@@ -2,31 +2,33 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
+#include "LedgerDeltaImpl.h"
 #include "ledger/EntryHelperLegacy.h"
-#include "xdr/Stellar-ledger.h"
+#include "ledger/KeyValueEntryFrame.h"
 #include "main/Application.h"
 #include "main/Config.h"
-#include "medida/metrics_registry.h"
 #include "medida/meter.h"
+#include "medida/metrics_registry.h"
+#include "xdr/Stellar-ledger.h"
 #include "xdrpp/printer.h"
 
 namespace stellar
 {
 using xdr::operator==;
 
-LedgerDelta::LedgerDelta(LedgerDelta& outerDelta)
+LedgerDeltaImpl::LedgerDeltaImpl(LedgerDelta& outerDelta)
     : mOuterDelta(&outerDelta)
     , mHeader(&outerDelta.getHeader())
     , mCurrentHeader(outerDelta.getHeader())
     , mPreviousHeaderValue(outerDelta.getHeader())
-    , mDb(outerDelta.mDb)
-    , mUpdateLastModified(outerDelta.mUpdateLastModified)
+    , mDb(outerDelta.getDatabase())
+    , mUpdateLastModified(outerDelta.updateLastModified())
 {
 }
 
-LedgerDelta::LedgerDelta(LedgerHeader& header, Database& db,
-                         bool updateLastModified)
+LedgerDeltaImpl::LedgerDeltaImpl(LedgerHeader& header, Database& db,
+                                 bool updateLastModified)
     : mOuterDelta(nullptr)
     , mHeader(&header)
     , mCurrentHeader(header)
@@ -36,7 +38,7 @@ LedgerDelta::LedgerDelta(LedgerHeader& header, Database& db,
 {
 }
 
-LedgerDelta::~LedgerDelta()
+LedgerDeltaImpl::~LedgerDeltaImpl()
 {
     if (mHeader)
     {
@@ -45,25 +47,25 @@ LedgerDelta::~LedgerDelta()
 }
 
 LedgerHeader&
-LedgerDelta::getHeader()
+LedgerDeltaImpl::getHeader()
 {
     return mCurrentHeader.mHeader;
 }
 
 LedgerHeader const&
-LedgerDelta::getHeader() const
+LedgerDeltaImpl::getHeader() const
 {
     return mCurrentHeader.mHeader;
 }
 
 LedgerHeaderFrame&
-LedgerDelta::getHeaderFrame()
+LedgerDeltaImpl::getHeaderFrame()
 {
     return mCurrentHeader;
 }
 
 void
-LedgerDelta::checkState()
+LedgerDeltaImpl::checkState()
 {
     if (mHeader == nullptr)
     {
@@ -73,31 +75,31 @@ LedgerDelta::checkState()
 }
 
 void
-LedgerDelta::addEntry(EntryFrame const& entry)
+LedgerDeltaImpl::addEntry(EntryFrame const& entry)
 {
     addEntry(entry.copy());
 }
 
 void
-LedgerDelta::deleteEntry(EntryFrame const& entry)
+LedgerDeltaImpl::deleteEntry(EntryFrame const& entry)
 {
     deleteEntry(entry.copy());
 }
 
 void
-LedgerDelta::modEntry(EntryFrame const& entry)
+LedgerDeltaImpl::modEntry(EntryFrame const& entry)
 {
     modEntry(entry.copy());
 }
 
 void
-LedgerDelta::recordEntry(EntryFrame const& entry)
+LedgerDeltaImpl::recordEntry(EntryFrame const& entry)
 {
     recordEntry(entry.copy());
 }
 
 void
-LedgerDelta::addEntry(EntryFrame::pointer entry)
+LedgerDeltaImpl::addEntry(EntryFrame::pointer entry)
 {
     checkState();
     auto k = entry->getKey();
@@ -121,14 +123,14 @@ LedgerDelta::addEntry(EntryFrame::pointer entry)
 }
 
 void
-LedgerDelta::deleteEntry(EntryFrame::pointer entry)
+LedgerDeltaImpl::deleteEntry(EntryFrame::pointer entry)
 {
     auto k = entry->getKey();
     deleteEntry(k);
 }
 
 void
-LedgerDelta::deleteEntry(LedgerKey const& k)
+LedgerDeltaImpl::deleteEntry(LedgerKey const& k)
 {
     checkState();
     auto new_it = mNew.find(k);
@@ -139,10 +141,10 @@ LedgerDelta::deleteEntry(LedgerKey const& k)
     }
     else
     {
-        if(mDelete.find(k) == mDelete.end())
+        if (mDelete.find(k) == mDelete.end())
         {
             mDelete.insert(k);
-        }// else already being deleted
+        } // else already being deleted
 
         mMod.erase(k);
     }
@@ -153,7 +155,7 @@ LedgerDelta::deleteEntry(LedgerKey const& k)
 }
 
 void
-LedgerDelta::modEntry(EntryFrame::pointer entry)
+LedgerDeltaImpl::modEntry(EntryFrame::pointer entry)
 {
     checkState();
     auto k = entry->getKey();
@@ -184,7 +186,7 @@ LedgerDelta::modEntry(EntryFrame::pointer entry)
 }
 
 void
-LedgerDelta::recordEntry(EntryFrame::pointer entry)
+LedgerDeltaImpl::recordEntry(EntryFrame::pointer entry)
 {
     checkState();
     // keeps the old one around
@@ -192,29 +194,29 @@ LedgerDelta::recordEntry(EntryFrame::pointer entry)
 }
 
 void
-LedgerDelta::mergeEntries(LedgerDelta& other)
+LedgerDeltaImpl::mergeEntries(LedgerDelta& other)
 {
     checkState();
 
     // propagates mPrevious for deleted & modified entries
-    for (auto& d : other.mDelete)
+    for (auto& d : other.getDeletionFramesSet())
     {
         deleteEntry(d);
-        auto it = other.mPrevious.find(d);
-        if (it != other.mPrevious.end())
+        auto it = other.getPreviousFrames().find(d);
+        if (it != other.getPreviousFrames().end())
         {
             recordEntry(*it->second);
         }
     }
-    for (auto& n : other.mNew)
+    for (auto& n : other.getCreationFrames())
     {
         addEntry(n.second);
     }
-    for (auto& m : other.mMod)
+    for (auto& m : other.getModificationFrames())
     {
         modEntry(m.second);
-        auto it = other.mPrevious.find(m.first);
-        if (it != other.mPrevious.end())
+        auto it = other.getPreviousFrames().find(m.first);
+        if (it != other.getPreviousFrames().end())
         {
             recordEntry(*it->second);
         }
@@ -222,7 +224,7 @@ LedgerDelta::mergeEntries(LedgerDelta& other)
 }
 
 void
-LedgerDelta::commit()
+LedgerDeltaImpl::commit()
 {
     checkState();
     // checks if we about to override changes that were made
@@ -242,31 +244,31 @@ LedgerDelta::commit()
 }
 
 void
-LedgerDelta::rollback()
+LedgerDeltaImpl::rollback()
 {
     checkState();
     mHeader = nullptr;
 
-	for (auto& d : mDelete)
-	{
-		auto helper = EntryHelperProvider::getHelper(d.type());
-		helper->flushCachedEntry(d, mDb);
-	}
-	for (auto& n : mNew)
-	{
-		auto helper = EntryHelperProvider::getHelper(n.first.type());
-		helper->flushCachedEntry(n.first, mDb);
-	}
-	for (auto& m : mMod)
-	{
-		auto helper = EntryHelperProvider::getHelper(m.first.type());
-		helper->flushCachedEntry(m.first, mDb);
-	}
+    for (auto& d : mDelete)
+    {
+        auto helper = EntryHelperProvider::getHelper(d.type());
+        helper->flushCachedEntry(d, mDb);
+    }
+    for (auto& n : mNew)
+    {
+        auto helper = EntryHelperProvider::getHelper(n.first.type());
+        helper->flushCachedEntry(n.first, mDb);
+    }
+    for (auto& m : mMod)
+    {
+        auto helper = EntryHelperProvider::getHelper(m.first.type());
+        helper->flushCachedEntry(m.first, mDb);
+    }
 }
 
 void
-LedgerDelta::addCurrentMeta(LedgerEntryChanges& changes,
-                            LedgerKey const& key) const
+LedgerDeltaImpl::addCurrentMeta(LedgerEntryChanges& changes,
+                                LedgerKey const& key) const
 {
     auto it = mPrevious.find(key);
     if (it != mPrevious.end())
@@ -282,7 +284,7 @@ LedgerDelta::addCurrentMeta(LedgerEntryChanges& changes,
 }
 
 LedgerEntryChanges
-LedgerDelta::getChanges() const
+LedgerDeltaImpl::getChanges() const
 {
     LedgerEntryChanges changes;
 
@@ -308,14 +310,14 @@ LedgerDelta::getChanges() const
     return changes;
 }
 
-LedgerEntryChanges
-LedgerDelta::getAllChanges() const
+const LedgerEntryChanges&
+LedgerDeltaImpl::getAllChanges() const
 {
     return mAllChanges;
 }
 
 std::vector<LedgerEntry>
-LedgerDelta::getLiveEntries() const
+LedgerDeltaImpl::getLiveEntries() const
 {
     std::vector<LedgerEntry> live;
 
@@ -334,7 +336,7 @@ LedgerDelta::getLiveEntries() const
 }
 
 std::vector<LedgerKey>
-LedgerDelta::getDeadEntries() const
+LedgerDeltaImpl::getDeadEntries() const
 {
     std::vector<LedgerKey> dead;
 
@@ -348,32 +350,49 @@ LedgerDelta::getDeadEntries() const
 }
 
 bool
-LedgerDelta::updateLastModified() const
+LedgerDeltaImpl::updateLastModified() const
 {
     return mUpdateLastModified;
 }
 
 void
-LedgerDelta::markMeters(Application& app) const
+LedgerDeltaImpl::markMeters(Application& app) const
 {
     for (auto const& ke : mNew)
     {
-		app.getMetrics().NewMeter({ "ledger", xdr::xdr_traits<LedgerEntryType>::enum_name(ke.first.type()), "add" }, "entry").Mark();
+        app.getMetrics()
+            .NewMeter(
+                {"ledger",
+                 xdr::xdr_traits<LedgerEntryType>::enum_name(ke.first.type()),
+                 "add"},
+                "entry")
+            .Mark();
     }
 
     for (auto const& ke : mMod)
     {
-		app.getMetrics().NewMeter({ "ledger", xdr::xdr_traits<LedgerEntryType>::enum_name(ke.first.type()), "modify" }, "entry").Mark();
+        app.getMetrics()
+            .NewMeter(
+                {"ledger",
+                 xdr::xdr_traits<LedgerEntryType>::enum_name(ke.first.type()),
+                 "modify"},
+                "entry")
+            .Mark();
     }
 
     for (auto const& ke : mDelete)
     {
-		app.getMetrics().NewMeter({ "ledger", xdr::xdr_traits<LedgerEntryType>::enum_name(ke.type()), "delete" }, "entry").Mark();
+        app.getMetrics()
+            .NewMeter({"ledger",
+                       xdr::xdr_traits<LedgerEntryType>::enum_name(ke.type()),
+                       "delete"},
+                      "entry")
+            .Mark();
     }
 }
 
 void
-LedgerDelta::checkAgainstDatabase(Application& app) const
+LedgerDeltaImpl::checkAgainstDatabase(Application& app) const
 {
     if (!app.getConfig().PARANOID_MODE)
     {
@@ -397,9 +416,33 @@ LedgerDelta::checkAgainstDatabase(Application& app) const
         }
     }
 }
-}
+} // namespace stellar
 
-bool LedgerDelta::isStateActive() const
+bool
+LedgerDeltaImpl::isStateActive() const
 {
     return static_cast<bool>(mHeader);
+}
+
+Database&
+LedgerDeltaImpl::getDatabase()
+{
+    return mDb;
+}
+
+const LedgerDeltaImpl::KeyEntryMap& LedgerDeltaImpl::getPreviousFrames() const
+{
+    return mPrevious;
+}
+const std::set<LedgerKey, LedgerEntryIdCmp>& LedgerDeltaImpl::getDeletionFramesSet() const
+{
+    return mDelete;
+}
+const LedgerDeltaImpl::KeyEntryMap& LedgerDeltaImpl::getCreationFrames() const
+{
+    return mNew;
+}
+const LedgerDeltaImpl::KeyEntryMap& LedgerDeltaImpl::getModificationFrames() const
+{
+    return mMod;
 }

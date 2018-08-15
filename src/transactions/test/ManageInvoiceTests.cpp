@@ -7,7 +7,7 @@
 #include "util/make_unique.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/InvoiceFrame.h"
 #include "ledger/InvoiceHelper.h"
 #include "ledger/ReferenceFrame.h"
@@ -136,7 +136,7 @@ TEST_CASE("Manage invoice", "[dep_tx][manage_invoice]")
 			{
 				invoiceReference.accept = true;
 				auto paymentTxPtr = createPaymentTx(app.getNetworkID(), notverifiedKP, a1, 0, amount, getNoPaymentFee(), false, "", "", nullptr, &invoiceReference);
-				LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+				LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 					app.getDatabase());
 				REQUIRE(!applyCheck(paymentTxPtr, delta, app));
 				auto opResultCode = paymentTxPtr->getResult().result.results()[0].code();

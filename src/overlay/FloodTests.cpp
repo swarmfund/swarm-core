@@ -12,7 +12,7 @@
 #include "simulation/Topologies.h"
 #include "herder/Herder.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "herder/HerderImpl.h"
 #include "test/test_marshaler.h"
 
@@ -73,7 +73,7 @@ TEST_CASE("Flooding", "[flood][overlay]")
                 {
                     LedgerHeader lh;
                     Database& db = n->getDatabase();
-                    LedgerDelta delta(lh, db, false);
+                    LedgerDeltaImpl delta(lh, db, false);
 					EntryHelperProvider::storeAddEntry(delta, db, newAccount->mEntry);
                 }
             }

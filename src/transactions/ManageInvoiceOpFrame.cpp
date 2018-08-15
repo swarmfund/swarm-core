@@ -8,6 +8,7 @@
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/InvoiceFrame.h"
 #include "ledger/InvoiceHelper.h"

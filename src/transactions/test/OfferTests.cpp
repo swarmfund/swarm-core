@@ -9,7 +9,7 @@
 #include "main/test.h"
 #include "TxTests.h"
 #include "transactions/dex/OfferExchange.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/OfferHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"
@@ -39,7 +39,8 @@ TEST_CASE("manage offer", "[tx][offer]")
     app.start();
     auto testManager = TestManager::make(app);
     auto& db = testManager->getDB();
-    LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), testManager->getDB());
+    LedgerDeltaImpl delta(testManager->getLedgerManager().getCurrentLedgerHeader(),
+                          testManager->getDB());
 
     // set up world
     SecretKey root = getRoot();

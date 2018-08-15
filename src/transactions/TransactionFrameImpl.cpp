@@ -10,7 +10,7 @@
 #include <string>
 #include "util/Logging.h"
 #include "util/XDRStream.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/StorageHelperImpl.h"
 #include "crypto/SHA.h"
@@ -368,7 +368,7 @@ bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
         // shield outer scope of any side effects by using
         // a sql transaction for ledger state and LedgerDelta
         soci::transaction sqlTx(app.getDatabase().getSession());
-        LedgerDelta thisTxDelta(delta);
+        LedgerDeltaImpl thisTxDelta(delta);
 
         string txIDString(binToHex(getContentsHash()));
         auto& txInternal = app.getConfig().TX_INTERNAL_ERROR;
@@ -383,7 +383,8 @@ bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
         for (auto& op : mOperations)
         {
             auto time = opTimer.TimeScope();
-            LedgerDelta opDelta(thisTxDelta);
+            LedgerDeltaImpl opDeltaImpl(thisTxDelta);
+            LedgerDelta& opDelta = opDeltaImpl;
             StorageHelperImpl storageHelperImpl(app.getDatabase(), opDelta);
             StorageHelper& storageHelper = storageHelperImpl;
             bool txRes = op->apply(storageHelper, app);
@@ -414,7 +415,7 @@ bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
             }
 
             sqlTx.commit();
-            thisTxDelta.commit();
+            static_cast<LedgerDelta&>(thisTxDelta).commit();
         }
     }
 

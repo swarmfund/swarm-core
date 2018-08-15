@@ -18,6 +18,7 @@
 #include "ledger/LedgerDelta.h"
 #include "main/Application.h"
 #include "crypto/SHA.h"
+#include "xdrpp/marshal.h"
 #include "xdrpp/printer.h"
 
 namespace stellar

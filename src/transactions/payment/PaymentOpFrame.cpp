@@ -10,6 +10,7 @@
 #include "ledger/FeeHelper.h"
 #include "ledger/InvoiceHelper.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/ReferenceHelper.h"
 #include "ledger/StorageHelper.h"

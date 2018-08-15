@@ -2,6 +2,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/StorageHelper.h"
 #include <memory>
+#include <xdrpp/marshal.h>
 #include "util/basen.h"
 
 using namespace soci;

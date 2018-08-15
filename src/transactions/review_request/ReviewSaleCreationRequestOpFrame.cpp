@@ -6,6 +6,7 @@
 #include "ReviewSaleCreationRequestOpFrame.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AssetHelper.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"

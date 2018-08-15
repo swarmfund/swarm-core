@@ -1,6 +1,7 @@
 #include <transactions/test/TxTests.h>
 #include "ManageKeyValueTestHelper.h"
 #include "ledger/KeyValueHelperLegacy.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "test/test_marshaler.h"
 
 namespace stellar {
@@ -42,7 +43,7 @@ namespace stellar {
         void ManageKeyValueTestHelper::doApply(Application &app, ManageKVAction action, bool require,
                                                KeyValueEntryType type)
         {
-            LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(), mTestManager->getDB());
+            LedgerDeltaImpl delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(), mTestManager->getDB());
 
             ManageKeyValueTestBuilder builder(key, mTestManager, action, value, type);
 

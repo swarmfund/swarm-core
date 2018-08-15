@@ -6,6 +6,7 @@
 #include <transactions/test/test_helper/ManageAccountTestHelper.h>
 #include "main/test.h"
 #include "ledger/AssetHelper.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "TxTests.h"
 #include "transactions/test/test_helper/ManageAssetTestHelper.h"
@@ -118,7 +119,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
             std::string txIDString(binToHex(txFrame->getContentsHash()));
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "tx must go throug even with invalid sigs: " << txIDString;
             REQUIRE(updateMaxIssuanceTxHash == txIDString);
-            LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+            LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
                 app.getDatabase());
             applyCheck(txFrame, delta, app);
 

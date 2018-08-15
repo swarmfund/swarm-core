@@ -16,6 +16,7 @@
 #include "ledger/AssetPairHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/EntryHelperLegacy.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/StatisticsHelper.h"
 #include "ledger/FeeHelper.h"
 #include "StatisticsV2Processor.h"

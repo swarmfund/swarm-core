@@ -1,6 +1,7 @@
 #include "bucket/BucketManager.h"
 #include "herder/Herder.h"
 #include "invariant/Invariants.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "main/CommandHandler.h"
 #include "main/PersistentState.h"
 #include "medida/meter.h"
@@ -13,21 +14,22 @@
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "transactions/test/mocks/MockApplication.h"
 #include "transactions/test/mocks/MockDatabase.h"
+#include "transactions/test/mocks/MockExternalSystemAccountIDHelper.h"
+#include "transactions/test/mocks/MockExternalSystemAccountIDPoolEntryHelper.h"
+#include "transactions/test/mocks/MockKeyValueHelper.h"
 #include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
 #include "transactions/test/mocks/MockStorageHelper.h"
 #include "transactions/test/mocks/MockTransactionFrame.h"
-#include "transactions/test/mocks/MockKeyValueHelper.h"
-#include "transactions/test/mocks/MockExternalSystemAccountIDHelper.h"
-#include "transactions/test/mocks/MockExternalSystemAccountIDPoolEntryHelper.h"
 #include "util/StatusManager.h"
 #include "util/Timer.h"
 #include "util/TmpDir.h"
 #include "work/WorkManager.h"
-#include "ledger/LedgerHeaderFrame.h"
 
 using namespace stellar;
-typedef std::unique_ptr<Application> appPtr;
+
+static int32 externalSystemType = 5;
+static uint256 sourceAccountPublicKey = hexToBin256("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABB");
 
 TEST_CASE("bind external system account_id - unit test",
           "[tx][bind_external_system_account_id_unit_test]")
@@ -37,26 +39,56 @@ TEST_CASE("bind external system account_id - unit test",
     MockTransactionFrame transactionFrameMock;
     MockLedgerDelta ledgerDeltaMock;
     MockDatabase dbMock;
-    MockStorageHelper storageHelper;
+    MockStorageHelper storageHelperMock;
     MockKeyValueHelper keyValueHelperMock;
     MockExternalSystemAccountIDHelper externalSystemAccountIDHelperMock;
-    MockExternalSystemAccountIDPoolEntryHelper externalSystemAccountIDPoolEntryHelperMock;
+    MockExternalSystemAccountIDPoolEntryHelper
+        externalSystemAccountIDPoolEntryHelperMock;
 
+    BindExternalSystemAccountIdOp op;
+    op.externalSystemType = externalSystemType;
     Operation operation;
     operation.body = Operation::_body_t(
         stellar::OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID);
+    operation.body.bindExternalSystemAccountIdOp() = op;
+    operation.sourceAccount =
+        xdr::pointer<AccountID>(new AccountID(CryptoKeyType::KEY_TYPE_ED25519));
+    operation.sourceAccount->ed25519() = sourceAccountPublicKey;
     OperationResult operationResult;
 
-    ON_CALL(appMock, getDatabase()).WillByDefault(::testing::ReturnRef(dbMock));
+    AccountFrame::pointer accountFrameFake = AccountFrame::makeAuthOnlyAccount(*operation.sourceAccount);
 
-    SECTION("Happy path")
+    ON_CALL(appMock, getDatabase()).WillByDefault(::testing::ReturnRef(dbMock));
+    ON_CALL(storageHelperMock, getDatabase())
+        .WillByDefault(::testing::ReturnRef(dbMock));
+    ON_CALL(storageHelperMock, getLedgerDelta())
+        .WillByDefault(::testing::ReturnRef(ledgerDeltaMock));
+
+    ON_CALL(storageHelperMock, getExternalSystemAccountIDHelper())
+        .WillByDefault(::testing::ReturnRef(externalSystemAccountIDHelperMock));
+    ON_CALL(storageHelperMock, getExternalSystemAccountIDPoolEntryHelper())
+        .WillByDefault(
+            ::testing::ReturnRef(externalSystemAccountIDPoolEntryHelperMock));
+
+    BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
+                                               transactionFrameMock);
+
+    SECTION("Load account")
+    {
+        EXPECT_CALL(transactionFrameMock, loadAccount(&ledgerDeltaMock, ::testing::Ref(dbMock),
+                                                      *operation.sourceAccount))
+                .WillOnce(::testing::Return(accountFrameFake));
+        REQUIRE(opFrame.loadAccount(&ledgerDeltaMock, dbMock));
+    }
+
+    /*SECTION("Apply, external system pool exists")
     {
         BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
                                                    transactionFrameMock);
 
         // EXPECT_CALL( ... );
-        opFrame.doApply(appMock, storageHelper, ledgerManagerMock);
-    }
+        opFrame.doApply(appMock, storageHelperMock, ledgerManagerMock);
+    }*/
 
     /*SECTION("Checking validity of valid frame")
     {

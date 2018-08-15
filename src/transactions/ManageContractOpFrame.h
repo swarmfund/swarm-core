@@ -21,7 +21,7 @@ class ManageContractOpFrame : public OperationFrame
 
     ManageContractOp const& mManageContract;
 
-    bool ensureIsAllowed(std::vector<AccountID> validSources)
+    bool ensureIsAllowed(std::vector<AccountID> validSources);
 
     bool tryAddContractDetails(ContractFrame::pointer contractFrame, Application &app,
                                Database &db, LedgerDelta &delta);

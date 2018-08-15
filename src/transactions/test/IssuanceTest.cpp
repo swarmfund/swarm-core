@@ -491,7 +491,7 @@ TEST_CASE("Issuance", "[tx][issuance]")
         auto issuerBalanceID = issuerBalance->getBalanceID();
 
         auto reference = "6146ccf6a66d994f7c363db875e31ca35581450a4bf6d3be6cc9ac79233a69d0";
-        uint32_t issuanceTasks = 4;
+        uint32_t issuanceTasks = 8;
 
         SECTION("Create issuance request")
         {

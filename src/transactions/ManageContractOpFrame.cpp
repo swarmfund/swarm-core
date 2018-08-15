@@ -260,7 +260,7 @@ ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame,
     {
         auto invoice = invoiceRequest->getRequestEntry().body.invoiceRequest();
         auto balanceHelper = BalanceHelper::Instance();
-        auto balanceFrame = balanceHelper->mustLoadBalance(invoiceRequest->getRequestor(), invoice.asset, db, &delta);
+        auto balanceFrame = balanceHelper->mustLoadBalance(invoice.receiverBalance, db, &delta);
 
         if (!balanceFrame->unlock(invoice.amount))
         {
@@ -356,8 +356,7 @@ ManageContractOpFrame::revertInvoicesAmounts(ContractFrame::pointer contractFram
             continue;
         }
 
-        auto contractorBalance = balanceHelper->mustLoadBalance(invoiceRequest->getRequestor(),
-                                                                invoice.asset, db, &delta);
+        auto contractorBalance = balanceHelper->mustLoadBalance(invoice.receiverBalance, db, &delta);
         if (!contractorBalance->tryChargeFromLocked(invoice.amount))
         {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected balance state. "
@@ -366,8 +365,7 @@ ManageContractOpFrame::revertInvoicesAmounts(ContractFrame::pointer contractFram
         }
         balanceHelper->storeChange(delta, db, contractorBalance->mEntry);
 
-        auto customerBalance = balanceHelper->mustLoadBalance(invoiceRequest->getReviewer(),
-                                                              invoice.asset, db, &delta);
+        auto customerBalance = balanceHelper->mustLoadBalance(invoice.senderBalance, db, &delta);
         if (!customerBalance->tryFundAccount(invoice.amount))
         {
             innerResult().code(ManageContractResultCode::CUSTOMER_BALANCE_OVERFLOW);
@@ -397,8 +395,7 @@ ManageContractOpFrame::unlockApprovedInvoicesAmounts(ContractFrame::pointer cont
             continue;
         }
 
-        auto contractorBalance = balanceHelper->mustLoadBalance(invoiceRequest->getRequestor(),
-                                                                invoice.asset, db, &delta);
+        auto contractorBalance = balanceHelper->mustLoadBalance(invoice.receiverBalance, db, &delta);
         if (!contractorBalance->unlock(invoice.amount))
         {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected balance state. "

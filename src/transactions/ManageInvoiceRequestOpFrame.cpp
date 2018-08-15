@@ -102,10 +102,10 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
                                                         LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-    auto& invoiceRequest = mManageInvoiceRequest.details.invoiceRequest();
+    auto& invoiceCreationRequest = mManageInvoiceRequest.details.invoiceRequest();
 
-    auto senderBalance = BalanceHelper::Instance()->loadBalance(invoiceRequest.sender,
-                                                                invoiceRequest.asset, db, &delta);
+    auto senderBalance = BalanceHelper::Instance()->loadBalance(invoiceCreationRequest.sender,
+                                                                invoiceCreationRequest.asset, db, &delta);
     if (!senderBalance)
     {
         innerResult().code(ManageInvoiceRequestResultCode::BALANCE_NOT_FOUND);
@@ -115,20 +115,31 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     if (!checkMaxInvoicesForReceiverAccount(app, db))
         return false;
 
+    auto receiverBalanceID = AccountManager::loadOrCreateBalanceForAsset(getSourceID(),
+                                                                         invoiceCreationRequest.asset, db, delta);
+    InvoiceRequest invoiceRequest;
+    invoiceRequest.asset = invoiceCreationRequest.asset;
+    invoiceRequest.amount = invoiceCreationRequest.amount;
+    invoiceRequest.details = invoiceCreationRequest.details;
+    invoiceRequest.isApproved = false;
+    invoiceRequest.contractID = invoiceCreationRequest.contractID;
+    invoiceRequest.senderBalance = senderBalance->getBalanceID();
+    invoiceRequest.receiverBalance = receiverBalanceID;
+    invoiceRequest.ext.v(LedgerVersion::EMPTY_VERSION);
+
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::INVOICE);
     body.invoiceRequest() = invoiceRequest;
-    body.invoiceRequest().isApproved = false;
 
-    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), invoiceRequest.sender,
+    auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), invoiceCreationRequest.sender,
                                                              nullptr, body, ledgerManager.getCloseTime());
 
     EntryHelperProvider::storeAddEntry(delta, db, request->mEntry);
 
-    if (invoiceRequest.contractID)
+    if (invoiceCreationRequest.contractID)
     {
         auto contractHelper = ContractHelper::Instance();
-        auto contractFrame = contractHelper->loadContract(*invoiceRequest.contractID, db, &delta);
+        auto contractFrame = contractHelper->loadContract(*invoiceCreationRequest.contractID, db, &delta);
 
         if (!contractFrame)
         {
@@ -142,7 +153,7 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
             return false;
         }
 
-        if (!(contractFrame->getCustomer() == invoiceRequest.sender))
+        if (!(contractFrame->getCustomer() == invoiceCreationRequest.sender))
         {
             innerResult().code(ManageInvoiceRequestResultCode::SENDER_ACCOUNT_MISMATCHED);
             return false;
@@ -151,9 +162,6 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
         contractFrame->addInvoice(request->getRequestID());
         contractHelper->storeChange(delta, db, contractFrame->mEntry);
     }
-
-    auto receiverBalanceID = AccountManager::loadOrCreateBalanceForAsset(getSourceID(),
-                                                                         invoiceRequest.asset, db, delta);
 
     innerResult().success().details.action(ManageInvoiceRequestAction::CREATE);
     innerResult().success().details.response().requestID = request->getRequestID();

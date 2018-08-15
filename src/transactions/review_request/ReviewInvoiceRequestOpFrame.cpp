@@ -59,10 +59,8 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
     Database& db = ledgerManager.getDatabase();
 
     auto balanceHelper = BalanceHelper::Instance();
-    auto senderBalance = balanceHelper->mustLoadBalance(invoiceRequest.sender,
-                                                        invoiceRequest.asset, db, &delta);
-    auto receiverBalance = balanceHelper->mustLoadBalance(requestEntry.requestor,
-                                                          invoiceRequest.asset, db, &delta);
+    auto senderBalance = balanceHelper->mustLoadBalance(invoiceRequest.senderBalance, db, &delta);
+    auto receiverBalance = balanceHelper->mustLoadBalance(invoiceRequest.receiverBalance, db, &delta);
 
     if (!checkPaymentDetails(requestEntry, receiverBalance->getBalanceID(), senderBalance->getBalanceID()))
         return false;

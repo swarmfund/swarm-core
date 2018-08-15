@@ -363,17 +363,4 @@ namespace stellar
 		st.execute(true);
 		return exists != 0;
 	}
-
-	BalanceFrame::pointer
-	BalanceHelper::mustLoadBalance(AccountID account, AssetCode asset, Database& db, LedgerDelta *delta)
-	{
-		auto result = loadBalance(account, asset, db, delta);
-		if (!!result) {
-			return result;
-		}
-
-		CLOG(ERROR, Logging::ENTRY_LOGGER) << "expected balance with account " << PubKeyUtils::toStrKey(account)
-										   << " and asset code " << asset << " to exists";
-		throw std::runtime_error("expected balance to exist");
-	}
 }

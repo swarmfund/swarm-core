@@ -20,13 +20,13 @@ protected:
 					  ReviewableRequestFrame::pointer request) override;
     bool tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor,
                                                              const BalanceFrame::pointer balance, const uint64_t amountToAdd,
-                                                             uint64_t& universalAmount, uint64_t requestID);
+                                                             uint64_t& universalAmount);
     void tryRevertStatsV2(StatisticsV2Processor& statisticsV2Processor,
                           uint64_t requestID);
     bool addStatistics(Database& db,
                                                                  LedgerDelta& delta, LedgerManager& ledgerManager,
                                                                  BalanceFrame::pointer balanceFrame, const uint64_t amountToAdd,
-                                                                 uint64_t& universalAmount, const uint64_t requestID);
+                                                                 uint64_t& universalAmount);
     void revertStatistics(Database& db, LedgerDelta& delta, LedgerManager& ledgerManager,
                                                                  uint64_t requestID);
 	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID,

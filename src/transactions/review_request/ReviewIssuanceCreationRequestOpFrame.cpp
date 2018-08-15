@@ -269,26 +269,17 @@ bool ReviewIssuanceCreationRequestOpFrame::doCheckValid(Application &app)
 bool ReviewIssuanceCreationRequestOpFrame::addStatistics(Database& db,
 													   LedgerDelta& delta, LedgerManager& ledgerManager,
 													   BalanceFrame::pointer balanceFrame, const uint64_t amountToAdd,
-													   uint64_t& universalAmount, const uint64_t requestID)
+													   uint64_t& universalAmount)
 {
 	StatisticsV2Processor statisticsV2Processor(db, delta, ledgerManager);
-	return tryAddStatsV2(statisticsV2Processor, balanceFrame, amountToAdd, universalAmount, requestID);
+	return tryAddStatsV2(statisticsV2Processor, balanceFrame, amountToAdd, universalAmount);
 }
-
-void ReviewIssuanceCreationRequestOpFrame::revertStatistics(Database& db,
-													   LedgerDelta& delta, LedgerManager& ledgerManager,
-													   const uint64_t requestID)
-{
-	StatisticsV2Processor statisticsV2Processor(db, delta, ledgerManager);
-	tryRevertStatsV2(statisticsV2Processor, requestID);
-}
-
 bool ReviewIssuanceCreationRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor,
                                                        const BalanceFrame::pointer balance, const uint64_t amountToAdd,
-                                                       uint64_t& universalAmount, uint64_t requestID)
+                                                       uint64_t& universalAmount)
 {
 	const auto result = statisticsV2Processor.addStatsV2(StatisticsV2Processor::SpendType::DEPOSIT, amountToAdd,
-														 universalAmount, mSourceAccount, balance, &requestID);
+														 universalAmount, mSourceAccount, balance, nullptr);
 	switch (result)
 	{
 		case StatisticsV2Processor::SUCCESS:
@@ -312,15 +303,18 @@ void ReviewIssuanceCreationRequestOpFrame::tryRevertStatsV2(StatisticsV2Processo
 
 }
 
-uint32_t ReviewIssuanceCreationRequestOpFrame::getInternalTasksToAdd( Application &app, Database& db,  LedgerDelta &delta,
+uint32_t ReviewIssuanceCreationRequestOpFrame::getInternalTasksToAdd( Application &app, Database& db,
+		LedgerDelta &delta,
 		LedgerManager &ledgerManager,
-	ReviewableRequestFrame::pointer request)
+		ReviewableRequestFrame::pointer request)
 	{
-        //localDelta is used to protect
+        // shield outer scope of any side effects by using
+		// a sql transaction for ledger state and LedgerDelta
+		soci::transaction localTx(db.getSession());
+		LedgerDelta localDelta(delta);
+
 		request->checkRequestType(ReviewableRequestType::ISSUANCE_CREATE);
 		auto& requestEntry = request->getRequestEntry();
-        soci::transaction localTx(db.getSession());
-        LedgerDelta localDelta(delta);
         auto& issuanceRequest = request->getRequestEntry().body.issuanceRequest();
 		auto asset = AssetHelper::Instance()->mustLoadAsset(issuanceRequest.asset, db, &localDelta);
 
@@ -340,7 +334,7 @@ uint32_t ReviewIssuanceCreationRequestOpFrame::getInternalTasksToAdd( Applicatio
 
 		if (!addStatistics(db, localDelta, ledgerManager,
 							   balanceFrame, issuanceRequest.amount,
-							   universalAmount, request->getRequestID()))
+							   universalAmount))
 		{
 			allTasks |= CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
 		}
@@ -348,7 +342,6 @@ uint32_t ReviewIssuanceCreationRequestOpFrame::getInternalTasksToAdd( Applicatio
 		{
 			requestEntry.ext.tasksExt().pendingTasks &= ~CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
 		}
-
 
 		if (allTasks == 0)
         {

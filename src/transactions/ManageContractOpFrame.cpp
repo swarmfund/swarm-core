@@ -195,30 +195,20 @@ ManageContractOpFrame::tryConfirmCompleted(ContractFrame::pointer contractFrame,
     auto invoiceRequests = ReviewableRequestHelper::Instance()->loadRequests(
             contractFrame->getInvoiceRequestIDs(), db);
 
-    if (!isInvoicesApproved(invoiceRequests))
+    if (!checkIsInvoicesApproved(invoiceRequests))
         return false;
 
-    if (contractFrame->getContractor() == getSourceID())
+    auto stateToBeAdded = ContractState::CONTRACTOR_CONFIRMED;
+
+    if (contractFrame->getCustomer() == getSourceID())
     {
-        if (!contractFrame->addState(ContractState::CONTRACTOR_CONFIRMED))
-        {
-            innerResult().code(ManageContractResultCode::ALREADY_CONFIRMED);
-            return false;
-        }
+        stateToBeAdded = ContractState::CUSTOMER_CONFIRMED;
     }
-    else if (contractFrame->getCustomer() == getSourceID())
+
+    if (!contractFrame->addState(stateToBeAdded))
     {
-        if (!contractFrame->addState(ContractState::CUSTOMER_CONFIRMED))
-        {
-            innerResult().code(ManageContractResultCode::ALREADY_CONFIRMED);
-            return false;
-        }
-    }
-    else
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected source account. "
-                                               << "Expected contractor or customer";
-        throw std::runtime_error("Unexpected source account. Expected contractor or customer");
+        innerResult().code(ManageContractResultCode::ALREADY_CONFIRMED);
+        return false;
     }
 
     return checkIsCompleted(contractFrame, invoiceRequests, db, delta);
@@ -262,7 +252,7 @@ ManageContractOpFrame::checkIsCompleted(ContractFrame::pointer contractFrame,
     return true;
 }
 
-bool ManageContractOpFrame::isInvoicesApproved(std::vector<ReviewableRequestFrame::pointer> invoiceRequests)
+bool ManageContractOpFrame::checkIsInvoicesApproved(std::vector<ReviewableRequestFrame::pointer> invoiceRequests)
 {
     for (ReviewableRequestFrame::pointer invoiceRequest : invoiceRequests)
     {

@@ -34,7 +34,7 @@ class ManageContractOpFrame : public OperationFrame
                           std::vector<ReviewableRequestFrame::pointer> invoiceRequests,
                           Database& db, LedgerDelta& delta);
 
-    bool isInvoicesApproved(std::vector<ReviewableRequestFrame::pointer> invoiceRequests);
+    bool checkIsInvoicesApproved(std::vector<ReviewableRequestFrame::pointer> invoiceRequests);
 
     bool tryStartDispute(ContractFrame::pointer contractFrame,
                          Application &app, Database &db, LedgerDelta &delta);

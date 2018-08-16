@@ -12,8 +12,7 @@ namespace stellar {
     class ReviewSaleCreationRequestOpFrame : public ReviewRequestOpFrame {
     public:
 
-        ReviewSaleCreationRequestOpFrame(Operation const &op, OperationResult &res,
-                                         TransactionFrame &parentTx);
+        ReviewSaleCreationRequestOpFrame(Operation const &op, OperationResult &res, TransactionFrame &parentTx);
 
         static uint64 getRequiredBaseAssetForHardCap(SaleCreationRequest const &saleCreationRequest);
 
@@ -22,7 +21,7 @@ namespace stellar {
                            ReviewableRequestFrame::pointer request) override;
 
         SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
-                                              int32_t ledgerVersion) const override;
+                                int32_t ledgerVersion) const override;
 
         ReviewRequestResultCode tryCreateSale(Application &app, Database &db, LedgerDelta &delta,
                                               LedgerManager &ledgerManager,
@@ -32,6 +31,9 @@ namespace stellar {
 
         void createAssetPair(SaleFrame::pointer sale, Application &app, LedgerManager &ledgerManager,
                              LedgerDelta &delta) const;
+
+        AssetFrame::pointer loadAsset(LedgerManager &ledgerManager, AssetCode code, AccountID const &requestor,
+                                      Database &db, LedgerDelta *delta);
 
         std::map<AssetCode, BalanceID>
         loadBalances(AccountManager &accountManager, ReviewableRequestFrame::pointer request,

@@ -636,6 +636,12 @@ TEST_CASE("Sale", "[tx][sale]")
             requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest,
             CreateSaleCreationRequestResultCode::SUCCESS);
         }
+        SECTION("Trying to create sale with boundary start time and end time")
+        {
+            saleRequest.startTime = 0;
+            saleRequest.endTime = UINT64_MAX;
+            saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+        }
     }
 
     SECTION("Review SaleCreationRequest")

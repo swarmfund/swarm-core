@@ -1,6 +1,6 @@
+#include "ReviewPromotionUpdateRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/SaleHelper.h"
-#include "ReviewPromotionUpdateRequestOpFrame.h"
 #include "transactions/dex/ManageSaleOpFrame.h"
 
 namespace stellar {
@@ -17,9 +17,9 @@ namespace stellar {
     }
 
     bool ReviewPromotionUpdateRequestOpFrame::handleApprove(Application &app, LedgerDelta &delta,
-                                                            LedgerManager &ledgerManager,
-                                                            ReviewableRequestFrame::pointer request) {
-        request->checkRequestType(ReviewableRequestType::UPDATE_PROMOTION);
+                                                       LedgerManager &ledgerManager,
+                                                       ReviewableRequestFrame::pointer request) {
+        ManageSaleOpFrame::checkRequestType(request, ReviewableRequestType::UPDATE_PROMOTION);
 
         Database &db = ledgerManager.getDatabase();
 
@@ -32,7 +32,7 @@ namespace stellar {
             return false;
         }
 
-        if (saleFrame->getState() != SaleState::PROMOTION) {
+        if (!ManageSaleOpFrame::isSaleStateValid(ledgerManager, saleFrame->getState())) {
             innerResult().code(ReviewRequestResultCode::INVALID_SALE_STATE);
             return false;
         }

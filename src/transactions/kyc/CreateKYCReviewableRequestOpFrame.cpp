@@ -180,11 +180,13 @@ namespace stellar {
         innerResult().success().requestID = requestFrame->getRequestID();
         innerResult().success().fulfilled = false;
 
-        if (mSourceAccount->getAccountType() == AccountType::MASTER &&
-            ReviewUpdateKYCRequestOpFrame::canBeFulfilled(requestEntry))
-        {
+        bool canAutoApprove = ReviewUpdateKYCRequestOpFrame::canBeFulfilled(requestEntry);
+
+        if (!ledgerManager.shouldUse(LedgerVersion::FIX_CREATE_KYC_REQUEST_AUTO_APPROVE))
+            canAutoApprove = mSourceAccount->getAccountType() == AccountType::MASTER;
+
+        if (canAutoApprove)
             tryAutoApprove(db, delta, app, requestFrame);
-        }
 
         return true;
     }

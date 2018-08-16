@@ -100,7 +100,7 @@ namespace stellar {
 
             requestID = opResult.success().requestID;
 
-            if (sourceAccount->getAccountType() == AccountType::MASTER && !!allTasks && *allTasks == 0) {
+            if (allTasks != nullptr && *allTasks == 0) {
                 return checkApprovedCreation(opResult, accountToUpdateKYC, stateBeforeOps[0]);
             }
 

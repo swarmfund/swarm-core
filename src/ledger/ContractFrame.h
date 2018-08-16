@@ -91,7 +91,7 @@ public:
         return mContract.details.size();
     }
 
-    xdr::xvector<uint64_t> const
+    xdr::xvector<uint64_t>&
     getInvoiceRequestIDs()
     {
         return mContract.invoiceRequestsIDs;

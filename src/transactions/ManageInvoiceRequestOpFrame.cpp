@@ -88,6 +88,23 @@ ManageInvoiceRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledge
 	        innerResult().code(ManageInvoiceRequestResultCode::CONTRACT_NOT_FOUND);
             return false;
 	    }
+
+	    auto requestID = reviewableRequest->getRequestID();
+	    auto& invoices = contractFrame->getInvoiceRequestIDs();
+
+        auto invoicePos = std::find(invoices.begin(), invoices.end(), requestID);
+	    if (invoicePos == invoices.end())
+	    {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected contract state. "
+                                                   << "Expected invoice to be attached to contract. "
+                                                   << "contractID: " + std::to_string(*invoiceRequest.contractID)
+                                                   << "invoice requestID: " +
+                                                      std::to_string(requestID);
+            throw std::runtime_error("Unexpected contract state. Expected invoice to be attached to contract.");
+	    }
+
+	    invoices.erase(invoicePos);
+	    contractHelper->storeChange(delta, db, contractFrame->mEntry);
 	}
 
 	reviewableRequestHelper->storeDelete(delta, db, reviewableRequest->getKey());

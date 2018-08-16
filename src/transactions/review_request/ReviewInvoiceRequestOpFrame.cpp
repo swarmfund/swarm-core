@@ -79,16 +79,15 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
 
     if (!contractFrame)
     {
-        innerResult().code(ReviewRequestResultCode::CONTRACT_NOT_FOUND);
-        return false;
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. Expected contract to exists "
+                                               << to_string(*invoiceRequest.contractID);
+        throw runtime_error("Unexpected database state. Expected contract to exists");
     }
 
     invoiceRequest.isApproved = true;
     request->recalculateHashRejectReason();
     EntryHelperProvider::storeChangeEntry(delta, db, request->mEntry);
 
-    contractFrame->addContractDetails(invoiceRequest.details);
-    contractHelper->storeChange(delta, db, contractFrame->mEntry);
     receiverBalance = balanceHelper->mustLoadBalance(receiverBalance->getBalanceID(), db, &delta);
 
     if (!tryLockAmount(receiverBalance, invoiceRequest.amount))

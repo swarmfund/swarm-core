@@ -4,12 +4,10 @@
 
 #include "util/asio.h"
 #include "ReviewLimitsUpdateRequestOpFrame.h"
-#include "util/Logging.h"
-#include "util/types.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AccountLimitsHelper.h"
+#include <ledger/ReviewableRequestHelper.h>
 #include "transactions/ManageLimitsOpFrame.h"
 #include "main/Application.h"
 
@@ -84,11 +82,7 @@ namespace stellar {
                                                          LedgerManager &ledgerManager,
                                                          ReviewableRequestFrame::pointer request)
     {
-        if (request->getRequestType() != ReviewableRequestType::LIMITS_UPDATE) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected LIMITS, but got "
-                                                   << xdr::xdr_traits<ReviewableRequestType>::enum_name(request->getRequestType());
-            throw std::invalid_argument("Unexpected request type for review limits update request");
-        }
+        request->checkRequestType(ReviewableRequestType::LIMITS_UPDATE);
 
         Database& db = ledgerManager.getDatabase();
         EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
@@ -103,8 +97,24 @@ namespace stellar {
                                                         LedgerManager &ledgerManager,
                                                         ReviewableRequestFrame::pointer request)
     {
-        innerResult().code(ReviewRequestResultCode::REJECT_NOT_ALLOWED);
-        return false;
+        if (!ledgerManager.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_AND_REJECT_LIMITS_UPDATE_REQUESTS))
+        {
+            innerResult().code(ReviewRequestResultCode::REJECT_NOT_ALLOWED);
+            return false;
+        }
+
+        request->checkRequestType(ReviewableRequestType::LIMITS_UPDATE);
+        request->setRejectReason(mReviewRequest.reason);
+
+        auto& requestEntry = request->getRequestEntry();
+        const auto newHash = ReviewableRequestFrame::calculateHash(requestEntry.body);
+        requestEntry.hash = newHash;
+
+        Database& db = app.getDatabase();
+        ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
+
+        innerResult().code(ReviewRequestResultCode::SUCCESS);
+        return true;
     }
 
 }

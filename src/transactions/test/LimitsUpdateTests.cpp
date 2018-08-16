@@ -50,8 +50,7 @@ TEST_CASE("limits update", "[tx][limits_update]")
     reviewLimitsUpdateHelper.initializeLimits(requestorID);
 
     // prepare data for request
-    std::string documentData = "Some document data, huge data, very huge data to check convert to string64"
-                               " when get reference to write to database information about request";
+    std::string documentData = "{}";
 
     // create LimitsUpdateRequest
     auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentData);
@@ -65,6 +64,11 @@ TEST_CASE("limits update", "[tx][limits_update]")
                                                           ReviewRequestOpAction::APPROVE, "");
         }
         SECTION("Reject")
+        {
+            reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().manageLimitsRequestID,
+                                                          ReviewRequestOpAction::REJECT, "Invalid document");
+        }
+        SECTION("Permanent reject")
         {
             reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().manageLimitsRequestID,
                                                           ReviewRequestOpAction::PERMANENT_REJECT, "Invalid document");
@@ -87,19 +91,50 @@ TEST_CASE("limits update", "[tx][limits_update]")
             manageLimitsOp.details.limitsCreateDetails().annualOut = 50;
             manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp);
 
-            std::string documentDataOfAccountWithoutLimits = "Some other document data";
+            std::string documentDataOfAccountWithLimits = "{\n \"a\": \"I have a lot of money\" \n}";
 
-            limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentDataOfAccountWithoutLimits);
+            limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(documentDataOfAccountWithLimits);
             limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(accountWithLimits,
                                                                                           limitsUpdateRequest);
 
             reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().manageLimitsRequestID,
                                                           ReviewRequestOpAction::APPROVE, "");
         }
+        SECTION("Update limits update request")
+        {
+            std::string newDocumentData = "{\n \"a\": \"New document data\" \n}";
+            limitsUpdateRequest.ext.details() = newDocumentData;
+            uint64_t limitsUpdateRequestID = limitsUpdateResult.success().manageLimitsRequestID;
+            limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor,
+                                                                                          limitsUpdateRequest,
+                                                                                          &limitsUpdateRequestID);
+        }
     }
+
+    uint64_t requestID = 0;
+
+    SECTION("Invalid details")
+    {
+        limitsUpdateRequest.ext.details() = "Some document data, huge data, very huge data to check convert to string64"
+                       " when get reference to write to database information about request";
+        limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest,
+                                                                                      &requestID,
+                                               CreateManageLimitsRequestResultCode::INVALID_DETAILS);
+    }
+
+    SECTION("Update non existing request")
+    {
+        requestID = 42;
+        limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest,
+                                                                                      &requestID,
+        CreateManageLimitsRequestResultCode::MANAGE_LIMITS_REQUEST_NOT_FOUND);
+
+    }
+
     SECTION("Create same request for second time")
     {
         limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest,
+                                                                                      &requestID,
                              CreateManageLimitsRequestResultCode::MANAGE_LIMITS_REQUEST_REFERENCE_DUPLICATION);
     }
     SECTION("Approve and create same request for second time")
@@ -107,6 +142,7 @@ TEST_CASE("limits update", "[tx][limits_update]")
         reviewLimitsUpdateHelper.applyReviewRequestTx(root, limitsUpdateResult.success().manageLimitsRequestID,
                                                       ReviewRequestOpAction::APPROVE, "");
         limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(requestor, limitsUpdateRequest,
+                                                                                      &requestID,
                              CreateManageLimitsRequestResultCode::MANAGE_LIMITS_REQUEST_REFERENCE_DUPLICATION);
     }
 }

@@ -19,6 +19,7 @@
 #include "transactions/test/mocks/MockKeyValueHelper.h"
 #include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
+#include "transactions/test/mocks/MockSignatureValidator.h"
 #include "transactions/test/mocks/MockStorageHelper.h"
 #include "transactions/test/mocks/MockTransactionFrame.h"
 #include "util/StatusManager.h"
@@ -27,6 +28,7 @@
 #include "work/WorkManager.h"
 
 using namespace stellar;
+using namespace testing;
 
 static int32 externalSystemType = 5;
 static uint256 sourceAccountPublicKey = hexToBin256(
@@ -45,6 +47,8 @@ TEST_CASE("bind external system account_id - unit test",
     MockExternalSystemAccountIDHelper externalSystemAccountIDHelperMock;
     MockExternalSystemAccountIDPoolEntryHelper
         externalSystemAccountIDPoolEntryHelperMock;
+    std::shared_ptr<MockSignatureValidator> signatureValidatorMock =
+        std::make_shared<MockSignatureValidator>();
 
     BindExternalSystemAccountIdOp op;
     op.externalSystemType = externalSystemType;
@@ -61,21 +65,26 @@ TEST_CASE("bind external system account_id - unit test",
         AccountFrame::makeAuthOnlyAccount(*operation.sourceAccount);
     LedgerHeader ledgerHeaderFake;
 
-    ON_CALL(appMock, getDatabase()).WillByDefault(::testing::ReturnRef(dbMock));
-    ON_CALL(appMock, getLedgerManager()).WillByDefault(::testing::ReturnRef(ledgerManagerMock));
-    ON_CALL(ledgerManagerMock, getCurrentLedgerHeader()).WillByDefault(::testing::ReturnRef(ledgerHeaderFake));
-    ON_CALL(storageHelperMock, getDatabase())
-        .WillByDefault(::testing::ReturnRef(dbMock));
+    ON_CALL(appMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
+    ON_CALL(appMock, getLedgerManager())
+        .WillByDefault(ReturnRef(ledgerManagerMock));
+    ON_CALL(ledgerManagerMock, getCurrentLedgerHeader())
+        .WillByDefault(ReturnRef(ledgerHeaderFake));
+    ON_CALL(storageHelperMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
     ON_CALL(storageHelperMock, getLedgerDelta())
-        .WillByDefault(::testing::ReturnRef(ledgerDeltaMock));
+        .WillByDefault(ReturnRef(ledgerDeltaMock));
+    ON_CALL(transactionFrameMock, getSignatureValidator())
+        .WillByDefault(Return(signatureValidatorMock));
+    ON_CALL(*signatureValidatorMock,
+            check(Ref(appMock), Ref(dbMock), Ref(*accountFrameFake), _))
+        .WillByDefault(Return(SignatureValidator::Result::SUCCESS));
 
     ON_CALL(storageHelperMock, getKeyValueHelper())
-        .WillByDefault(::testing::ReturnRef(keyValueHelperMock));
+        .WillByDefault(ReturnRef(keyValueHelperMock));
     ON_CALL(storageHelperMock, getExternalSystemAccountIDHelper())
-        .WillByDefault(::testing::ReturnRef(externalSystemAccountIDHelperMock));
+        .WillByDefault(ReturnRef(externalSystemAccountIDHelperMock));
     ON_CALL(storageHelperMock, getExternalSystemAccountIDPoolEntryHelper())
-        .WillByDefault(
-            ::testing::ReturnRef(externalSystemAccountIDPoolEntryHelperMock));
+        .WillByDefault(ReturnRef(externalSystemAccountIDPoolEntryHelperMock));
 
     BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
                                                transactionFrameMock);
@@ -83,21 +92,20 @@ TEST_CASE("bind external system account_id - unit test",
     SECTION("Check validity")
     {
         EXPECT_CALL(transactionFrameMock,
-                    loadAccount(&ledgerDeltaMock, ::testing::Ref(dbMock),
+                    loadAccount(&ledgerDeltaMock, Ref(dbMock),
                                 *operation.sourceAccount))
-            .WillOnce(::testing::Return(accountFrameFake));
+            .WillOnce(Return(accountFrameFake));
         REQUIRE(opFrame.checkValid(appMock, &ledgerDeltaMock));
 
         SECTION("Apply, no pool entry to bind")
         {
             EXPECT_CALL(externalSystemAccountIDPoolEntryHelperMock,
                         load(op.externalSystemType, *operation.sourceAccount))
-                .WillOnce(::testing::Return(nullptr));
-            EXPECT_CALL(
-                externalSystemAccountIDPoolEntryHelperMock,
-                loadAvailablePoolEntry(::testing::Ref(ledgerManagerMock),
-                                       op.externalSystemType))
-                .WillOnce(::testing::Return(nullptr));
+                .WillOnce(Return(nullptr));
+            EXPECT_CALL(externalSystemAccountIDPoolEntryHelperMock,
+                        loadAvailablePoolEntry(Ref(ledgerManagerMock),
+                                               op.externalSystemType))
+                .WillOnce(Return(nullptr));
             REQUIRE_FALSE(
                 opFrame.doApply(appMock, storageHelperMock, ledgerManagerMock));
             REQUIRE(opFrame.getResult()

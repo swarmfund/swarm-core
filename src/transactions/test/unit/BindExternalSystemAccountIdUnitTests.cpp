@@ -115,16 +115,4 @@ TEST_CASE("bind external system account_id - unit test",
                     BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
         }
     }
-
-    /*
-    SECTION("Checking validity of valid frame")
-    {
-        REQUIRE(opFrame.doCheckValid(appMock));
-    }
-
-    SECTION("Checking validity of invalid frame")
-    {
-        REQUIRE_FALSE(opFrame.doCheckValid(appMock));
-    }
-    */
 }

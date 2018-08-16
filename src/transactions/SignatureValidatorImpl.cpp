@@ -5,7 +5,7 @@
 #include "util/asio.h"
 #include <set>
 #include "ledger/AccountHelper.h"
-#include "transactions/SignatureValidator.h"
+#include "transactions/SignatureValidatorImpl.h"
 #include "transactions/TransactionFrame.h"
 #include "main/Application.h"
 
@@ -14,7 +14,7 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
-SignatureValidator::SignatureValidator(Hash contentHash,
+SignatureValidatorImpl::SignatureValidatorImpl(Hash contentHash,
                                        xdr::xvector<DecoratedSignature, 20>
                                        signatures)
 {
@@ -24,7 +24,7 @@ SignatureValidator::SignatureValidator(Hash contentHash,
     resetSignatureTracker();
 }
 
-bool SignatureValidator::checkAllSignaturesUsed()
+bool SignatureValidatorImpl::checkAllSignaturesUsed()
 {
     for (auto sigb : mUsedSignatures)
     {
@@ -36,12 +36,12 @@ bool SignatureValidator::checkAllSignaturesUsed()
     return true;
 }
 
-void SignatureValidator::resetSignatureTracker()
+void SignatureValidatorImpl::resetSignatureTracker()
 {
     mUsedSignatures = vector<bool>(mSignatures.size());
 }
 
-bool SignatureValidator::isAccountTypeAllowed(AccountFrame& account,
+bool SignatureValidatorImpl::isAccountTypeAllowed(AccountFrame& account,
                                               vector<AccountType>
                                               allowedAccountTypes)
 {
@@ -54,7 +54,7 @@ bool SignatureValidator::isAccountTypeAllowed(AccountFrame& account,
     return false;
 }
 
-vector<Signer> SignatureValidator::getSigners(Application& app, Database& db,
+vector<Signer> SignatureValidatorImpl::getSigners(Application& app, Database& db,
                                               AccountFrame& account)
 {
     // system accounts use master's signers
@@ -87,7 +87,7 @@ vector<Signer> SignatureValidator::getSigners(Application& app, Database& db,
     return signers;
 }
 
-SignatureValidator::Result SignatureValidator::check(
+SignatureValidatorImpl::Result SignatureValidatorImpl::check(
     std::vector<PublicKey> keys, int signaturesRequired, LedgerVersion ledgerVersion)
 {
     set<PublicKey> usedKeys;
@@ -120,7 +120,7 @@ SignatureValidator::Result SignatureValidator::check(
 }
 
 
-SignatureValidator::Result SignatureValidator::checkSignature(
+SignatureValidatorImpl::Result SignatureValidatorImpl::checkSignature(
     Application& app, Database& db, AccountFrame& account,
     SourceDetails& sourceDetails)
 {
@@ -167,7 +167,7 @@ SignatureValidator::Result SignatureValidator::checkSignature(
     return NOT_ENOUGH_WEIGHT;
 }
 
-bool SignatureValidator::shouldSkipCheck(Application & app)
+bool SignatureValidatorImpl::shouldSkipCheck(Application & app)
 {
     string txIDString(binToHex(mContentHash));
     auto skipCheckFor = app.getConfig().TX_SKIP_SIG_CHECK;
@@ -182,7 +182,7 @@ bool SignatureValidator::shouldSkipCheck(Application & app)
     return true;
 }
 
-SignatureValidator::Result SignatureValidator::check(
+SignatureValidatorImpl::Result SignatureValidatorImpl::check(
     Application& app, Database& db, AccountFrame& account,
     SourceDetails& sourceDetails)
 {

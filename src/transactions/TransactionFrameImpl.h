@@ -9,7 +9,7 @@
 #include "ledger/LedgerManager.h"
 #include "ledger/AccountFrame.h"
 #include "overlay/StellarXDR.h"
-#include "transactions/SignatureValidator.h"
+#include "transactions/SignatureValidatorImpl.h"
 #include "ledger/LedgerDelta.h"
 #include "util/types.h"
 
@@ -62,7 +62,8 @@ class TransactionFrameImpl : public TransactionFrame
 	{
 		if (!mSignatureValidator)
 		{
-			mSignatureValidator = std::make_shared<SignatureValidator>(getContentsHash(), getEnvelope().signatures);
+			mSignatureValidator = std::make_shared<SignatureValidatorImpl>(
+			        getContentsHash(), getEnvelope().signatures);
 		}
 
 		return mSignatureValidator;

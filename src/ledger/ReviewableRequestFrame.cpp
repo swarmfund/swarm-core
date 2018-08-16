@@ -262,4 +262,17 @@ ReviewableRequestFrame::ensureValid() const
 {
     ensureValid(mRequest);
 }
+
+void ReviewableRequestFrame::checkRequestType(ReviewableRequestType requestType) const
+{
+    if (mRequest.body.type() != requestType) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected "
+                                               << xdr::xdr_traits<ReviewableRequestType>::enum_name(requestType)
+                                               << " but got "
+                                               << xdr::xdr_traits<ReviewableRequestType>::enum_name(
+                                                       mRequest.body.type());
+        throw std::invalid_argument("Unexpected request type");
+    }
+}
+
 }

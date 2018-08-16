@@ -30,6 +30,26 @@ namespace stellar {
     }
 
     bool
+    ReviewLimitsUpdateRequestOpFrame::handleManageLimitsResult(ManageLimitsResultCode manageLimitsResultCode)
+    {
+        switch (manageLimitsResultCode) {
+            case ManageLimitsResultCode::CANNOT_CREATE_FOR_ACC_ID_AND_ACC_TYPE: {
+                innerResult().code(ReviewRequestResultCode::CANNOT_CREATE_FOR_ACC_ID_AND_ACC_TYPE);
+                return false;
+            }
+            case ManageLimitsResultCode::INVALID_LIMITS: {
+                innerResult().code(ReviewRequestResultCode::INVALID_LIMITS);
+                return false;
+            }
+            default: {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from manage limits: "
+                                                       << xdr::xdr_traits<ManageLimitsResultCode>::enum_name(manageLimitsResultCode);
+                throw std::runtime_error("Unexpected result code from manage limits");
+            }
+        }
+    }
+
+    bool
     ReviewLimitsUpdateRequestOpFrame::tryCallManageLimits(Application &app,
                                                           LedgerManager &ledgerManager, LedgerDelta &delta,
                                                           ReviewableRequestFrame::pointer request)
@@ -54,15 +74,22 @@ namespace stellar {
         OperationResult opRes;
         opRes.code(OperationResultCode::opINNER);
         opRes.tr().type(OperationType::MANAGE_LIMITS);
-        ManageLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
+        ManageLimitsOpFrame manageLimitsOpFrame(op, opRes, mParentTx);
 
         auto accountHelper = AccountHelper::Instance();
         auto master = accountHelper->mustLoadAccount(app.getMasterID(), db);
-        setLimitsOpFrame.setSourceAccountPtr(master);
+        manageLimitsOpFrame.setSourceAccountPtr(master);
 
-        if (!setLimitsOpFrame.doCheckValid(app) || !setLimitsOpFrame.doApply(app, delta, ledgerManager))
+        if (!manageLimitsOpFrame.doCheckValid(app) || !manageLimitsOpFrame.doApply(app, delta, ledgerManager))
         {
-            auto resultCodeString = setLimitsOpFrame.getInnerResultCodeAsStr();
+            if (ledgerManager.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_AND_REJECT_LIMITS_UPDATE_REQUESTS))
+            {
+                OperationResult& manageLimitsResult = manageLimitsOpFrame.getResult();
+                auto manageLimitsResultCode = ManageLimitsOpFrame::getInnerCode(manageLimitsResult);
+                return handleManageLimitsResult(manageLimitsResultCode);
+            }
+
+            auto resultCodeString = manageLimitsOpFrame.getInnerResultCodeAsStr();
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to apply manage limits"
                                                       " on review limits update request: "
                                                    << request->getRequestID() << " with code: " << resultCodeString;

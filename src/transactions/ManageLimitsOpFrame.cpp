@@ -116,7 +116,6 @@ ManageLimitsOpFrame::doApply(Application& app, LedgerDelta& delta,
         throw std::runtime_error("Unexpected manage limits action in doApply. "
                                  "Expected UPDATE or REMOVE");
     }
-    app.getMetrics().NewMeter({"op-manage-limits", "success", "apply"}, "operation").Mark();
 
     return true;
 }
@@ -128,19 +127,13 @@ ManageLimitsOpFrame::doCheckValid(Application& app)
         !!mManageLimits.details.limitsCreateDetails().accountID &&
         !!mManageLimits.details.limitsCreateDetails().accountType)
     {
-        app.getMetrics().NewMeter(
-                    {"op-set-limits", "invalid", "malformed"},
-                    "operation").Mark();
-        innerResult().code(ManageLimitsResultCode::MALFORMED);
+        innerResult().code(ManageLimitsResultCode::CANNOT_CREATE_FOR_ACC_ID_AND_ACC_TYPE);
         return false;
     }
     
     if ((mManageLimits.details.action() == ManageLimitsAction::CREATE) && !isValidLimits())
     {
-        app.getMetrics().NewMeter(
-                    {"op-set-limits", "invalid", "malformed"},
-                    "operation").Mark();
-        innerResult().code(ManageLimitsResultCode::MALFORMED);
+        innerResult().code(ManageLimitsResultCode::INVALID_LIMITS);
         return false;
     }
 

@@ -24,6 +24,8 @@ protected:
     bool tryCallManageLimits(Application &app, LedgerManager &ledgerManager, LedgerDelta &delta,
                              ReviewableRequestFrame::pointer request);
 
+    bool handleManageLimitsResult(ManageLimitsResultCode manageLimitsResultCode);
+
 public:
     ReviewLimitsUpdateRequestOpFrame(Operation const& op, OperationResult& res,
                                      TransactionFrame& parentTx);

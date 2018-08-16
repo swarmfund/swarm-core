@@ -116,16 +116,6 @@ ManageContractOpFrame::tryAddContractDetails(ContractFrame::pointer contractFram
 
     innerResult().response().data.action(ManageContractAction::ADD_DETAILS);
 
-    auto maxContractDetails = obtainMaxContractDetailsCount(app, db, delta);
-
-    auto actualDetailsCount = contractFrame->getContractDetailsCount();
-
-    if (actualDetailsCount >= maxContractDetails)
-    {
-        innerResult().code(ManageContractResultCode::TOO_MANY_CONTRACT_DETAILS);
-        return false;
-    }
-
     auto maxContractDetailLength = obtainMaxContractDetailLength(app, db, delta);
 
     if (mManageContract.data.details().size() > maxContractDetailLength)
@@ -134,55 +124,30 @@ ManageContractOpFrame::tryAddContractDetails(ContractFrame::pointer contractFram
         return false;
     }
 
-    contractFrame->addContractDetails(mManageContract.data.details());
-    ContractHelper::Instance()->storeChange(delta, db, contractFrame->mEntry);
-
     return true;
-}
-
-uint64_t
-ManageContractOpFrame::obtainMaxContractDetailsCount(Application& app, Database& db, LedgerDelta& delta)
-{
-    auto maxContractDetailsKey = ManageKeyValueOpFrame::makeMaxContractDetailsKey();
-    auto maxContractDetailsKeyValue = KeyValueHelper::Instance()->loadKeyValue(maxContractDetailsKey, db, &delta);
-
-    if (!maxContractDetailsKeyValue)
-    {
-        return app.getMaxContractDetailsCount();
-    }
-
-    if (maxContractDetailsKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
-             << "Expected max contract details key value to be UINT32. Actual: "
-             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailsKeyValue->getKeyValueEntryType());
-        throw std::runtime_error("Unexpected database state, expected max contract details key value to be UINT32");
-    }
-
-    return maxContractDetailsKeyValue->getKeyValue().value.ui32Value();
 }
 
 uint64_t
 ManageContractOpFrame::obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta)
 {
     auto maxContractDetailLengthKey = ManageKeyValueOpFrame::makeMaxContractDetailLengthKey();
-    auto maxContractDetailLengthKetValue = KeyValueHelper::Instance()->
+    auto maxContractDetailLengthKeyValue = KeyValueHelper::Instance()->
             loadKeyValue(maxContractDetailLengthKey, db, &delta);
 
-    if (!maxContractDetailLengthKetValue)
+    if (!maxContractDetailLengthKeyValue)
     {
         return app.getMaxContractDetailLength();
     }
 
-    if (maxContractDetailLengthKetValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
+    if (maxContractDetailLengthKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
              << "Expected max contract detail length key value to be UINT32. Actual: "
-             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailLengthKetValue->getKeyValueEntryType());
+             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractDetailLengthKeyValue->getKeyValueEntryType());
         throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
     }
 
-    return maxContractDetailLengthKetValue->getKeyValue().value.ui32Value();
+    return maxContractDetailLengthKeyValue->getKeyValue().value.ui32Value();
 }
 
 bool

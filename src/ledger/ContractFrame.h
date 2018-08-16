@@ -85,12 +85,6 @@ public:
         return (mContract.state & static_cast<int32_t>(state)) != 0;
     }
 
-    uint64_t const
-    getContractDetailsCount()
-    {
-        return mContract.details.size();
-    }
-
     xdr::xvector<uint64_t>&
     getInvoiceRequestIDs()
     {
@@ -101,7 +95,6 @@ public:
 
     void startDispute(AccountID const& disputer, longstring const& reason);
 
-    void addContractDetails(longstring const& details);
     void addInvoice(uint64_t const& requestID);
 
     bool addState(ContractState state);

@@ -26,8 +26,6 @@ class ManageContractOpFrame : public OperationFrame
     bool tryAddContractDetails(ContractFrame::pointer contractFrame, Application &app,
                                Database &db, LedgerDelta &delta);
 
-    uint64_t obtainMaxContractDetailsCount(Application& app, Database& db, LedgerDelta& delta);
-
     bool tryConfirmCompleted(ContractFrame::pointer contractFrame, Database &db, LedgerDelta &delta);
 
     bool tryCompleted(ContractFrame::pointer contractFrame,

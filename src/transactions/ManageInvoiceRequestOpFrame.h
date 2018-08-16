@@ -22,7 +22,11 @@ class ManageInvoiceRequestOpFrame : public OperationFrame
 
     bool createManageInvoiceRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager);
 
-    bool checkMaxInvoicesForReceiverAccount(Application& app, Database& db);
+    bool checkMaxInvoicesForReceiverAccount(Application& app, Database& db, LedgerDelta& delta);
+    bool checkMaxInvoiceDetailsLength(Application& app, Database& db, LedgerDelta& delta);
+    int64_t obtainMaxInvoicesCount(Application& app, Database& db, LedgerDelta& delta);
+    uint64_t obtainMaxInvoiceDetailsLength(Application& app, Database& db, LedgerDelta& delta);
+
 
 public:
     ManageInvoiceRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx);

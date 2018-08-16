@@ -6,9 +6,11 @@
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>
 #include <ledger/ContractHelper.h>
+#include <ledger/KeyValueHelper.h>
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/BalanceHelper.h"
+#include "ManageKeyValueOpFrame.h"
 
 namespace stellar
 {
@@ -129,7 +131,10 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
         return false;
     }
 
-    if (!checkMaxInvoicesForReceiverAccount(app, db))
+    if (!checkMaxInvoicesForReceiverAccount(app, db, delta))
+        return false;
+
+    if (!checkMaxInvoiceDetailsLength(app, db, delta))
         return false;
 
     auto receiverBalanceID = AccountManager::loadOrCreateBalanceForAsset(getSourceID(),
@@ -189,17 +194,79 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
 }
 
 bool
-ManageInvoiceRequestOpFrame::checkMaxInvoicesForReceiverAccount(Application& app, Database& db)
+ManageInvoiceRequestOpFrame::checkMaxInvoicesForReceiverAccount(Application& app, Database& db, LedgerDelta& delta)
 {
+    auto maxInvoicesCount = obtainMaxInvoicesCount(app, db, delta);
+
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto allRequests = reviewableRequestHelper->loadRequests(getSourceID(), ReviewableRequestType::INVOICE, db);
-    if (allRequests.size() >= app.getMaxInvoicesForReceiverAccount())
+    if (allRequests.size() >= maxInvoicesCount)
     {
         innerResult().code(ManageInvoiceRequestResultCode::TOO_MANY_INVOICES);
         return false;
     }
 
     return true;
+}
+
+bool
+ManageInvoiceRequestOpFrame::checkMaxInvoiceDetailsLength(Application& app, Database& db, LedgerDelta& delta)
+{
+    auto maxInvoiceDetailsLength = obtainMaxInvoiceDetailsLength(app, db, delta);
+
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    if (mManageInvoiceRequest.details.invoiceRequest().details.size() >= maxInvoiceDetailsLength)
+    {
+        innerResult().code(ManageInvoiceRequestResultCode::DETAILS_TOO_LONG);
+        return false;
+    }
+
+    return true;
+}
+
+int64_t
+ManageInvoiceRequestOpFrame::obtainMaxInvoicesCount(Application& app, Database& db, LedgerDelta& delta)
+{
+    auto maxInvoicesCountKey = ManageKeyValueOpFrame::makeMaxInvoicesCountKey();
+    auto maxInvoicesCountKeyValue = KeyValueHelper::Instance()->loadKeyValue(maxInvoicesCountKey, db, &delta);
+
+    if (!maxInvoicesCountKeyValue)
+    {
+        return app.getMaxInvoicesForReceiverAccount();
+    }
+
+    if (maxInvoicesCountKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
+             << "Expected max contract detail length key value to be UINT32. Actual: "
+             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxInvoicesCountKeyValue->getKeyValueEntryType());
+        throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
+    }
+
+    return maxInvoicesCountKeyValue->getKeyValue().value.ui32Value();
+}
+
+uint64_t
+ManageInvoiceRequestOpFrame::obtainMaxInvoiceDetailsLength(Application& app, Database& db, LedgerDelta& delta)
+{
+    auto maxInvoicesDetailsLengthKey = ManageKeyValueOpFrame::makeMaxInvoiceDetailLengthKey();
+    auto maxInvoicesDetailsLengthKeyValue = KeyValueHelper::Instance()->
+            loadKeyValue(maxInvoicesDetailsLengthKey, db, &delta);
+
+    if (!maxInvoicesDetailsLengthKeyValue)
+    {
+        return app.getMaxInvoiceDetailLength();
+    }
+
+    if (maxInvoicesDetailsLengthKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
+             << "Expected max contract detail length key value to be UINT32. Actual: "
+             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxInvoicesDetailsLengthKeyValue->getKeyValueEntryType());
+        throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
+    }
+
+    return maxInvoicesDetailsLengthKeyValue->getKeyValue().value.ui32Value();
 }
 
 bool

@@ -17,7 +17,6 @@ namespace stellar {
 
     char const * ManageKeyValueOpFrame::kycRulesPrefix = "kyc_lvlup_rules";
     char const * ManageKeyValueOpFrame::externalSystemPrefix = "ext_sys_exp_period";
-    char const * ManageKeyValueOpFrame::maxContractDetailsPrefix = "max_contract_details";
     char const * ManageKeyValueOpFrame::maxContractDetailLengthPrefix = "max_contract_detail_length";
     char const * ManageKeyValueOpFrame::maxContractsCountPrefix = "max_contracts_count";
     char const * ManageKeyValueOpFrame::maxInvoicesCountPrefix = "max_invoices_count";
@@ -117,12 +116,6 @@ namespace stellar {
         key = key + externalSystemPrefix + ":" + to_string(externalSystemType);
 
         return key;
-    }
-
-    longstring
-    ManageKeyValueOpFrame::makeMaxContractDetailsKey()
-    {
-        return maxContractDetailsPrefix;
     }
 
     longstring

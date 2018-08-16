@@ -9,7 +9,7 @@ using namespace soci;
 namespace stellar
 {
 const char* contractSelector = "SELECT id, contractor, customer, escrow, disputer,"
-                               "       start_time, end_time, details, invoices,"
+                               "       start_time, end_time, invoices,"
                                "       dispute_reason, state, lastmodified, version "
                                "FROM   contracts";
 
@@ -25,7 +25,6 @@ void ContractHelper::dropAll(Database &db)
                        "disputer        VARCHAR(56) DEFAULT NULL,"
                        "start_time      BIGINT      NOT NULL CHECK (start_time >= 0),"
                        "end_time        BIGINT      NOT NULL CHECK (end_time >= 0),"
-                       "details         TEXT        NOT NULL,"
                        "invoices        TEXT        NOT NULL,"
                        "dispute_reason  TEXT        DEFAULT NULL,"
                        "state           INT         NOT NULL,"
@@ -59,8 +58,6 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
         disputeIndicator = i_ok;
     }
 
-    auto detailsBytes = xdr::xdr_to_opaque(contractEntry.details);
-    string strDetails = bn::encode_b64(detailsBytes);
     auto invoicesBytes = xdr::xdr_to_opaque(contractEntry.invoiceRequestsIDs);
     string strInvoices = bn::encode_b64(invoicesBytes);
     auto state = static_cast<int32_t>(contractEntry.state);
@@ -71,17 +68,17 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     if (insert)
     {
         sql = "INSERT INTO contracts (id, contractor, customer, escrow, disputer,"
-              "                       start_time, end_time, details, invoices, "
+              "                       start_time, end_time, invoices, "
               "                       dispute_reason, state, lastmodified, version) "
               "VALUES (:id, :contractor, :customer, :escrow, :disputer, :s_t, :e_t,"
-              "        :details, :invoices, :dis_reason, :state, :lm, :v)";
+              "        :invoices, :dis_reason, :state, :lm, :v)";
     }
     else
     {
         sql = "UPDATE contracts "
               "SET    contractor = :contractor, customer = :customer, escrow = :escrow,"
               "       disputer = :disputer, start_time = :s_t, end_time = :e_t,"
-              "       details = :details, invoices = :invoices,"
+              "       invoices = :invoices,"
               "       dispute_reason = :dis_reason,"
               "       state = :state, lastmodified = :lm, version = :v "
               "WHERE  id = :id";
@@ -97,7 +94,6 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     st.exchange(use(disputerID, disputeIndicator, "disputer"));
     st.exchange(use(contractEntry.startTime, "s_t"));
     st.exchange(use(contractEntry.endTime, "e_t"));
-    st.exchange(use(strDetails, "details"));
     st.exchange(use(strInvoices, "invoices"));
     st.exchange(use(disputeReason, disputeIndicator, "dis_reason"));
     st.exchange(use(state, "state"));
@@ -192,7 +188,7 @@ ContractHelper::load(StatementContext& prep,
                      function<void(LedgerEntry const&)> processor)
 {
     string contractorID, customerID, escrowID, disputerID;
-    string details, invoices, disputeReason;
+    string invoices, disputeReason;
     indicator disputeIndicator = i_null;
 
     LedgerEntry le;
@@ -208,7 +204,6 @@ ContractHelper::load(StatementContext& prep,
     st.exchange(into(disputerID, disputeIndicator));
     st.exchange(into(oe.startTime));
     st.exchange(into(oe.endTime));
-    st.exchange(into(details));
     st.exchange(into(invoices));
     st.exchange(into(disputeReason, disputeIndicator));
     st.exchange(into(oe.state));
@@ -222,12 +217,6 @@ ContractHelper::load(StatementContext& prep,
         oe.contractor = PubKeyUtils::fromStrKey(contractorID);
         oe.customer = PubKeyUtils::fromStrKey(customerID);
         oe.escrow = PubKeyUtils::fromStrKey(escrowID);
-
-        std::vector<uint8_t> decoded;
-        bn::decode_b64(details, decoded);
-        xdr::xdr_get unmarshaler(&decoded.front(), &decoded.back() + 1);
-        xdr::xdr_argpack_archive(unmarshaler, oe.details);
-        unmarshaler.done();
 
         std::vector<uint8_t> decodedInv;
         bn::decode_b64(invoices, decodedInv);

@@ -56,8 +56,6 @@ namespace stellar {
 
         static longstring makeExternalSystemExpirationPeriodKey(int32 externalSystemType);
 
-        static longstring makeMaxContractDetailsKey();
-
         static longstring makeMaxContractDetailLengthKey();
 
         static longstring makeMaxContractsCountKey();
@@ -68,7 +66,6 @@ namespace stellar {
 
         static const char * kycRulesPrefix;
         static const char * externalSystemPrefix;
-        static const char * maxContractDetailsPrefix;
         static const char * maxContractDetailLengthPrefix;
         static const char * maxContractsCountPrefix;
         static const char * maxInvoicesCountPrefix;

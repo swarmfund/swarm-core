@@ -27,12 +27,6 @@ namespace stellar
     }
 
     void
-    ContractFrame::addContractDetails(longstring const& details)
-    {
-        mContract.details.emplace_back(details);
-    }
-
-    void
     ContractFrame::addInvoice(uint64_t const& requestID)
     {
         mContract.invoiceRequestsIDs.emplace_back(requestID);

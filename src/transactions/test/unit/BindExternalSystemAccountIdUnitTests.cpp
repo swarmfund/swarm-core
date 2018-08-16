@@ -29,7 +29,8 @@
 using namespace stellar;
 
 static int32 externalSystemType = 5;
-static uint256 sourceAccountPublicKey = hexToBin256("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABB");
+static uint256 sourceAccountPublicKey = hexToBin256(
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABB");
 
 TEST_CASE("bind external system account_id - unit test",
           "[tx][bind_external_system_account_id_unit_test]")
@@ -56,14 +57,20 @@ TEST_CASE("bind external system account_id - unit test",
     operation.sourceAccount->ed25519() = sourceAccountPublicKey;
     OperationResult operationResult;
 
-    AccountFrame::pointer accountFrameFake = AccountFrame::makeAuthOnlyAccount(*operation.sourceAccount);
+    AccountFrame::pointer accountFrameFake =
+        AccountFrame::makeAuthOnlyAccount(*operation.sourceAccount);
+    LedgerHeader ledgerHeaderFake;
 
     ON_CALL(appMock, getDatabase()).WillByDefault(::testing::ReturnRef(dbMock));
+    ON_CALL(appMock, getLedgerManager()).WillByDefault(::testing::ReturnRef(ledgerManagerMock));
+    ON_CALL(ledgerManagerMock, getCurrentLedgerHeader()).WillByDefault(::testing::ReturnRef(ledgerHeaderFake));
     ON_CALL(storageHelperMock, getDatabase())
         .WillByDefault(::testing::ReturnRef(dbMock));
     ON_CALL(storageHelperMock, getLedgerDelta())
         .WillByDefault(::testing::ReturnRef(ledgerDeltaMock));
 
+    ON_CALL(storageHelperMock, getKeyValueHelper())
+        .WillByDefault(::testing::ReturnRef(keyValueHelperMock));
     ON_CALL(storageHelperMock, getExternalSystemAccountIDHelper())
         .WillByDefault(::testing::ReturnRef(externalSystemAccountIDHelperMock));
     ON_CALL(storageHelperMock, getExternalSystemAccountIDPoolEntryHelper())
@@ -73,34 +80,43 @@ TEST_CASE("bind external system account_id - unit test",
     BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
                                                transactionFrameMock);
 
-    SECTION("Load account")
+    SECTION("Check validity")
     {
-        EXPECT_CALL(transactionFrameMock, loadAccount(&ledgerDeltaMock, ::testing::Ref(dbMock),
-                                                      *operation.sourceAccount))
-                .WillOnce(::testing::Return(accountFrameFake));
-        REQUIRE(opFrame.loadAccount(&ledgerDeltaMock, dbMock));
+        EXPECT_CALL(transactionFrameMock,
+                    loadAccount(&ledgerDeltaMock, ::testing::Ref(dbMock),
+                                *operation.sourceAccount))
+            .WillOnce(::testing::Return(accountFrameFake));
+        REQUIRE(opFrame.checkValid(appMock, &ledgerDeltaMock));
+
+        SECTION("Apply, no pool entry to bind")
+        {
+            EXPECT_CALL(externalSystemAccountIDPoolEntryHelperMock,
+                        load(op.externalSystemType, *operation.sourceAccount))
+                .WillOnce(::testing::Return(nullptr));
+            EXPECT_CALL(
+                externalSystemAccountIDPoolEntryHelperMock,
+                loadAvailablePoolEntry(::testing::Ref(ledgerManagerMock),
+                                       op.externalSystemType))
+                .WillOnce(::testing::Return(nullptr));
+            REQUIRE_FALSE(
+                opFrame.doApply(appMock, storageHelperMock, ledgerManagerMock));
+            REQUIRE(opFrame.getResult()
+                        .tr()
+                        .bindExternalSystemAccountIdResult()
+                        .code() ==
+                    BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
+        }
     }
 
-    /*SECTION("Apply, external system pool exists")
+    /*
+    SECTION("Checking validity of valid frame")
     {
-        BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
-                                                   transactionFrameMock);
-
-        // EXPECT_CALL( ... );
-        opFrame.doApply(appMock, storageHelperMock, ledgerManagerMock);
-    }*/
-
-    /*SECTION("Checking validity of valid frame")
-    {
-        BindExternalSystemAccountIdOpFrame opFrame(operationMock,
-    operationFrameMock, parentTxFrameMock);
-        EXCEPT_TRUE(opFrame.doCheckValid(appMock));
+        REQUIRE(opFrame.doCheckValid(appMock));
     }
 
     SECTION("Checking validity of invalid frame")
     {
-        BindExternalSystemAccountIdOpFrame opFrame(operationMock,
-    operationFrameMock, parentTxFrameMock);
-        EXCEPT_FALSE(opFrame.doCheckValid(appMock));
-    }*/
+        REQUIRE_FALSE(opFrame.doCheckValid(appMock));
+    }
+    */
 }

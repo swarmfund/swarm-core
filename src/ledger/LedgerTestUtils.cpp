@@ -109,29 +109,6 @@ makeValid(BalanceEntry& o)
 }
 
 void
-makeValid(PaymentRequestEntry& o)
-{
-	if (o.sourceSend < 0)
-	{
-		o.sourceSend = -o.sourceSend;
-	}
-
-	if (o.sourceSendUniversal < 0)
-	{
-		o.sourceSendUniversal = -o.sourceSendUniversal;
-	}
-
-	if (o.destinationReceive < 0)
-	{
-		o.destinationReceive = -o.destinationReceive;
-	}
-
-	clampLow<int64_t>(1, o.sourceSend);
-	clampLow<int64_t>(1, o.sourceSendUniversal);
-	clampLow<int64_t>(1, o.destinationReceive);
-}
-
-void
 makeValid(ReferenceEntry& o)
 {
 
@@ -218,13 +195,6 @@ makeValid(AccountLimitsEntry& o)
 	makeValid(o.limits);
 }
 
-void
-makeValid(InvoiceEntry& o)
-{
-	o.invoiceID = rand();
-	clampLow<int64_t>(1, o.amount);
-}
-
 LedgerEntry makeValid(LedgerEntry& le)
 {
 	auto& led = le.data;
@@ -238,9 +208,6 @@ LedgerEntry makeValid(LedgerEntry& le)
 		break;
     case LedgerEntryType::BALANCE:
 		makeValid(led.balance());
-		break;
-	case LedgerEntryType::PAYMENT_REQUEST:
-		makeValid(led.paymentRequest());
 		break;
 	case LedgerEntryType::ASSET:
 		makeValid(led.asset());
@@ -266,10 +233,6 @@ LedgerEntry makeValid(LedgerEntry& le)
 	case LedgerEntryType::OFFER_ENTRY:
 		makeValid(led.offer());
 		break;
-	case LedgerEntryType::INVOICE:
-		makeValid(led.invoice());
-		break;
-
 	default:
 		throw std::runtime_error("Unexpected entry type");
 	}

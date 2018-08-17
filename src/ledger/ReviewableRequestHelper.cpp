@@ -341,6 +341,39 @@ loadRequests(AccountID const& rawRequestor, ReviewableRequestType requestType,
     return result;
 }
 
+string
+ReviewableRequestHelper::obtainSqlRequestIDsString(std::vector<uint64_t> requestIDs)
+{
+    string result;
+    for (auto requestID : requestIDs)
+    {
+        result += to_string(requestID);
+        result += ", ";
+    }
+
+    return result.substr(0, result.size() - 2);
+}
+
+vector<ReviewableRequestFrame::pointer>
+ReviewableRequestHelper::loadRequests(std::vector<uint64_t> requestIDs, Database& db)
+{
+    if (requestIDs.size() == 0)
+        return vector<ReviewableRequestFrame::pointer>{};
+
+    string sql = selectorReviewableRequest;
+    sql += " WHERE id IN (" + obtainSqlRequestIDsString(requestIDs) + ")";
+    auto prep = db.getPreparedStatement(sql);
+
+    vector<ReviewableRequestFrame::pointer> result;
+    auto timer = db.getSelectTimer("reviewable_request");
+    loadRequests(prep, [&result](LedgerEntry const& entry)
+    {
+        result.emplace_back(make_shared<ReviewableRequestFrame>(entry));
+    });
+
+    return result;
+}
+
 ReviewableRequestFrame::pointer
     ReviewableRequestHelper::loadRequest(uint64 requestID, AccountID requestor, Database &db, LedgerDelta *delta) {
         auto request = loadRequest(requestID, db, delta);

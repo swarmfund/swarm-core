@@ -61,7 +61,8 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 	}
     SECTION("Auto review is disabled")
 	{
-        uint32_t allTasks = 4;
+	    //8 is a magic value - first bit not reserved for system tasks
+        uint32_t allTasks = 8;
         auto issuanceRequestResult = issuanceRequestHelper.applyCreateIssuanceRequest(assetOwner, assetToBeIssued, preIssuedAmount,
             receiverBalance->getBalanceID(),
             receiverKP.getStrKeyPublic(), &allTasks, CreateIssuanceRequestResultCode::SUCCESS, "{}");
@@ -459,20 +460,20 @@ TEST_CASE("Issuance", "[tx][issuance]")
 	TestManager::upgradeToCurrentLedgerVersion(app);
 
 	auto root = Account{ getRoot(), Salt(0) };
-//	SECTION("Root happy path")
-//	{
-//		createIssuanceRequestHappyPath(testManager, root, root);
-//	}
-//
-//    SECTION("create pre-issuance request hard path")
-//    {
-//        createPreIssuanceRequestHardPath(testManager, root, root);
-//    }
-//
-//    SECTION("create issuance request hard path")
-//    {
-//        createIssuanceRequestHardPath(testManager, root, root);
-//    }
+	SECTION("Root happy path")
+	{
+		createIssuanceRequestHappyPath(testManager, root, root);
+	}
+
+    SECTION("create pre-issuance request hard path")
+    {
+        createPreIssuanceRequestHardPath(testManager, root, root);
+    }
+
+    SECTION("create issuance request hard path")
+    {
+        createIssuanceRequestHardPath(testManager, root, root);
+    }
 
     SECTION("Create and review issuance request with tasks")
     {

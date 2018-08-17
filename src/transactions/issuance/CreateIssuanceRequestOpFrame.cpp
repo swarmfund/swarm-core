@@ -217,7 +217,8 @@ CreateIssuanceRequestOpFrame::doCheckValid(Application& app)
 	}
 
 	int32_t systemTasks = CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT |
-						  CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED;
+						  CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED |
+						  CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
 
 	if (mCreateIssuanceRequest.ext.allTasks() && (*mCreateIssuanceRequest.ext.allTasks() & systemTasks) != 0)
 	{

@@ -102,9 +102,16 @@ handleApproveV2(Application &app, LedgerDelta &delta,
 
 	auto& requestEntry = request->getRequestEntry();
 
-	auto internalTasksToAdd = getInternalTasksToAdd(app, db, delta, ledgerManager, request);
-    requestEntry.ext.tasksExt().allTasks |= internalTasksToAdd;
-	requestEntry.ext.tasksExt().pendingTasks |= internalTasksToAdd;
+	auto systemTasksToAdd = getSystemTasksToAdd(app, db, delta, ledgerManager, request);
+	int32_t systemTasks = CreateIssuanceRequestOpFrame::INSUFFICIENT_AVAILABLE_FOR_ISSUANCE_AMOUNT |
+						  CreateIssuanceRequestOpFrame::ISSUANCE_MANUAL_REVIEW_REQUIRED |
+						  CreateIssuanceRequestOpFrame::DEPOSIT_LIMIT_EXCEEDED;
+	if ((systemTasksToAdd & ~systemTasks) != 0 ){
+		throw std::runtime_error("Expected only system tasks, got more");
+	}
+
+    requestEntry.ext.tasksExt().allTasks |= systemTasksToAdd;
+	requestEntry.ext.tasksExt().pendingTasks |= systemTasksToAdd;
 
 	requestEntry.ext.tasksExt().allTasks |= mReviewRequest.ext.reviewDetails().tasksToAdd;
 	requestEntry.ext.tasksExt().pendingTasks &= ~mReviewRequest.ext.reviewDetails().tasksToRemove;
@@ -296,14 +303,7 @@ bool ReviewIssuanceCreationRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& 
 
 }
 
-void ReviewIssuanceCreationRequestOpFrame::tryRevertStatsV2(StatisticsV2Processor& statisticsV2Processor,
-        uint64_t requestID)
-{
-     statisticsV2Processor.revertStatsV2(requestID);
-
-}
-
-uint32_t ReviewIssuanceCreationRequestOpFrame::getInternalTasksToAdd( Application &app, Database& db,
+uint32_t ReviewIssuanceCreationRequestOpFrame::getSystemTasksToAdd( Application &app, Database& db,
 		LedgerDelta &delta,
 		LedgerManager &ledgerManager,
 		ReviewableRequestFrame::pointer request)

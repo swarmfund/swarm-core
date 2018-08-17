@@ -24,15 +24,14 @@ protected:
     void tryRevertStatsV2(StatisticsV2Processor& statisticsV2Processor,
                           uint64_t requestID);
     bool addStatistics(Database& db,
-                                                                 LedgerDelta& delta, LedgerManager& ledgerManager,
-                                                                 BalanceFrame::pointer balanceFrame, const uint64_t amountToAdd,
-                                                                 uint64_t& universalAmount);
-    void revertStatistics(Database& db, LedgerDelta& delta, LedgerManager& ledgerManager,
-                                                                 uint64_t requestID);
+					 LedgerDelta& delta, LedgerManager& ledgerManager,
+					 BalanceFrame::pointer balanceFrame, const uint64_t amountToAdd,
+					 uint64_t& universalAmount);
+
 	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID,
 			CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const override;
 
-    uint32_t getInternalTasksToAdd( Application &app, Database& db, LedgerDelta &delta, LedgerManager &ledgerManager,
+    uint32_t getSystemTasksToAdd( Application &app, Database& db, LedgerDelta &delta, LedgerManager &ledgerManager,
             ReviewableRequestFrame::pointer request);
 public:
 

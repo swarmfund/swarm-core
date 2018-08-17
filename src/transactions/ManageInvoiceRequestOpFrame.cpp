@@ -20,10 +20,14 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails>
 ManageInvoiceRequestOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
-	return{
-		{mSourceAccount->getID(),
-                CounterpartyDetails(getAllAccountTypes(), true, true)}
-	};
+    if (mManageInvoiceRequest.details.action() == ManageInvoiceRequestAction::REMOVE) {
+        // no counterparties
+        return{};
+    }
+    return{
+            {mManageInvoiceRequest.details.invoiceRequest().sender,
+                    CounterpartyDetails(getAllAccountTypes(), true, true)},
+    };
 }
 
 SourceDetails

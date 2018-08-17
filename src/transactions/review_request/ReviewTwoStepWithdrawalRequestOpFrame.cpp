@@ -114,7 +114,7 @@ bool ReviewTwoStepWithdrawalRequestOpFrame::rejectWithdrawalRequest(Application&
     if (!balance->unlock(totalAmountToCharge))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state. Failed to unlock locked amount. requestID: " << request->getRequestID();
-        throw runtime_error("Unexected db state. Failed to unlock locked amount");
+        throw runtime_error("Unexpected db state. Failed to unlock locked amount");
     }
 
     const uint64_t universalAmount = withdrawRequest.universalAmount;

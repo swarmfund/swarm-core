@@ -43,6 +43,12 @@ namespace stellar {
             return mKeyEntry.key;
         }
 
+        KeyValueEntryType const&
+        getKeyValueEntryType()
+        {
+            return mKeyEntry.value.type();
+        }
+
         void setKey(string256 newKey)
         {
             mKeyEntry.key = newKey;

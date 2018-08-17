@@ -51,6 +51,9 @@ namespace stellar
         std::vector<ReviewableRequestFrame::pointer> loadRequests(AccountID const& requestor, ReviewableRequestType requestType,
             Database& db);
 
+        std::vector<ReviewableRequestFrame::pointer> loadRequests(
+                std::vector<uint64_t> requestIDs, Database& db);
+
         bool exists(Database & db, AccountID const & requestor, stellar::string64 reference, uint64_t requestID = 0);
         bool isReferenceExist(Database & db, AccountID const & requestor, string64 reference, uint64_t requestID = 0);
 
@@ -59,5 +62,7 @@ namespace stellar
         ~ReviewableRequestHelper() { ; }
 
         void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
+
+        std::string obtainSqlRequestIDsString(std::vector<uint64_t> requestIDs);
     };
 }

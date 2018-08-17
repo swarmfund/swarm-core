@@ -10,7 +10,6 @@
 #include "util/Logging.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
-#include "ledger/PaymentRequestFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/AccountHelper.h"
@@ -23,14 +22,13 @@
 #include "transactions/ManageAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/CreateWithdrawalRequestOpFrame.h"
-#include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
 #include "transactions/issuance/CreatePreIssuanceRequestOpFrame.h"
 #include "transactions/issuance/CreateIssuanceRequestOpFrame.h"
 #include "transactions/ManageLimitsOpFrame.h"
 #include "transactions/ManageAssetPairOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
-#include "transactions/ManageInvoiceOpFrame.h"
+#include "transactions/ManageInvoiceRequestOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
 #include "transactions/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
@@ -46,6 +44,8 @@
 #include "BindExternalSystemAccountIdOpFrame.h"
 #include "ManageKeyValueOpFrame.h"
 #include "CreateManageLimitsRequestOpFrame.h"
+#include "ManageContractRequestOpFrame.h"
+#include "ManageContractOpFrame.h"
 
 namespace stellar
 {
@@ -75,8 +75,6 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
 		return shared_ptr<OperationFrame>(new CreateWithdrawalRequestOpFrame(op, res, tx));
     case OperationType::MANAGE_BALANCE:
 		return shared_ptr<OperationFrame>(new ManageBalanceOpFrame(op, res, tx));
-    case OperationType::REVIEW_PAYMENT_REQUEST:
-		return shared_ptr<OperationFrame>(new ReviewPaymentRequestOpFrame(op, res, tx));
     case OperationType::MANAGE_ASSET:
 		return shared_ptr<OperationFrame>(ManageAssetOpFrame::makeHelper(op, res, tx));
     case OperationType::CREATE_PREISSUANCE_REQUEST:
@@ -89,8 +87,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new DirectDebitOpFrame(op, res, tx));
 	case OperationType::MANAGE_OFFER:
 		return shared_ptr<OperationFrame>(ManageOfferOpFrame::make(op, res, tx));
-    case OperationType::MANAGE_INVOICE:
-        return shared_ptr<OperationFrame>(new ManageInvoiceOpFrame(op, res, tx));
+    case OperationType::MANAGE_INVOICE_REQUEST:
+        return shared_ptr<OperationFrame>(new ManageInvoiceRequestOpFrame(op, res, tx));
     case OperationType::REVIEW_REQUEST:
 		return shared_ptr<OperationFrame>(ReviewRequestOpFrame::makeHelper(op, res, tx));
     case OperationType::CREATE_SALE_REQUEST:
@@ -113,6 +111,10 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageSaleOpFrame(op, res, tx));
     case OperationType::CREATE_MANAGE_LIMITS_REQUEST:
         return shared_ptr<OperationFrame>(new CreateManageLimitsRequestOpFrame(op, res, tx));
+    case OperationType::MANAGE_CONTRACT_REQUEST:
+        return shared_ptr<OperationFrame>(new ManageContractRequestOpFrame(op, res, tx));
+    case OperationType::MANAGE_CONTRACT:
+        return shared_ptr<OperationFrame>(new ManageContractOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());
@@ -212,32 +214,6 @@ OperationFrame::loadAccount(LedgerDelta* delta, Database& db)
 {
     mSourceAccount = mParentTx.loadAccount(delta, db, getSourceID());
     return !!mSourceAccount;
-}
-
-PaymentRequestEntry
-OperationFrame::createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, int64 sourceSend, int64 sourceSendUniversal,
-            BalanceID* destBalance, int64 destReceive, LedgerDelta& delta,
-            Database& db, uint64 createdAt, uint64* invoiceID)
-{
-    LedgerEntry le;
-    le.data.type(LedgerEntryType::PAYMENT_REQUEST);
-    PaymentRequestEntry& entry = le.data.paymentRequest();
-
-    entry.paymentID = paymentID;
-    entry.sourceBalance = sourceBalance;
-    entry.sourceSend = sourceSend;
-    entry.sourceSendUniversal = sourceSendUniversal;
-    if (destBalance)
-        entry.destinationBalance.activate() = *destBalance;
-    entry.destinationReceive = destReceive;
-    entry.createdAt = createdAt;
-    if (invoiceID)
-        entry.invoiceID.activate() = *invoiceID;
-    
-    auto paymentRequestFrame = std::make_shared<PaymentRequestFrame>(le);
-    EntryHelperProvider::storeAddEntry(delta, db, paymentRequestFrame->mEntry);
-
-    return entry;
 }
 
 [[deprecated]]
@@ -362,11 +338,9 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
             return false;
         }
 
-        
     }
 
     return true;
 }
-
 
 }

@@ -22,9 +22,7 @@ ManageInvoiceRequestOpFrame::getCounterpartyDetails(Database & db, LedgerDelta *
 {
 	return{
 		{mSourceAccount->getID(),
-                CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
-                                     AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
-                                     AccountType::VERIFIED, AccountType::MASTER}, true, true)}
+                CounterpartyDetails(getAllAccountTypes(), true, true)}
 	};
 }
 
@@ -32,11 +30,7 @@ SourceDetails
 ManageInvoiceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                               int32_t ledgerVersion) const
 {
-    std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
-                                                    AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
-                                                    AccountType::VERIFIED, AccountType::MASTER};
-
-	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(),
+	return SourceDetails(getAllAccountTypes(), mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::INVOICE_MANAGER));
 }
 

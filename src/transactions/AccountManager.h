@@ -103,9 +103,9 @@ public:
 
     static Result isAllowedToReceive(BalanceID receivingBalance, Database& db);
 
-    static Result isAllowedForFrame(BalanceFrame::pointer balanceFrame, Database& db);
+    static Result isAllowedToReceive(BalanceFrame::pointer balanceFrame, Database& db);
 
-    static Result isAllowedForAccount(AccountFrame::pointer account, BalanceFrame::pointer balance, Database& db);
+    static Result isAllowedToReceive(AccountFrame::pointer account, BalanceFrame::pointer balance, Database& db);
 
     static void unlockPendingIssuanceForSale(const SaleFrame::pointer sale, LedgerDelta &delta, Database &db,
                                              LedgerManager &lm);

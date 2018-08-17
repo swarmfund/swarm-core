@@ -375,17 +375,18 @@ namespace stellar {
 
     AccountManager::Result AccountManager::isAllowedToReceive(BalanceID balanceID, Database& db){
         auto balanceFrame = BalanceHelper::Instance()->loadBalance(balanceID, db);
-        return isAllowedForFrame(balanceFrame, db);
-    }
-
-    AccountManager::Result  AccountManager::isAllowedForFrame(BalanceFrame::pointer balanceFrame, Database& db){
-        auto accountFrame = AccountHelper::Instance()->mustLoadAccount(balanceFrame->getAccountID(), db);
-        return isAllowedForAccount(accountFrame, balanceFrame, db);
-    }
-    AccountManager::Result  AccountManager::isAllowedForAccount(AccountFrame::pointer account, BalanceFrame::pointer balance, Database& db){
-        if (!balance)
+        if (!balanceFrame)
             return AccountManager::Result::BALANCE_NOT_FOUND;
 
+        return isAllowedToReceive(balanceFrame, db);
+    }
+
+    AccountManager::Result  AccountManager::isAllowedToReceive(BalanceFrame::pointer balanceFrame, Database& db){
+        auto accountID = balanceFrame->getAccountID();
+        auto accountFrame = AccountHelper::Instance()->mustLoadAccount(accountID, db);
+        return isAllowedToReceive(accountFrame, balanceFrame, db);
+    }
+    AccountManager::Result  AccountManager::isAllowedToReceive(AccountFrame::pointer account, BalanceFrame::pointer balance, Database& db){
         auto asset = AssetHelper::Instance()->mustLoadAsset(balance->getAsset(), db);
 
         if (asset->isRequireVerification() && account->getAccountType() == AccountType::NOT_VERIFIED)

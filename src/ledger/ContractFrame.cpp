@@ -41,19 +41,6 @@ namespace stellar
         return true;
     }
 
-    void ContractFrame::startDispute(AccountID const& disputer,
-                                     longstring const& reason)
-    {
-        if (!(mContract.state & static_cast<uint32_t>(ContractState::DISPUTING)))
-            addState(ContractState::DISPUTING);
-
-        DisputeDetails disputeDetails;
-        disputeDetails.disputer = disputer;
-        disputeDetails.reason = reason;
-
-        mContract.disputeDetails.activate() = disputeDetails;
-    }
-
     bool ContractFrame::isBothConfirmed()
     {
         return (mContract.state &

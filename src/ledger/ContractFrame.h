@@ -93,8 +93,6 @@ public:
 
     bool isBothConfirmed();
 
-    void startDispute(AccountID const& disputer, longstring const& reason);
-
     void addInvoice(uint64_t const& requestID);
 
     bool addState(ContractState state);

@@ -8,9 +8,9 @@ using namespace soci;
 
 namespace stellar
 {
-const char* contractSelector = "SELECT id, contractor, customer, escrow, disputer,"
-                               "       start_time, end_time, invoices,"
-                               "       dispute_reason, state, lastmodified, version "
+const char* contractSelector = "SELECT id, contractor, customer, escrow,"
+                               "       start_time, end_time, initial_details, invoices,"
+                               "       state, lastmodified, version "
                                "FROM   contracts";
 
 void ContractHelper::dropAll(Database &db)
@@ -22,11 +22,10 @@ void ContractHelper::dropAll(Database &db)
                        "contractor      VARCHAR(56) NOT NULL,"
                        "customer        VARCHAR(56) NOT NULL,"
                        "escrow          VARCHAR(56) NOT NULL,"
-                       "disputer        VARCHAR(56) DEFAULT NULL,"
                        "start_time      BIGINT      NOT NULL CHECK (start_time >= 0),"
                        "end_time        BIGINT      NOT NULL CHECK (end_time >= 0),"
+                       "initial_details TEXT        NOT NULL,"
                        "invoices        TEXT        NOT NULL,"
-                       "dispute_reason  TEXT        DEFAULT NULL,"
                        "state           INT         NOT NULL,"
                        "lastmodified    INT         NOT NULL,"
                        "version         INT         NOT NULL DEFAULT 0"
@@ -48,16 +47,7 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     string customerID = PubKeyUtils::toStrKey(contractEntry.customer);
     string escrowID = PubKeyUtils::toStrKey(contractEntry.escrow);
 
-    string disputerID;
-    string disputeReason;
-    indicator disputeIndicator = i_null;
-    if (contractEntry.state & static_cast<uint32_t>(ContractState::DISPUTING))
-    {
-        disputerID = PubKeyUtils::toStrKey(contractEntry.disputeDetails->disputer);
-        disputeReason = bn::encode_b64(contractEntry.disputeDetails->reason);
-        disputeIndicator = i_ok;
-    }
-
+    string strDetails = bn::encode_b64(contractEntry.initialDetails);
     auto invoicesBytes = xdr::xdr_to_opaque(contractEntry.invoiceRequestsIDs);
     string strInvoices = bn::encode_b64(invoicesBytes);
     auto state = static_cast<int32_t>(contractEntry.state);
@@ -67,19 +57,18 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
 
     if (insert)
     {
-        sql = "INSERT INTO contracts (id, contractor, customer, escrow, disputer,"
-              "                       start_time, end_time, invoices, "
-              "                       dispute_reason, state, lastmodified, version) "
-              "VALUES (:id, :contractor, :customer, :escrow, :disputer, :s_t, :e_t,"
-              "        :invoices, :dis_reason, :state, :lm, :v)";
+        sql = "INSERT INTO contracts (id, contractor, customer, escrow,"
+              "                       start_time, end_time, initial_details, invoices, "
+              "                       state, lastmodified, version) "
+              "VALUES (:id, :contractor, :customer, :escrow, :s_t, :e_t,"
+              "        :init_det, :invoices, :state, :lm, :v)";
     }
     else
     {
         sql = "UPDATE contracts "
               "SET    contractor = :contractor, customer = :customer, escrow = :escrow,"
-              "       disputer = :disputer, start_time = :s_t, end_time = :e_t,"
-              "       invoices = :invoices,"
-              "       dispute_reason = :dis_reason,"
+              "       start_time = :s_t, end_time = :e_t,"
+              "       initial_details = :init_det, invoices = :invoices,"
               "       state = :state, lastmodified = :lm, version = :v "
               "WHERE  id = :id";
     }
@@ -91,11 +80,10 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     st.exchange(use(contractorID, "contractor"));
     st.exchange(use(customerID, "customer"));
     st.exchange(use(escrowID, "escrow"));
-    st.exchange(use(disputerID, disputeIndicator, "disputer"));
     st.exchange(use(contractEntry.startTime, "s_t"));
     st.exchange(use(contractEntry.endTime, "e_t"));
+    st.exchange(use(strDetails, "init_det"));
     st.exchange(use(strInvoices, "invoices"));
-    st.exchange(use(disputeReason, disputeIndicator, "dis_reason"));
     st.exchange(use(state, "state"));
     st.exchange(use(contractFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     st.exchange(use(version, "v"));
@@ -187,9 +175,8 @@ void
 ContractHelper::load(StatementContext& prep,
                      function<void(LedgerEntry const&)> processor)
 {
-    string contractorID, customerID, escrowID, disputerID;
-    string invoices, disputeReason;
-    indicator disputeIndicator = i_null;
+    string contractorID, customerID, escrowID;
+    string details, invoices;
 
     LedgerEntry le;
     le.data.type(LedgerEntryType::CONTRACT);
@@ -201,11 +188,10 @@ ContractHelper::load(StatementContext& prep,
     st.exchange(into(contractorID));
     st.exchange(into(customerID));
     st.exchange(into(escrowID));
-    st.exchange(into(disputerID, disputeIndicator));
     st.exchange(into(oe.startTime));
     st.exchange(into(oe.endTime));
+    st.exchange(into(details));
     st.exchange(into(invoices));
-    st.exchange(into(disputeReason, disputeIndicator));
     st.exchange(into(oe.state));
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.exchange(into(version));
@@ -218,6 +204,8 @@ ContractHelper::load(StatementContext& prep,
         oe.customer = PubKeyUtils::fromStrKey(customerID);
         oe.escrow = PubKeyUtils::fromStrKey(escrowID);
 
+        bn::decode_b64(details, oe.initialDetails);
+
         std::vector<uint8_t> decodedInv;
         bn::decode_b64(invoices, decodedInv);
         xdr::xdr_get unmarshalerInv(&decodedInv.front(), &decodedInv.back() + 1);
@@ -225,26 +213,6 @@ ContractHelper::load(StatementContext& prep,
         unmarshalerInv.done();
 
         oe.ext.v(static_cast<LedgerVersion>(version));
-
-        if (((oe.state & static_cast<uint32_t>(ContractState::DISPUTING)) != 0) != (disputeIndicator == i_ok))
-        {
-            CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected database state. "
-                          << "Expected contract with disputing state and disputing indicator "
-                          << "or not disputing state and not disputing indicator"
-                          << "actual state: " + to_string(oe.state) + ", actual indicator: "
-                          << to_string(disputeIndicator);
-            throw std::runtime_error("Unexpected database state. "
-                                     "Expected contract with disputing state and disputing indicator"
-                                     " or not disputing state and not disputing indicator");
-        }
-
-        if ((oe.state & static_cast<uint32_t>(ContractState::DISPUTING)) && (disputeIndicator == i_ok))
-        {
-            DisputeDetails disputeDetails;
-            disputeDetails.disputer = PubKeyUtils::fromStrKey(disputerID);
-            bn::decode_b64(disputeReason, disputeDetails.reason);
-            oe.disputeDetails.activate() = disputeDetails;
-        }
 
         processor(le);
         st.fetch();

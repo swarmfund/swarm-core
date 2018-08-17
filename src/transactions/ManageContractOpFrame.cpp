@@ -257,7 +257,7 @@ ManageContractOpFrame::tryStartDispute(ContractFrame::pointer contractFrame,
         return false;
     }
 
-    contractFrame->startDispute(getSourceID(), mManageContract.data.disputeReason());
+    contractFrame->addState(ContractState::DISPUTING);
     ContractHelper::Instance()->storeChange(delta, db, contractFrame->mEntry);
 
     return true;

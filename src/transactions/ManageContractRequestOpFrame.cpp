@@ -20,11 +20,15 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails>
 ManageContractRequestOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
+    if (mManageContractRequest.details.action() == ManageContractRequestAction::REMOVE) {
+        // no counterparties
+        return{};
+    }
     return{
-        {mSourceAccount->getID(),
-         CounterpartyDetails({AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
-                              AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
-                              AccountType::VERIFIED, AccountType::MASTER}, true, true)}
+        {mManageContractRequest.details.contractRequest().customer,
+                CounterpartyDetails(getAllAccountTypes(), true, true)},
+        {mManageContractRequest.details.contractRequest().escrow,
+                CounterpartyDetails(getAllAccountTypes(), true, true)},
     };
 }
 
@@ -33,12 +37,7 @@ ManageContractRequestOpFrame::getSourceAccountDetails(
         std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
         int32_t ledgerVersion) const
 {
-    std::vector<AccountType> allowedAccountTypes = {AccountType::GENERAL, AccountType::NOT_VERIFIED,
-                                                    AccountType::EXCHANGE, AccountType::ACCREDITED_INVESTOR,
-                                                    AccountType::INSTITUTIONAL_INVESTOR, AccountType::VERIFIED,
-                                                    AccountType::MASTER};
-
-    return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(),
+    return SourceDetails(getAllAccountTypes(), mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::CONTRACT_MANAGER));
 }
 

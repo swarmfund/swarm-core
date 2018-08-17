@@ -138,7 +138,7 @@ ManageContractRequestOpFrame::obtainMaxContractsForContractor(Application& app, 
 
     if (!maxContractsCountKeyValue)
     {
-        return app.getMaxContractDetailLength();
+        return app.getMaxContractsForContractor();
     }
 
     if (maxContractsCountKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
@@ -155,15 +155,38 @@ ManageContractRequestOpFrame::obtainMaxContractsForContractor(Application& app, 
 bool
 ManageContractRequestOpFrame::checkMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta)
 {
-    auto maxContractDetailLength = ManageContractOpFrame::obtainMaxContractDetailLength(app, db, delta);
+    auto maxContractInitialDetailLength = obtainMaxContractInitialDetailLength(app, db, delta);
 
-    if (mManageContractRequest.details.contractRequest().details.size() > maxContractDetailLength)
+    if (mManageContractRequest.details.contractRequest().details.size() > maxContractInitialDetailLength)
     {
         innerResult().code(ManageContractRequestResultCode::DETAILS_TOO_LONG);
         return false;
     }
 
     return true;
+}
+
+uint64_t
+ManageContractRequestOpFrame::obtainMaxContractInitialDetailLength(Application& app, Database& db, LedgerDelta& delta)
+{
+    auto maxContractInitialDetailLengthKey = ManageKeyValueOpFrame::makeMaxContractInitialDetailLengthKey();
+    auto maxContractInitialDetailLengthKeyValue = KeyValueHelper::Instance()->
+            loadKeyValue(maxContractInitialDetailLengthKey, db, &delta);
+
+    if (!maxContractInitialDetailLengthKeyValue)
+    {
+        return app.getMaxContractInitialDetailLength();
+    }
+
+    if (maxContractInitialDetailLengthKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
+             << "Expected max contracts initial detail length key value to be UINT32. Actual: "
+             << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxContractInitialDetailLengthKeyValue->getKeyValueEntryType());
+        throw std::runtime_error("Unexpected database state, expected max contracts initial detail length key value to be UINT32");
+    }
+
+    return maxContractInitialDetailLengthKeyValue->getKeyValue().value.ui32Value();
 }
 
 bool

@@ -18,6 +18,7 @@ namespace stellar {
     char const * ManageKeyValueOpFrame::kycRulesPrefix = "kyc_lvlup_rules";
     char const * ManageKeyValueOpFrame::externalSystemPrefix = "ext_sys_exp_period";
     char const * ManageKeyValueOpFrame::maxContractDetailLengthPrefix = "max_contract_detail_length";
+    char const * ManageKeyValueOpFrame::maxContractInitialDetailLengthPrefix = "max_contract_initial_detail_length";
     char const * ManageKeyValueOpFrame::maxContractsCountPrefix = "max_contracts_count";
     char const * ManageKeyValueOpFrame::maxInvoicesCountPrefix = "max_invoices_count";
     char const * ManageKeyValueOpFrame::maxInvoiceDetailLengthPrefix = "max_invoice_detail_length";
@@ -140,5 +141,11 @@ namespace stellar {
     ManageKeyValueOpFrame::makeMaxInvoiceDetailLengthKey()
     {
         return maxInvoiceDetailLengthPrefix;
+    }
+
+    longstring
+    ManageKeyValueOpFrame::makeMaxContractInitialDetailLengthKey()
+    {
+        return maxContractInitialDetailLengthPrefix;
     }
 }

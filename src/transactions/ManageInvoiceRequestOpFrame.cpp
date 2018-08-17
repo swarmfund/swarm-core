@@ -238,9 +238,9 @@ ManageInvoiceRequestOpFrame::obtainMaxInvoicesCount(Application& app, Database& 
     if (maxInvoicesCountKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
-             << "Expected max contract detail length key value to be UINT32. Actual: "
+             << "Expected max invoices count key value to be UINT32. Actual: "
              << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxInvoicesCountKeyValue->getKeyValueEntryType());
-        throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
+        throw std::runtime_error("Unexpected database state, expected max invoices count key value to be UINT32");
     }
 
     return maxInvoicesCountKeyValue->getKeyValue().value.ui32Value();
@@ -261,9 +261,9 @@ ManageInvoiceRequestOpFrame::obtainMaxInvoiceDetailsLength(Application& app, Dat
     if (maxInvoicesDetailsLengthKeyValue->getKeyValueEntryType() != KeyValueEntryType::UINT32)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected database state. "
-             << "Expected max contract detail length key value to be UINT32. Actual: "
+             << "Expected max invoices detail length key value to be UINT32. Actual: "
              << xdr::xdr_traits<KeyValueEntryType>::enum_name(maxInvoicesDetailsLengthKeyValue->getKeyValueEntryType());
-        throw std::runtime_error("Unexpected database state, expected max contract detail length key value to be UINT32");
+        throw std::runtime_error("Unexpected database state, expected max invoices details length key value to be UINT32");
     }
 
     return maxInvoicesDetailsLengthKeyValue->getKeyValue().value.ui32Value();

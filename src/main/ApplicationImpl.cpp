@@ -243,6 +243,11 @@ namespace stellar {
         return mConfig.MAX_CONTRACT_DETAIL_LENGTH;
     }
 
+    uint64 ApplicationImpl::getMaxContractInitialDetailLength() const {
+        assert(mConfig.MAX_CONTRACT_INITIAL_DETAIL_LENGTH > 0);
+        return mConfig.MAX_CONTRACT_INITIAL_DETAIL_LENGTH;
+    }
+
     uint64 ApplicationImpl::getMaxContractsForContractor() const {
         assert(mConfig.MAX_CONTRACTS_FOR_CONTRACTOR >= 0);
         return mConfig.MAX_CONTRACTS_FOR_CONTRACTOR;

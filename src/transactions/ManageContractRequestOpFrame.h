@@ -29,6 +29,8 @@ class ManageContractRequestOpFrame : public OperationFrame
 
     bool checkMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta);
 
+    uint64_t obtainMaxContractInitialDetailLength(Application& app, Database& db, LedgerDelta& delta);
+
 public:
     ManageContractRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx);
 

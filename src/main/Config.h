@@ -146,6 +146,7 @@ class Config : public std::enable_shared_from_this<Config>
     uint64 MAX_INVOICE_DETAIL_LENGTH = 256;
     uint64 MAX_CONTRACTS_FOR_CONTRACTOR = 20;
     uint64 MAX_CONTRACT_DETAIL_LENGTH = 256;
+    uint64 MAX_CONTRACT_INITIAL_DETAIL_LENGTH = 1000;
 
     int32 KYC_SUPER_ADMIN_MASK = 1;
 

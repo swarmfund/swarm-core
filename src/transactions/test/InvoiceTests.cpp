@@ -271,7 +271,8 @@ TEST_CASE("Invoice", "[tx][invoice]")
         SECTION("Request not found")
         {
             auto limitsUpdateRequestHelper = LimitsUpdateRequestHelper(testManager);
-            auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest("limitsRequestData");
+            auto limitsUpdateRequest = limitsUpdateRequestHelper.createLimitsUpdateRequest(
+                    "{\n \"a\": \"Limits request data\" \n}");
             auto limitsUpdateResult = limitsUpdateRequestHelper.applyCreateLimitsUpdateRequest(payer,
                     limitsUpdateRequest);
 

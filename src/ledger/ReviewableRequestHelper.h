@@ -29,6 +29,8 @@ namespace stellar
             return&singleton;
         }
 
+        void addTasks(Database& db);
+
         void dropAll(Database& db) override;
         void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
         void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;

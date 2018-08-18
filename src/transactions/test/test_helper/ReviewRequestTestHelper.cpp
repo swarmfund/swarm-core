@@ -82,7 +82,10 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
 
     if (requestMustBeDeletedAfterApproval)
     {
-        REQUIRE(!requestAfterTx);
+        if (requestBeforeTx->getRequestType() != ReviewableRequestType::ISSUANCE_CREATE)
+        {
+            REQUIRE(!requestAfterTx);
+        }
     }
     else
     {

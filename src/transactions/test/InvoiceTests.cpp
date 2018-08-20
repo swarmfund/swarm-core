@@ -105,10 +105,12 @@ TEST_CASE("Invoice", "[tx][invoice]")
     uint64_t paymentAmount = 100 * ONE;
     auto emissionAmount = 3 * paymentAmount;
 
+    uint32_t issuanceTasks = 0;
+
     issuanceTestHelper.applyCreateIssuanceRequest(root, paymentAsset, emissionAmount, payerBalance->getBalanceID(),
-                                                  SecretKey::random().getStrKeyPublic());
+                                                  SecretKey::random().getStrKeyPublic(), &issuanceTasks);
     issuanceTestHelper.applyCreateIssuanceRequest(root, feeAsset, emissionAmount, payerFeeBalance->getBalanceID(),
-                                                  SecretKey::random().getStrKeyPublic());
+                                                  SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
     // create destination and feeData for further tests
     auto destination = paymentV2TestHelper.createDestinationForBalance(receiverBalance->getBalanceID());
@@ -248,15 +250,6 @@ TEST_CASE("Invoice", "[tx][invoice]")
 
             manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
                     ManageInvoiceRequestResultCode::MALFORMED);
-        }
-
-        SECTION("Destination balance not found")
-        {
-            auto createInvoiceRequestOp = manageInvoiceRequestTestHelper.createInvoiceRequest(
-                    paymentAsset, SecretKey::random().getPublicKey(), paymentAmount, details);
-
-            manageInvoiceRequestTestHelper.applyManageInvoiceRequest(recipient, createInvoiceRequestOp,
-                                                                     ManageInvoiceRequestResultCode::BALANCE_NOT_FOUND);
         }
 
         SECTION("Request not found")

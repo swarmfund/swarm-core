@@ -52,6 +52,7 @@
 #include <ledger/StatisticsV2Helper.h>
 #include <ledger/PendingStatisticsHelper.h>
 #include <ledger/ReviewableRequestHelper.h>
+#include <ledger/ContractHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
 #include "ledger/SaleAnteHelper.h"
@@ -89,10 +90,11 @@ enum databaseSchemaVersion : unsigned long {
     ADD_SALE_ANTE = 14,
     ADD_SALE_STATE = 15,
     ADD_LIMITS_V2 = 16,
-    ADD_REVIEWABLE_REQUEST_TASKS = 17
+    ADD_REVIEWABLE_REQUEST_TASKS = 17,
+    ADD_CONTRACTS = 18
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_REVIEWABLE_REQUEST_TASKS;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_CONTRACTS;
 
 static void
 setSerializable(soci::session& sess)
@@ -196,6 +198,9 @@ Database::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::ADD_REVIEWABLE_REQUEST_TASKS:
             ReviewableRequestHelper::Instance()->addTasks(*this);
             PendingStatisticsHelper::Instance()->restrictUpdateDelete(*this);
+            break;
+        case databaseSchemaVersion::ADD_CONTRACTS:
+            ContractHelper::Instance()->dropAll(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

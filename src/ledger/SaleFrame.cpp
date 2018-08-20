@@ -7,6 +7,7 @@
 #include "LedgerDelta.h"
 #include "xdrpp/printer.h"
 #include "AssetFrame.h"
+#include "AssetHelper.h"
 
 using namespace soci;
 using namespace std;
@@ -74,7 +75,6 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         {
             throw runtime_error("details is invalid");
         }
-
         if (oe.currentCapInBase > oe.maxAmountToBeSold)
         {
             throw runtime_error("current cap in base exceeds maxAmountToBeSold");
@@ -136,7 +136,10 @@ uint64_t SaleFrame::getID() const
 
 uint64_t SaleFrame::getPrice(AssetCode const& code)
 {
-    return getSaleQuoteAsset(code).price;
+    if (this->getSaleType() != SaleType::FIXED_PRICE || (code != mSale.defaultQuoteAsset))
+        return getSaleQuoteAsset(code).price;
+    
+    return mSale.hardCap / mSale.maxAmountToBeSold;
 }
 
 uint64_t SaleFrame::getMaxAmountToBeSold() const
@@ -265,12 +268,19 @@ SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &own
 
 uint64_t SaleFrame::getBaseAmountForCurrentCap(AssetCode const& asset)
 {
-    auto& quoteAsset = getSaleQuoteAsset(asset);
     uint64_t baseAmount;
-    if (!convertToBaseAmount(quoteAsset.price, quoteAsset.currentCap, baseAmount))
-    {
-        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to conver to base amount current cap: " << xdr::xdr_to_string(mSale);
-        throw runtime_error("Unexpected state: failed to conver to base amount current cap");
+    auto saleType = getSaleType();
+    switch(saleType){
+        case SaleType::FIXED_PRICE:
+            baseAmount = mSale.currentCapInBase;
+            break;
+        default:
+            auto& quoteAsset = getSaleQuoteAsset(asset);
+            if (!convertToBaseAmount(quoteAsset.price, quoteAsset.currentCap, baseAmount))
+            {
+                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to conver to base amount current cap: " << xdr::xdr_to_string(mSale);
+                throw runtime_error("Unexpected state: failed to conver to base amount current cap");
+            }
     }
 
     return baseAmount;

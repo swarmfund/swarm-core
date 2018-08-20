@@ -243,6 +243,34 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     return true;
 }
 
+bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest)
+{
+    if(!app.getLedgerManager().shouldUse(LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP))
+        return true;
+
+    uint64_t maxAmount;
+    switch (saleCreationRequest.ext.v()) {
+        case LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP: {
+            maxAmount = saleCreationRequest.ext.extV2().requiredBaseAssetForHardCap;
+            break;
+        }
+        case LedgerVersion::STATABLE_SALES: {
+            maxAmount = saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
+            break;
+        }
+        default: {
+            return true;
+        }
+    }
+    auto hardCap = saleCreationRequest.hardCap;
+    uint64_t price = hardCap / maxAmount;
+    auto sufficientAmount = hardCap / price;
+    Database& db = app.getDatabase();
+    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(saleCreationRequest.baseAsset, db);
+
+    return baseAsset->isAvailableForIssuanceAmountSufficient(sufficientAmount);
+}
+
 bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)
 {
     auto checkValidResult = doCheckValid(app, mCreateSaleCreationRequest.request);
@@ -289,6 +317,10 @@ CreateSaleCreationRequestOpFrame::doCheckValid(Application &app, const SaleCreat
     if (saleCreationRequest.endTime <= saleCreationRequest.startTime)
     {
         return CreateSaleCreationRequestResultCode::START_END_INVALID;
+    }
+    if (!ensureEnoughAvailable(app, saleCreationRequest))
+    {
+        return CreateSaleCreationRequestResultCode::INSUFFICIENT_PREISSUED;
     }
 
     if (saleCreationRequest.hardCap < saleCreationRequest.softCap)

@@ -91,10 +91,11 @@ enum databaseSchemaVersion : unsigned long {
     ADD_SALE_STATE = 15,
     ADD_LIMITS_V2 = 16,
     ADD_REVIEWABLE_REQUEST_TASKS = 17,
-    ADD_CONTRACTS = 18
+    ADD_CONTRACTS = 18,
+    REVIEWABLE_REQUEST_FIX_DEFAULT_VALUE = 19
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_CONTRACTS;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::REVIEWABLE_REQUEST_FIX_DEFAULT_VALUE;
 
 static void
 setSerializable(soci::session& sess)
@@ -201,6 +202,9 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_CONTRACTS:
             ContractHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::REVIEWABLE_REQUEST_FIX_DEFAULT_VALUE:
+            ReviewableRequestHelper::Instance()->changeDefaultExternalDetails(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

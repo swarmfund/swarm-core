@@ -244,7 +244,7 @@ SourceDetails CreateIssuanceRequestOpFrame::getSourceAccountDetails(std::unorder
 							 static_cast<int32_t>(SignerType::ISSUANCE_MANAGER));
 	}
 
-	if (!mCreateIssuanceRequest.ext.allTasks())
+	if (mCreateIssuanceRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST && !mCreateIssuanceRequest.ext.allTasks())
 	{
 		return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
 							 static_cast<uint32_t>(SignerType::ISSUANCE_MANAGER) |
@@ -392,7 +392,7 @@ CreateIssuanceRequestOpFrame::isAllowedToReceive(BalanceID receivingBalance, Dat
 
 bool CreateIssuanceRequestOpFrame::loadIssuanceTasks(Database &db, uint32_t &allTasks)
 {
-    if (mCreateIssuanceRequest.ext.allTasks())
+    if (mCreateIssuanceRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST && mCreateIssuanceRequest.ext.allTasks())
     {
         allTasks = *mCreateIssuanceRequest.ext.allTasks().get();
         return true;

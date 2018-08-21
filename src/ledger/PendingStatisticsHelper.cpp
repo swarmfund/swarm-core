@@ -28,6 +28,15 @@ namespace stellar
                    ");";
     }
 
+
+    void PendingStatisticsHelper::restrictUpdateDelete(Database& db) {
+        db.getSession() << "ALTER TABLE pending_statistics "
+                           "DROP CONSTRAINT pending_statistics_request_id_fkey";
+        db.getSession() << "ALTER TABLE pending_statistics "
+                           "ADD CONSTRAINT pending_statistics_request_id_fkey FOREIGN KEY (request_id) REFERENCES reviewable_request(id) on delete restrict on update cascade;";
+    }
+
+
     void PendingStatisticsHelper::storeAdd(LedgerDelta &delta, Database &db, LedgerEntry const &entry)
     {
         storeUpdateHelper(delta, db, true, entry);

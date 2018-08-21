@@ -45,8 +45,6 @@ namespace stellar {
         static bool getDefaultKYCMask(Database &db, LedgerManager &ledgerManager, UpdateKYCRequestData kycRequestData,
                                AccountFrame::pointer account, uint32 &defaultMask);
 
-        static void checkRequestType(ReviewableRequestFrame::pointer request);
-
         static CreateUpdateKYCRequestResultCode getInnerCode(OperationResult const &res) {
             return res.tr().createUpdateKYCRequestResult().code();
         }

@@ -113,10 +113,12 @@ TEST_CASE("Contract", "[tx][contract]")
     uint64_t paymentAmount = 100 * ONE;
     auto emissionAmount = 3 * paymentAmount;
 
+    uint32_t issuanceTasks = 0;
+
     issuanceTestHelper.applyCreateIssuanceRequest(root, paymentAsset, emissionAmount, payerBalance->getBalanceID(),
-                                                  SecretKey::random().getStrKeyPublic());
+                                                  SecretKey::random().getStrKeyPublic(), &issuanceTasks);
     issuanceTestHelper.applyCreateIssuanceRequest(root, feeAsset, emissionAmount, payerFeeBalance->getBalanceID(),
-                                                  SecretKey::random().getStrKeyPublic());
+                                                  SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
     // create destination and feeData for further tests
     auto destination = paymentV2TestHelper.createDestinationForAccount(recipient.key.getPublicKey());

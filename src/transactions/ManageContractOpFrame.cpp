@@ -29,12 +29,7 @@ ManageContractOpFrame::getSourceAccountDetails(
         std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
         int32_t ledgerVersion) const
 {
-    std::vector<AccountType> allowedAccountTypes = {AccountType::MASTER, AccountType::GENERAL,
-                                                    AccountType::NOT_VERIFIED,
-                               AccountType::SYNDICATE, AccountType::EXCHANGE, AccountType::VERIFIED,
-                               AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR};
-
-    return SourceDetails(allowedAccountTypes,
+    return SourceDetails(getAllAccountTypes(),
                          mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::CONTRACT_MANAGER));
 }

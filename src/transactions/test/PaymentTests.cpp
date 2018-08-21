@@ -60,11 +60,14 @@ TEST_CASE("payment", "[dep_tx][payment]")
                                                              asset,
                                                              testManager->
                                                              getDB(), nullptr);
+
+    uint32_t issuanceTasks = 0;
+
     REQUIRE(!!aWMBalance);
     issuanceHelper.applyCreateIssuanceRequest(root, asset, emissionAmount,
                                               aWMBalance->getBalanceID(),
                                               SecretKey::random().
-                                              getStrKeyPublic());
+                                              getStrKeyPublic(), &issuanceTasks);
 
     auto secondAsset = "AETH";
 
@@ -96,7 +99,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
         REQUIRE(!!senderBalance);
         issuanceHelper.applyCreateIssuanceRequest(root, assetCode, emissionAmount,
             senderBalance->getBalanceID(),
-            SecretKey::random().getStrKeyPublic());
+            SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
         // create fee
         const int64_t fixedFee = 3;
@@ -264,7 +267,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
                                                   accountBalance->
                                                   getBalanceID(),
                                                   SecretKey::random().
-                                                  getStrKeyPublic());
+                                                  getStrKeyPublic(), &issuanceTasks);
         auto dest = SecretKey::random();
         applyCreateAccountTx(app, root.key, dest, rootSeq++,
                              AccountType::GENERAL);
@@ -367,7 +370,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
                                                   accountBalance->
                                                   getBalanceID(),
                                                   SecretKey::random().
-                                                  getStrKeyPublic());
+                                                  getStrKeyPublic(), &issuanceTasks);
 
         auto dest = SecretKey::random();
         applyCreateAccountTx(app, root.key, dest, rootSeq++,

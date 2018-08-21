@@ -274,6 +274,13 @@ ReviewableRequestFrame::ensureValid() const
     ensureValid(mRequest);
 }
 
+void ReviewableRequestFrame::setTasks(uint32_t allTasks)
+{
+    mRequest.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+    mRequest.ext.tasksExt().allTasks = allTasks;
+    mRequest.ext.tasksExt().pendingTasks = allTasks;
+}
+
 void ReviewableRequestFrame::checkRequestType(ReviewableRequestType requestType) const
 {
     if (mRequest.body.type() != requestType) {
@@ -284,6 +291,17 @@ void ReviewableRequestFrame::checkRequestType(ReviewableRequestType requestType)
                                                        mRequest.body.type());
         throw std::invalid_argument("Unexpected request type");
     }
+}
+
+bool ReviewableRequestFrame::canBeFulfilled(LedgerManager& lm) const
+{
+    if (!lm.shouldUse(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST) ||
+        mRequest.ext.v() != LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+    {
+        return true;
+    }
+
+    return mRequest.ext.tasksExt().pendingTasks == 0;
 }
 
 }

@@ -75,9 +75,13 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         {
             throw runtime_error("details is invalid");
         }
-        if (oe.currentCapInBase > oe.maxAmountToBeSold)
+        if (!isFixedPriceSale(oe) && oe.currentCapInBase > oe.maxAmountToBeSold)
         {
             throw runtime_error("current cap in base exceeds maxAmountToBeSold");
+        }
+        if (isFixedPriceSale(oe) && oe.currentCapInBase > oe.hardCap)
+        {
+            throw runtime_error("current cap exceeds hardCap");
         }
 
         if (oe.quoteAssets.empty())
@@ -95,6 +99,32 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state sale entry is invalid: " << xdr::xdr_to_string(oe);
         throw_with_nested(runtime_error("Sale entry is invalid"));
     }
+}
+
+bool
+SaleFrame::isFixedPriceSale(SaleEntry const& oe){
+    SaleType saleType;
+    switch (oe.ext.v()) {
+        case LedgerVersion::EMPTY_VERSION: {
+            return false;
+        }
+        case LedgerVersion::TYPED_SALE: {
+            saleType = oe.ext.saleTypeExt().typedSale.saleType();
+            break;
+        }
+        case LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP: {
+            saleType = oe.ext.saleTypeExt().typedSale.saleType();
+            break;
+        }
+        case LedgerVersion::STATABLE_SALES: {
+            saleType = oe.ext.statableSaleExt().saleTypeExt.typedSale.saleType();
+            break;
+        }
+        default: {
+            throw std::runtime_error("Unexpected version of sale entry");
+        }
+    }
+    return saleType == SaleType::FIXED_PRICE;
 }
 
 void
@@ -136,10 +166,7 @@ uint64_t SaleFrame::getID() const
 
 uint64_t SaleFrame::getPrice(AssetCode const& code)
 {
-    if (this->getSaleType() != SaleType::FIXED_PRICE || (code != mSale.defaultQuoteAsset))
-        return getSaleQuoteAsset(code).price;
-    
-    return mSale.hardCap / mSale.maxAmountToBeSold;
+    return getSaleQuoteAsset(code).price;
 }
 
 uint64_t SaleFrame::getMaxAmountToBeSold() const
@@ -309,11 +336,12 @@ bool SaleFrame::tryLockBaseAsset(uint64_t amount)
     {
         return true;
     }
-
     if (!safeSum(mSale.currentCapInBase, amount, mSale.currentCapInBase))
     {
         return false;
     }
+    if (getSaleType() == SaleType::FIXED_PRICE)
+        return mSale.currentCapInBase <= mSale.hardCap;
 
     return mSale.currentCapInBase <= mSale.maxAmountToBeSold;
 }

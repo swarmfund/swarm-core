@@ -27,6 +27,7 @@ public:
         int64_t const price, int64_t const fee, uint64_t const offerID, uint64_t const orderBookID);
     // Calculates quote amount. Returns 0 if fails due to overflow
     static int64_t calculateQuoteAmount(int64_t const baseAmount, int64_t const price);
+    static int64_t calculateFixedPriceQuoteAmount(int64_t const baseAmount, int64_t const price);
 
-};
+    };
 }

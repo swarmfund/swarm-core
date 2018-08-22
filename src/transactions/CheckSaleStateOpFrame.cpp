@@ -75,7 +75,7 @@ const
 }
 
 void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
-    LedgerDelta& delta, Database& db, LedgerManager& lm) const
+    LedgerDelta& delta, Database& db, LedgerManager& lm, TokenAction action = NOTHING) const
 {
     AccountManager::unlockPendingIssuanceForSale(sale, delta, db, lm);
 
@@ -93,7 +93,7 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
         throw runtime_error("Unexpected state; issuance request was not fulfilled on check sale state");
     }
 
-    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_ISSUE_AFTER_SALE)) {
+    if (action == DESTROY || (!lm.shouldUse(LedgerVersion::ALLOW_TO_ISSUE_AFTER_SALE))) {
         restrictIssuanceAfterSale(sale, delta, db, lm);
     }
 }
@@ -245,8 +245,21 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
 {
     Database& db = app.getDatabase();
     const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
-    // TODO: must be refactored
-    const auto amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
+    uint64_t amountToIssue;
+    auto saleType = sale->getSaleType();
+    switch (saleType){
+        case SaleType::FIXED_PRICE: {
+            auto baseAmount = sale->getBaseAmountForCurrentCap();
+            auto quoteAsset = sale->getDefaultQuoteAsset();
+            auto price = sale->getHardCap() / sale->getMaxAmountToBeSold();
+            amountToIssue = baseAmount / price;
+            break;
+        }
+        // TODO: must be refactored
+        default:
+            amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
+    }
+
     const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue,
                                                                        sale->getBaseBalanceID(), lm, 0);
     Operation op;
@@ -328,7 +341,15 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     auto baseBalance = BalanceHelper::Instance()->mustLoadBalance(sale->getBaseBalanceID(), db);
 
     const auto baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
-    const auto quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);
+    int64_t quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);
+
+    auto hardCap = sale->getHardCap();
+    auto hardCapInBase = sale->getMaxAmountToBeSold();
+    const auto price = hardCap / hardCapInBase;
+    auto saleType = sale->getSaleType();
+    if (saleType == SaleType::FIXED_PRICE)
+        quoteAmount = OfferManager::calculateFixedPriceQuoteAmount(baseAmount, price);
+
     const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
     if (feeResult.isOverflow)
     {
@@ -336,8 +357,15 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
         throw runtime_error("Unexpected state: overflow on sale fees calculation");
     }
 
-    const auto manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), saleQuoteAsset.quoteBalance,
+
+    ManageOfferOp manageOfferOp;
+    if (saleType == SaleType::FIXED_PRICE)
+        manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), saleQuoteAsset.quoteBalance,
+        false, baseAmount, price, feeResult.calculatedPercentFee, 0, sale->getID());
+    else
+        manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), saleQuoteAsset.quoteBalance,
         false, baseAmount, saleQuoteAsset.price, feeResult.calculatedPercentFee, 0, sale->getID());
+
     Operation op;
     op.sourceAccount.activate() = sale->getOwnerID();
     op.body.type(OperationType::MANAGE_OFFER);
@@ -421,7 +449,8 @@ bool CheckSaleStateOpFrame::cleanSale(SaleFrame::pointer sale, Application& app,
 void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
     LedgerDelta& delta, Database& db) const
 {
-    if (sale->getSaleType() != SaleType::CROWD_FUNDING)
+    auto saleType = sale->getSaleType();
+    if (saleType != SaleType::CROWD_FUNDING && saleType != SaleType::FIXED_PRICE)
     {
         return;
     }
@@ -436,7 +465,12 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
         {
             auto& offerEntry = offerToUpdate->getOffer();
             offerEntry.price = quoteAsset.price;
-            if (!bigDivide(offerEntry.baseAmount, offerEntry.quoteAmount, ONE, offerEntry.price, ROUND_DOWN))
+
+            int64_t standartPrice = ONE;
+            if (saleType == SaleType::FIXED_PRICE)
+                standartPrice = 1;
+
+            if (!bigDivide(offerEntry.baseAmount, offerEntry.quoteAmount, standartPrice, offerEntry.price, ROUND_DOWN))
             {
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update price for offer: offerID: " << offerEntry.offerID;
                 throw runtime_error("Failed to update price for offer on crowdfund check state");
@@ -547,7 +581,12 @@ int64_t CheckSaleStateOpFrame::getSalePriceForCap(int64_t const cap,
                                                   const SaleFrame::pointer sale)
 {
     int64_t currentSalePrice = 0;
-    if (!bigDivide(currentSalePrice, cap, ONE, sale->getMaxAmountToBeSold(), ROUND_UP))
+    int64_t priceInDefaultQuote = ONE;
+    if (sale->getSaleType() == SaleType::FIXED_PRICE)
+    {
+        priceInDefaultQuote = 1;
+    }
+    if (!bigDivide(currentSalePrice, cap, priceInDefaultQuote, sale->getMaxAmountToBeSold(), ROUND_UP))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate current sale price in default quote. SaleID: " << sale->getID();
         throw runtime_error("Failed to calculate current sale price in default quote");

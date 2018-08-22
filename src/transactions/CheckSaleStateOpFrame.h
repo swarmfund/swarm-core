@@ -18,6 +18,12 @@ class CheckSaleStateOpFrame : public OperationFrame
         NOT_READY = 3
     };
 
+    enum TokenAction
+    {
+        NOTHING,
+        DESTROY,
+    };
+
     static SaleState getSaleState(SaleFrame::pointer sale, Database& db, LedgerManager& lm);
 
     CheckSaleStateResult& innerResult()
@@ -33,7 +39,8 @@ class CheckSaleStateOpFrame : public OperationFrame
     SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                               int32_t ledgerVersion) const override;
 
-    void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app, LedgerDelta& delta, Database& db, LedgerManager& lm) const;
+    void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app,
+                        LedgerDelta& delta, Database& db, LedgerManager& lm, TokenAction action) const;
 
     bool handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta, Database& db);
     bool handleClose(SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db);

@@ -99,4 +99,19 @@ int64_t OfferManager::calculateQuoteAmount(int64_t const baseAmount,
         return 0;
     return result;
 }
+
+int64_t OfferManager::calculateFixedPriceQuoteAmount(int64_t const baseAmount, int64_t const price) {
+    // 1. Check quote amount fits minimal precision
+    int64_t result;
+    if (!bigDivide(result, baseAmount, price, 1, ROUND_DOWN))
+        return 0;
+
+    if (result == 0)
+        return 0;
+
+    // 2. Calculate amount to be spent
+    if (!bigDivide(result, baseAmount, price, 1, ROUND_UP))
+        return 0;
+    return result;
+}
 }

@@ -4,12 +4,10 @@
 
 #include "util/asio.h"
 #include "ReviewLimitsUpdateRequestOpFrame.h"
-#include "util/Logging.h"
-#include "util/types.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AccountLimitsHelper.h"
+#include <ledger/ReviewableRequestHelper.h>
 #include "transactions/ManageLimitsOpFrame.h"
 #include "main/Application.h"
 
@@ -29,6 +27,26 @@ namespace stellar {
     {
         return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t >(SignerType::LIMITS_MANAGER));
+    }
+
+    bool
+    ReviewLimitsUpdateRequestOpFrame::handleManageLimitsResult(ManageLimitsResultCode manageLimitsResultCode)
+    {
+        switch (manageLimitsResultCode) {
+            case ManageLimitsResultCode::CANNOT_CREATE_FOR_ACC_ID_AND_ACC_TYPE: {
+                innerResult().code(ReviewRequestResultCode::CANNOT_CREATE_FOR_ACC_ID_AND_ACC_TYPE);
+                return false;
+            }
+            case ManageLimitsResultCode::INVALID_LIMITS: {
+                innerResult().code(ReviewRequestResultCode::INVALID_LIMITS);
+                return false;
+            }
+            default: {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected result code from manage limits: "
+                                                       << xdr::xdr_traits<ManageLimitsResultCode>::enum_name(manageLimitsResultCode);
+                throw std::runtime_error("Unexpected result code from manage limits");
+            }
+        }
     }
 
     bool
@@ -56,15 +74,22 @@ namespace stellar {
         OperationResult opRes;
         opRes.code(OperationResultCode::opINNER);
         opRes.tr().type(OperationType::MANAGE_LIMITS);
-        ManageLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
+        ManageLimitsOpFrame manageLimitsOpFrame(op, opRes, mParentTx);
 
         auto accountHelper = AccountHelper::Instance();
         auto master = accountHelper->mustLoadAccount(app.getMasterID(), db);
-        setLimitsOpFrame.setSourceAccountPtr(master);
+        manageLimitsOpFrame.setSourceAccountPtr(master);
 
-        if (!setLimitsOpFrame.doCheckValid(app) || !setLimitsOpFrame.doApply(app, delta, ledgerManager))
+        if (!manageLimitsOpFrame.doCheckValid(app) || !manageLimitsOpFrame.doApply(app, delta, ledgerManager))
         {
-            auto resultCodeString = setLimitsOpFrame.getInnerResultCodeAsStr();
+            if (ledgerManager.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_AND_REJECT_LIMITS_UPDATE_REQUESTS))
+            {
+                OperationResult& manageLimitsResult = manageLimitsOpFrame.getResult();
+                auto manageLimitsResultCode = ManageLimitsOpFrame::getInnerCode(manageLimitsResult);
+                return handleManageLimitsResult(manageLimitsResultCode);
+            }
+
+            auto resultCodeString = manageLimitsOpFrame.getInnerResultCodeAsStr();
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to apply manage limits"
                                                       " on review limits update request: "
                                                    << request->getRequestID() << " with code: " << resultCodeString;
@@ -84,11 +109,7 @@ namespace stellar {
                                                          LedgerManager &ledgerManager,
                                                          ReviewableRequestFrame::pointer request)
     {
-        if (request->getRequestType() != ReviewableRequestType::LIMITS_UPDATE) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected LIMITS, but got "
-                                                   << xdr::xdr_traits<ReviewableRequestType>::enum_name(request->getRequestType());
-            throw std::invalid_argument("Unexpected request type for review limits update request");
-        }
+        request->checkRequestType(ReviewableRequestType::LIMITS_UPDATE);
 
         Database& db = ledgerManager.getDatabase();
         EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
@@ -103,8 +124,24 @@ namespace stellar {
                                                         LedgerManager &ledgerManager,
                                                         ReviewableRequestFrame::pointer request)
     {
-        innerResult().code(ReviewRequestResultCode::REJECT_NOT_ALLOWED);
-        return false;
+        if (!ledgerManager.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_AND_REJECT_LIMITS_UPDATE_REQUESTS))
+        {
+            innerResult().code(ReviewRequestResultCode::REJECT_NOT_ALLOWED);
+            return false;
+        }
+
+        request->checkRequestType(ReviewableRequestType::LIMITS_UPDATE);
+        request->setRejectReason(mReviewRequest.reason);
+
+        auto& requestEntry = request->getRequestEntry();
+        const auto newHash = ReviewableRequestFrame::calculateHash(requestEntry.body);
+        requestEntry.hash = newHash;
+
+        Database& db = app.getDatabase();
+        ReviewableRequestHelper::Instance()->storeChange(delta, db, request->mEntry);
+
+        innerResult().code(ReviewRequestResultCode::SUCCESS);
+        return true;
     }
 
 }

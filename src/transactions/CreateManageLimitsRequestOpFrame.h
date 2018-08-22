@@ -1,6 +1,3 @@
-//
-// Created by artem on 16.06.18.
-//
 #pragma once
 
 #include "OperationFrame.h"
@@ -29,6 +26,10 @@ class CreateManageLimitsRequestOpFrame : public OperationFrame
 public:
 
     CreateManageLimitsRequestOpFrame(Operation const& op, OperationResult& res, TransactionFrame& parentTx);
+
+    bool createManageLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager);
+
+    bool updateManageLimitsRequest(LedgerManager& lm, Database& db, LedgerDelta& delta);
 
     bool doApply(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager) override;
 

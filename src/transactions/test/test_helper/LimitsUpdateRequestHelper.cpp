@@ -24,6 +24,7 @@ LimitsUpdateRequestHelper(TestManager::pointer testManager) : TxHelper(testManag
 
 CreateManageLimitsRequestResult
 LimitsUpdateRequestHelper::applyCreateLimitsUpdateRequest(Account &source, LimitsUpdateRequest request,
+                                                          uint64_t* requestID,
                                                           CreateManageLimitsRequestResultCode expectedResult)
 {
     Database& db = mTestManager->getDB();
@@ -31,7 +32,13 @@ LimitsUpdateRequestHelper::applyCreateLimitsUpdateRequest(Account &source, Limit
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     uint64 reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(db.getSession());
 
-    auto txFrame = createLimitsUpdateRequestTx(source, request);
+    ReviewableRequestFrame::pointer limitsUpdateRequestBeforeTx;
+    if (requestID != nullptr)
+    {
+        limitsUpdateRequestBeforeTx = reviewableRequestHelper->loadRequest(*requestID, source.key.getPublicKey(), db);
+    }
+
+    auto txFrame = createLimitsUpdateRequestTx(source, request, requestID);
     mTestManager->applyCheck(txFrame);
     auto txResult = txFrame->getResult();
     auto opResult = txResult.result.results()[0];
@@ -47,10 +54,20 @@ LimitsUpdateRequestHelper::applyCreateLimitsUpdateRequest(Account &source, Limit
     }
 
     CreateManageLimitsRequestResult createManageLimitsRequestResult = opResult.tr().createManageLimitsRequestResult();
-    auto limitsUpdateRequest = reviewableRequestHelper->loadRequest(
+    auto limitsUpdateRequestAfterTx = reviewableRequestHelper->loadRequest(
             createManageLimitsRequestResult.success().manageLimitsRequestID, db);
-    REQUIRE(!!limitsUpdateRequest);
-    REQUIRE(reviewableRequestCountBeforeTx + 1 == reviewableRequestCountAfterTx);
+    REQUIRE(!!limitsUpdateRequestAfterTx);
+
+    if (limitsUpdateRequestBeforeTx == nullptr)
+    {
+        REQUIRE(reviewableRequestCountBeforeTx + 1 == reviewableRequestCountAfterTx);
+        return createManageLimitsRequestResult;
+    }
+
+    REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
+    REQUIRE(limitsUpdateRequestBeforeTx->getRequestID() == limitsUpdateRequestAfterTx->getRequestID());
+    REQUIRE(limitsUpdateRequestBeforeTx->getRequestEntry().body.limitsUpdateRequest().ext.details() !=
+    limitsUpdateRequestAfterTx->getRequestEntry().body.limitsUpdateRequest().ext.details());
 
     return createManageLimitsRequestResult;
 }
@@ -65,15 +82,24 @@ LimitsUpdateRequestHelper::createLimitsUpdateRequest(longstring details)
 }
 
 TransactionFramePtr
-LimitsUpdateRequestHelper::createLimitsUpdateRequestTx(Account& source,
-                                                       LimitsUpdateRequest request)
+LimitsUpdateRequestHelper::createLimitsUpdateRequestTx(Account& source, LimitsUpdateRequest request,
+                                                       uint64_t* requestID)
 {
     Operation baseOp;
     baseOp.body.type(OperationType::CREATE_MANAGE_LIMITS_REQUEST);
     auto& op = baseOp.body.createManageLimitsRequestOp();
     op.manageLimitsRequest.ext.v(LedgerVersion::LIMITS_UPDATE_REQUEST_DEPRECATED_DOCUMENT_HASH);
     op.manageLimitsRequest.ext.details() = request.ext.details();
-    op.ext.v(LedgerVersion::EMPTY_VERSION);
+
+    if (requestID == nullptr)
+    {
+        op.ext.v(LedgerVersion::EMPTY_VERSION);
+        return txFromOperation(source, baseOp, nullptr);
+    }
+
+    op.ext.v(LedgerVersion::ALLOW_TO_UPDATE_AND_REJECT_LIMITS_UPDATE_REQUESTS);
+    op.ext.requestID() = *requestID;
+
     return txFromOperation(source, baseOp, nullptr);
 }
 

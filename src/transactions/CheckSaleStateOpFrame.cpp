@@ -247,7 +247,8 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
     // TODO: must be refactored
     const auto amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
-    const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue, sale->getBaseBalanceID(), lm);
+    const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue,
+                                                                       sale->getBaseBalanceID(), lm, 0);
     Operation op;
     op.sourceAccount.activate() = sale->getOwnerID();
     op.body.type(OperationType::CREATE_ISSUANCE_REQUEST);

@@ -100,10 +100,12 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
     int64_t paymentAmount = 100 * ONE;
     auto emissionAmount = 3 * paymentAmount;
 
+    uint32_t issuanceTasks = 0;
+
     issuanceTestHelper.applyCreateIssuanceRequest(root, paymentAsset, emissionAmount, payerBalance->getBalanceID(),
-                                                  SecretKey::random().getStrKeyPublic());
+                                                  SecretKey::random().getStrKeyPublic(), &issuanceTasks);
     issuanceTestHelper.applyCreateIssuanceRequest(root, feeAsset, emissionAmount, payerFeeBalance->getBalanceID(),
-                                                  SecretKey::random().getStrKeyPublic());
+                                                  SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
     // create destination and feeData for further tests
     auto destination = paymentV2TestHelper.createDestinationForAccount(recipient.key.getPublicKey());
@@ -168,6 +170,14 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
         auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
                                                              destination, paymentAmount * 4, paymentFeeData, "", "",
                                                              nullptr, PaymentV2ResultCode::UNDERFUNDED);
+    }
+    SECTION("Destination account not found") {
+        AccountID nonExistingAccount = SecretKey::random().getPublicKey();
+        auto accountDestination = paymentV2TestHelper.createDestinationForAccount(nonExistingAccount);
+        auto opResult = paymentV2TestHelper.applyPaymentV2Tx(payer, payerBalance->getBalanceID(),
+                                                             accountDestination, paymentAmount, paymentFeeData, "",
+                                                             "", nullptr,
+                                                             PaymentV2ResultCode::DESTINATION_ACCOUNT_NOT_FOUND);
     }
     SECTION("Destination balance not found") {
         BalanceID nonExistingBalance = SecretKey::random().getPublicKey();

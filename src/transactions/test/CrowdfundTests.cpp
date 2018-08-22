@@ -112,8 +112,9 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
 
         // fund participant with quote asset
         uint64_t quoteBalanceAmount = INT64_MAX;
+        uint32_t allTasks = 0;
         issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalance,
-            SecretKey::random().getStrKeyPublic());
+            SecretKey::random().getStrKeyPublic(), &allTasks);
 
         SECTION("Happy path")
         {
@@ -293,6 +294,23 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
                     }
                 }
             }
+        }
+        SECTION("Update voting sale")
+        {
+            auto saleStateData = manageSaleHelper.setSaleState(SaleState::VOTING);
+            manageSaleHelper.applyManageSaleTx(root, saleID, saleStateData);
+
+            uint64_t requestID = 0;
+            const auto newPromotionData = SaleRequestHelper::createSaleRequest(baseAsset, defaultQuoteAsset,
+                                                                               currentTime,
+                                                                               endTime, softCap * 2, hardCap * 2, "{}",
+                                                                               {saleRequestHelper.createSaleQuoteAsset
+                                                                                       (quoteAsset, ONE)},
+                                                                               &saleType, &preIssuedAmount,
+                                                                               SaleState::NONE);
+
+            auto manageSaleData = manageSaleHelper.createPromotionUpdateRequest(requestID, newPromotionData);
+            manageSaleHelper.applyManageSaleTx(root, saleID, manageSaleData);
         }
     }
 }

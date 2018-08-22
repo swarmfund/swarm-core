@@ -46,12 +46,13 @@ uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, Acco
     auto quoteBalance = BalanceHelper::Instance()->loadBalance(participant.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
     REQUIRE(!!quoteBalance);
     // issue 1 more to ensure that it is enough to cover rounded up base amount
+    uint32_t allTasks = 0;
     if (!!saleAnteAmount) {
         IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + *saleAnteAmount + fee + 1, quoteBalance->getBalanceID(),
-                                                                      SecretKey::random().getStrKeyPublic());
+                                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
     } else {
         IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + fee + 1, quoteBalance->getBalanceID(),
-                                                                      SecretKey::random().getStrKeyPublic());
+                                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
     }
 
     auto accountID = participant.key.getPublicKey();
@@ -200,6 +201,7 @@ TEST_CASE("Sale", "[tx][sale]")
         endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAsset, price) }, &basicSaleType,
                                                             &requiredBaseAssetForHardCap);
 
+    uint32_t issuanceTasks = 0;
 
     SECTION("Non zero balance on sale close"){
         auto sellerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(2 * ONE), quoteAsset, &syndicatePubKey);
@@ -223,7 +225,8 @@ TEST_CASE("Sale", "[tx][sale]")
         auto ownBalance = BalanceHelper::Instance()->loadBalance(syndicatePubKey, baseAsset, testManager->getDB(),
                                                                  nullptr);
         IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(syndicate, baseAsset, 10*ONE, ownBalance->getBalanceID(),
-                                                                      syndicate.key.getStrKeyPublic(), CreateIssuanceRequestResultCode::SUCCESS);
+                                                                      syndicate.key.getStrKeyPublic(), &issuanceTasks,
+                                                                      CreateIssuanceRequestResultCode::SUCCESS);
 
         const int numberOfParticipants = 10;
         const uint64_t quoteAmount = softCap / numberOfParticipants;
@@ -633,6 +636,12 @@ TEST_CASE("Sale", "[tx][sale]")
             requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest,
             CreateSaleCreationRequestResultCode::SUCCESS);
         }
+        SECTION("Trying to create sale with boundary start time and end time")
+        {
+            saleRequest.startTime = 0;
+            saleRequest.endTime = UINT64_MAX;
+            saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+        }
     }
 
     SECTION("Review SaleCreationRequest")
@@ -640,6 +649,16 @@ TEST_CASE("Sale", "[tx][sale]")
         auto requestCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
         auto requestID = requestCreationResult.success().requestID;
 
+        SECTION("Check new review sale request result")
+        {
+            auto reviewSaleRequestResult = saleReviewer.applyReviewRequestTx(root, requestID,
+                                                                             ReviewRequestOpAction::APPROVE, "");
+            REQUIRE(reviewSaleRequestResult.success().ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+            REQUIRE(reviewSaleRequestResult.success().ext.extendedResult().fulfilled);
+            REQUIRE(reviewSaleRequestResult.success().ext.extendedResult().typeExt.requestType() ==
+                    ReviewableRequestType::SALE);
+            REQUIRE(reviewSaleRequestResult.success().ext.extendedResult().typeExt.saleExtended().saleID != 0);
+        }
         SECTION("Max issuance or preissued amount is less then hard cap")
         {
             const AssetCode asset = "GSC";
@@ -794,7 +813,7 @@ TEST_CASE("Sale", "[tx][sale]")
             // fund participant with quote asset
             uint64_t quoteBalanceAmount = saleRequest.hardCap;
             issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalance,
-                                                      SecretKey::random().getStrKeyPublic());
+                                                      SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
             // buy a half of sale in order to keep it active
             int64_t baseAmount = bigDivide(saleRequest.hardCap/2, ONE, saleRequest.quoteAssets[0].price, ROUND_UP);
@@ -905,7 +924,7 @@ TEST_CASE("Sale", "[tx][sale]")
             {
                 // fund account
                 issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, 2 * ONE, quoteBalance,
-                                                          SecretKey::random().getStrKeyPublic());
+                                                          SecretKey::random().getStrKeyPublic(), &issuanceTasks);
                 SECTION("by more than ONE")
                 {
                     int64_t baseAssetAmount = bigDivide(hardCap + 2 * ONE, ONE, price, ROUND_DOWN);
@@ -927,7 +946,7 @@ TEST_CASE("Sale", "[tx][sale]")
                 // fund with quote asset
                 auto quoteBalanceID = BalanceHelper::Instance()->loadBalance(notVerifiedID, quoteAsset, db, nullptr)->getBalanceID();
                 issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalanceID,
-                                                          SecretKey::random().getStrKeyPublic());
+                                                          SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
                 manageOffer.baseBalance = baseBalanceID;
                 manageOffer.quoteBalance = quoteBalanceID;

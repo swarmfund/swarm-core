@@ -40,6 +40,7 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
     mTestManager->applyCheck(txFrame, stateBeforeOp);
     auto txResult = txFrame->getResult();
     auto opResult = txResult.result.results()[0];
+    REQUIRE(opResult.code() == OperationResultCode::opINNER);
     auto actualResultCode = ReviewRequestOpFrame::getInnerCode(opResult);
     REQUIRE(actualResultCode == expectedResult);
 
@@ -81,7 +82,10 @@ ReviewRequestResult ReviewRequestHelper::applyReviewRequestTx(
 
     if (requestMustBeDeletedAfterApproval)
     {
-        REQUIRE(!requestAfterTx);
+        if (requestBeforeTx->getRequestType() != ReviewableRequestType::ISSUANCE_CREATE)
+        {
+            REQUIRE(!requestAfterTx);
+        }
     }
     else
     {

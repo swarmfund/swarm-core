@@ -64,13 +64,15 @@ TEST_CASE("txenvelope", "[tx][envelope]")
         createAccountTestHelper.applyCreateAccountTx(
             root, operationSource.key.getPublicKey(), AccountType::SYNDICATE);
 
+        uint32_t issuanceTasks = 0;
+
         // issue tx fee asset to tx source
         auto txFeePayerBalanceBeforeTx = balanceHelper->mustLoadBalance(
             txFeePayer.key.getPublicKey(), txFeeAssetCode, db);
         issuanceTestHelper.applyCreateIssuanceRequest(
             root, txFeeAssetCode, preIssuedAmount / 2,
             txFeePayerBalanceBeforeTx->getBalanceID(),
-            txFeePayer.key.getStrKeyPublic());
+            txFeePayer.key.getStrKeyPublic(), &issuanceTasks);
 
         // load tx fee payer balance one more time to have actual balance amount
         txFeePayerBalanceBeforeTx = balanceHelper->mustLoadBalance(

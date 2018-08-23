@@ -250,7 +250,10 @@ namespace stellar {
         if (!mustEmptyPercent(fee, metrics))
             return false;
 
-        return fee.subtype >= 0 && fee.subtype <= xdr::xdr_traits<OperationType>::enum_values().size();
+        auto operationTypes = xdr::xdr_traits<OperationType>::enum_values();
+
+        return fee.subtype >= 0 &&
+               (std::find(operationTypes.begin(), operationTypes.end(), fee.subtype) != operationTypes.end());
     }
 
     std::unordered_map<AccountID, CounterpartyDetails>

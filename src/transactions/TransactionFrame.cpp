@@ -436,7 +436,7 @@ bool TransactionFrame::processTxFee(Application& app, LedgerDelta* delta)
         }
 
         OperationFee opFee;
-        opFee.operation = op->getOperation();
+        opFee.operationType = opType;
         opFee.amount = opFeeAmount;
         getResult().ext.transactionFee().operationFees.push_back(opFee);
     }

@@ -18,12 +18,12 @@ class LimitsUpdateRequestHelper : TxHelper
 public:
     explicit LimitsUpdateRequestHelper(TestManager::pointer testManager);
 
-    SetOptionsResult applyCreateLimitsUpdateRequest(
+    CreateManageLimitsRequestResult applyCreateLimitsUpdateRequest(
             Account& source, LimitsUpdateRequest request,
-            SetOptionsResultCode expectedResult =
-                SetOptionsResultCode::SUCCESS);
+            CreateManageLimitsRequestResultCode expectedResult =
+            CreateManageLimitsRequestResultCode::SUCCESS);
 
-    static LimitsUpdateRequest createLimitsUpdateRequest(Hash documentHash);
+    static LimitsUpdateRequest createLimitsUpdateRequest(longstring details);
 
     TransactionFramePtr createLimitsUpdateRequestTx(Account& source, LimitsUpdateRequest request);
 };

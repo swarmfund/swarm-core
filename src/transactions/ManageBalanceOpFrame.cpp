@@ -21,8 +21,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageBalanceOpFrame::
 getCounterpartyDetails(Database& db, LedgerDelta* delta) const
 {
     const std::vector<AccountType> allowedCounterparties = {
-        AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE,
-        AccountType::EXCHANGE
+        AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE, AccountType::VERIFIED,
+        AccountType::EXCHANGE, AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
     };
 
     return {
@@ -41,14 +41,16 @@ SourceDetails ManageBalanceOpFrame::getSourceAccountDetails(
     if (getSourceID() == mManageBalance.destination)
         allowedSourceAccounts = {
             AccountType::GENERAL, AccountType::NOT_VERIFIED,
-            AccountType::SYNDICATE, AccountType::EXCHANGE
+            AccountType::SYNDICATE, AccountType::EXCHANGE, AccountType::VERIFIED,
+            AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
         };
     else
         allowedSourceAccounts = {AccountType::MASTER};
     return SourceDetails(allowedSourceAccounts,
                          mSourceAccount->getLowThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER),
-                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
 ManageBalanceOpFrame::ManageBalanceOpFrame(Operation const& op,

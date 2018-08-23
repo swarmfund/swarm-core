@@ -23,18 +23,16 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/PaymentRequestFrame.h"
-#include "ledger/PaymentRequestHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/OfferHelper.h"
-#include "ledger/InvoiceFrame.h"
-#include "ledger/InvoiceHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
+#include "ledger/KeyValueEntryFrame.h"
+#include "ledger/KeyValueHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntry.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "ledger/PolicyAttachmentHelper.h"
@@ -44,6 +42,11 @@
 #include "database/Database.h"
 #include "SaleHelper.h"
 #include "AccountKYCHelper.h"
+#include "LimitsV2Helper.h"
+#include "StatisticsV2Helper.h"
+#include "PendingStatisticsHelper.h"
+#include "SaleAnteHelper.h"
+#include "ContractHelper.h"
 #include "IdentityPolicyHelper.h"
 
 namespace stellar
@@ -178,17 +181,21 @@ namespace stellar
 		{ LedgerEntryType::BALANCE, BalanceHelper::Instance() },
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID, ExternalSystemAccountIDHelper::Instance() },
 		{ LedgerEntryType::FEE, FeeHelper::Instance() },
-		{ LedgerEntryType::INVOICE, InvoiceHelper::Instance() },
 		{ LedgerEntryType::OFFER_ENTRY, OfferHelper::Instance() },
-		{ LedgerEntryType::PAYMENT_REQUEST, PaymentRequestHelper::Instance() },
 		{ LedgerEntryType::REFERENCE_ENTRY, ReferenceHelper::Instance() },
 		{ LedgerEntryType::REVIEWABLE_REQUEST, ReviewableRequestHelper::Instance() },
 		{ LedgerEntryType::STATISTICS, StatisticsHelper::Instance() },
 		{ LedgerEntryType::TRUST, TrustHelper::Instance() },
+		{ LedgerEntryType::KEY_VALUE, KeyValueHelper::Instance()},
+        { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance()},
 		{ LedgerEntryType::SALE, SaleHelper::Instance() },
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY, ExternalSystemAccountIDPoolEntryHelper::Instance() },
-        { LedgerEntryType::ACCOUNT_KYC, AccountKYCHelper::Instance() },
+        { LedgerEntryType::LIMITS_V2, LimitsV2Helper::Instance() },
+		{ LedgerEntryType::STATISTICS_V2, StatisticsV2Helper::Instance() },
+		{ LedgerEntryType::PENDING_STATISTICS, PendingStatisticsHelper::Instance() },
+		{ LedgerEntryType::SALE_ANTE, SaleAnteHelper::Instance() },
+		{ LedgerEntryType::CONTRACT, ContractHelper::Instance() },
 		{ LedgerEntryType::IDENTITY_POLICY, IdentityPolicyHelper::Instance() },
-		{ LedgerEntryType::POLICY_ATTACHMENT, PolicyAttachmentHelper::Instance() },
+		{ LedgerEntryType::POLICY_ATTACHMENT, PolicyAttachmentHelper::Instance() }
 	};
 }

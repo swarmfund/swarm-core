@@ -44,7 +44,7 @@ void ManageAssetTestHelper::createApproveRequest(Account& root, Account& source,
 
 ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(
     Account& source, uint64_t requestID, ManageAssetOp::_request_t request,
-    ManageAssetResultCode expectedResult)
+    ManageAssetResultCode expectedResult, OperationResultCode expectedOpCode)
 {
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto reviewableRequestCountBeforeTx = reviewableRequestHelper->
@@ -59,6 +59,10 @@ ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(
     mTestManager->applyCheck(txFrame);
     auto txResult = txFrame->getResult();
     auto opResult = txResult.result.results()[0];
+    REQUIRE(opResult.code() == expectedOpCode);
+    if (opResult.code() != OperationResultCode::opINNER) {
+        return ManageAssetResult();
+    }
     auto actualResultCode = ManageAssetOpFrame::getInnerCode(opResult);
     REQUIRE(actualResultCode == expectedResult);
 
@@ -178,6 +182,15 @@ ManageAssetOp::_request_t ManageAssetTestHelper::createCancelRequest()
 {
     ManageAssetOp::_request_t request;
     request.action(ManageAssetAction::CANCEL_ASSET_REQUEST);
+    return request;
+}
+
+ManageAssetOp::_request_t ManageAssetTestHelper::updateMaxAmount(AssetCode asset, uint64 amount)
+{
+    ManageAssetOp::_request_t request;
+    request.action(ManageAssetAction::UPDATE_MAX_ISSUANCE);
+    request.updateMaxIssuance().assetCode = asset;
+    request.updateMaxIssuance().maxIssuanceAmount = amount;
     return request;
 }
 

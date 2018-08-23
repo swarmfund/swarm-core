@@ -24,7 +24,7 @@ namespace stellar {
 
         std::string getReference() const;
 
-        void createRequest(ReviewableRequestEntry &requestEntry);
+        void createRequest(ReviewableRequestEntry &requestEntry, uint32 defaultMask);
 
         void updateRequest(ReviewableRequestEntry &requestEntry);
 
@@ -42,7 +42,8 @@ namespace stellar {
 
         bool doCheckValid(Application &app) override;
 
-        static void checkRequestType(ReviewableRequestFrame::pointer request);
+        static bool getDefaultKYCMask(Database &db, LedgerManager &ledgerManager, UpdateKYCRequestData kycRequestData,
+                               AccountFrame::pointer account, uint32 &defaultMask);
 
         static CreateUpdateKYCRequestResultCode getInnerCode(OperationResult const &res) {
             return res.tr().createUpdateKYCRequestResult().code();

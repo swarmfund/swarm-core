@@ -34,18 +34,17 @@ class CheckSaleStateOpFrame : public OperationFrame
                                               int32_t ledgerVersion) const override;
 
     void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app, LedgerDelta& delta, Database& db, LedgerManager& lm) const;
-    static void cancelAllOffersForQuoteAsset(const SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset,
-                                    LedgerDelta& delta, Database& db);
 
     bool handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta, Database& db);
     bool handleClose(SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db);
 
-    static void unlockPendingIssunace(SaleFrame::pointer sale, LedgerDelta& delta, Database& db);
+    void chargeSaleAntes(uint64_t saleID, AccountID const &commissionID, LedgerDelta &delta, Database &db);
 
     CreateIssuanceRequestResult applyCreateIssuanceRequest(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
         LedgerDelta& delta, LedgerManager& lm) const;
 
-    static void updateMaxIssuance(SaleFrame::pointer sale, LedgerDelta& delta, Database& db);
+    static void restrictIssuanceAfterSale(SaleFrame::pointer sale, LedgerDelta& delta, Database& db, LedgerManager& lm);
+    static void updateMaxIssuance(SaleFrame::pointer sale, LedgerDelta& delta, Database& db, LedgerManager& lm);
 
     ManageOfferSuccessResult applySaleOffer(AccountFrame::pointer saleOwner, SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, Application& app, LedgerManager& lm, LedgerDelta& delta) const;
 
@@ -55,6 +54,8 @@ class CheckSaleStateOpFrame : public OperationFrame
     void updateOfferPrices(SaleFrame::pointer sale, LedgerDelta& delta, Database& db) const;
 
     static int64_t getSaleCurrentPriceInDefaultQuote(SaleFrame::pointer sale, LedgerDelta& delta, Database& db);
+
+    void cleanupIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm,  Database& db, LedgerDelta& delta, BalanceFrame::pointer balanceBefore);
 
 public:
 

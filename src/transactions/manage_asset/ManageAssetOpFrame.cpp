@@ -6,6 +6,7 @@
 #include "CancelAssetRequestOpFrame.h"
 #include "CreateAssetOpFrame.h"
 #include "UpdateAssetOpFrame.h"
+#include "ChangeAssetMaxIssuanceOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "main/Application.h"
@@ -49,6 +50,8 @@ ManageAssetOpFrame* ManageAssetOpFrame::makeHelper(Operation const & op, Operati
 		return new CancelAssetRequestOpFrame(op, res, parentTx);
         case ManageAssetAction::CHANGE_PREISSUED_ASSET_SIGNER:
             return new ChangeAssetPreIssuerOpFrame(op, res, parentTx);
+        case ManageAssetAction::UPDATE_MAX_ISSUANCE:
+            return new ChangeAssetMaxIssuanceOpFrame(op, res, parentTx);
 	default:
 		throw runtime_error("Unexpected action in manage asset op");
 	}

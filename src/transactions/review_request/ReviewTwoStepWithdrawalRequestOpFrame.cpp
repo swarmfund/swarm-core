@@ -114,16 +114,24 @@ bool ReviewTwoStepWithdrawalRequestOpFrame::rejectWithdrawalRequest(Application&
     if (!balance->unlock(totalAmountToCharge))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state. Failed to unlock locked amount. requestID: " << request->getRequestID();
-        throw runtime_error("Unexected db state. Failed to unlock locked amount");
+        throw runtime_error("Unexpected db state. Failed to unlock locked amount");
     }
 
     const uint64_t universalAmount = withdrawRequest.universalAmount;
     if (universalAmount > 0)
     {
-        AccountManager accountManager(app, ledgerManager.getDatabase(), delta, ledgerManager);
-        const AccountID requestor = request->getRequestor();
-        const time_t timePerformed = request->getCreatedAt();
-        accountManager.revertStats(requestor, universalAmount, timePerformed);
+        if (!ledgerManager.shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
+        {
+            AccountManager accountManager(app, ledgerManager.getDatabase(), delta, ledgerManager);
+            const AccountID requestor = request->getRequestor();
+            const time_t timePerformed = request->getCreatedAt();
+            accountManager.revertStats(requestor, universalAmount, timePerformed);
+        }
+        else
+        {
+            StatisticsV2Processor statisticsV2Processor(ledgerManager.getDatabase(), delta, ledgerManager);
+            statisticsV2Processor.revertStatsV2(request->getRequestID());
+        }
     }
 
     EntryHelperProvider::storeChangeEntry(delta, db, balance->mEntry);

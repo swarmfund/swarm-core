@@ -100,7 +100,7 @@ namespace stellar {
 
             requestID = opResult.success().requestID;
 
-            if (sourceAccount->getAccountType() == AccountType::MASTER && !!allTasks && *allTasks == 0) {
+            if (allTasks != nullptr && *allTasks == 0) {
                 return checkApprovedCreation(opResult, accountToUpdateKYC, stateBeforeOps[0]);
             }
 
@@ -122,8 +122,16 @@ namespace stellar {
             if (!!allTasks) {
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().allTasks == *allTasks);
             } else {
+                uint32 tasks;
+                UpdateKYCRequestData requestData;
+                requestData.accountTypeToSet = requestAfterTxEntry.body.updateKYCRequest().accountTypeToSet;
+                requestData.kycLevelToSet    = requestAfterTxEntry.body.updateKYCRequest().kycLevel;
+
+                CreateUpdateKYCRequestOpFrame::getDefaultKYCMask(mTestManager->getDB(),mTestManager->getLedgerManager()
+                ,requestData,accountAfter,tasks);
+
                 REQUIRE(requestAfterTxEntry.body.updateKYCRequest().allTasks ==
-                        CreateUpdateKYCRequestOpFrame::defaultTasks);
+                        tasks);
             }
 
             REQUIRE(requestAfterTxEntry.body.updateKYCRequest().pendingTasks ==

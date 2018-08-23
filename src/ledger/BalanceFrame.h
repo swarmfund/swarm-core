@@ -45,13 +45,13 @@ class BalanceFrame : public EntryFrame
         return mBalance;
     }
 
-    int64_t
+    uint64_t
     getAmount()
     {
         return mBalance.amount;
     }
 
-    int64_t
+    uint64_t
     getLocked()
     {
         return mBalance.locked;

@@ -4,6 +4,8 @@
 
 #include <ledger/StatisticsHelper.h>
 #include <ledger/AssetPairHelper.h>
+#include <ledger/LimitsV2Helper.h>
+#include <ledger/StatisticsV2Helper.h>
 #include "WithdrawRequestHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
@@ -28,7 +30,25 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(db.getSession());
     auto balanceBeforeRequest = BalanceHelper::Instance()->loadBalance(request.balance, db);
-    auto statsBeforeRequest = StatisticsHelper::Instance()->mustLoadStatistics(source.key.getPublicKey(), db);
+
+    xdr::pointer<AccountID> accountID = nullptr;
+    accountID.activate() = source.key.getPublicKey();
+    AssetCode asset;
+    if (!!balanceBeforeRequest)
+        asset = balanceBeforeRequest->getAsset();
+
+    auto limitsV2Frames = LimitsV2Helper::Instance()->loadLimits(db, {StatsOpType::WITHDRAW},
+                                                                 asset,
+                                                                 accountID);
+    std::vector<StatisticsV2Frame::pointer> statsBeforeRequestVector;
+    for (LimitsV2Frame::pointer limitsV2Frame : limitsV2Frames)
+    {
+        auto statsBeforeRequest = StatisticsV2Helper::Instance()->loadStatistics(*accountID, StatsOpType::WITHDRAW,
+                                                                                 limitsV2Frame->getAsset(),
+                                                                                 limitsV2Frame->getConvertNeeded(),
+                                                                                 db);
+        statsBeforeRequestVector.emplace_back(statsBeforeRequest);
+    }
 
     auto txFrame = createWithdrawalRequestTx(source, request);
     mTestManager->applyCheck(txFrame);
@@ -56,10 +76,16 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     REQUIRE(balanceBeforeRequest->getAmount() == balanceAfterRequest->getAmount() + request.amount + request.fee.fixed + request.fee.percent);
     REQUIRE(balanceAfterRequest->getLocked() == balanceBeforeRequest->getLocked() + request.amount + request.fee.fixed + request.fee.percent);
 
-    AssetCode baseAsset = balanceAfterRequest->getAsset();
-    if (canCalculateStats(baseAsset)) {
-        auto statsAfterRequest = StatisticsHelper::Instance()->mustLoadStatistics(source.key.getPublicKey(), db);
-        validateStatsChange(statsBeforeRequest, statsAfterRequest, withdrawRequest);
+    unsigned long iterator = 0;
+    for (LimitsV2Frame::pointer limitsV2Frame : limitsV2Frames)
+    {
+        asset = balanceAfterRequest->getAsset();
+        auto statsAfterRequest = StatisticsV2Helper::Instance()->mustLoadStatistics(*accountID, StatsOpType::WITHDRAW,
+                                                                                    limitsV2Frame->getAsset(),
+                                                                                    limitsV2Frame->getConvertNeeded(),
+                                                                                    db);
+        validateStatsChange(statsBeforeRequestVector.at(iterator), statsAfterRequest, withdrawRequest);
+        iterator++;
     }
 
 
@@ -93,8 +119,8 @@ TransactionFramePtr WithdrawRequestHelper::createWithdrawalRequestTx(
     return txFromOperation(source, baseOp, nullptr);
 }
 
-void WithdrawRequestHelper::validateStatsChange(StatisticsFrame::pointer statsBefore,
-                                                StatisticsFrame::pointer statsAfter,
+void WithdrawRequestHelper::validateStatsChange(StatisticsV2Frame::pointer statsBefore,
+                                                StatisticsV2Frame::pointer statsAfter,
                                                 ReviewableRequestFrame::pointer withdrawRequest)
 {
     uint64_t universalAmount = 0;
@@ -113,11 +139,20 @@ void WithdrawRequestHelper::validateStatsChange(StatisticsFrame::pointer statsBe
 
     REQUIRE(statsAfter->getUpdateAt() == withdrawRequest->getCreatedAt());
 
-    REQUIRE(statsAfter->getDailyOutcome() == statsBefore->getDailyOutcome() + universalAmount);
-    REQUIRE(statsAfter->getWeeklyOutcome() == statsBefore->getWeeklyOutcome() + universalAmount);
-    REQUIRE(statsAfter->getMonthlyOutcome() == statsBefore->getMonthlyOutcome() + universalAmount);
-    REQUIRE(statsAfter->getAnnualOutcome() == statsBefore->getAnnualOutcome() + universalAmount);
-
+    if (!!statsBefore)
+    {
+        REQUIRE(statsAfter->getDailyOutcome() == universalAmount + statsBefore->getDailyOutcome());
+        REQUIRE(statsAfter->getWeeklyOutcome() == universalAmount + statsBefore->getWeeklyOutcome());
+        REQUIRE(statsAfter->getMonthlyOutcome() == universalAmount + statsBefore->getMonthlyOutcome());
+        REQUIRE(statsAfter->getAnnualOutcome() == universalAmount + statsBefore->getAnnualOutcome());
+    }
+    else
+    {
+        REQUIRE(statsAfter->getDailyOutcome() == universalAmount);
+        REQUIRE(statsAfter->getWeeklyOutcome() == universalAmount);
+        REQUIRE(statsAfter->getMonthlyOutcome() == universalAmount);
+        REQUIRE(statsAfter->getAnnualOutcome() == universalAmount);
+    }
     REQUIRE(statsAfter->isValid());
 }
 

@@ -1,3 +1,4 @@
+#include <ledger/SaleAnteHelper.h>
 #include "ManageOfferTestHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/OfferHelper.h"
@@ -38,6 +39,8 @@ void ManageOfferTestHelper::ensureDeleteSuccess(Account& source, ManageOfferOp o
 void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp op,
     ManageOfferSuccessResult success, LedgerDelta::KeyEntryMap& stateBeforeTx)
 {
+    auto &db = mTestManager->getDB();
+
     auto& offerResult = success.offer;
     auto claimedOffers = success.offersClaimed;
 
@@ -46,8 +49,7 @@ void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp o
     case ManageOfferEffect::CREATED:
         {
             REQUIRE(op.offerID == 0);
-            auto offer = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), offerResult.offer().offerID,
-                                                            mTestManager->getDB());
+            auto offer = OfferHelper::Instance()->loadOffer(source.key.getPublicKey(), offerResult.offer().offerID, db);
             REQUIRE(!!offer);
             auto &offerEntry = offer->getOffer();
             REQUIRE(offerEntry == offerResult.offer());
@@ -59,9 +61,17 @@ void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp o
             balanceKey.type(LedgerEntryType::BALANCE);
             balanceKey.balance().balanceID = offer->getLockedBalance();
             auto balanceBefore = stateBeforeTx[balanceKey]->mEntry.data.balance();
-            auto balanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer->getLockedBalance(), mTestManager->getDB());
+            auto balanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer->getLockedBalance(), db);
 
-            REQUIRE(balanceAfter->getLocked() == balanceBefore.locked + offer->getLockedAmount());
+            auto saleAnteAfter = SaleAnteHelper::Instance()->loadSaleAnte(offerEntry.orderBookID,
+                                                                          balanceAfter->getBalanceID(), db);
+            if (!!saleAnteAfter) {
+                REQUIRE(balanceAfter->getLocked() == balanceBefore.locked + offer->getLockedAmount() +
+                                                     saleAnteAfter->getAmount());
+            } else {
+                REQUIRE(balanceAfter->getLocked() == balanceBefore.locked + offer->getLockedAmount());
+            }
+
             break;
         }
     case ManageOfferEffect::UPDATED:

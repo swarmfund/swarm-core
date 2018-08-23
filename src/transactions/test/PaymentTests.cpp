@@ -7,7 +7,6 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/BalanceHelper.h"
-#include "ledger/PaymentRequestHelper.h"
 #include "transactions/payment/PaymentOpFrame.h"
 #include "crypto/SHA.h"
 #include "test/test_marshaler.h"
@@ -22,7 +21,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("payment", "[tx][payment]")
+TEST_CASE("payment", "[dep_tx][payment]")
 {
     // TODO requires refactoring
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
@@ -61,16 +60,18 @@ TEST_CASE("payment", "[tx][payment]")
                                                              asset,
                                                              testManager->
                                                              getDB(), nullptr);
+
+    uint32_t issuanceTasks = 0;
+
     REQUIRE(!!aWMBalance);
     issuanceHelper.applyCreateIssuanceRequest(root, asset, emissionAmount,
                                               aWMBalance->getBalanceID(),
                                               SecretKey::random().
-                                              getStrKeyPublic());
+                                              getStrKeyPublic(), &issuanceTasks);
 
     auto secondAsset = "AETH";
 
     auto balanceHelper = BalanceHelper::Instance();
-    auto paymentRequestHelper = PaymentRequestHelper::Instance();
 
     SECTION("Non base asset tests")
     {
@@ -98,7 +99,7 @@ TEST_CASE("payment", "[tx][payment]")
         REQUIRE(!!senderBalance);
         issuanceHelper.applyCreateIssuanceRequest(root, assetCode, emissionAmount,
             senderBalance->getBalanceID(),
-            SecretKey::random().getStrKeyPublic());
+            SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
         // create fee
         const int64_t fixedFee = 3;
@@ -163,7 +164,6 @@ TEST_CASE("payment", "[tx][payment]")
 
         auto paymentID = paymentResult.paymentResponse().paymentID;
         soci::session& sess = app.getDatabase().getSession();
-        REQUIRE(paymentRequestHelper->countObjects(sess) == 0);
     }
     SECTION("send to self")
     {
@@ -267,7 +267,7 @@ TEST_CASE("payment", "[tx][payment]")
                                                   accountBalance->
                                                   getBalanceID(),
                                                   SecretKey::random().
-                                                  getStrKeyPublic());
+                                                  getStrKeyPublic(), &issuanceTasks);
         auto dest = SecretKey::random();
         applyCreateAccountTx(app, root.key, dest, rootSeq++,
                              AccountType::GENERAL);
@@ -370,7 +370,7 @@ TEST_CASE("payment", "[tx][payment]")
                                                   accountBalance->
                                                   getBalanceID(),
                                                   SecretKey::random().
-                                                  getStrKeyPublic());
+                                                  getStrKeyPublic(), &issuanceTasks);
 
         auto dest = SecretKey::random();
         applyCreateAccountTx(app, root.key, dest, rootSeq++,

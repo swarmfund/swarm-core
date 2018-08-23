@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/dex/ManageSaleOpFrame.h>
 #include "CheckSaleStateOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "database/Database.h"
@@ -19,6 +20,7 @@
 #include "dex/CreateSaleParticipationOpFrame.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/AssetPairHelper.h"
+#include "ledger/SaleAnteHelper.h"
 #include "dex/DeleteSaleParticipationOpFrame.h"
 
 namespace stellar
@@ -75,7 +77,7 @@ const
 void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
     LedgerDelta& delta, Database& db, LedgerManager& lm) const
 {
-    unlockPendingIssunace(sale, delta, db);
+    AccountManager::unlockPendingIssuanceForSale(sale, delta, db, lm);
 
     auto result = applyCreateIssuanceRequest(sale, saleOwnerAccount, app, delta, lm);
     if (result.code() != CreateIssuanceRequestResultCode::SUCCESS)
@@ -91,36 +93,107 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
         throw runtime_error("Unexpected state; issuance request was not fulfilled on check sale state");
     }
 
-    updateAvailableForIssuance(sale, delta, db);
-
-    updateMaxIssuance(sale, delta, db);
-}
-
-void CheckSaleStateOpFrame::cancelAllOffersForQuoteAsset(const SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, LedgerDelta& delta, Database& db)
-{
-    auto orderBookID = sale->getID();
-    const auto offersToCancel = OfferHelper::Instance()->loadOffersWithFilters(sale->getBaseAsset(), saleQuoteAsset.quoteAsset, &orderBookID, nullptr, db);
-    OfferManager::deleteOffers(offersToCancel, db, delta);
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_ISSUE_AFTER_SALE)) {
+        restrictIssuanceAfterSale(sale, delta, db, lm);
+    }
 }
 
 bool CheckSaleStateOpFrame::handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta,
     Database& db)
 {
-    for (auto& saleQuoteAsset : sale->getSaleEntry().quoteAssets)
-    {
-        cancelAllOffersForQuoteAsset(sale, saleQuoteAsset, delta, db);
-    }
+    ManageSaleOpFrame::cancelSale(sale, delta, db, lm);
 
-    unlockPendingIssunace(sale, delta, db);
-
-    const auto key = sale->getKey();
-    SaleHelper::Instance()->storeDelete(delta, db, key);
     innerResult().code(CheckSaleStateResultCode::SUCCESS);
     auto& success = innerResult().success();
     success.saleID = sale->getID();
     success.effect.effect(CheckSaleStateEffect::CANCELED);
     return true;
 }
+
+void CheckSaleStateOpFrame::chargeSaleAntes(uint64_t saleID, AccountID const &commissionID,
+                                            LedgerDelta &delta, Database &db)
+{
+    auto saleAntes = SaleAnteHelper::Instance()->loadSaleAntesForSale(saleID, db);
+    for (auto &saleAnte : saleAntes) {
+        auto participantBalanceFrame = BalanceHelper::Instance()->mustLoadBalance(saleAnte->getParticipantBalanceID(),
+                                                                                  db, &delta);
+        auto commissionBalance = AccountManager::loadOrCreateBalanceFrameForAsset(commissionID,
+                                                                                  participantBalanceFrame->getAsset(),
+                                                                                  db, delta);
+        if (!commissionBalance) {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state. Expected commission balance to exist";
+            throw std::runtime_error("Unexpected state. Expected commission balance to exist");
+        }
+
+        if (!participantBalanceFrame->tryChargeFromLocked(saleAnte->getAmount())) {
+            string strParticipantBalanceID = PubKeyUtils::toStrKey(participantBalanceFrame->getBalanceID());
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                    << "Failed to charge from locked amount for sale ante with sale id: " << saleAnte->getSaleID()
+                    << " and participant balance id: " << strParticipantBalanceID;
+            throw std::runtime_error("Failed to charge from locked amount for sale ante");
+        }
+
+        if (!commissionBalance->tryFundAccount(saleAnte->getAmount())) {
+            string strCommissionBalanceID = PubKeyUtils::toStrKey(commissionBalance->getBalanceID());
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                    << "Failed to fund commission balance with sale ante - overflow. Sale id: "
+                    << saleAnte->getSaleID() << " and commission balance id: " << strCommissionBalanceID;
+            throw runtime_error("Failed to fund commission balance with sale ante");
+        }
+
+        EntryHelperProvider::storeChangeEntry(delta, db, participantBalanceFrame->mEntry);
+        EntryHelperProvider::storeChangeEntry(delta, db, commissionBalance->mEntry);
+        EntryHelperProvider::storeDeleteEntry(delta, db, saleAnte->getKey());
+    }
+}
+
+
+void CheckSaleStateOpFrame::cleanupIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm, Database& db, LedgerDelta& delta, BalanceFrame::pointer balanceBefore){
+    auto balanceAfter = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
+    if(!lm.shouldUse(LedgerVersion::ALLOW_CLOSE_SALE_WITH_NON_ZERO_BALANCE)) {
+        
+        if (balanceAfter->getAmount() > ONE)
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();
+            throw runtime_error("Unexpected state: after sale close issuer endup with balance > ONE");
+        }
+        return;
+    }
+    
+    auto balanceDelta = safeDelta(balanceBefore->getAmount(), balanceAfter->getAmount());
+    if (balanceDelta > ONE) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER)
+            << "Unexpected state: after sale close issuer endup with balance different from before sale"
+            << sale->getID();
+        throw runtime_error(
+            "Unexpected state: after sale close issuer endup with balance different from before sale");
+    }
+
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_ISSUE_AFTER_SALE)) {
+        return;
+    }
+
+    // return delta back to the asset
+    if (!balanceAfter->tryCharge(balanceDelta)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to clean up sale manager balance after sale been performed: " << sale->getID();
+        throw std::runtime_error("Unexpected state: failed to clean up sale manager balance after sale been performed");
+    }
+
+    BalanceHelper::Instance()->storeChange(delta, db, balanceAfter->mEntry);
+
+    // return base asset
+    auto asset = AssetHelper::Instance()->mustLoadAsset(balanceAfter->getAsset(), db, &delta);
+    if (!asset->tryUnIssue(balanceDelta)) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to unissue redundant amount after sale been performed: "
+            << sale->getID();
+        throw std::runtime_error("Unexpected state: failed to unissue redundant amount after sale been performed");
+    }
+
+    AssetHelper::Instance()->storeChange(delta, db, asset->mEntry);
+
+    return;
+}
+
 
 bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& app,
     LedgerManager& lm, LedgerDelta& delta, Database& db)
@@ -132,6 +205,8 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state: expected sale owner to exist: " << PubKeyUtils::toStrKey(sale->getOwnerID());
         throw runtime_error("Unexpected db state: expected sale owner to exist");
     }
+
+    auto balanceBefore = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
 
     issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
 
@@ -150,29 +225,18 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
         result.saleBaseBalance = sale->getBaseBalanceID();
         result.saleQuoteBalance = quoteAsset.quoteBalance;
         success.effect.saleClosed().results.push_back(result);
-        cancelAllOffersForQuoteAsset(sale, quoteAsset, delta, db);
+        ManageSaleOpFrame::cancelAllOffersForQuoteAsset(sale, quoteAsset, delta, db);
     }
+
+    if (lm.shouldUse(LedgerVersion::USE_SALE_ANTE)) {
+        chargeSaleAntes(sale->getID(), app.getCommissionID(), delta, db);
+    }
+
     SaleHelper::Instance()->storeDelete(delta, db, sale->getKey());
 
-    auto baseBalance = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
-    if (baseBalance->getAmount() > ONE)
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: after sale close issuer endup with balance > ONE: " << sale->getID();
-        throw runtime_error("Unexpected state: after sale close issuer endup with balance > ONE");
-    }
-    
-    return true;
-}
+    cleanupIssuerBalance(sale, lm, db, delta, balanceBefore);
 
-void CheckSaleStateOpFrame::unlockPendingIssunace(const SaleFrame::pointer sale,
-    LedgerDelta& delta, Database& db)
-{
-    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
-    // TODO: should be fixed
-    // currently we are locking max issuance amount on sale creation, so it's safe for now to just unlock pending issuance
-    const auto baseAmount = baseAsset->getPendingIssuance();
-    baseAsset->mustUnlockIssuedAmount(baseAmount);
-    AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
+    return true;
 }
 
 CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
@@ -181,8 +245,10 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
 {
     Database& db = app.getDatabase();
     const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
+    // TODO: must be refactored
     const auto amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
-    const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue, sale->getBaseBalanceID(), lm);
+    const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue,
+                                                                       sale->getBaseBalanceID(), lm, 0);
     Operation op;
     op.sourceAccount.activate() = sale->getOwnerID();
     op.body.type(OperationType::CREATE_ISSUANCE_REQUEST);
@@ -203,13 +269,41 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     return createIssuanceRequestOpFrame.getResult().tr().createIssuanceRequestResult();
 }
 
-void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
-    LedgerDelta& delta, Database& db)
+void CheckSaleStateOpFrame::restrictIssuanceAfterSale(SaleFrame::pointer sale, LedgerDelta & delta, Database & db, LedgerManager & lm)
 {
+    updateAvailableForIssuance(sale, delta, db);
+
+    updateMaxIssuance(sale, delta, db, lm);
+}
+
+void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
+    LedgerDelta& delta, Database& db, LedgerManager& lm)
+{
+    // no need to update max issuance
+    if (lm.shouldUse(LedgerVersion::FIX_UPDATE_MAX_ISSUANCE))
+    {
+        return;
+    }
+
     auto baseAsset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db, &delta);
 
-    // at this point issued amount is the sum of a previously issued amount and a total amount of the sale
-    const uint64_t updatedMaxIssuance = baseAsset->getIssued();
+    uint64_t updatedMaxIssuance = 0;
+
+    if (lm.shouldUse(LedgerVersion::FIX_SET_SALE_STATE_AND_CHECK_SALE_STATE_OPS))
+    {
+        uint64_t issued = baseAsset->getIssued();
+        uint64_t pendingIssuance = baseAsset->getPendingIssuance();
+        if (!safeSum(issued, pendingIssuance, updatedMaxIssuance))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: overflow on new max issuance amount calculation: "
+                                                      << xdr::xdr_to_string(sale->getSaleEntry());
+            throw runtime_error("Unexpected state: overflow on new max issuance amount calculation");
+        }
+    }
+    else
+    {
+        updatedMaxIssuance = baseAsset->getIssued();
+    }
 
     baseAsset->setMaxIssuance(updatedMaxIssuance);
     AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);

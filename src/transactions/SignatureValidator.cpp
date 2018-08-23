@@ -170,10 +170,29 @@ SignatureValidator::Result SignatureValidator::checkSignature(
     return NOT_ENOUGH_WEIGHT;
 }
 
+bool SignatureValidator::shouldSkipCheck(Application & app)
+{
+    string txIDString(binToHex(mContentHash));
+    auto skipCheckFor = app.getConfig().TX_SKIP_SIG_CHECK;
+    if (skipCheckFor.find(txIDString) == skipCheckFor.end()) {
+        return false;
+    }
+
+    for (size_t i = 0; i < mUsedSignatures.size(); i++) {
+        mUsedSignatures[i] = true;
+    }
+
+    return true;
+}
+
 SignatureValidator::Result SignatureValidator::check(
     Application& app, Database& db, AccountFrame& account,
     SourceDetails& sourceDetails)
 {
+    if (shouldSkipCheck(app)) {
+        return SUCCESS;
+    }
+
     if ((account.getBlockReasons() | sourceDetails.mAllowedBlockedReasons) !=
         sourceDetails.mAllowedBlockedReasons)
         return ACCOUNT_BLOCKED;

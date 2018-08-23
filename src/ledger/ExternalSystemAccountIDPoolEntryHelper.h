@@ -23,6 +23,8 @@ namespace stellar
         }
 
         void dropAll(Database& db) override;
+        void fixTypes(Database& db);
+        void parentToNumeric(Database& db);
         void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
         void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
         void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key) override;

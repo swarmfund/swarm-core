@@ -31,13 +31,16 @@ SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<Acco
     if (!mSetOptions.limitsUpdateRequestData)
     {
         allowedAccountTypes = {AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED,
-                               AccountType::SYNDICATE, AccountType::EXCHANGE};
+                               AccountType::SYNDICATE, AccountType::EXCHANGE, AccountType::VERIFIED,
+                               AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR};
     }
     // disallow to create update limits requests
 	return SourceDetails(allowedAccountTypes,
                          mSourceAccount->getHighThreshold(),
-                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
-                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER),
+                         static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
 SetOptionsOpFrame::SetOptionsOpFrame(Operation const& op, OperationResult& res,
@@ -129,6 +132,7 @@ SetOptionsOpFrame::getLimitsUpdateRequestReference(Hash const& documentHash) con
     return binToHex(hash);
 }
 
+[[deprecated]]
 bool
 SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager) {
     Database& db = ledgerManager.getDatabase();
@@ -145,7 +149,7 @@ SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& d
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::LIMITS_UPDATE);
-    body.limitsUpdateRequest().documentHash = mSetOptions.limitsUpdateRequestData->documentHash;
+    body.limitsUpdateRequest().deprecatedDocumentHash = mSetOptions.limitsUpdateRequestData->documentHash;
 
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr, body,
                                                              ledgerManager.getCloseTime());

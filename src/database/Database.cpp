@@ -21,16 +21,15 @@
 #include "ledger/EntryHelper.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/PaymentRequestFrame.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/StatisticsFrame.h"
 #include "ledger/AssetPairFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/OfferFrame.h"
-#include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/PolicyAttachmentHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -50,8 +49,15 @@
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
 #include <ledger/IdentityPolicyHelper.h>
+#include <ledger/KeyValueHelper.h>
+#include <ledger/LimitsV2Helper.h>
+#include <ledger/StatisticsV2Helper.h>
+#include <ledger/PendingStatisticsHelper.h>
+#include <ledger/ReviewableRequestHelper.h>
+#include <ledger/ContractHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
+#include "ledger/SaleAnteHelper.h"
 
 extern "C" void register_factory_sqlite3();
 
@@ -79,8 +85,17 @@ enum databaseSchemaVersion : unsigned long {
 	USE_KYC_LEVEL = 7,
     ADD_ACCOUNT_KYC = 8,
     ADD_FEE_ASSET = 9,
-    ADD_IDENTITY_POLICY = 10,
-    ADD_POLICY_ATTACHMENT = 11
+    EXTERNAL_POOL_FIX_DB_TYPES = 10,
+    EXTERNAL_POOL_FIX_MIGRATION = 11,
+    KEY_VALUE_FIX_MIGRATION = 12,
+    EXTERNAL_POOL_FIX_PARENT_DB_TYPE = 13,
+    ADD_SALE_ANTE = 14,
+    ADD_SALE_STATE = 15,
+    ADD_LIMITS_V2 = 16,
+    ADD_REVIEWABLE_REQUEST_TASKS = 17,
+    ADD_CONTRACTS = 18,
+    ADD_IDENTITY_POLICY = 19,
+    ADD_POLICY_ATTACHMENT = 20
 };
 
 static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_POLICY_ATTACHMENT;
@@ -162,6 +177,35 @@ Database::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::ADD_FEE_ASSET:
             FeeHelper::Instance()->addFeeAsset(*this);
             break;
+        case databaseSchemaVersion::EXTERNAL_POOL_FIX_DB_TYPES:
+            break;
+        case databaseSchemaVersion::EXTERNAL_POOL_FIX_MIGRATION:
+            ExternalSystemAccountIDPoolEntryHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::KEY_VALUE_FIX_MIGRATION:
+            KeyValueHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE:
+            ExternalSystemAccountIDPoolEntryHelper::Instance()->parentToNumeric(*this);
+            break;
+        case databaseSchemaVersion::ADD_SALE_ANTE:
+            SaleAnteHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::ADD_SALE_STATE:
+            SaleHelper::Instance()->addState(*this);
+            break;
+        case databaseSchemaVersion::ADD_LIMITS_V2:
+            LimitsV2Helper::Instance()->dropAll(*this);
+            StatisticsV2Helper::Instance()->dropAll(*this);
+            PendingStatisticsHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::ADD_REVIEWABLE_REQUEST_TASKS:
+            ReviewableRequestHelper::Instance()->addTasks(*this);
+            PendingStatisticsHelper::Instance()->restrictUpdateDelete(*this);
+            break;
+        case databaseSchemaVersion::ADD_CONTRACTS:
+            ContractHelper::Instance()->dropAll(*this);
+            break;
         case databaseSchemaVersion::ADD_IDENTITY_POLICY:
             IdentityPolicyHelper::Instance()->dropAll(*this);
             break;
@@ -170,7 +214,6 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");
-            break;
     }
 }
 

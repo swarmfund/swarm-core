@@ -4,6 +4,7 @@
 
 #include <ledger/AssetFrame.h>
 #include <ledger/BalanceHelper.h>
+#include <ledger/BalanceFrame.h>
 #include <ledger/AccountHelper.h>
 #include "transactions/AccountManager.h"
 #include "main/Application.h"
@@ -18,6 +19,7 @@
 #include "ledger/EntryHelper.h"
 #include "ledger/StatisticsHelper.h"
 #include "ledger/FeeHelper.h"
+#include "StatisticsV2Processor.h"
 
 namespace stellar {
     using namespace std;
@@ -134,19 +136,33 @@ namespace stellar {
             return result;
         }
 
-        auto stats = StatisticsHelper::Instance()->mustLoadStatistics(fromBalance->getAccountID(), mDb, &mDelta);
+        return processStatistics(from, fromBalance, amount, universalAmount);
+    }
 
-        auto now = mLm.getCloseTime();
-        if (!stats->add(universalAmount, now)) {
-            return ProcessTransferResult(Result::STATS_OVERFLOW, 0);
+    AccountManager::ProcessTransferResult
+    AccountManager::processStatistics(AccountFrame::pointer from, BalanceFrame::pointer fromBalance,
+                                      uint64_t amount, uint64_t& universalAmount)
+    {
+        if (!mLm.shouldUse(LedgerVersion::CREATE_ONLY_STATISTICS_V2))
+        {
+            auto stats = StatisticsHelper::Instance()->mustLoadStatistics(fromBalance->getAccountID(), mDb, &mDelta);
+
+            auto now = mLm.getCloseTime();
+            if (!stats->add(universalAmount, now)) {
+                return ProcessTransferResult(Result::STATS_OVERFLOW, 0);
+            }
+
+            if (!validateStats(from, fromBalance, stats)) {
+                return ProcessTransferResult(Result::LIMITS_EXCEEDED, 0);
+            }
+
+            EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
         }
 
-        if (!validateStats(from, fromBalance, stats)) {
-            return ProcessTransferResult(Result::LIMITS_EXCEEDED, 0);
-        }
+        universalAmount = 0;
+        auto statsV2Result = tryAddStatsV2(from, fromBalance, amount, universalAmount);
 
-        EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
-        return result;
+        return ProcessTransferResult(statsV2Result, universalAmount);
     }
 
     bool AccountManager::revertRequest(AccountFrame::pointer account,
@@ -166,6 +182,30 @@ namespace stellar {
 
         EntryHelperProvider::storeChangeEntry(mDelta, mDb, stats->mEntry);
         return true;
+    }
+
+    AccountManager::Result
+    AccountManager::tryAddStatsV2(const AccountFrame::pointer account,
+                                  const BalanceFrame::pointer balance, const uint64_t amountToAdd,
+                                  uint64_t& universalAmount)
+    {
+        StatisticsV2Processor statisticsV2Processor(mDb, mDelta, mLm);
+        const auto result = statisticsV2Processor.addStatsV2(StatisticsV2Processor::SpendType::PAYMENT, amountToAdd,
+                                                             universalAmount, account, balance);
+        switch (result)
+        {
+            case StatisticsV2Processor::SUCCESS:
+                return AccountManager::SUCCESS;
+            case StatisticsV2Processor::STATS_V2_OVERFLOW:
+                return AccountManager::STATS_OVERFLOW;
+            case StatisticsV2Processor::LIMITS_V2_EXCEEDED:
+                return AccountManager::LIMITS_EXCEEDED;
+            default:
+                CLOG(ERROR, Logging::OPERATION_LOGGER)
+                        << "Unexpected result from statisticsV2Processor when updating statsV2:" << result;
+                throw std::runtime_error("Unexpected state from statisticsV2Processor when updating statsV2");
+        }
+
     }
 
     bool AccountManager::validateStats(AccountFrame::pointer account,
@@ -333,18 +373,40 @@ namespace stellar {
         return balance;
     }
 
-    [[deprecated]]
-    bool AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db) {
-        auto balanceFrame = BalanceHelper::Instance()->loadBalance(receivingBalance, db);
+    AccountManager::Result AccountManager::isAllowedToReceive(BalanceID balanceID, Database& db){
+        auto balanceFrame = BalanceHelper::Instance()->loadBalance(balanceID, db);
         if (!balanceFrame)
-            return false;
+            return AccountManager::Result::BALANCE_NOT_FOUND;
 
-        auto receiver = AccountHelper::Instance()->mustLoadAccount(balanceFrame->getAccountID(), db);
-        auto receivingAsset = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
+        return isAllowedToReceive(balanceFrame, db);
+    }
 
-        if (receiver->getAccountType() == AccountType::NOT_VERIFIED && receivingAsset->isRequireKYC())
-            return false;
+    AccountManager::Result  AccountManager::isAllowedToReceive(BalanceFrame::pointer balanceFrame, Database& db){
+        auto accountID = balanceFrame->getAccountID();
+        auto accountFrame = AccountHelper::Instance()->mustLoadAccount(accountID, db);
+        return isAllowedToReceive(accountFrame, balanceFrame, db);
+    }
+    AccountManager::Result  AccountManager::isAllowedToReceive(AccountFrame::pointer account, BalanceFrame::pointer balance, Database& db){
+        auto asset = AssetHelper::Instance()->mustLoadAsset(balance->getAsset(), db);
 
-        return true;
+        if (asset->isRequireVerification() && account->getAccountType() == AccountType::NOT_VERIFIED)
+            return AccountManager::Result::REQUIRED_VERIFICATION;
+
+        if (asset->isRequireKYC()){
+            if (account->getAccountType() == AccountType::NOT_VERIFIED ||
+            account->getAccountType() == AccountType::VERIFIED)
+                return AccountManager::Result::REQUIRED_KYC;
+        }
+
+        return AccountManager::Result::SUCCESS;
+    }
+
+    void AccountManager::unlockPendingIssuanceForSale(SaleFrame::pointer const sale, LedgerDelta &delta, Database &db,
+                                                      LedgerManager &lm) {
+        auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
+        const auto baseAmount = lm.shouldUse(LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP)
+                                ? sale->getSaleEntry().maxAmountToBeSold : baseAsset->getPendingIssuance();
+        baseAsset->mustUnlockIssuedAmount(baseAmount);
+        AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
     }
 }

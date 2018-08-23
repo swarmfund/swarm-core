@@ -150,6 +150,14 @@ namespace stellar {
 
         virtual int64 getMaxInvoicesForReceiverAccount() const override;
 
+        virtual uint64 getMaxInvoiceDetailLength() const override;
+
+        virtual uint64 getMaxContractsForContractor() const override;
+
+        virtual uint64 getMaxContractDetailLength() const override;
+
+        virtual uint64 getMaxContractInitialDetailLength() const override;
+
         virtual int32 getKYCSuperAdminMask() const override;
 
         virtual uint64 getMaxIdentityPoliciesPerAccount() const;

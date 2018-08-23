@@ -64,7 +64,8 @@ bool DeleteSaleParticipationOpFrame::doApply(Application& app,
         return false;
     }
 
-    auto balance = BalanceHelper::Instance()->mustLoadBalance(mManageOffer.quoteBalance, db);
+    auto quoteBalanceID = getQuoteBalanceID(offer, ledgerManager);
+    auto balance = BalanceHelper::Instance()->mustLoadBalance(quoteBalanceID, db);
     sale->subCurrentCap(balance->getAsset(), offer->getOffer().quoteAmount);
     sale->unlockBaseAsset(offer->getOffer().baseAmount);
     SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);
@@ -107,5 +108,13 @@ void DeleteSaleParticipationOpFrame::deleteSaleParticipation(
 void DeleteSaleParticipationOpFrame::doNotCheckSaleState()
 {
     mCheckSaleState = false;
+}
+BalanceID DeleteSaleParticipationOpFrame::getQuoteBalanceID(OfferFrame::pointer offer, LedgerManager& lm)
+{
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_CANCEL_SALE_PARTICIP_WITHOUT_SPECIFING_BALANCE)) {
+        return mManageOffer.quoteBalance;
+    }
+
+    return offer->getOffer().quoteBalance;
 }
 }

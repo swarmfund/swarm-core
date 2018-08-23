@@ -10,7 +10,6 @@
 #include "ledger/FeeHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReferenceHelper.h"
-#include "ledger/InvoiceHelper.h"
 #include "database/Database.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
@@ -79,7 +78,9 @@ std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpar
 		return{};
 	return{
 		{ targetBalance->getAccountID(), CounterpartyDetails({ AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
-                                                               AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE },
+                                                               AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE,
+                                                               AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
+                                                               AccountType::VERIFIED},
                                                              true, false) }
 	};
 }
@@ -103,10 +104,13 @@ SourceDetails PaymentOpFrame::getSourceAccountDetails(std::unordered_map<Account
     if (ledgerVersion >= int32_t(LedgerVersion::USE_KYC_LEVEL))
     {
         allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
-            AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE };
+                                AccountType::COMMISSION, AccountType::SYNDICATE, AccountType::EXCHANGE,
+                                AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR,
+                                AccountType::VERIFIED};
     }
 	return SourceDetails(allowedAccountTypes, mSourceAccount->getMediumThreshold(), signerType,
-						 static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+						 static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
 bool PaymentOpFrame::isRecipeintFeeNotRequired(Database& db)
@@ -305,6 +309,12 @@ bool
 PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
                         LedgerManager& ledgerManager)
 {
+    if (ledgerManager.shouldUse(LedgerVersion::USE_ONLY_PAYMENT_V2))
+    {
+        innerResult().code(PaymentResultCode::PAYMENT_V1_NO_LONGER_SUPPORTED);
+        return false;
+    }
+
     app.getMetrics().NewMeter({"op-payment", "success", "apply"}, "operation").Mark();
     innerResult().code(PaymentResultCode::SUCCESS);
     
@@ -319,7 +329,8 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 	auto assetHelper = AssetHelper::Instance();
     auto assetFrame = assetHelper->loadAsset(mSourceBalance->getAsset(), db);
     assert(assetFrame);
-    if (!isAllowedToTransfer(db, assetFrame) || !AccountManager::isAllowedToReceive(mPayment.destinationBalanceID, db))
+    if (!isAllowedToTransfer(db, assetFrame) ||
+        AccountManager::isAllowedToReceive(mPayment.destinationBalanceID, db) != AccountManager::SUCCESS)
     {
         app.getMetrics().NewMeter({ "op-payment", "failure", "not-allowed-by-asset-policy" }, "operation").Mark();
         innerResult().code(PaymentResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
@@ -331,19 +342,6 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 	{
 		return false;
 	}
-    
-    if (mPayment.invoiceReference)
-    {
-        if (!processInvoice(app, delta, db))
-            return false;
-        auto invoiceReference = *mPayment.invoiceReference;
-        if (!invoiceReference.accept)
-        {
-            assert(invoiceFrame);
-            EntryHelperProvider::storeDeleteEntry(delta, db, invoiceFrame->getKey());
-            return true;
-        }
-    }
 
     AccountManager accountManager(app, db, delta, ledgerManager);
 
@@ -370,9 +368,6 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (!processBalanceChange(app, transferResult))
         return false;
 
-	if (invoiceFrame)
-		EntryHelperProvider::storeDeleteEntry(delta, db, invoiceFrame->getKey());
-
 	if (!mDestBalance->addBalance(destReceived))
 	{
 		app.getMetrics().NewMeter({ "op-payment", "failure", "full-line" }, "operation").Mark();
@@ -394,54 +389,6 @@ PaymentOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     return true;
 }
-
-bool
-PaymentOpFrame::processInvoice(Application& app, LedgerDelta& delta, Database& db)
-{
-    assert(mPayment.invoiceReference);
-    auto invoiceReference = *mPayment.invoiceReference;
-    
-	auto invoiceHelper = InvoiceHelper::Instance();
-    invoiceFrame = invoiceHelper->loadInvoice(invoiceReference.invoiceID, db);
-    if (!invoiceFrame)
-    {
-        app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-not-found" }, "operation").Mark();
-        innerResult().code(PaymentResultCode::INVOICE_NOT_FOUND);
-        return false;
-    }
-
-    if (invoiceFrame->getState() != InvoiceState::INVOICE_NEEDS_PAYMENT)
-    {
-        app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-already-paid" }, "operation").Mark();
-        innerResult().code(PaymentResultCode::INVOICE_ALREADY_PAID);
-        return false;
-    }
-    
-    if (!(invoiceFrame->getSender() == getSourceID()))
-    {
-        app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-account-mismatch" }, "operation").Mark();
-        innerResult().code(PaymentResultCode::INVOICE_ACCOUNT_MISMATCH);
-        return false;
-    }
-
-    if (invoiceReference.accept)
-    {
-        if (invoiceFrame->getAmount() != destReceived)
-        {
-            app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-wrong-amount" }, "operation").Mark();
-            innerResult().code(PaymentResultCode::INVOICE_WRONG_AMOUNT);
-            return false;
-        }
-        if (!(invoiceFrame->getReceiverBalance() == mPayment.destinationBalanceID))
-        {
-            app.getMetrics().NewMeter({ "op-payment", "failure", "invoice-balance-mismatch" }, "operation").Mark();
-            innerResult().code(PaymentResultCode::INVOICE_BALANCE_MISMATCH);
-            return false;
-        }
-    }
-    return true;
-}
-
 
 bool
 PaymentOpFrame::processBalanceChange(Application& app, AccountManager::Result balanceChangeResult)

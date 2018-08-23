@@ -98,14 +98,6 @@ class OperationFrame
     // returns true on success
     bool loadAccount(LedgerDelta* delta, Database& db);
 
-
-
-    PaymentRequestEntry
-    createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, int64 sourceSend,
-            int64 sourceSendUniversal,
-            BalanceID* destBalance, int64 destReceive, LedgerDelta& delta,
-            Database& db, uint64 createdAt, uint64* invoiceID = nullptr);
-
     void
     createReferenceEntry(std::string reference, LedgerDelta* delta, Database& db);
 

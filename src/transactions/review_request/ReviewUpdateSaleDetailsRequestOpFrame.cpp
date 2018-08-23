@@ -1,6 +1,6 @@
 #include <ledger/SaleHelper.h>
 #include "ReviewUpdateSaleDetailsRequestOpFrame.h"
-#include "transactions/ManageSaleOpFrame.h"
+#include "transactions/dex/ManageSaleOpFrame.h"
 
 namespace stellar {
     ReviewUpdateSaleDetailsRequestOpFrame::ReviewUpdateSaleDetailsRequestOpFrame(const stellar::Operation &op,
@@ -19,7 +19,7 @@ namespace stellar {
     bool ReviewUpdateSaleDetailsRequestOpFrame::handleApprove(Application &app, LedgerDelta &delta,
                                                               LedgerManager &ledgerManager,
                                                               ReviewableRequestFrame::pointer request) {
-        ManageSaleOpFrame::checkRequestType(request);
+        request->checkRequestType(ReviewableRequestType::UPDATE_SALE_DETAILS);
 
         Database &db = ledgerManager.getDatabase();
 

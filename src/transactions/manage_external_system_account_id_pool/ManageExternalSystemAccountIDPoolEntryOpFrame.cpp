@@ -39,9 +39,9 @@ using xdr::operator==;
             Operation const &op, OperationResult &res, TransactionFrame &parentTx)
     {
         switch (op.body.manageExternalSystemAccountIdPoolEntryOp().actionInput.action()) {
-            case ManageExternalSystemAccountIdPoolEntryAction::CREATE_POOL_ENTRY:
+            case ManageExternalSystemAccountIdPoolEntryAction::CREATE:
                 return new CreateExternalSystemAccountIDPoolEntryOpFrame(op, res, parentTx);
-            case ManageExternalSystemAccountIdPoolEntryAction::DELETE_POOL_ENTRY:
+            case ManageExternalSystemAccountIdPoolEntryAction::REMOVE:
                 return new DeleteExternalSystemAccountIDPoolEntryOpFrame(op, res, parentTx);
             default:
                 throw runtime_error("Unexpected action in manage external system account id pool entry op");

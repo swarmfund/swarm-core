@@ -36,7 +36,9 @@ class SaleFrame : public EntryFrame
     {
         ACTIVE = 1,
         NOT_STARTED_YET = 2,
-        ENDED = 3
+        ENDED = 3,
+        VOTING = 4,
+        PROMOTION = 5
     };
 
 
@@ -53,7 +55,7 @@ class SaleFrame : public EntryFrame
         return EntryFrame::pointer(new SaleFrame(*this));
     }
     
-    // ensureValid - throws exeption if entry is not valid
+    // ensureValid - throws exception if entry is not valid
     static void ensureValid(SaleEntry const& oe);
     void ensureValid() const;
 
@@ -88,12 +90,21 @@ class SaleFrame : public EntryFrame
     bool tryLockBaseAsset(uint64_t amount);
     void unlockBaseAsset(uint64_t amount);
 
+    void migrateToVersion(LedgerVersion version);
+
+    void setSaleState(SaleState state);
+
     SaleType getSaleType() const;
     static SaleType getSaleType(SaleEntry const& sale);
 
     static void setSaleType(SaleEntry& sale, SaleType saleType);
+    static void setSaleState(SaleEntry& sale, SaleState saleState);
 
     void normalize();
+
+    SaleState getState();
+
+    bool isEndTimeValid(uint64 endTime, uint64 ledgerCloseTime);
 
 };
 }

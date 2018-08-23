@@ -26,7 +26,9 @@ std::unordered_map<AccountID, CounterpartyDetails> DirectDebitOpFrame::getCounte
 {
 	return{
 		{mDirectDebit.from, CounterpartyDetails({AccountType::GENERAL, AccountType::OPERATIONAL, AccountType::COMMISSION,
-                                                AccountType::EXCHANGE}, false, true)}
+                                                 AccountType::EXCHANGE, AccountType::VERIFIED,
+                                                 AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR},
+                                                 false, true)}
 	};
 }
 
@@ -34,11 +36,13 @@ SourceDetails DirectDebitOpFrame::getSourceAccountDetails(std::unordered_map<Acc
                                                           int32_t ledgerVersion) const
 {
     vector<AccountType> allowedAccountTypes = { AccountType::NOT_VERIFIED, AccountType::GENERAL, AccountType::OPERATIONAL,
-                                                AccountType::COMMISSION, AccountType::EXCHANGE};
+                                                AccountType::COMMISSION, AccountType::EXCHANGE, AccountType::VERIFIED,
+                                                AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR};
     // disallowed
 	return SourceDetails({}, mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t >(SignerType::DIRECT_DEBIT_OPERATOR),
-                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS));
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
 DirectDebitOpFrame::DirectDebitOpFrame(Operation const& op, OperationResult& res,

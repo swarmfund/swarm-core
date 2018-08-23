@@ -10,7 +10,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountLimitsHelper.h"
-#include "transactions/SetLimitsOpFrame.h"
+#include "transactions/ManageLimitsOpFrame.h"
 #include "main/Application.h"
 
 namespace stellar {
@@ -27,27 +27,36 @@ namespace stellar {
     SourceDetails ReviewLimitsUpdateRequestOpFrame::getSourceAccountDetails(
             std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const
     {
-        return SourceDetails({}, mSourceAccount->getHighThreshold(),
+        return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
                              static_cast<int32_t >(SignerType::LIMITS_MANAGER));
     }
 
-    bool ReviewLimitsUpdateRequestOpFrame::tryCallSetLimits(Application &app,
-                                                            LedgerManager &ledgerManager, LedgerDelta &delta,
-                                                            ReviewableRequestFrame::pointer request)
+    bool
+    ReviewLimitsUpdateRequestOpFrame::tryCallManageLimits(Application &app,
+                                                          LedgerManager &ledgerManager, LedgerDelta &delta,
+                                                          ReviewableRequestFrame::pointer request)
     {
         Database& db = ledgerManager.getDatabase();
         auto requestorID = request->getRequestor();
 
         Operation op;
-        op.body.type(OperationType::SET_LIMITS);
-        SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
-        setLimitsOp.account.activate() = requestorID;
-        setLimitsOp.limits = mReviewRequest.requestDetails.limitsUpdate().newLimits;
+        op.body.type(OperationType::MANAGE_LIMITS);
+        ManageLimitsOp& manageLimitsOp = op.body.manageLimitsOp();
+        manageLimitsOp.details.action(ManageLimitsAction::CREATE);
+        manageLimitsOp.details.limitsCreateDetails().accountID = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.accountID;
+        manageLimitsOp.details.limitsCreateDetails().accountType = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.accountType;
+        manageLimitsOp.details.limitsCreateDetails().statsOpType = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.statsOpType;
+        manageLimitsOp.details.limitsCreateDetails().assetCode = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.assetCode;
+        manageLimitsOp.details.limitsCreateDetails().isConvertNeeded = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.isConvertNeeded;
+        manageLimitsOp.details.limitsCreateDetails().dailyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.dailyOut;
+        manageLimitsOp.details.limitsCreateDetails().weeklyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.weeklyOut;
+        manageLimitsOp.details.limitsCreateDetails().monthlyOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.monthlyOut;
+        manageLimitsOp.details.limitsCreateDetails().annualOut = mReviewRequest.requestDetails.limitsUpdate().newLimitsV2.annualOut;
 
         OperationResult opRes;
         opRes.code(OperationResultCode::opINNER);
-        opRes.tr().type(OperationType::SET_LIMITS);
-        SetLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
+        opRes.tr().type(OperationType::MANAGE_LIMITS);
+        ManageLimitsOpFrame setLimitsOpFrame(op, opRes, mParentTx);
 
         auto accountHelper = AccountHelper::Instance();
         auto master = accountHelper->mustLoadAccount(app.getMasterID(), db);
@@ -56,7 +65,8 @@ namespace stellar {
         if (!setLimitsOpFrame.doCheckValid(app) || !setLimitsOpFrame.doApply(app, delta, ledgerManager))
         {
             auto resultCodeString = setLimitsOpFrame.getInnerResultCodeAsStr();
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to apply set limits on review limits update request: "
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to apply manage limits"
+                                                      " on review limits update request: "
                                                    << request->getRequestID() << " with code: " << resultCodeString;
             throw runtime_error("Unexpected state: failed to set limits on review limits update request with code: " +
                                  resultCodeString);
@@ -75,7 +85,8 @@ namespace stellar {
                                                          ReviewableRequestFrame::pointer request)
     {
         if (request->getRequestType() != ReviewableRequestType::LIMITS_UPDATE) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected LIMITS_UPDATE, but got " << xdr::xdr_traits<ReviewableRequestType>::enum_name(request->getRequestType());
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected LIMITS, but got "
+                                                   << xdr::xdr_traits<ReviewableRequestType>::enum_name(request->getRequestType());
             throw std::invalid_argument("Unexpected request type for review limits update request");
         }
 
@@ -85,7 +96,7 @@ namespace stellar {
         auto requestorID = request->getRequestor();
         AccountHelper::Instance()->ensureExists(requestorID, db);
 
-        return tryCallSetLimits(app, ledgerManager, delta, request);
+        return tryCallManageLimits(app, ledgerManager, delta, request);
     }
 
     bool ReviewLimitsUpdateRequestOpFrame::handleReject(Application &app, LedgerDelta &delta,

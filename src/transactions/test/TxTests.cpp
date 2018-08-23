@@ -20,17 +20,13 @@
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "transactions/SetOptionsOpFrame.h"
-#include "transactions/review_request/ReviewPaymentRequestOpFrame.h"
 #include "transactions/DirectDebitOpFrame.h"
-#include "transactions/SetLimitsOpFrame.h"
-#include "transactions/ManageInvoiceOpFrame.h"
-#include "ledger/InvoiceFrame.h"
+#include "transactions/ManageLimitsOpFrame.h"
+#include "transactions/ManageInvoiceRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/InvoiceHelper.h"
-#include "ledger/PaymentRequestHelper.h"
 #include "ledger/StatisticsHelper.h"
 #include "crypto/SHA.h"
 #include "test_helper/TestManager.h"
@@ -49,8 +45,6 @@ namespace txtest
 	auto assetHelper = AssetHelper::Instance();
 	auto balanceHelper = BalanceHelper::Instance();
 	auto feeHelper = FeeHelper::Instance();
-	auto invoiceHelper = InvoiceHelper::Instance();
-	auto paymentRequestHelper = PaymentRequestHelper::Instance();
 	auto statisticsHelper = StatisticsHelper::Instance();
 
 
@@ -258,7 +252,7 @@ closeLedgerOn(Application& app, uint32 ledgerSeq, int day, int month, int year,
     
 }
 
-[[deprecated("Use TestMnager")]]
+[[deprecated("Use TestManager")]]
 void upgradeToCurrentLedgerVersion(Application& app)
 {
 	TestManager::upgradeToCurrentLedgerVersion(app);
@@ -634,123 +628,6 @@ applyPaymentTx(Application& app, SecretKey& from, BalanceID fromBalanceID,
     return txResult.result.results()[0].tr().paymentResult();
 }
 
-
-TransactionFramePtr
-createManageInvoice(Hash const& networkID, SecretKey& from, AccountID sender,
-                BalanceID receiverBalance, int64_t amount, uint64_t invoiceID)
-{
-    Operation op;
-    op.body.type(OperationType::MANAGE_INVOICE);
-    op.body.manageInvoiceOp().amount = amount;
-    op.body.manageInvoiceOp().receiverBalance = receiverBalance;
-    op.body.manageInvoiceOp().sender = sender;
-    op.body.manageInvoiceOp().invoiceID = invoiceID;
-
-    return transactionFromOperation(networkID, from, 0, op);
-}
-
-ManageInvoiceResult
-applyManageInvoice(Application& app, SecretKey& from, AccountID sender,
-                BalanceID receiverBalance, int64_t amount, uint64_t invoiceID,
-                ManageInvoiceResultCode result)
-{
-    TransactionFramePtr txFrame;
-
-
-    txFrame = createManageInvoice(app.getNetworkID(), from, sender, 
-        receiverBalance, amount, invoiceID);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-
-
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    auto txResult = txFrame->getResult();
-    auto innerCode = ManageInvoiceOpFrame::getInnerCode(txResult.result.results()[0]);
-    REQUIRE(innerCode == result);
-
-    REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
-
-    auto opResult = txResult.result.results()[0].tr().manageInvoiceResult();
-
-    if (innerCode == ManageInvoiceResultCode::SUCCESS)
-    {
-        if (invoiceID == 0)
-        {
-            auto createdInvoiceID = opResult.success().invoiceID;
-            auto invoiceFrame = invoiceHelper->loadInvoice(createdInvoiceID, app.getDatabase());
-            REQUIRE(invoiceFrame);
-            REQUIRE(invoiceFrame->getAmount() == amount);
-            REQUIRE(invoiceFrame->getSender() == sender);
-            REQUIRE(invoiceFrame->getReceiverBalance() == receiverBalance);
-        }
-        else
-        {
-            REQUIRE(!invoiceHelper->loadInvoice(invoiceID, app.getDatabase()));
-        }
-    }
-
-    return opResult;
-}
-
-
-
-TransactionFramePtr
-createReviewPaymentRequestTx(Hash const& networkID, SecretKey& exchange, 
-                Salt seq, int64 paymentID, bool accept)
-{
-    Operation op;
-    op.body.type(OperationType::REVIEW_PAYMENT_REQUEST);
-    op.body.reviewPaymentRequestOp().paymentID = paymentID;
-    op.body.reviewPaymentRequestOp().accept = accept;
-
-    return transactionFromOperation(networkID, exchange, seq, op);
-}
-
-int32
-applyReviewPaymentRequestTx(Application& app, SecretKey& from, Salt seq,
-            int64 paymentID, bool accept, ReviewPaymentRequestResultCode result )
-{
-    TransactionFramePtr txFrame;
-
-
-    txFrame = createReviewPaymentRequestTx(app.getNetworkID(), from, seq, paymentID, accept);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-
-    auto requests = paymentRequestHelper->countObjects(app.getDatabase().getSession());
-
-    auto request = paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr);
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    auto txResult = txFrame->getResult();
-    auto innerCode = ReviewPaymentRequestOpFrame::getInnerCode(txResult.result.results()[0]);
-    REQUIRE(innerCode == result);
-
-    REQUIRE(txResult.feeCharged == app.getLedgerManager().getTxFee());
-
-    auto newRequests = paymentRequestHelper->countObjects(app.getDatabase().getSession());
-
-    if (innerCode == ReviewPaymentRequestResultCode::SUCCESS)
-    {
-        if (accept)
-            REQUIRE(requests == newRequests + 1);
-        REQUIRE(!paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
-        return (int32_t)txResult.result.results()[0].tr().reviewPaymentRequestResult().reviewPaymentResponse().state;
-    }
-    else
-    {
-        REQUIRE(requests == newRequests);
-        if (innerCode != ReviewPaymentRequestResultCode::NOT_FOUND)
-            REQUIRE(paymentRequestHelper->loadPaymentRequest(paymentID, app.getDatabase(), nullptr));
-        return -1;
-    }
-}
-
 TransactionFramePtr
 createSetOptions(Hash const& networkID, SecretKey& source, Salt seq, ThresholdSetter* thrs, Signer* signer, TrustData* trustData)
 {
@@ -850,48 +727,6 @@ applyDirectDebitTx(Application& app, SecretKey& source, Salt seq,
 
 	return opResult;
 }
-
-
-
-
-
-TransactionFramePtr
-createSetLimits(Hash const& networkID, SecretKey& source, Salt seq,
-    AccountID* account, AccountType* accountType, Limits limits)
-{
-    Operation op;
-    op.body.type(OperationType::SET_LIMITS);
-
-    SetLimitsOp& setLimitsOp = op.body.setLimitsOp();
-
-    if (account)
-        setLimitsOp.account.activate() = *account;
-    if (accountType)
-        setLimitsOp.accountType.activate() = *accountType;
-    setLimitsOp.limits = limits;
-
-    return transactionFromOperation(networkID, source, seq, op);
-}
-
-void
-applySetLimits(Application& app, SecretKey& source, Salt seq,
-                AccountID* account, AccountType* accountType, Limits limits,
-                SetLimitsResultCode result)
-{
-    TransactionFramePtr txFrame;
-
-    txFrame = createSetLimits(app.getNetworkID(), source, seq,
-        account, accountType, limits);
-
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
-    applyCheck(txFrame, delta, app);
-
-    checkTransaction(*txFrame);
-    REQUIRE(SetLimitsOpFrame::getInnerCode(
-                txFrame->getResult().result.results()[0]) == result);
-}
-
 
 TransactionFramePtr createManageAccount(Hash const& networkID, SecretKey& source, SecretKey& account, Salt seq, uint32 blockReasonsToAdd, uint32 blockReasonsToRemove, AccountType accountType)
 {

@@ -47,7 +47,7 @@ TEST_CASE("account_manager", "[dep_tx][account_manager]")
     
     auto amount = ONE;
 
-    applySetLimits(app, root, rootSeq++, nullptr, &accountType, limits);
+    //applySetLimits(app, root, rootSeq++, nullptr, &accountType, limits);
 
     auto a = SecretKey::random();
     applyCreateAccountTx(app, root, a, rootSeq++, accountType);

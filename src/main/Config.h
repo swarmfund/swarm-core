@@ -143,6 +143,10 @@ class Config : public std::enable_shared_from_this<Config>
     int64 TX_EXPIRATION_PERIOD_WINDOW = 60*60;
     
     uint64 MAX_INVOICES_FOR_RECEIVER_ACCOUNT = 20;
+    uint64 MAX_INVOICE_DETAIL_LENGTH = 256;
+    uint64 MAX_CONTRACTS_FOR_CONTRACTOR = 20;
+    uint64 MAX_CONTRACT_DETAIL_LENGTH = 256;
+    uint64 MAX_CONTRACT_INITIAL_DETAIL_LENGTH = 1000;
 
     int32 KYC_SUPER_ADMIN_MASK = 1;
 
@@ -155,6 +159,9 @@ class Config : public std::enable_shared_from_this<Config>
     std::vector<std::string> KNOWN_PEERS;
 
     std::set<std::string> TX_INTERNAL_ERROR;
+    // set of txs for which we need to skip signatures checks - used for forking
+    // TODO: should also handle enabling it from specific block
+    std::set<std::string> TX_SKIP_SIG_CHECK;
 
     // Preference can also be expressed by peer pubkey
     std::vector<std::string> PREFERRED_PEER_KEYS;

@@ -6,6 +6,7 @@
 
 #include "transactions/OperationFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
+#include "StatisticsV2Processor.h"
 
 namespace stellar
 {
@@ -31,12 +32,27 @@ class CreateWithdrawalRequestOpFrame : public OperationFrame
 
     bool tryLockBalance(BalanceFrame::pointer balance);
 
+    bool
+    processStatistics(AccountManager& accountManager, Database& db, LedgerDelta& delta,
+                      LedgerManager& ledgerManager, BalanceFrame::pointer balanceFrame,
+                      const uint64_t amountToAdd, uint64_t& universalAmount, const uint64_t requestID);
+
     bool tryAddStats(AccountManager& accountManager, BalanceFrame::pointer balance, uint64_t amountToAdd,
                          uint64_t& universalAmount);
+    bool tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor, const BalanceFrame::pointer balance,
+                       const uint64_t amountToAdd, uint64_t& universalAmount, uint64_t requestID);
 
-    ReviewableRequestFrame::pointer createRequest(LedgerDelta& delta, LedgerManager& ledgerManager,
-        Database& db, const AssetFrame::pointer assetFrame,
-        uint64_t universalAmount);
+    ReviewableRequestFrame::pointer
+    createRequest(LedgerDelta& delta, LedgerManager& ledgerManager, Database& db,
+                  const AssetFrame::pointer assetFrame, const uint64_t universalAmount);
+
+    void
+    storeChangeRequest(LedgerDelta& delta, ReviewableRequestFrame::pointer request,
+                       Database& db, const uint64_t universalAmount);
+
+    ReviewableRequestFrame::pointer
+    approveRequest(AccountManager& accountManager, LedgerDelta& delta, LedgerManager& ledgerManager,
+                   Database& db, const AssetFrame::pointer assetFrame, const BalanceFrame::pointer balanceFrame);
 
 public:
 

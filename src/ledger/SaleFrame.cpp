@@ -295,23 +295,15 @@ SaleFrame::pointer SaleFrame::createNew(uint64_t const& id, AccountID const &own
 
 uint64_t SaleFrame::getBaseAmountForCurrentCap(AssetCode const& asset)
 {
+    auto& quoteAsset = getSaleQuoteAsset(asset);
     uint64_t baseAmount;
-    auto saleType = getSaleType();
-    switch(saleType){
-        case SaleType::FIXED_PRICE:
-            baseAmount = mSale.currentCapInBase;
-            break;
-        default:
-            auto& quoteAsset = getSaleQuoteAsset(asset);
-            if (!convertToBaseAmount(quoteAsset.price, quoteAsset.currentCap, baseAmount))
-            {
-                CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to conver to base amount current cap: " << xdr::xdr_to_string(mSale);
-                throw runtime_error("Unexpected state: failed to conver to base amount current cap");
-            }
+    if (!convertToBaseAmount(quoteAsset.price, quoteAsset.currentCap, baseAmount))
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: failed to conver to base amount current cap: " << xdr::xdr_to_string(mSale);
+        throw runtime_error("Unexpected state: failed to conver to base amount current cap");
     }
 
     return baseAmount;
-
 }
 
 uint64_t SaleFrame::getBaseAmountForCurrentCap()
@@ -332,7 +324,7 @@ uint64_t SaleFrame::getBaseAmountForCurrentCap()
 
 bool SaleFrame::tryLockBaseAsset(uint64_t amount)
 {
-    if (getSaleType() == SaleType::CROWD_FUNDING)
+    if (getSaleType() == SaleType::CROWD_FUNDING || getSaleType() == SaleType::FIXED_PRICE)
     {
         return true;
     }
@@ -340,8 +332,6 @@ bool SaleFrame::tryLockBaseAsset(uint64_t amount)
     {
         return false;
     }
-    if (getSaleType() == SaleType::FIXED_PRICE)
-        return mSale.currentCapInBase <= mSale.hardCap;
 
     return mSale.currentCapInBase <= mSale.maxAmountToBeSold;
 }

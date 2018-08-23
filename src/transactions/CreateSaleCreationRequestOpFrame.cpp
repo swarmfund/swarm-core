@@ -263,8 +263,10 @@ bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app, c
         }
     }
     auto hardCap = saleCreationRequest.hardCap;
-    uint64_t price = hardCap / maxAmount;
-    auto sufficientAmount = hardCap / price;
+    uint64_t price;
+    bigDivide(price, hardCap, ONE, maxAmount, ROUND_UP);
+    uint64_t sufficientAmount;
+    bigDivide(sufficientAmount, hardCap, ONE, price, ROUND_UP);
     Database& db = app.getDatabase();
     auto baseAsset = AssetHelper::Instance()->mustLoadAsset(saleCreationRequest.baseAsset, db);
 

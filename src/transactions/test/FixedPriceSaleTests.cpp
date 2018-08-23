@@ -3,6 +3,7 @@
 #include "main/Application.h"
 #include "main/test.h"
 #include "TxTests.h"
+#include "src/util/types.h"
 #include "test_helper/TestManager.h"
 #include "test_helper/Account.h"
 #include "test_helper/ManageAssetTestHelper.h"
@@ -62,13 +63,14 @@ TEST_CASE("Fixed Price Sale", "[tx][fixedprice]") {
     assetTestHelper.createApproveRequest(root, syndicate, assetCreationRequest);
     const uint64_t hardCap = 1000 * ONE;
     const uint64_t softCap = hardCap / 4;
-    const uint64_t priceInDefaultQuoteAsset = 500;
+    const uint64_t priceInDefaultQuoteAsset = ONE/4;
     const auto currentTime = testManager->getLedgerManager().getCloseTime();
     const auto endTime = currentTime + 1000;
     SaleType saleType = SaleType::FIXED_PRICE;
-    auto maxAmountToBeSold = hardCap / priceInDefaultQuoteAsset;
+    uint64_t maxAmountToBeSold = 0;
+    bigDivide(maxAmountToBeSold, hardCap, ONE, priceInDefaultQuoteAsset, ROUND_UP);
 
-    const auto saleRequest = saleRequestHelper.createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
+    const auto saleRequest = SaleRequestHelper::createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
                                                                  endTime, softCap, hardCap, "{}",
                                                                  { saleRequestHelper.createSaleQuoteAsset(defaultQuoteAsset, ONE) },
                                                                  &saleType, &maxAmountToBeSold, SaleState::PROMOTION);
@@ -83,7 +85,7 @@ TEST_CASE("Fixed Price Sale", "[tx][fixedprice]") {
 
     SECTION("Happy path")
     {
-        SECTION("Cansel sale")
+        SECTION("Cancel sale")
         {
             //cancel sale
             auto data = manageSaleHelper.createDataForAction(ManageSaleAction::CANCEL);
@@ -92,33 +94,9 @@ TEST_CASE("Fixed Price Sale", "[tx][fixedprice]") {
 
         SECTION("One participant")
         {
-            // create participant
-            Account participant = Account{ SecretKey::random(), Salt(0) };
-            AccountID participantID = participant.key.getPublicKey();
-            createAccountTestHelper.applyCreateAccountTx(root, participantID, AccountType::GENERAL);
-
-            // create base balance for participant:
-            auto manageBalanceRes = ManageBalanceTestHelper(testManager).applyManageBalanceTx(participant, participantID, baseAsset);
-            BalanceID baseBalance = manageBalanceRes.success().balanceID;
-            Database& db = testManager->getDB();
-            BalanceID quoteBalance = BalanceHelper::Instance()->loadBalance(participantID, defaultQuoteAsset, db,
-                                                                            nullptr)->getBalanceID();
-
-            // pre-issue quote amount
-            issuanceHelper.authorizePreIssuedAmount(root, root.key, defaultQuoteAsset, INT64_MAX, root);
-
-            // fund participant with quote asset
-            uint64_t quoteBalanceAmount = INT64_MAX;
-            uint32_t allTasks = 0;
-            issuanceHelper.applyCreateIssuanceRequest(root, defaultQuoteAsset, quoteBalanceAmount, quoteBalance,
-                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
-
             SECTION("Buy whole sale"){
-                auto manageOffer = OfferManager::buildManageOfferOp(baseBalance, quoteBalance, true, hardCap,
-                                                                    ONE, 0, 0, saleID);
-
-                participationHelper.applyManageOffer(participant, manageOffer);
-
+                auto result = participationHelper.addNewParticipant(root, saleID, baseAsset, defaultQuoteAsset, hardCap, ONE, 0);
+                testManager->advanceToTime(testManager->getLedgerManager().getCloseTime() + (endTime - currentTime));
                 // close the sale
                 CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
             }

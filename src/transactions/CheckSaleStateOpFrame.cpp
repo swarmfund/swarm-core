@@ -247,18 +247,9 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
     uint64_t amountToIssue;
     auto saleType = sale->getSaleType();
-    switch (saleType){
-        case SaleType::FIXED_PRICE: {
-            auto baseAmount = sale->getBaseAmountForCurrentCap();
-            auto quoteAsset = sale->getDefaultQuoteAsset();
-            auto price = sale->getHardCap() / sale->getMaxAmountToBeSold();
-            amountToIssue = baseAmount / price;
-            break;
-        }
-        // TODO: must be refactored
-        default:
-            amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
-    }
+
+    // TODO: must be refactored
+    amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
 
     const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue,
                                                                        sale->getBaseBalanceID(), lm, 0);
@@ -345,10 +336,11 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
 
     auto hardCap = sale->getHardCap();
     auto hardCapInBase = sale->getMaxAmountToBeSold();
-    const auto price = hardCap / hardCapInBase;
+    uint64_t price;
+    bigDivide(price, hardCap, ONE, hardCapInBase, ROUND_UP);
     auto saleType = sale->getSaleType();
     if (saleType == SaleType::FIXED_PRICE)
-        quoteAmount = OfferManager::calculateFixedPriceQuoteAmount(baseAmount, price);
+        quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, price);
 
     const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
     if (feeResult.isOverflow)
@@ -466,11 +458,7 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
             auto& offerEntry = offerToUpdate->getOffer();
             offerEntry.price = quoteAsset.price;
 
-            int64_t standartPrice = ONE;
-            if (saleType == SaleType::FIXED_PRICE)
-                standartPrice = 1;
-
-            if (!bigDivide(offerEntry.baseAmount, offerEntry.quoteAmount, standartPrice, offerEntry.price, ROUND_DOWN))
+            if (!bigDivide(offerEntry.baseAmount, offerEntry.quoteAmount, ONE, offerEntry.price, ROUND_DOWN))
             {
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update price for offer: offerID: " << offerEntry.offerID;
                 throw runtime_error("Failed to update price for offer on crowdfund check state");
@@ -581,12 +569,7 @@ int64_t CheckSaleStateOpFrame::getSalePriceForCap(int64_t const cap,
                                                   const SaleFrame::pointer sale)
 {
     int64_t currentSalePrice = 0;
-    int64_t priceInDefaultQuote = ONE;
-    if (sale->getSaleType() == SaleType::FIXED_PRICE)
-    {
-        priceInDefaultQuote = 1;
-    }
-    if (!bigDivide(currentSalePrice, cap, priceInDefaultQuote, sale->getMaxAmountToBeSold(), ROUND_UP))
+    if (!bigDivide(currentSalePrice, cap, ONE, sale->getMaxAmountToBeSold(), ROUND_UP))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate current sale price in default quote. SaleID: " << sale->getID();
         throw runtime_error("Failed to calculate current sale price in default quote");

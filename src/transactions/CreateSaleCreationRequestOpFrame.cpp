@@ -247,21 +247,27 @@ bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app, c
 {
     if(!app.getLedgerManager().shouldUse(LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP))
         return true;
-
     uint64_t maxAmount;
+    SaleType saleType;
     switch (saleCreationRequest.ext.v()) {
         case LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP: {
             maxAmount = saleCreationRequest.ext.extV2().requiredBaseAssetForHardCap;
+            saleType = saleCreationRequest.ext.extV2().saleTypeExt.typedSale.saleType();
             break;
         }
         case LedgerVersion::STATABLE_SALES: {
             maxAmount = saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
+            saleType = saleCreationRequest.ext.extV3().saleTypeExt.typedSale.saleType();
             break;
         }
         default: {
             return true;
         }
     }
+
+    if (saleType != SaleType::FIXED_PRICE)
+        return true;
+
     auto hardCap = saleCreationRequest.hardCap;
     uint64_t price;
     bigDivide(price, hardCap, ONE, maxAmount, ROUND_UP);

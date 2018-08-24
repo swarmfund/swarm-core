@@ -21,6 +21,8 @@ protected:
     SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                           int32_t ledgerVersion) const override;
 
+    bool checkCustomerDetailsLength(Application& app, Database& db, LedgerDelta& delta);
+
 public:
     ReviewContractRequestOpFrame(Operation const& op, OperationResult& res,
                                  TransactionFrame& parentTx);

@@ -245,18 +245,15 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 
 bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest)
 {
-    if(!app.getLedgerManager().shouldUse(LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP))
+    if(!app.getLedgerManager().shouldUse(LedgerVersion::STATABLE_SALES))
         return true;
-    uint64_t maxAmount;
     SaleType saleType;
     switch (saleCreationRequest.ext.v()) {
         case LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP: {
-            maxAmount = saleCreationRequest.ext.extV2().requiredBaseAssetForHardCap;
             saleType = saleCreationRequest.ext.extV2().saleTypeExt.typedSale.saleType();
             break;
         }
         case LedgerVersion::STATABLE_SALES: {
-            maxAmount = saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
             saleType = saleCreationRequest.ext.extV3().saleTypeExt.typedSale.saleType();
             break;
         }
@@ -268,15 +265,10 @@ bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app, c
     if (saleType != SaleType::FIXED_PRICE)
         return true;
 
-    auto hardCap = saleCreationRequest.hardCap;
-    uint64_t price;
-    bigDivide(price, hardCap, ONE, maxAmount, ROUND_UP);
-    uint64_t sufficientAmount;
-    bigDivide(sufficientAmount, hardCap, ONE, price, ROUND_UP);
     Database& db = app.getDatabase();
     auto baseAsset = AssetHelper::Instance()->mustLoadAsset(saleCreationRequest.baseAsset, db);
 
-    return baseAsset->isAvailableForIssuanceAmountSufficient(sufficientAmount);
+    return baseAsset->getAvailableForIssuance() >= saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
 }
 
 bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)

@@ -75,14 +75,14 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         {
             throw runtime_error("details is invalid");
         }
-        if (!isFixedPriceSale(oe) && oe.currentCapInBase > oe.maxAmountToBeSold)
+        if (oe.currentCapInBase > oe.maxAmountToBeSold)
         {
             throw runtime_error("current cap in base exceeds maxAmountToBeSold");
         }
-        if (isFixedPriceSale(oe) && oe.currentCapInBase > oe.hardCap)
-        {
-            throw runtime_error("current cap exceeds hardCap");
-        }
+//        if (isFixedPriceSale(oe) && oe.currentCapInBase > oe.maxAmountToBeSold)
+//        {
+//            throw runtime_error("current cap exceeds hardCap");
+//        }
 
         if (oe.quoteAssets.empty())
         {
@@ -103,28 +103,7 @@ SaleFrame::ensureValid(SaleEntry const& oe)
 
 bool
 SaleFrame::isFixedPriceSale(SaleEntry const& oe){
-    SaleType saleType;
-    switch (oe.ext.v()) {
-        case LedgerVersion::EMPTY_VERSION: {
-            return false;
-        }
-        case LedgerVersion::TYPED_SALE: {
-            saleType = oe.ext.saleTypeExt().typedSale.saleType();
-            break;
-        }
-        case LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP: {
-            saleType = oe.ext.saleTypeExt().typedSale.saleType();
-            break;
-        }
-        case LedgerVersion::STATABLE_SALES: {
-            saleType = oe.ext.statableSaleExt().saleTypeExt.typedSale.saleType();
-            break;
-        }
-        default: {
-            throw std::runtime_error("Unexpected version of sale entry");
-        }
-    }
-    return saleType == SaleType::FIXED_PRICE;
+    return oe.ext.statableSaleExt().saleTypeExt.typedSale.saleType() == SaleType::FIXED_PRICE;
 }
 
 void

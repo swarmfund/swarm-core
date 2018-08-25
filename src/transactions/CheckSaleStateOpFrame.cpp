@@ -208,6 +208,7 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
 
     auto balanceBefore = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
 
+//    if (sale->getSaleType())
     issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
 
     innerResult().code(CheckSaleStateResultCode::SUCCESS);
@@ -246,10 +247,9 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     Database& db = app.getDatabase();
     const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
     uint64_t amountToIssue;
-    auto saleType = sale->getSaleType();
 
-    // TODO: must be refactored
-    amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
+    auto cap = std::min(sale->getMaxAmountToBeSold(), sale->getBaseAmountForCurrentCap());
+    amountToIssue = std::min(asset->getAvailableForIssuance(), cap);
 
     const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue,
                                                                        sale->getBaseBalanceID(), lm, 0);
@@ -331,16 +331,28 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     auto& db = app.getDatabase();
     auto baseBalance = BalanceHelper::Instance()->mustLoadBalance(sale->getBaseBalanceID(), db);
 
-    const auto baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
+    auto baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
     int64_t quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);
+    auto price = saleQuoteAsset.price;
 
-    auto hardCap = sale->getHardCap();
-    auto hardCapInBase = sale->getMaxAmountToBeSold();
-    uint64_t price;
-    bigDivide(price, hardCap, ONE, hardCapInBase, ROUND_UP);
     auto saleType = sale->getSaleType();
-    if (saleType == SaleType::FIXED_PRICE)
-        quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, price);
+    auto baseAsset = sale->getBaseAsset();
+
+    if (saleType == SaleType::FIXED_PRICE && baseAsset != saleQuoteAsset.quoteAsset) {
+        auto assetPairFrame = AssetPairHelper::Instance()->mustLoadAssetPair(baseAsset, saleQuoteAsset.quoteAsset, db);
+        uint64_t amount;
+        if (!assetPairFrame->convertAmount(baseAsset, baseAmount, ROUND_UP, amount))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while converting assets for sale";
+            throw runtime_error("Overflow while converting assets for sale");
+        }
+        int64_t pairPrice = assetPairFrame->getCurrentPrice();
+        if (!bigDivide(price, pairPrice, price, ONE, ROUND_UP)){
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating price for sale";
+            throw runtime_error("Overflow while calculating price for sale");
+        }
+        quoteAmount = OfferManager::calculateQuoteAmount(amount, price);
+    }
 
     const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
     if (feeResult.isOverflow)
@@ -351,12 +363,8 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
 
 
     ManageOfferOp manageOfferOp;
-    if (saleType == SaleType::FIXED_PRICE)
-        manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), saleQuoteAsset.quoteBalance,
-        false, baseAmount, price, feeResult.calculatedPercentFee, 0, sale->getID());
-    else
-        manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), saleQuoteAsset.quoteBalance,
-        false, baseAmount, saleQuoteAsset.price, feeResult.calculatedPercentFee, 0, sale->getID());
+    manageOfferOp = OfferManager::buildManageOfferOp(sale->getBaseBalanceID(), saleQuoteAsset.quoteBalance,
+    false, baseAmount, price, feeResult.calculatedPercentFee, 0, sale->getID());
 
     Operation op;
     op.sourceAccount.activate() = sale->getOwnerID();
@@ -456,13 +464,28 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
         for (auto& offerToUpdate : offersToUpdate)
         {
             auto& offerEntry = offerToUpdate->getOffer();
-            offerEntry.price = quoteAsset.price;
+            offerEntry.price = saleType == SaleType::FIXED_PRICE ? offerEntry.price : quoteAsset.price;
 
             if (!bigDivide(offerEntry.baseAmount, offerEntry.quoteAmount, ONE, offerEntry.price, ROUND_DOWN))
             {
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update price for offer: offerID: " << offerEntry.offerID;
-                throw runtime_error("Failed to update price for offer on crowdfund check state");
+                throw runtime_error("Failed to update price for offer on check state");
             }
+
+            uint64_t currentCap = 0;
+            if (!CreateSaleParticipationOpFrame::getSaleCurrentCap(sale, db, currentCap) || currentCap > INT64_MAX)
+            {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to get sale current cap! saleID: " << sale->getID();
+                throw runtime_error("Failed to get current sale cap");
+            }
+
+            if (saleType == SaleType::FIXED_PRICE &&
+                    !bigDivide(saleEntry.maxAmountToBeSold, currentCap, ONE, offerEntry.price, ROUND_UP))
+            {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update max amount to be sold! saleID: " << sale->getID();
+                throw runtime_error("Failed to update max amount to be sold!");
+            }
+            saleEntry.currentCapInBase = saleType == SaleType::FIXED_PRICE ? currentCap : saleEntry.currentCapInBase ;
 
             OfferHelper::Instance()->storeChange(delta, db, offerToUpdate->mEntry);
         }

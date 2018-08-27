@@ -96,6 +96,10 @@ public:
     void addInvoice(uint64_t const& requestID);
 
     bool addState(ContractState state);
+
+    longstring getCustomerDetails();
+
+    static void setCustomerDetails(ContractEntry& contract, longstring customerDetails);
 };
 
 }

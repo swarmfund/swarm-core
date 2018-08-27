@@ -456,7 +456,14 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
     }
 
     auto& saleEntry = sale->getSaleEntry();
-    const auto priceInDefaultQuoteAsset = getSaleCurrentPriceInDefaultQuote(sale, delta, db);
+    uint64_t priceInDefaultQuoteAsset = getSaleCurrentPriceInDefaultQuote(sale, delta, db);
+    if (saleType == SaleType::FIXED_PRICE &&
+           !bigDivide(priceInDefaultQuoteAsset, saleEntry.hardCap, ONE, saleEntry.maxAmountToBeSold, ROUND_UP))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update prices! saleID: " << sale->getID();
+            throw runtime_error("Failed to update prices");
+        }
+
     for (auto& quoteAsset : saleEntry.quoteAssets)
     {
         quoteAsset.price = getPriceInQuoteAsset(priceInDefaultQuoteAsset, sale, quoteAsset.quoteAsset, db);
@@ -464,7 +471,7 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
         for (auto& offerToUpdate : offersToUpdate)
         {
             auto& offerEntry = offerToUpdate->getOffer();
-            offerEntry.price = saleType == SaleType::FIXED_PRICE ? offerEntry.price : quoteAsset.price;
+            offerEntry.price = quoteAsset.price;
 
             if (!bigDivide(offerEntry.baseAmount, offerEntry.quoteAmount, ONE, offerEntry.price, ROUND_DOWN))
             {
@@ -473,6 +480,8 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
             }
 
             uint64_t currentCap = 0;
+            uint64_t capInBase = 0;
+
             if (!CreateSaleParticipationOpFrame::getSaleCurrentCap(sale, db, currentCap) || currentCap > INT64_MAX)
             {
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to get sale current cap! saleID: " << sale->getID();
@@ -485,7 +494,15 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
                 CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update max amount to be sold! saleID: " << sale->getID();
                 throw runtime_error("Failed to update max amount to be sold!");
             }
-            saleEntry.currentCapInBase = saleType == SaleType::FIXED_PRICE ? currentCap : saleEntry.currentCapInBase ;
+
+            if (saleType == SaleType::FIXED_PRICE &&
+                    !bigDivide(capInBase, currentCap, ONE, offerEntry.price, ROUND_DOWN))
+            {
+                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed failed to calculate current cap in base! saleID: " << sale->getID();
+                throw runtime_error("Failed failed to calculate current cap in base");
+            }
+
+            saleEntry.currentCapInBase = capInBase;
 
             OfferHelper::Instance()->storeChange(delta, db, offerToUpdate->mEntry);
         }

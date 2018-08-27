@@ -75,15 +75,10 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         {
             throw runtime_error("details is invalid");
         }
-        if (!isFixedPriceSale(oe) && oe.currentCapInBase > oe.maxAmountToBeSold)
+        if (oe.currentCapInBase > oe.maxAmountToBeSold)
         {
             throw runtime_error("current cap in base exceeds maxAmountToBeSold");
         }
-        if (isFixedPriceSale(oe) && oe.currentCapInBase > oe.hardCap)
-        {
-            throw runtime_error("current cap exceeds hardCap");
-        }
-
         if (oe.quoteAssets.empty())
         {
             throw runtime_error("Quote assets is empty");
@@ -99,11 +94,6 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state sale entry is invalid: " << xdr::xdr_to_string(oe);
         throw_with_nested(runtime_error("Sale entry is invalid"));
     }
-}
-
-bool
-SaleFrame::isFixedPriceSale(SaleEntry const& oe){
-    return oe.ext.statableSaleExt().saleTypeExt.typedSale.saleType() == SaleType::FIXED_PRICE;
 }
 
 void

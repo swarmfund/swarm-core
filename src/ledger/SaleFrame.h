@@ -31,8 +31,6 @@ class SaleFrame : public EntryFrame
 
     static const SaleType DEFAULT_SALE_TYPE = SaleType(0);
 
-    static bool isFixedPriceSale(SaleEntry const& oe);
-
   public:
     enum class State : int32_t
     {

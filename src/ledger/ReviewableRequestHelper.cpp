@@ -26,6 +26,11 @@ namespace stellar {
         db.getSession() << "ALTER TABLE reviewable_request ALTER COLUMN external_details SET DEFAULT ''";
     }
 
+    void ReviewableRequestHelper::setEmptyStringToExternalDetailsInsteadNull(Database &db)
+    {
+        db.getSession() << "UPDATE reviewable_request SET external_details = '' where external_details is null";
+    }
+
     void ReviewableRequestHelper::dropAll(Database &db) {
         db.getSession() << "DROP TABLE IF EXISTS reviewable_request CASCADE;";
         db.getSession() << "CREATE TABLE reviewable_request"

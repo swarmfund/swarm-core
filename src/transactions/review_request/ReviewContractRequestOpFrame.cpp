@@ -45,9 +45,6 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
 
     Database& db = ledgerManager.getDatabase();
 
-    if (!checkCustomerDetailsLength(app, db, delta))
-        return false;
-
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
     auto contractFrame = make_shared<ContractFrame>();
@@ -65,6 +62,9 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
 
     if (ledgerManager.shouldUse(LedgerVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT))
     {
+        if (!checkCustomerDetailsLength(app, db, delta))
+            return false;
+
         contractEntry.ext.v(LedgerVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT);
         contractEntry.ext.customerDetails() = mReviewRequest.requestDetails.contract().details;
     }

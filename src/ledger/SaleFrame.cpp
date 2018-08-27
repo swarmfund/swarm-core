@@ -75,14 +75,14 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         {
             throw runtime_error("details is invalid");
         }
-        if (oe.currentCapInBase > oe.maxAmountToBeSold)
+        if (!isFixedPriceSale(oe) && oe.currentCapInBase > oe.maxAmountToBeSold)
         {
             throw runtime_error("current cap in base exceeds maxAmountToBeSold");
         }
-//        if (isFixedPriceSale(oe) && oe.currentCapInBase > oe.maxAmountToBeSold)
-//        {
-//            throw runtime_error("current cap exceeds hardCap");
-//        }
+        if (isFixedPriceSale(oe) && oe.currentCapInBase > oe.hardCap)
+        {
+            throw runtime_error("current cap exceeds hardCap");
+        }
 
         if (oe.quoteAssets.empty())
         {

@@ -291,5 +291,17 @@ TEST_CASE("Contract", "[tx][contract]")
                                                                                  ReviewRequestOpAction::PERMANENT_REJECT,
                                                                                  "Some reason");
         }
+
+        SECTION("Success remove contract request")
+        {
+            auto removeContractRequestOp = manageContractRequestTestHelper.createRemoveContractRequest(requestID);
+            manageContractRequestTestHelper.applyManageContractRequest(recipient, removeContractRequestOp);
+
+            SECTION("Already removed")
+            {
+                manageContractRequestTestHelper.applyManageContractRequest(recipient, removeContractRequestOp,
+                                                                           ManageContractRequestResultCode::NOT_FOUND);
+            }
+        }
     }
 }

@@ -10,7 +10,7 @@ namespace stellar
 {
 const char* contractSelector = "SELECT id, contractor, customer, escrow,"
                                "       start_time, end_time, initial_details, invoices,"
-                               "       state, lastmodified, version "
+                               "       state, lastmodified, version, customer_details "
                                "FROM   contracts";
 
 void ContractHelper::dropAll(Database &db)
@@ -30,6 +30,11 @@ void ContractHelper::dropAll(Database &db)
                        "lastmodified    INT         NOT NULL,"
                        "version         INT         NOT NULL DEFAULT 0"
                        ");";
+}
+
+void ContractHelper::addCustomerDetails(Database &db)
+{
+    db.getSession() << "ALTER TABLE contracts ADD COLUMN customer_details TEXT NOT NULL DEFAULT '';";
 }
 
 void
@@ -52,6 +57,7 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     string strInvoices = bn::encode_b64(invoicesBytes);
     auto state = static_cast<int32_t>(contractEntry.state);
     auto version = static_cast<int32_t>(contractEntry.ext.v());
+    string customerDetails = contractFrame->getCustomerDetails();
 
     string sql;
 
@@ -59,9 +65,9 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     {
         sql = "INSERT INTO contracts (id, contractor, customer, escrow,"
               "                       start_time, end_time, initial_details, invoices, "
-              "                       state, lastmodified, version) "
+              "                       state, lastmodified, version, customer_details) "
               "VALUES (:id, :contractor, :customer, :escrow, :s_t, :e_t,"
-              "        :init_det, :invoices, :state, :lm, :v)";
+              "        :init_det, :invoices, :state, :lm, :v, :c_d)";
     }
     else
     {
@@ -69,7 +75,7 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
               "SET    contractor = :contractor, customer = :customer, escrow = :escrow,"
               "       start_time = :s_t, end_time = :e_t,"
               "       initial_details = :init_det, invoices = :invoices,"
-              "       state = :state, lastmodified = :lm, version = :v "
+              "       state = :state, lastmodified = :lm, version = :v, customer_details = :c_d "
               "WHERE  id = :id";
     }
 
@@ -87,6 +93,7 @@ ContractHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert,
     st.exchange(use(state, "state"));
     st.exchange(use(contractFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     st.exchange(use(version, "v"));
+    st.exchange(use(customerDetails, "c_d"));
     st.define_and_bind();
 
     auto timer = insert ? db.getInsertTimer("contracts")
@@ -176,7 +183,7 @@ ContractHelper::load(StatementContext& prep,
                      function<void(LedgerEntry const&)> processor)
 {
     string contractorID, customerID, escrowID;
-    string details, invoices;
+    string details, invoices, customerDetails;
 
     LedgerEntry le;
     le.data.type(LedgerEntryType::CONTRACT);
@@ -195,6 +202,7 @@ ContractHelper::load(StatementContext& prep,
     st.exchange(into(oe.state));
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.exchange(into(version));
+    st.exchange(into(customerDetails));
     st.define_and_bind();
     st.execute(true);
 
@@ -213,6 +221,7 @@ ContractHelper::load(StatementContext& prep,
         unmarshalerInv.done();
 
         oe.ext.v(static_cast<LedgerVersion>(version));
+        ContractFrame::setCustomerDetails(oe, customerDetails);
 
         processor(le);
         st.fetch();

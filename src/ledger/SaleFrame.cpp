@@ -418,7 +418,7 @@ void SaleFrame::setSaleType(SaleEntry& sale, const SaleType saleType)
         return;
     default:
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected ledger version of sale. version: " << xdr::xdr_to_string(version);
-        throw runtime_error("Unexpected ledger verison of sale");
+        throw runtime_error("Unexpected ledger version of sale");
 
     }
 }
@@ -433,7 +433,7 @@ void SaleFrame::setSaleState(SaleEntry & sale, SaleState saleState)
         if (saleState == SaleState::NONE) {
             return;
         }
-        throw std::runtime_error("Unexpected action: not able to set state for sale of unepxected version");
+        throw std::runtime_error("Unexpected action: not able to set state for sale of unexpected version");
     }
 }
 

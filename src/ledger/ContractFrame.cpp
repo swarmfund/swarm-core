@@ -48,4 +48,31 @@ namespace stellar
                (mContract.state &
                 static_cast<int32_t>(ContractState::CONTRACTOR_CONFIRMED));
     }
+
+    longstring ContractFrame::getCustomerDetails()
+    {
+        switch (mContract.ext.v())
+        {
+            case LedgerVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT:
+                return mContract.ext.customerDetails();
+            case LedgerVersion::EMPTY_VERSION:
+                return "";
+            default:
+                throw std::runtime_error("Unexpected case in contract ext.");
+        }
+    }
+
+    void ContractFrame::setCustomerDetails(ContractEntry& contract, longstring customerDetails)
+    {
+        switch (contract.ext.v()) {
+            case LedgerVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT:
+                contract.ext.customerDetails() = customerDetails;
+                return;
+            default:
+                if (customerDetails.empty()) {
+                    return;
+                }
+                throw std::runtime_error("Unexpected action: not able to set customer details for contract of unexpected version");
+        }
+    }
 }

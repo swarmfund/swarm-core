@@ -208,7 +208,6 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
 
     auto balanceBefore = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
 
-//    if (sale->getSaleType())
     issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
 
     innerResult().code(CheckSaleStateResultCode::SUCCESS);

@@ -67,8 +67,11 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
 
     // always unlock hard cap
-    auto hardCapBaseAsset = sale->getSaleEntry().maxAmountToBeSold;
-//    REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + hardCapBaseAsset);
+    if (sale->getSaleType() != SaleType::FIXED_PRICE)
+    {
+        auto hardCapBaseAsset = sale->getSaleEntry().maxAmountToBeSold;
+        REQUIRE(baseAssetBeforeTx.pendingIssuance == baseAssetAfterTx->getPendingIssuance() + hardCapBaseAsset);
+    }
 
     // check state of the asset
     auto issuedOnTheSale = baseAssetAfterTx->getIssued()- baseAssetBeforeTx.issued;

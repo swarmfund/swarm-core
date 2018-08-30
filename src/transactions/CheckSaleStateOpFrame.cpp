@@ -261,21 +261,7 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     }
     if (sale->getSaleType() == SaleType::FIXED_PRICE)
     {
-        uint64_t priceInDefaultQuote;
-        if (!bigDivide(priceInDefaultQuote, sale->getHardCap(), sale->getMaxAmountToBeSold(), ONE, ROUND_UP))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating price in default quote asset "
-                                                   << "saleID: " << sale->getID();
-            throw runtime_error("Overflow while calculating price in default quote asset");
-        }
-        uint64_t percentage;
-        if (!bigDivide(percentage, currentCap, ONE, sale->getHardCap(), ROUND_UP))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating amount to issue! "
-                                                   << "saleID: " << sale->getID();
-            throw runtime_error("Overflow while calculating amount to issue");
-        }
-        if (!bigDivide(amountToIssue, sale->getMaxAmountToBeSold(), percentage, ONE, ROUND_UP))
+        if (!bigDivide(amountToIssue, currentCap, sale->getMaxAmountToBeSold(), sale->getHardCap(), ROUND_UP))
         {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating amount to issue! "
                                                    << "saleID: " << sale->getID();

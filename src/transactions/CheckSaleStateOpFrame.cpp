@@ -253,22 +253,6 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     //TODO Must be refactored
     uint64_t amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
 
-    uint64_t currentCap;
-    if (!CreateSaleParticipationOpFrame::getSaleCurrentCap(sale, db, currentCap))
-    {
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate current cap for sale: " << sale->getID();
-        throw runtime_error("Failed to calculate current cap for sale");
-    }
-    if (sale->getSaleType() == SaleType::FIXED_PRICE)
-    {
-        if (!bigDivide(amountToIssue, currentCap, sale->getMaxAmountToBeSold(), sale->getHardCap(), ROUND_UP))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating amount to issue! "
-                                                   << "saleID: " << sale->getID();
-            throw runtime_error("Overflow while calculating amount to issue");
-        }
-
-    }
     const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue,
                                                                        sale->getBaseBalanceID(), lm, 0);
     Operation op;
@@ -354,42 +338,6 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     auto saleType = sale->getSaleType();
     auto baseAsset = sale->getBaseAsset();
     auto price = saleQuoteAsset.price;
-
-    if (saleType == SaleType::FIXED_PRICE) {
-        baseAmount = sale->getSaleEntry().currentCapInBase;
-        uint64_t priceInDefaultQuote;
-        if (!bigDivide(priceInDefaultQuote, sale->getHardCap(), ONE, sale->getMaxAmountToBeSold(), ROUND_UP))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating price in default quote asset"
-                                                   << "saleID: " << sale->getID();
-            throw runtime_error("Overflow while calculating price in default quote asset");
-        }
-
-        uint64_t amountInDefaultQuote;
-        if (!bigDivide(amountInDefaultQuote, baseAmount, ONE, priceInDefaultQuote, ROUND_UP))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating amount for sale! saleID:"
-            << sale->getID();
-            throw runtime_error("Overflow while calculating amount for sale");
-        }
-
-        uint64_t amount;
-        auto assetPairFrame = AssetPairHelper::Instance()->mustLoadAssetPair(baseAsset, saleQuoteAsset.quoteAsset, db);
-        if (!assetPairFrame->convertAmount(saleQuoteAsset.quoteAsset, amountInDefaultQuote, ROUND_UP, amount))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while converting assets for sale! saleID: "
-            << sale->getID();
-            throw runtime_error("Overflow while converting assets for sale");
-        }
-        quoteAmount = amount;
-
-        if (!bigDivide(price, amount, ONE, baseAmount, ROUND_UP))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating prices for sale! saleID: "
-            << sale->getID();
-            throw runtime_error("Overflow while calculating prices for sale");
-        }
-    }
 
     const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
     if (feeResult.isOverflow)
@@ -494,12 +442,6 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
 
     auto& saleEntry = sale->getSaleEntry();
     uint64_t priceInDefaultQuoteAsset = getSaleCurrentPriceInDefaultQuote(sale, delta, db);
-    if (saleType == SaleType::FIXED_PRICE &&
-           !bigDivide(priceInDefaultQuoteAsset, saleEntry.hardCap, ONE, saleEntry.maxAmountToBeSold, ROUND_UP))
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update prices! saleID: " << sale->getID();
-            throw runtime_error("Failed to update prices");
-        }
 
     for (auto& quoteAsset : saleEntry.quoteAssets)
     {
@@ -526,6 +468,19 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
 int64_t CheckSaleStateOpFrame::getSaleCurrentPriceInDefaultQuote(
     const SaleFrame::pointer sale, LedgerDelta& delta, Database& db)
 {
+
+    if (sale->getSaleType() == SaleType::FIXED_PRICE)
+    {
+        uint64_t priceInDefaultQuoteAsset = 0;
+        if (!bigDivide(priceInDefaultQuoteAsset, sale->getHardCap(), ONE, sale->getMaxAmountToBeSold(), ROUND_UP))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update prices! saleID: " << sale->getID();
+            throw runtime_error("Failed to update prices");
+        }
+
+        return priceInDefaultQuoteAsset;
+    }
+
     uint64_t currentCap = 0;
     if (!CreateSaleParticipationOpFrame::getSaleCurrentCap(sale, db, currentCap) || currentCap > INT64_MAX)
     {

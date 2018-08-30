@@ -33,7 +33,6 @@ class CreateSaleCreationRequestOpFrame : public OperationFrame
     // isBaseAssetHasSufficientIssuance - returns true, if base asset amount required for hard cap and soft cap does not exceed available amount to be issued.
     // sets corresponding result code
     bool isBaseAssetHasSufficientIssuance(AssetFrame::pointer assetFrame);
-
     static bool isPriceValid(SaleCreationRequestQuoteAsset const& quoteAsset,
                              SaleCreationRequest const& saleCreationRequest);
 public:
@@ -44,6 +43,8 @@ public:
                  LedgerManager& ledgerManager) override;
 
     bool doCheckValid(Application& app) override;
+
+    static bool ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest);
 
     static CreateSaleCreationRequestResultCode doCheckValid(Application& app,
                                                             SaleCreationRequest const& saleCreationRequest);

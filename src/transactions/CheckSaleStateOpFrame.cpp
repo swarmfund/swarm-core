@@ -253,6 +253,36 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     //TODO Must be refactored
     uint64_t amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
 
+    uint64_t currentCap;
+    if (!CreateSaleParticipationOpFrame::getSaleCurrentCap(sale, db, currentCap))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to calculate current cap for sale: " << sale->getID();
+        throw runtime_error("Failed to calculate current cap for sale");
+    }
+    if (sale->getSaleType() == SaleType::FIXED_PRICE)
+    {
+        uint64_t priceInDefaultQuote;
+        if (!bigDivide(priceInDefaultQuote, sale->getHardCap(), sale->getMaxAmountToBeSold(), ONE, ROUND_UP))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating price in default quote asset "
+                                                   << "saleID: " << sale->getID();
+            throw runtime_error("Overflow while calculating price in default quote asset");
+        }
+        uint64_t percentage;
+        if (!bigDivide(percentage, currentCap, ONE, sale->getHardCap(), ROUND_UP))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating amount to issue! "
+                                                   << "saleID: " << sale->getID();
+            throw runtime_error("Overflow while calculating amount to issue");
+        }
+        if (!bigDivide(amountToIssue, sale->getMaxAmountToBeSold(), percentage, ONE, ROUND_UP))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating amount to issue! "
+                                                   << "saleID: " << sale->getID();
+            throw runtime_error("Overflow while calculating amount to issue");
+        }
+
+    }
     const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue,
                                                                        sale->getBaseBalanceID(), lm, 0);
     Operation op;

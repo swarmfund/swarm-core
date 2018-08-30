@@ -355,7 +355,7 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     auto baseAsset = sale->getBaseAsset();
     auto price = saleQuoteAsset.price;
 
-    if (saleType == SaleType::FIXED_PRICE && baseAsset != saleQuoteAsset.quoteAsset) {
+    if (saleType == SaleType::FIXED_PRICE) {
         uint64_t priceInDefaultQuote;
         if (!bigDivide(priceInDefaultQuote, sale->getHardCap(), sale->getMaxAmountToBeSold(), ONE, ROUND_UP))
         {
@@ -515,34 +515,10 @@ void CheckSaleStateOpFrame::updateOfferPrices(SaleFrame::pointer sale,
                 throw runtime_error("Failed to update price for offer on check state");
             }
 
-            uint64_t currentCap = 0;
-            uint64_t capInBase = 0;
-
-            if (!CreateSaleParticipationOpFrame::getSaleCurrentCap(sale, db, currentCap) || currentCap > INT64_MAX)
-            {
-                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to get sale current cap! saleID: " << sale->getID();
-                throw runtime_error("Failed to get current sale cap");
-            }
-
-            if (saleType == SaleType::FIXED_PRICE &&
-                    !bigDivide(saleEntry.maxAmountToBeSold, currentCap, ONE, offerEntry.price, ROUND_UP))
-            {
-                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to update max amount to be sold! saleID: " << sale->getID();
-                throw runtime_error("Failed to update max amount to be sold!");
-            }
-
-            if (saleType == SaleType::FIXED_PRICE &&
-                    !bigDivide(capInBase, currentCap, ONE, offerEntry.price, ROUND_DOWN))
-            {
-                CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed failed to calculate current cap in base! saleID: " << sale->getID();
-                throw runtime_error("Failed failed to calculate current cap in base");
-            }
-
-            saleEntry.currentCapInBase = capInBase;
-
-            OfferHelper::Instance()->storeChange(delta, db, offerToUpdate->mEntry);
+                        OfferHelper::Instance()->storeChange(delta, db, offerToUpdate->mEntry);
         }
     }
+
     SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);
 }
 

@@ -22,6 +22,7 @@ class CheckSaleStateOpFrame : public OperationFrame
     {
         NOTHING,
         DESTROY,
+        RESTRICT
     };
 
     static SaleState getSaleState(SaleFrame::pointer sale, Database& db, LedgerManager& lm);

@@ -93,8 +93,13 @@ void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const
         throw runtime_error("Unexpected state; issuance request was not fulfilled on check sale state");
     }
 
-    if (action == DESTROY || (!lm.shouldUse(LedgerVersion::ALLOW_TO_ISSUE_AFTER_SALE))) {
+    if (action == RESTRICT || (!lm.shouldUse(LedgerVersion::ALLOW_TO_ISSUE_AFTER_SALE)))
+    {
         restrictIssuanceAfterSale(sale, delta, db, lm);
+    }
+    if (action == DESTROY)
+    {
+        updateAvailableForIssuance(sale, delta, db);
     }
 }
 
@@ -245,10 +250,8 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
 {
     Database& db = app.getDatabase();
     const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
-    uint64_t amountToIssue;
-
-    auto cap = std::min(sale->getMaxAmountToBeSold(), sale->getBaseAmountForCurrentCap());
-    amountToIssue = std::min(asset->getAvailableForIssuance(), cap);
+    //TODO Must be refactored
+    uint64_t amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
 
     const auto issuanceRequestOp = CreateIssuanceRequestOpFrame::build(sale->getBaseAsset(), amountToIssue,
                                                                        sale->getBaseBalanceID(), lm, 0);
@@ -330,27 +333,45 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     auto& db = app.getDatabase();
     auto baseBalance = BalanceHelper::Instance()->mustLoadBalance(sale->getBaseBalanceID(), db);
 
-    auto baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
+    uint64_t baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
     int64_t quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);
-    auto price = saleQuoteAsset.price;
-
     auto saleType = sale->getSaleType();
     auto baseAsset = sale->getBaseAsset();
+    auto price = saleQuoteAsset.price;
 
     if (saleType == SaleType::FIXED_PRICE && baseAsset != saleQuoteAsset.quoteAsset) {
-        auto assetPairFrame = AssetPairHelper::Instance()->mustLoadAssetPair(baseAsset, saleQuoteAsset.quoteAsset, db);
-        uint64_t amount;
-        if (!assetPairFrame->convertAmount(baseAsset, baseAmount, ROUND_UP, amount))
+        uint64_t priceInDefaultQuote;
+        if (!bigDivide(priceInDefaultQuote, sale->getHardCap(), sale->getMaxAmountToBeSold(), ONE, ROUND_UP))
         {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while converting assets for sale";
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating price in default quote asset"
+                                                   << "saleID: " << sale->getID();
+            throw runtime_error("Overflow while calculating price in default quote asset");
+        }
+
+        uint64_t amountInDefaultQuote;
+        if (!bigDivide(amountInDefaultQuote, baseAmount, ONE, priceInDefaultQuote, ROUND_UP))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating amount for sale! saleID:"
+            << sale->getID();
+            throw runtime_error("Overflow while calculating amount for sale");
+        }
+
+        uint64_t amount;
+        auto assetPairFrame = AssetPairHelper::Instance()->mustLoadAssetPair(baseAsset, saleQuoteAsset.quoteAsset, db);
+        if (!assetPairFrame->convertAmount(saleQuoteAsset.quoteAsset, amountInDefaultQuote, ROUND_UP, amount))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while converting assets for sale! saleID: "
+            << sale->getID();
             throw runtime_error("Overflow while converting assets for sale");
         }
-        int64_t pairPrice = assetPairFrame->getCurrentPrice();
-        if (!bigDivide(price, pairPrice, price, ONE, ROUND_UP)){
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating price for sale";
-            throw runtime_error("Overflow while calculating price for sale");
+        quoteAmount = amount;
+
+        if (!bigDivide(price, amount, ONE, baseAmount, ROUND_UP))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating prices for sale! saleID: "
+            << sale->getID();
+            throw runtime_error("Overflow while calculating prices for sale");
         }
-        quoteAmount = OfferManager::calculateQuoteAmount(amount, price);
     }
 
     const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);

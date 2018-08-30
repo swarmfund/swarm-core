@@ -61,7 +61,7 @@ TEST_CASE("Crowdfunding vs fixed price", "[tx][fixedprice][crowdfund]"){
     createAccountTestHelper.applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
     const AssetCode baseAsset = "BTC";
     const uint64_t maxIssuanceAmount = 1000 * ONE;
-    const uint64_t preIssuedAmount = maxIssuanceAmount/2;
+    const uint64_t preIssuedAmount = maxIssuanceAmount;
     const uint64_t hardCapInBase = 100 * ONE;
     assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}",
                                                                       maxIssuanceAmount,0, preIssuedAmount);
@@ -139,6 +139,54 @@ TEST_CASE("Crowdfunding vs fixed price", "[tx][fixedprice][crowdfund]"){
 
         REQUIRE(BalanceHelper::Instance()->loadBalance(balanceID, db, nullptr)->getAmount() == 100 * ONE);
     }
+    SECTION("Hard Path")
+    {
+        const AssetCode QuoteAsset = "ETH";
+        assetCreationRequest = assetTestHelper.createAssetCreationRequest(QuoteAsset, root.key.getPublicKey(), "{}", INT64_MAX,
+                                                                          uint32_t(AssetPolicy::BASE_ASSET));
+        assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
+
+        ManageAssetPairTestHelper assetPairTestHelper(testManager);
+        assetPairTestHelper.createAssetPair(root, QuoteAsset, defaultQuoteAsset, 10*ONE);
+
+        const uint64_t hardCap = 10000 * ONE;
+        const uint64_t softCap = ONE;
+        const uint64_t priceInDefaultQuoteAsset = 10 * ONE;
+        const auto currentTime = testManager->getLedgerManager().getCloseTime();
+        const auto endTime = currentTime + 1000;
+        const uint64_t maxIssuanceAmount = 1000 * ONE;
+        uint64_t maxAmountToBeSold = maxIssuanceAmount;
+
+        const auto fixedpriceReq = SaleRequestHelper::createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
+                                                                        endTime, ONE, hardCap, "{}",
+                                                                        { saleRequestHelper.createSaleQuoteAsset(QuoteAsset, ONE),
+                                                                          saleRequestHelper.createSaleQuoteAsset(defaultQuoteAsset, ONE) },
+                                                                        &fixedPrice, &maxAmountToBeSold, SaleState::PROMOTION);
+
+        saleRequestHelper.createApprovedSale(root, syndicate, fixedpriceReq);
+
+
+        auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
+        REQUIRE(sales.size() == 1);
+        const auto fixedPriceID = sales[0]->getID();
+
+        manageSaleHelper.applyManageSaleTx(root, fixedPriceID, saleStateData);
+        auto balanceCreationResult = balanceTestHelper.applyManageBalanceTx(account, accountID, QuoteAsset);
+        auto quoteBalance = BalanceHelper::Instance()->loadBalance(accountID, QuoteAsset, db, nullptr);
+
+        issuanceHelper.authorizePreIssuedAmount(root, root.key, QuoteAsset, hardCap, root);
+        issuanceHelper.applyCreateIssuanceRequest(root, QuoteAsset, hardCap, quoteBalance->getBalanceID(),
+                                                  SecretKey::random().getStrKeyPublic(), &allTasks);
+
+        auto manageOfferOp = OfferManager::buildManageOfferOp(balanceID, quoteBalance->getBalanceID(),
+                                                              true, hardCap/(20*ONE), ONE, 0, 0, fixedPriceID);
+        auto result = offerTestHelper.applyManageOffer(account, manageOfferOp);
+
+        testManager->advanceToTime(testManager->getLedgerManager().getCloseTime() + (endTime - currentTime));
+
+        checkSaleStateHelper.applyCheckSaleStateTx(root, fixedPriceID);
+        REQUIRE(BalanceHelper::Instance()->loadBalance(balanceID, db, nullptr)->getAmount() == maxAmountToBeSold/2);
+    }
 }
 
 TEST_CASE("Fixed Price Sale", "[tx][fixedprice]") {
@@ -193,9 +241,6 @@ TEST_CASE("Fixed Price Sale", "[tx][fixedprice]") {
     auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
     REQUIRE(sales.size() == 1);
     const auto saleID = sales[0]->getID();
-    auto saleTestHelper = ManageSaleTestHelper(testManager);
-    auto saleStateData = saleTestHelper.setSaleState(SaleState::NONE);
-    saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
 
     SECTION("Happy path")
     {

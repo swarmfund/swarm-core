@@ -356,8 +356,9 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     auto price = saleQuoteAsset.price;
 
     if (saleType == SaleType::FIXED_PRICE) {
+        baseAmount = sale->getSaleEntry().currentCapInBase;
         uint64_t priceInDefaultQuote;
-        if (!bigDivide(priceInDefaultQuote, sale->getHardCap(), sale->getMaxAmountToBeSold(), ONE, ROUND_UP))
+        if (!bigDivide(priceInDefaultQuote, sale->getHardCap(), ONE, sale->getMaxAmountToBeSold(), ROUND_UP))
         {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Overflow while calculating price in default quote asset"
                                                    << "saleID: " << sale->getID();

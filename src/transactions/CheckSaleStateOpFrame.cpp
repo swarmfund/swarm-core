@@ -329,7 +329,13 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
 
     const auto baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
     const auto quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);
-    const auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
+    auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
+
+    if (lm.shouldUse(LedgerVersion::ADD_CAPITAL_DEPLOYMENT_FEE_TYPE))
+    {
+        feeResult = FeeManager::calculateCapitalDeploymentFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
+    }
+
     if (feeResult.isOverflow)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: overflow on sale fees calculation: " << xdr::xdr_to_string(sale->getSaleEntry());
@@ -348,6 +354,7 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     opRes.tr().type(OperationType::MANAGE_OFFER);
     // need to directly create CreateOfferOpFrame to bypass validation of CreateSaleParticipationOpFrame
     CreateOfferOpFrame manageOfferOpFrame(op, opRes, mParentTx);
+    manageOfferOpFrame.isCapitalDeployment = true;
     manageOfferOpFrame.setSourceAccountPtr(saleOwnerAccount);
     if (!manageOfferOpFrame.doCheckValid(app) || !manageOfferOpFrame.doApply(app, delta, lm))
     {

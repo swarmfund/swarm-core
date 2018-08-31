@@ -221,6 +221,18 @@ namespace stellar {
         return true;
     }
 
+    bool SetFeesOpFrame::isCapitalDeploymentFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
+        assert(fee.feeType == FeeType::CAPITAL_DEPLOYMENT);
+
+        if (!mustValidFeeAmounts(fee, metrics))
+            return false;
+
+        if (!mustEmptyFixed(fee, metrics))
+            return false;
+
+        return mustDefaultSubtype(fee, metrics);
+    }
+
     bool SetFeesOpFrame::isEmissionFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
         assert(fee.feeType == FeeType::ISSUANCE_FEE);
 
@@ -339,6 +351,9 @@ namespace stellar {
                 break;
             case FeeType::INVEST_FEE:
                 isValidFee = isInvestFeeValid(*mSetFees.fee, app.getMetrics());
+                break;
+            case FeeType::CAPITAL_DEPLOYMENT:
+                isValidFee = isCapitalDeploymentFeeValid(*mSetFees.fee, app.getMetrics());
                 break;
             default:
                 innerResult().code(SetFeesResultCode::INVALID_FEE_TYPE);

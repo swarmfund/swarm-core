@@ -333,6 +333,8 @@ TEST_CASE("Sale", "[tx][sale]")
         LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
         EntryHelperProvider::storeAddEntry(delta, db, sellerFeeFrame->mEntry);
         EntryHelperProvider::storeAddEntry(delta, db, participantsFeeFrame->mEntry);
+        auto fee = setFeesTestHelper.createFeeEntry(FeeType::CAPITAL_DEPLOYMENT, quoteAsset, 0, 1 * ONE);
+        setFeesTestHelper.applySetFeesTx(root, &fee, false);
 
         uint64_t quotePreIssued(0);
         participantsFeeFrame->calculatePercentFee(hardCap, quotePreIssued, ROUND_UP);

@@ -33,6 +33,8 @@ protected:
         Database& db, LedgerDelta& delta);
 
 public:
+    bool isCapitalDeployment = false;
+
     CreateOfferOpFrame(Operation const& op, OperationResult& res,
                        TransactionFrame& parentTx);
 

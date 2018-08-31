@@ -169,7 +169,13 @@ CreateOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     auto& offer = offerFrame->getOffer();
     offer.createdAt = ledgerManager.getCloseTime();
-    const auto feeResult = FeeManager::calculateOfferFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), offer.quoteAmount, db);
+    auto feeResult = FeeManager::calculateOfferFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), offer.quoteAmount, db);
+
+    if (ledgerManager.shouldUse(LedgerVersion::ADD_CAPITAL_DEPLOYMENT_FEE_TYPE) && isCapitalDeployment)
+    {
+        feeResult = FeeManager::calculateCapitalDeploymentFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), offer.quoteAmount, db);
+    }
+
     if (feeResult.isOverflow)
     {
         innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);

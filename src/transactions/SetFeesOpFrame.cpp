@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/xdrpp/xdrpp/printer.h>
 #include "transactions/SetFeesOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
@@ -222,7 +223,12 @@ namespace stellar {
     }
 
     bool SetFeesOpFrame::isCapitalDeploymentFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
-        assert(fee.feeType == FeeType::CAPITAL_DEPLOYMENT);
+        if (fee.feeType != FeeType::CAPITAL_DEPLOYMENT)
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected fee type: expected capital deployment fee type, "
+                                                   << "got: " + xdr::xdr_to_string(fee.feeType);
+            throw runtime_error("Unexpected fee type: expected capital deployment fee type");
+        }
 
         if (!mustValidFeeAmounts(fee, metrics))
             return false;

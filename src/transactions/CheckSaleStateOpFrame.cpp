@@ -75,7 +75,7 @@ const
 }
 
 void CheckSaleStateOpFrame::issueBaseTokens(const SaleFrame::pointer sale, const AccountFrame::pointer saleOwnerAccount, Application& app,
-    LedgerDelta& delta, Database& db, LedgerManager& lm, TokenAction action = NOTHING) const
+    LedgerDelta& delta, Database& db, LedgerManager& lm, TokenAction action) const
 {
     AccountManager::unlockPendingIssuanceForSale(sale, delta, db, lm);
 
@@ -326,6 +326,19 @@ void CheckSaleStateOpFrame::updateAvailableForIssuance(const SaleFrame::pointer 
     EntryHelperProvider::storeChangeEntry(delta, db, baseAsset->mEntry);
 }
 
+FeeManager::FeeResult
+CheckSaleStateOpFrame::obtainCalculatedFeeForAccount(const AccountFrame::pointer saleOwnerAccount,
+                                                     AssetCode const& asset, int64_t amount,
+                                                     LedgerManager& lm, Database& db) const
+{
+    if (lm.shouldUse(LedgerVersion::ADD_CAPITAL_DEPLOYMENT_FEE_TYPE))
+    {
+        return FeeManager::calculateCapitalDeploymentFeeForAccount(saleOwnerAccount, asset, amount, db);
+    }
+
+    return FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, asset, amount, db);
+}
+
 ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     const AccountFrame::pointer saleOwnerAccount, SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, Application& app,
     LedgerManager& lm, LedgerDelta& delta) const
@@ -339,12 +352,7 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     auto baseAsset = sale->getBaseAsset();
     auto price = saleQuoteAsset.price;
 
-    auto feeResult = FeeManager::calculateOfferFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
-
-    if (lm.shouldUse(LedgerVersion::ADD_CAPITAL_DEPLOYMENT_FEE_TYPE))
-    {
-        feeResult = FeeManager::calculateCapitalDeploymentFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, db);
-    }
+    auto const feeResult = obtainCalculatedFeeForAccount(saleOwnerAccount, saleQuoteAsset.quoteAsset, quoteAmount, lm, db);
 
     if (feeResult.isOverflow)
     {

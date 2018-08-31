@@ -4,6 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/FeesManager.h>
 #include "ledger/OfferFrame.h"
 #include "ledger/BalanceFrame.h"
 #include "ledger/AssetPairFrame.h"
@@ -25,6 +26,8 @@ class CreateOfferOpFrame : public ManageOfferOpFrame
     bool lockSellingAmount(OfferEntry const& offer);
 
     bool isAllowedToReceive(BalanceID receivingBalance, Database &db);
+
+    FeeManager::FeeResult obtainCalculatedFeeForAccount(int64_t amount, LedgerManager& lm, Database& db) const;
 
 protected:
 

@@ -294,6 +294,27 @@ TEST_CASE("Sale", "[tx][sale]")
         }
     }
 
+    SECTION("Simple happy path for test fee")
+    {
+        auto fee = setFeesTestHelper.createFeeEntry(FeeType::OFFER_FEE, quoteAsset, 0, 1 * ONE);
+        setFeesTestHelper.applySetFeesTx(root, &fee, false);
+        fee = setFeesTestHelper.createFeeEntry(FeeType::CAPITAL_DEPLOYMENT, quoteAsset, 0, 1 * ONE);
+        setFeesTestHelper.applySetFeesTx(root, &fee, false);
+
+        saleRequest.hardCap = 200 * ONE;
+        saleRequest.softCap = 100 * ONE;
+        uint64_t feeToPay(2 * ONE);
+        auto result = saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
+        auto saleID = result.success().ext.saleID();
+        participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, saleRequest.hardCap, price, feeToPay);
+
+        checkStateHelper.applyCheckSaleStateTx(root, saleID);
+
+        auto commissionBalance = BalanceHelper::Instance()->loadBalance(app.getCommissionID(),  quoteAsset, db, nullptr);
+        REQUIRE(!!commissionBalance);
+        REQUIRE(commissionBalance->getAmount() == feeToPay);
+    }
+
     SECTION("Happy path")
     {
         //set offer fee for sale owner and participants

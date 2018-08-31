@@ -40,23 +40,26 @@ const
                          static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
-AssetFrame::pointer CreateSaleCreationRequestOpFrame::tryLoadBaseAssetOrRequest(
-    SaleCreationRequest const& request,
-    Database& db) const
+AssetFrame::pointer
+CreateSaleCreationRequestOpFrame::tryLoadBaseAssetOrRequest(SaleCreationRequest const& request,
+                                                            Database& db, AccountID* source)
 {
-    const auto assetFrame = AssetHelper::Instance()->loadAsset(request.baseAsset, getSourceID(), db);
+    if (source == nullptr)
+        return nullptr;
+
+    const auto assetFrame = AssetHelper::Instance()->loadAsset(request.baseAsset, *source, db);
     if (!!assetFrame)
     {
         return assetFrame;
     }
 
-    auto assetCreationRequests = ReviewableRequestHelper::Instance()->loadRequests(getSourceID(), ReviewableRequestType::ASSET_CREATE, db);
+    auto assetCreationRequests = ReviewableRequestHelper::Instance()->loadRequests(*source, ReviewableRequestType::ASSET_CREATE, db);
     for (auto assetCreationRequestFrame : assetCreationRequests)
     {
         auto& assetCreationRequest = assetCreationRequestFrame->getRequestEntry().body.assetCreationRequest();
         if (assetCreationRequest.code == request.baseAsset)
         {
-            return AssetFrame::create(assetCreationRequest, getSourceID());
+            return AssetFrame::create(assetCreationRequest, *source);
         }
     }
 
@@ -217,7 +220,8 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    const auto baseAsset = tryLoadBaseAssetOrRequest(sale, db);
+    auto source = getSourceID();
+    const auto baseAsset = tryLoadBaseAssetOrRequest(sale, db, &source);
     if (!baseAsset)
     {
         innerResult().code(CreateSaleCreationRequestResultCode::BASE_ASSET_OR_ASSET_REQUEST_NOT_FOUND);
@@ -243,7 +247,9 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     return true;
 }
 
-bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest)
+bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app,
+                                                             const SaleCreationRequest& saleCreationRequest,
+                                                             AccountID* source)
 {
     if(!app.getLedgerManager().shouldUse(LedgerVersion::STATABLE_SALES))
         return true;
@@ -266,14 +272,28 @@ bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app, c
         return true;
 
     Database& db = app.getDatabase();
-    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(saleCreationRequest.baseAsset, db);
+    LedgerManager& lm = app.getLedgerManager();
+    AssetFrame::pointer baseAsset;
+    if (lm.shouldUse(LedgerVersion::FIX_GET_ASSET_FOR_SALE) && (source != nullptr))
+    {
+        baseAsset = tryLoadBaseAssetOrRequest(saleCreationRequest, db, source);
+        if (!baseAsset)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        baseAsset = AssetHelper::Instance()->mustLoadAsset(saleCreationRequest.baseAsset, db);
+    }
 
     return baseAsset->getAvailableForIssuance() >= saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
 }
 
 bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)
 {
-    auto checkValidResult = doCheckValid(app, mCreateSaleCreationRequest.request);
+    auto source = getSourceID();
+    auto checkValidResult = doCheckValid(app, mCreateSaleCreationRequest.request, &source);
     if (checkValidResult == CreateSaleCreationRequestResultCode::SUCCESS) {
         return true;
     }
@@ -283,7 +303,7 @@ bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)
 }
 
 CreateSaleCreationRequestResultCode
-CreateSaleCreationRequestOpFrame::doCheckValid(Application &app, const SaleCreationRequest &saleCreationRequest)
+CreateSaleCreationRequestOpFrame::doCheckValid(Application &app, const SaleCreationRequest &saleCreationRequest, AccountID* source)
 {
     if (!AssetFrame::isAssetCodeValid(saleCreationRequest.baseAsset) ||
         !AssetFrame::isAssetCodeValid(saleCreationRequest.defaultQuoteAsset)
@@ -318,7 +338,7 @@ CreateSaleCreationRequestOpFrame::doCheckValid(Application &app, const SaleCreat
     {
         return CreateSaleCreationRequestResultCode::START_END_INVALID;
     }
-    if (!ensureEnoughAvailable(app, saleCreationRequest))
+    if (!ensureEnoughAvailable(app, saleCreationRequest, source))
     {
         return CreateSaleCreationRequestResultCode::INSUFFICIENT_PREISSUED;
     }

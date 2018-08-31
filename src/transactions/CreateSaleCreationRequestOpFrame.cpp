@@ -272,9 +272,8 @@ bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app,
         return true;
 
     Database& db = app.getDatabase();
-    LedgerManager& lm = app.getLedgerManager();
     AssetFrame::pointer baseAsset;
-    if (lm.shouldUse(LedgerVersion::FIX_GET_ASSET_FOR_SALE) && (source != nullptr))
+    if (source != nullptr)
     {
         baseAsset = tryLoadBaseAssetOrRequest(saleCreationRequest, db, source);
         if (!baseAsset)

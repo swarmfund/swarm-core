@@ -40,38 +40,6 @@ using namespace stellar::txtest;
 typedef std::unique_ptr<Application> appPtr;
 
 
-uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, Account& participant, const uint64_t saleID, const AssetCode baseAsset,
-    const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee, const uint64_t* saleAnteAmount = nullptr)
-{
-    auto quoteBalance = BalanceHelper::Instance()->loadBalance(participant.key.getPublicKey(), quoteAsset, testManager->getDB(), nullptr);
-    REQUIRE(!!quoteBalance);
-    // issue 1 more to ensure that it is enough to cover rounded up base amount
-    uint32_t allTasks = 0;
-    if (!!saleAnteAmount) {
-        IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + *saleAnteAmount + fee + 1, quoteBalance->getBalanceID(),
-                                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
-    } else {
-        IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + fee + 1, quoteBalance->getBalanceID(),
-                                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
-    }
-
-    auto accountID = participant.key.getPublicKey();
-    auto balanceCreationResult = ManageBalanceTestHelper(testManager).applyManageBalanceTx(participant, accountID, baseAsset);
-    const auto baseAssetAmount = bigDivide(quoteAssetAmount, ONE, price, ROUND_UP);
-    auto manageOfferOp = OfferManager::buildManageOfferOp(balanceCreationResult.success().balanceID, quoteBalance->getBalanceID(),
-        true, baseAssetAmount, price, fee, 0, saleID);
-    auto result = ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOfferOp);
-    return result.success().offer.offer().offerID;
-}
-
-uint64_t addNewParticipant(TestManager::pointer testManager, Account& root, const uint64_t saleID, const AssetCode baseAsset,
-    const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee, const uint64_t* saleAnteAmount = nullptr)
-{
-    auto account = Account{ SecretKey::random(), 0 };
-    CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
-    return addNewParticipant(testManager, root, account, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, fee, saleAnteAmount);
-}
-
 TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
@@ -95,12 +63,12 @@ TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
 
     AssetCode quoteAssetBTC = "BTC";
     assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAssetBTC, root.key.getPublicKey(), "{}", quoteMaxIssuance,
-        uint32_t(AssetPolicy::BASE_ASSET), quoteMaxIssuance);
+        uint32_t(AssetPolicy::BASE_ASSET));
     assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
 
     AssetCode quoteAssetETH = "ETH";
     assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAssetETH, root.key.getPublicKey(), "{}", quoteMaxIssuance,
-        uint32_t(AssetPolicy::BASE_ASSET), quoteMaxIssuance);
+        uint32_t(AssetPolicy::BASE_ASSET));
     assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
     auto assetPairHelper = ManageAssetPairTestHelper(testManager);
     uint64_t btcUSDPrice = 10000 * ONE;
@@ -112,6 +80,7 @@ TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
     SaleRequestHelper saleRequestHelper(testManager);
     IssuanceRequestHelper issuanceHelper(testManager);
     CheckSaleStateHelper checkStateHelper(testManager);
+    ParticipateInSaleTestHelper participationHelper(testManager);
 
     auto syndicate = Account{ SecretKey::random(), 0 };
     auto syndicatePubKey = syndicate.key.getPublicKey();
@@ -140,8 +109,8 @@ TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
     REQUIRE(sales.size() == 1);
     const auto saleID = sales[0]->getID();
 
-    addNewParticipant(testManager, root, saleID, baseAsset, quoteAssetBTC, bigDivide(maxIssuanceAmount / 2, xaauBTCPrice, ONE, ROUND_UP), xaauBTCPrice, 0);
-    addNewParticipant(testManager, root, saleID, baseAsset, quoteAssetETH, bigDivide(maxIssuanceAmount / 2, xaauETHPrice, ONE, ROUND_UP), xaauETHPrice, 0);
+    participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAssetBTC, bigDivide(maxIssuanceAmount/2, xaauBTCPrice, ONE, ROUND_UP), xaauBTCPrice, 0);
+    participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAssetETH, bigDivide(maxIssuanceAmount/2, xaauETHPrice, ONE, ROUND_UP), xaauETHPrice, 0);
 
     CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
 
@@ -178,6 +147,7 @@ TEST_CASE("Sale", "[tx][sale]")
     CreateAccountTestHelper accountTestHelper(testManager);
     SetFeesTestHelper setFeesTestHelper(testManager);
     auto saleReviewer = ReviewSaleRequestHelper(testManager);
+    ParticipateInSaleTestHelper participationHelper(testManager);
 
     auto syndicate = Account{ SecretKey::random(), 0 };
     auto syndicatePubKey = syndicate.key.getPublicKey();
@@ -235,13 +205,13 @@ TEST_CASE("Sale", "[tx][sale]")
         const int64_t timeStep = (endTime - currentTime) / numberOfParticipants;
         for (int i = 0; i < numberOfParticipants - 1; i++)
         {
-            addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
+            participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
             testManager->advanceToTime(testManager->getLedgerManager().getCloseTime() + timeStep);
             checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
         }
 
         participantsFeeFrame->calculatePercentFee(quoteAmount, feeToPay, ROUND_UP);
-        addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
+        participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
         testManager->advanceToTime(endTime + 1);
         checkStateHelper.applyCheckSaleStateTx(root, saleID);
     }
@@ -276,7 +246,7 @@ TEST_CASE("Sale", "[tx][sale]")
             saleAnteAmount += 5 * ONE;
             for (auto i = 0; i < numberOfParticipants; i++)
             {
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0, &saleAnteAmount);
+                participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0, &saleAnteAmount);
                 if (i < numberOfParticipants - 1)
                 {
                     CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
@@ -294,7 +264,7 @@ TEST_CASE("Sale", "[tx][sale]")
             saleAnteAmount += 5 * ONE;
             for (auto i = 0; i < numberOfParticipants - 1; i++)
             {
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0,
+                participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0,
                                   &saleAnteAmount);
                 checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
             }
@@ -314,7 +284,7 @@ TEST_CASE("Sale", "[tx][sale]")
             saleAnteAmount += 5 * ONE;
             for (auto i = 0; i < numberOfParticipants - 1; i++)
             {
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0,
+                participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, 0,
                                   &saleAnteAmount);
                 checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
             }
@@ -365,7 +335,7 @@ TEST_CASE("Sale", "[tx][sale]")
             // first sale reached hard cap
             for (auto i = 0; i < numberOfParticipants; i++)
             {
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+                participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
                 if (i < numberOfParticipants - 1)
                 {
                     CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
@@ -377,7 +347,7 @@ TEST_CASE("Sale", "[tx][sale]")
             // second sale reached hard cap
             for (auto i = 0; i < numberOfParticipants; i++)
             {
-                addNewParticipant(testManager, root, secondSaleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+                participationHelper.addNewParticipant(root, secondSaleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
                 if (i < numberOfParticipants - 1)
                 {
                     CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, secondSaleID, CheckSaleStateResultCode::NOT_READY);
@@ -412,7 +382,7 @@ TEST_CASE("Sale", "[tx][sale]")
             uint64_t quoteAssetAmount = hardCap / 2;
             uint64_t feeToPay(0);
             participantsFeeFrame->calculatePercentFee(quoteAssetAmount, feeToPay, ROUND_UP);
-            const auto offerID = addNewParticipant(testManager, root, account, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+            const auto offerID = participationHelper.addNewParticipant(root, account, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
             auto offer = OfferHelper::Instance()->loadOffer(account.key.getPublicKey(), offerID, testManager->getDB());
             REQUIRE(!!offer);
             const auto offerEntry = offer->getOffer();
@@ -431,7 +401,7 @@ TEST_CASE("Sale", "[tx][sale]")
             participantsFeeFrame->calculatePercentFee(quoteAssetAmount, feeToPay, ROUND_UP);
             for (auto i = 0; i < numberOfParticipants; i++)
             {
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
+                participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, feeToPay);
                 if (i < numberOfParticipants - 1)
                 {
                     CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
@@ -450,13 +420,13 @@ TEST_CASE("Sale", "[tx][sale]")
             const int64_t timeStep = (endTime - currentTime) / numberOfParticipants;
             for (int i = 0; i < numberOfParticipants - 1; i++)
             {
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
+                participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
                 testManager->advanceToTime(testManager->getLedgerManager().getCloseTime() + timeStep);
                 checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
             }
             // sale is still active
             participantsFeeFrame->calculatePercentFee(2 * quoteAmount, feeToPay, ROUND_UP);
-            addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, 2 * quoteAmount, price, feeToPay);
+            participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, 2 * quoteAmount, price, feeToPay);
             testManager->advanceToTime(endTime + 1);
             checkStateHelper.applyCheckSaleStateTx(root, saleID);
         }
@@ -469,7 +439,7 @@ TEST_CASE("Sale", "[tx][sale]")
             participantsFeeFrame->calculatePercentFee(quoteAmount, feeToPay, ROUND_UP);
             for (auto i = 0; i < numberOfParticipants - 1; i++)
             {
-                addNewParticipant(testManager, root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
+                participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, quoteAmount, price, feeToPay);
                 checkStateHelper.applyCheckSaleStateTx(root, saleID, CheckSaleStateResultCode::NOT_READY);
             }
             // softcap is not reached, so no sale to close

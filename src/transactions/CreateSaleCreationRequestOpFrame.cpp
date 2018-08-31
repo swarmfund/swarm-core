@@ -42,24 +42,21 @@ const
 
 AssetFrame::pointer
 CreateSaleCreationRequestOpFrame::tryLoadBaseAssetOrRequest(SaleCreationRequest const& request,
-                                                            Database& db, AccountID* source)
+                                                            Database& db, AccountID const& source)
 {
-    if (source == nullptr)
-        return nullptr;
-
-    const auto assetFrame = AssetHelper::Instance()->loadAsset(request.baseAsset, *source, db);
+    const auto assetFrame = AssetHelper::Instance()->loadAsset(request.baseAsset, source, db);
     if (!!assetFrame)
     {
         return assetFrame;
     }
 
-    auto assetCreationRequests = ReviewableRequestHelper::Instance()->loadRequests(*source, ReviewableRequestType::ASSET_CREATE, db);
+    auto assetCreationRequests = ReviewableRequestHelper::Instance()->loadRequests(source, ReviewableRequestType::ASSET_CREATE, db);
     for (auto assetCreationRequestFrame : assetCreationRequests)
     {
         auto& assetCreationRequest = assetCreationRequestFrame->getRequestEntry().body.assetCreationRequest();
         if (assetCreationRequest.code == request.baseAsset)
         {
-            return AssetFrame::create(assetCreationRequest, *source);
+            return AssetFrame::create(assetCreationRequest, source);
         }
     }
 
@@ -220,8 +217,7 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    auto source = getSourceID();
-    const auto baseAsset = tryLoadBaseAssetOrRequest(sale, db, &source);
+    const auto baseAsset = tryLoadBaseAssetOrRequest(sale, db, getSourceID());
     if (!baseAsset)
     {
         innerResult().code(CreateSaleCreationRequestResultCode::BASE_ASSET_OR_ASSET_REQUEST_NOT_FOUND);
@@ -275,7 +271,7 @@ bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app,
     AssetFrame::pointer baseAsset;
     if (source != nullptr)
     {
-        baseAsset = tryLoadBaseAssetOrRequest(saleCreationRequest, db, source);
+        baseAsset = tryLoadBaseAssetOrRequest(saleCreationRequest, db, *source);
         if (!baseAsset)
         {
             return false;

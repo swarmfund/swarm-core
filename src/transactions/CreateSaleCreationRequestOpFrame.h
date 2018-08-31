@@ -44,10 +44,10 @@ public:
 
     bool doCheckValid(Application& app) override;
 
-    static bool ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest, AccountID* source = nullptr);
+    static bool ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest, AccountID const& source);
 
     static CreateSaleCreationRequestResultCode doCheckValid(Application& app,
-                                                            SaleCreationRequest const& saleCreationRequest, AccountID* source = nullptr);
+                                                            SaleCreationRequest const& saleCreationRequest, AccountID const& source);
 
     static bool areQuoteAssetsValid(Database& db, xdr::xvector<SaleCreationRequestQuoteAsset, 100> quoteAssets, AssetCode defaultQuoteAsset);
 

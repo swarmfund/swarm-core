@@ -363,7 +363,7 @@ namespace stellar {
 
     bool ManageSaleOpFrame::isPromotionUpdateDataValid(Application &app) {
         auto saleCreationRequestValidationResult = CreateSaleCreationRequestOpFrame::doCheckValid(
-                app, mManageSaleOp.data.promotionUpdateData().newPromotionData);
+                app, mManageSaleOp.data.promotionUpdateData().newPromotionData, getSourceID());
 
         if (saleCreationRequestValidationResult == CreateSaleCreationRequestResultCode::SUCCESS) {
             return true;

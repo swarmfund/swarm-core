@@ -47,5 +47,24 @@ ReviewContractRequestHelper::applyReviewRequestTx(Account &source, uint64_t requ
                                                      checker);
 }
 
+TransactionFramePtr
+ReviewContractRequestHelper::createReviewRequestTx(Account& source,
+                                                  uint64_t requestID, Hash requestHash,
+                                                  ReviewableRequestType requestType,
+                                                  ReviewRequestOpAction action,
+                                                  std::string rejectReason)
+{
+    Operation op;
+    op.body.type(OperationType::REVIEW_REQUEST);
+    ReviewRequestOp& reviewRequestOp = op.body.reviewRequestOp();
+    reviewRequestOp.action = action;
+    reviewRequestOp.reason = rejectReason;
+    reviewRequestOp.requestHash = requestHash;
+    reviewRequestOp.requestID = requestID;
+    reviewRequestOp.requestDetails.requestType(requestType);
+    reviewRequestOp.requestDetails.contract().details = customerDetails;
+    return txFromOperation(source, op, nullptr);
+}
+
 }
 }

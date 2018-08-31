@@ -333,8 +333,8 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     auto& db = app.getDatabase();
     auto baseBalance = BalanceHelper::Instance()->mustLoadBalance(sale->getBaseBalanceID(), db);
 
-    const auto baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
-    const auto quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);
+    uint64_t baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
+    int64_t quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);
     auto saleType = sale->getSaleType();
     auto baseAsset = sale->getBaseAsset();
     auto price = saleQuoteAsset.price;

@@ -303,16 +303,23 @@ TEST_CASE("Sale", "[tx][sale]")
 
         saleRequest.hardCap = 200 * ONE;
         saleRequest.softCap = 100 * ONE;
+
+        auto syndicateAccountFrame = std::make_shared<AccountFrame>(syndicatePubKey);
+        auto syndicateFee = FeeHelper::Instance()->loadForAccount(FeeType::CAPITAL_DEPLOYMENT,
+                quoteAsset, FeeFrame::SUBTYPE_ANY, syndicateAccountFrame, saleRequest.hardCap, db);
+        uint64_t feeToPayBySyndicate = 0;
+        REQUIRE(syndicateFee->calculatePercentFee(saleRequest.hardCap, feeToPayBySyndicate, ROUND_UP));
+
         uint64_t feeToPay(2 * ONE);
         auto result = saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
-        auto saleID = result.success().ext.saleID();
+        auto saleID = result.success().ext.extendedResult().typeExt.saleExtended().saleID;
         participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, saleRequest.hardCap, price, feeToPay);
 
         checkStateHelper.applyCheckSaleStateTx(root, saleID);
 
         auto commissionBalance = BalanceHelper::Instance()->loadBalance(app.getCommissionID(),  quoteAsset, db, nullptr);
         REQUIRE(!!commissionBalance);
-        REQUIRE(commissionBalance->getAmount() == feeToPay);
+        REQUIRE(commissionBalance->getAmount() == feeToPay + feeToPayBySyndicate);
     }
 
     SECTION("Happy path")

@@ -90,7 +90,7 @@ TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
     const uint64_t maxIssuanceAmount = 2000 * ONE;
     const uint64_t preIssuedAmount = maxIssuanceAmount;
     assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}",
-        maxIssuanceAmount, 0, preIssuedAmount);
+                                                                      maxIssuanceAmount, 0, preIssuedAmount);
     assetTestHelper.createApproveRequest(root, syndicate, assetCreationRequest);
 
     uint64_t hardCap = 100000000 * ONE;
@@ -102,8 +102,8 @@ TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
     uint64_t xaauBTCPrice = (xaauUSDPrice / btcUSDPrice) * ONE;
     uint64_t xaauETHPrice = (xaauUSDPrice / ethUSDPrice) * ONE;
     auto saleRequest = SaleRequestHelper::createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
-        endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAssetBTC, xaauBTCPrice),
-            saleRequestHelper.createSaleQuoteAsset(quoteAssetETH, xaauETHPrice) });
+                                                            endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAssetBTC, xaauBTCPrice),
+                                                                                               saleRequestHelper.createSaleQuoteAsset(quoteAssetETH, xaauETHPrice) });
     saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
     auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
     REQUIRE(sales.size() == 1);
@@ -114,6 +114,96 @@ TEST_CASE("Sale in several quote assets", "[tx][sale_several_quote]")
 
     CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
 
+}
+
+TEST_CASE("Sale creation while base asset is on review", "[tx][sale]")
+{
+    Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
+    VirtualClock clock;
+    Application::pointer appPtr = Application::create(clock, cfg);
+    Application& app = *appPtr;
+    app.start();
+    auto testManager = TestManager::make(app);
+    TestManager::upgradeToCurrentLedgerVersion(app);
+
+    Database& db = testManager->getDB();
+    CreateAccountTestHelper createAccountTestHelper(testManager);
+    SaleRequestHelper saleRequestHelper(testManager);
+    IssuanceRequestHelper issuanceHelper(testManager);
+    CheckSaleStateHelper checkStateHelper(testManager);
+    ParticipateInSaleTestHelper participationHelper(testManager);
+    ManageAssetTestHelper assetTestHelper(testManager);
+    ManageSaleTestHelper manageSaleHelper(testManager);
+    ReviewSaleRequestHelper saleReviewer(testManager);
+    ReviewAssetRequestHelper assetReviewer(testManager);
+
+    auto root = Account{ getRoot(), Salt(0) };
+    AssetCode defaultQuoteAsset = "USD";
+    uint64_t quoteMaxIssuance = INT64_MAX;
+    auto assetCreationRequest = assetTestHelper.createAssetCreationRequest(defaultQuoteAsset, root.key.getPublicKey(), "{}", 0,
+                                                                           uint32_t(AssetPolicy::BASE_ASSET));
+    assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
+
+    AssetCode quoteAssetBTC = "BTC";
+    assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAssetBTC, root.key.getPublicKey(), "{}", quoteMaxIssuance,
+                                                                      uint32_t(AssetPolicy::BASE_ASSET));
+    assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
+
+    AssetCode quoteAssetETH = "ETH";
+    assetCreationRequest = assetTestHelper.createAssetCreationRequest(quoteAssetETH, root.key.getPublicKey(), "{}", quoteMaxIssuance,
+                                                                      uint32_t(AssetPolicy::BASE_ASSET));
+    assetTestHelper.applyManageAssetTx(root, 0, assetCreationRequest);
+    auto assetPairHelper = ManageAssetPairTestHelper(testManager);
+    uint64_t btcUSDPrice = 10 * ONE;
+    assetPairHelper.applyManageAssetPairTx(root, quoteAssetBTC, defaultQuoteAsset, btcUSDPrice, 0, 0);
+    uint64_t ethUSDPrice = 5 * ONE;
+    assetPairHelper.applyManageAssetPairTx(root, quoteAssetETH, defaultQuoteAsset, ethUSDPrice, 0, 0);
+
+    AssetCode baseAsset = "UAH";
+
+    auto syndicate = Account{ SecretKey::random(), 0 };
+    auto syndicatePubKey = syndicate.key.getPublicKey();
+    createAccountTestHelper.applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
+    const uint64_t maxIssuanceAmount = 2000 * ONE;
+    const uint64_t preIssuedAmount = maxIssuanceAmount;
+    uint64_t hardCap = 20000 * ONE;
+    uint64 softCap = 10000 * ONE;
+
+    const auto currentTime = testManager->getLedgerManager().getCloseTime();
+    const auto endTime = currentTime + 1000;
+    uint64_t xaauUSDPrice;
+    uint64_t xaauBTCPrice;
+    uint64_t xaauETHPrice;
+    bigDivide(xaauUSDPrice, hardCap, ONE, maxIssuanceAmount, ROUND_UP);
+    bigDivide(xaauBTCPrice, xaauUSDPrice, ONE, btcUSDPrice, ROUND_UP);
+    bigDivide(xaauETHPrice, xaauUSDPrice, ONE, ethUSDPrice, ROUND_UP);
+
+    assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}",
+                                                                      maxIssuanceAmount, 0, preIssuedAmount);
+    auto assetResult = assetTestHelper.applyManageAssetTx(syndicate, 0, assetCreationRequest);
+    auto saleType = SaleType::FIXED_PRICE;
+    auto saleRequest = SaleRequestHelper::createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
+                                                            endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAssetBTC, xaauBTCPrice),
+                                                                                               saleRequestHelper.createSaleQuoteAsset(quoteAssetETH, xaauETHPrice) },
+                                                                                               &saleType, &maxIssuanceAmount, SaleState::PROMOTION);
+    auto saleCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
+    assetReviewer.applyReviewRequestTx(root, assetResult.success().requestID,
+                                           ReviewRequestOpAction::APPROVE, "");
+
+    auto requestID = saleCreationResult.success().requestID;
+    auto saleReviewResult = saleReviewer.applyReviewRequestTx(root, requestID,
+                                                 ReviewRequestOpAction::APPROVE, "");
+    auto sales = SaleHelper::Instance()->loadSalesForOwner(syndicate.key.getPublicKey(), testManager->getDB());
+
+    REQUIRE(sales.size() == 1);
+    const auto saleID = sales[0]->getID();
+
+    auto saleStateData = manageSaleHelper.setSaleState(SaleState::NONE);
+    manageSaleHelper.applyManageSaleTx(root, saleID, saleStateData);
+    participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAssetBTC, bigDivide(maxIssuanceAmount/2, xaauBTCPrice, ONE, ROUND_UP), xaauBTCPrice, 0);
+    participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAssetETH, bigDivide(maxIssuanceAmount/2, xaauETHPrice, ONE, ROUND_UP), xaauETHPrice, 0);
+
+    checkStateHelper.applyCheckSaleStateTx(root, saleID);
 }
 
 TEST_CASE("Sale", "[tx][sale]")

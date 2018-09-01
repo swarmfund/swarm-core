@@ -133,6 +133,7 @@ TEST_CASE("Sale creation while base asset is on review", "[tx][sale]")
     CheckSaleStateHelper checkStateHelper(testManager);
     ParticipateInSaleTestHelper participationHelper(testManager);
     ManageAssetTestHelper assetTestHelper(testManager);
+    ManageSaleTestHelper manageSaleHelper(testManager);
     ReviewSaleRequestHelper saleReviewer(testManager);
     ReviewAssetRequestHelper assetReviewer(testManager);
 
@@ -165,8 +166,8 @@ TEST_CASE("Sale creation while base asset is on review", "[tx][sale]")
     createAccountTestHelper.applyCreateAccountTx(root, syndicatePubKey, AccountType::SYNDICATE);
     const uint64_t maxIssuanceAmount = 2000 * ONE;
     const uint64_t preIssuedAmount = maxIssuanceAmount;
-    uint64_t hardCap = 1000 * ONE;
-    uint64 softCap = 50 * ONE;
+    uint64_t hardCap = 20000 * ONE;
+    uint64 softCap = 10000 * ONE;
 
     const auto currentTime = testManager->getLedgerManager().getCloseTime();
     const auto endTime = currentTime + 1000;
@@ -180,10 +181,11 @@ TEST_CASE("Sale creation while base asset is on review", "[tx][sale]")
     assetCreationRequest = assetTestHelper.createAssetCreationRequest(baseAsset, syndicate.key.getPublicKey(), "{}",
                                                                       maxIssuanceAmount, 0, preIssuedAmount);
     auto assetResult = assetTestHelper.applyManageAssetTx(syndicate, 0, assetCreationRequest);
-
+    auto saleType = SaleType::FIXED_PRICE;
     auto saleRequest = SaleRequestHelper::createSaleRequest(baseAsset, defaultQuoteAsset, currentTime,
                                                             endTime, softCap, hardCap, "{}", { saleRequestHelper.createSaleQuoteAsset(quoteAssetBTC, xaauBTCPrice),
-                                                                                               saleRequestHelper.createSaleQuoteAsset(quoteAssetETH, xaauETHPrice) });
+                                                                                               saleRequestHelper.createSaleQuoteAsset(quoteAssetETH, xaauETHPrice) },
+                                                                                               &saleType, &maxIssuanceAmount, SaleState::PROMOTION);
     auto saleCreationResult = saleRequestHelper.applyCreateSaleRequest(syndicate, 0, saleRequest);
     assetReviewer.applyReviewRequestTx(root, assetResult.success().requestID,
                                            ReviewRequestOpAction::APPROVE, "");
@@ -196,6 +198,8 @@ TEST_CASE("Sale creation while base asset is on review", "[tx][sale]")
     REQUIRE(sales.size() == 1);
     const auto saleID = sales[0]->getID();
 
+    auto saleStateData = manageSaleHelper.setSaleState(SaleState::NONE);
+    manageSaleHelper.applyManageSaleTx(root, saleID, saleStateData);
     participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAssetBTC, bigDivide(maxIssuanceAmount/2, xaauBTCPrice, ONE, ROUND_UP), xaauBTCPrice, 0);
     participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAssetETH, bigDivide(maxIssuanceAmount/2, xaauETHPrice, ONE, ROUND_UP), xaauETHPrice, 0);
 

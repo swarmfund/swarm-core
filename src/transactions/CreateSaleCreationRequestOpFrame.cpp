@@ -184,6 +184,7 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
                                         LedgerManager& ledgerManager)
 {
     auto const& sale = mCreateSaleCreationRequest.request;
+
     auto saleVersion = static_cast<int32>(sale.ext.v());
     if (saleVersion > app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion)
     {
@@ -223,7 +224,11 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         innerResult().code(CreateSaleCreationRequestResultCode::BASE_ASSET_OR_ASSET_REQUEST_NOT_FOUND);
         return false;
     }
-
+    if (!ensureEnoughAvailable(app, sale, baseAsset))
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::INSUFFICIENT_PREISSUED);
+        return false;
+    }
     if (!isBaseAssetHasSufficientIssuance(baseAsset))
     {
         return false;
@@ -245,7 +250,7 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 
 bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app,
                                                              const SaleCreationRequest& saleCreationRequest,
-                                                             AccountID const& source)
+                                                             AssetFrame::pointer baseAsset)
 {
     if(!app.getLedgerManager().shouldUse(LedgerVersion::STATABLE_SALES))
         return true;
@@ -263,17 +268,8 @@ bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app,
             return true;
         }
     }
-
     if (saleType != SaleType::FIXED_PRICE)
         return true;
-
-    Database& db = app.getDatabase();
-
-    auto const baseAsset = tryLoadBaseAssetOrRequest(saleCreationRequest, db, source);
-    if (!baseAsset)
-    {
-        return false;
-    }
 
     return baseAsset->getAvailableForIssuance() >= saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
 }
@@ -325,10 +321,6 @@ CreateSaleCreationRequestOpFrame::doCheckValid(Application &app, const SaleCreat
     if (saleCreationRequest.endTime <= saleCreationRequest.startTime)
     {
         return CreateSaleCreationRequestResultCode::START_END_INVALID;
-    }
-    if (!ensureEnoughAvailable(app, saleCreationRequest, source))
-    {
-        return CreateSaleCreationRequestResultCode::INSUFFICIENT_PREISSUED;
     }
 
     if (saleCreationRequest.hardCap < saleCreationRequest.softCap)

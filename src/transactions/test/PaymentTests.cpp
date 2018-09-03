@@ -3,7 +3,6 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/LedgerDeltaImpl.h"
-#include "ledger/PaymentRequestHelper.h"
 #include "ledger/ReferenceFrame.h"
 #include "main/Application.h"
 #include "main/Config.h"
@@ -22,7 +21,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("payment", "[tx][payment]")
+TEST_CASE("payment", "[dep_tx][payment]")
 {
     // TODO requires refactoring
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
@@ -55,17 +54,22 @@ TEST_CASE("payment", "[tx][payment]")
     auto createAccountTestHelper = CreateAccountTestHelper(testManager);
     createAccountTestHelper.applyCreateAccountTx(root, aWM.getPublicKey(),
                                                  AccountType::GENERAL);
-    auto aWMBalance = BalanceHelper::Instance()->loadBalance(
-        aWM.getPublicKey(), asset, testManager->getDB(), nullptr);
+    auto aWMBalance = BalanceHelper::Instance()->loadBalance(aWM.getPublicKey(),
+                                                             asset,
+                                                             testManager->
+                                                             getDB(), nullptr);
+
+    uint32_t issuanceTasks = 0;
+
     REQUIRE(!!aWMBalance);
-    issuanceHelper.applyCreateIssuanceRequest(
-        root, asset, emissionAmount, aWMBalance->getBalanceID(),
-        SecretKey::random().getStrKeyPublic());
+    issuanceHelper.applyCreateIssuanceRequest(root, asset, emissionAmount,
+                                              aWMBalance->getBalanceID(),
+                                              SecretKey::random().
+                                              getStrKeyPublic(), &issuanceTasks);
 
     auto secondAsset = "AETH";
 
     auto balanceHelper = BalanceHelper::Instance();
-    auto paymentRequestHelper = PaymentRequestHelper::Instance();
 
     SECTION("Non base asset tests")
     {
@@ -93,9 +97,9 @@ TEST_CASE("payment", "[tx][payment]")
         auto senderBalance = BalanceHelper::Instance()->loadBalance(
             sender.getPublicKey(), assetCode, testManager->getDB(), nullptr);
         REQUIRE(!!senderBalance);
-        issuanceHelper.applyCreateIssuanceRequest(
-            root, assetCode, emissionAmount, senderBalance->getBalanceID(),
-            SecretKey::random().getStrKeyPublic());
+        issuanceHelper.applyCreateIssuanceRequest(root, assetCode, emissionAmount,
+            senderBalance->getBalanceID(),
+            SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 
         // create fee
         const int64_t fixedFee = 3;
@@ -155,7 +159,6 @@ TEST_CASE("payment", "[tx][payment]")
 
         auto paymentID = paymentResult.paymentResponse().paymentID;
         soci::session& sess = app.getDatabase().getSession();
-        REQUIRE(paymentRequestHelper->countObjects(sess) == 0);
     }
     SECTION("send to self")
     {
@@ -247,9 +250,11 @@ TEST_CASE("payment", "[tx][payment]")
         auto accountBalance = BalanceHelper::Instance()->loadBalance(
             account.getPublicKey(), asset, testManager->getDB(), nullptr);
         REQUIRE(!!accountBalance);
-        issuanceHelper.applyCreateIssuanceRequest(
-            root, asset, balance, accountBalance->getBalanceID(),
-            SecretKey::random().getStrKeyPublic());
+        issuanceHelper.applyCreateIssuanceRequest(root, asset, balance,
+                                                  accountBalance->
+                                                  getBalanceID(),
+                                                  SecretKey::random().
+                                                  getStrKeyPublic(), &issuanceTasks);
         auto dest = SecretKey::random();
         applyCreateAccountTx(app, root.key, dest, rootSeq++,
                              AccountType::GENERAL);
@@ -344,9 +349,11 @@ TEST_CASE("payment", "[tx][payment]")
         auto accountBalance = BalanceHelper::Instance()->loadBalance(
             account.getPublicKey(), asset, testManager->getDB(), nullptr);
         REQUIRE(!!accountBalance);
-        issuanceHelper.applyCreateIssuanceRequest(
-            root, asset, balance, accountBalance->getBalanceID(),
-            SecretKey::random().getStrKeyPublic());
+        issuanceHelper.applyCreateIssuanceRequest(root, asset, balance,
+                                                  accountBalance->
+                                                  getBalanceID(),
+                                                  SecretKey::random().
+                                                  getStrKeyPublic(), &issuanceTasks);
 
         auto dest = SecretKey::random();
         applyCreateAccountTx(app, root.key, dest, rootSeq++,

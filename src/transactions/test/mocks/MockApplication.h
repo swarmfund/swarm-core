@@ -83,6 +83,10 @@ class MockApplication : public Application
     MOCK_CONST_METHOD0(getWithdrawalDetailsMaxLength, uint64());
     MOCK_CONST_METHOD0(getIssuanceDetailsMaxLength, uint64());
     MOCK_CONST_METHOD0(getRejectReasonMaxLength, uint64());
+    MOCK_CONST_METHOD0(getMaxContractDetailLength, uint64());
+    MOCK_CONST_METHOD0(getMaxContractInitialDetailLength, uint64());
+    MOCK_CONST_METHOD0(getMaxContractsForContractor, uint64());
+    MOCK_CONST_METHOD0(getMaxInvoiceDetailLength, uint64());
     MOCK_CONST_METHOD0(getMaxInvoicesForReceiverAccount, int64());
     MOCK_CONST_METHOD0(getKYCSuperAdminMask, int32());
 

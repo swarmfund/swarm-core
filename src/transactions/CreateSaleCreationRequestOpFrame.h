@@ -24,7 +24,7 @@ class CreateSaleCreationRequestOpFrame : public OperationFrame
                                               int32_t ledgerVersion) const override;
 
     // tryLoadAssetOrRequest - tries to load base asset or request. If fails returns nullptr. If request exists - creates asset frame wrapper for it
-    AssetFrame::pointer tryLoadBaseAssetOrRequest(SaleCreationRequest const& request, Database& db) const;
+    static AssetFrame::pointer tryLoadBaseAssetOrRequest(SaleCreationRequest const& request, Database& db, AccountID const& source);
 
     std::string getReference(SaleCreationRequest const& request) const;
 
@@ -33,7 +33,6 @@ class CreateSaleCreationRequestOpFrame : public OperationFrame
     // isBaseAssetHasSufficientIssuance - returns true, if base asset amount required for hard cap and soft cap does not exceed available amount to be issued.
     // sets corresponding result code
     bool isBaseAssetHasSufficientIssuance(AssetFrame::pointer assetFrame);
-
     static bool isPriceValid(SaleCreationRequestQuoteAsset const& quoteAsset,
                              SaleCreationRequest const& saleCreationRequest);
 public:
@@ -45,8 +44,11 @@ public:
 
     bool doCheckValid(Application& app) override;
 
+    static bool ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest,
+            const AssetFrame::pointer baseAsset);
+
     static CreateSaleCreationRequestResultCode doCheckValid(Application& app,
-                                                            SaleCreationRequest const& saleCreationRequest);
+                                                            SaleCreationRequest const& saleCreationRequest, AccountID const& source);
 
     static bool areQuoteAssetsValid(Database& db, xdr::xvector<SaleCreationRequestQuoteAsset, 100> quoteAssets, AssetCode defaultQuoteAsset);
 

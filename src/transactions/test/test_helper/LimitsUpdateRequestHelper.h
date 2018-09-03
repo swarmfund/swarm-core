@@ -19,13 +19,14 @@ public:
     explicit LimitsUpdateRequestHelper(TestManager::pointer testManager);
 
     CreateManageLimitsRequestResult applyCreateLimitsUpdateRequest(
-            Account& source, LimitsUpdateRequest request,
+            Account& source, LimitsUpdateRequest request, uint64_t* requestID = 0,
             CreateManageLimitsRequestResultCode expectedResult =
             CreateManageLimitsRequestResultCode::SUCCESS);
 
     static LimitsUpdateRequest createLimitsUpdateRequest(longstring details);
 
-    TransactionFramePtr createLimitsUpdateRequestTx(Account& source, LimitsUpdateRequest request);
+    TransactionFramePtr createLimitsUpdateRequestTx(Account& source, LimitsUpdateRequest request,
+                                                    uint64_t* requestID = 0);
 };
 }
 }

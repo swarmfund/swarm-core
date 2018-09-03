@@ -23,7 +23,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("Manage forfeit request", "[tx][withdraw]")
+TEST_CASE("Withdraw", "[tx][withdraw]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
@@ -62,7 +62,9 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
     auto withdrawer = Account{ withdrawerKP, Salt(0) };
     auto withdrawerBalance = BalanceHelper::Instance()->loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
     REQUIRE(!!withdrawerBalance);
-    issuanceHelper.applyCreateIssuanceRequest(root, asset, preIssuedAmount, withdrawerBalance->getBalanceID(), "RANDOM ISSUANCE REFERENCE");
+    uint32_t allTasks = 0;
+    issuanceHelper.applyCreateIssuanceRequest(root, asset, preIssuedAmount, withdrawerBalance->getBalanceID(),
+                                              "RANDOM ISSUANCE REFERENCE", &allTasks);
 
     //create limitsV2
     ManageLimitsOp manageLimitsOp;
@@ -317,7 +319,7 @@ TEST_CASE("Manage forfeit request", "[tx][withdraw]")
             REQUIRE(statsPricePerUnit > pricePerUnit);
             issuanceHelper.authorizePreIssuedAmount(root, root.key, asset, enoughToOverflow, root);
             issuanceHelper.applyCreateIssuanceRequest(root, asset, enoughToOverflow, withdrawerBalance->getBalanceID(),
-                                                      SecretKey::random().getStrKeyPublic());
+                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
             withdrawRequest.amount = enoughToOverflow;
             withdrawRequest.details.autoConversion().expectedAmount = enoughToOverflow * pricePerUnit;
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,

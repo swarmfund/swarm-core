@@ -17,6 +17,15 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
                                                                LedgerManager &ledgerManager, LedgerDelta &delta,
                                                                ReviewableRequestFrame::pointer reviewableRequest)
 {
+    return tryApproveRequestWithResult(parentTx, app, ledgerManager, delta, reviewableRequest).code();
+}
+
+ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(TransactionFrame &parentTx, Application &app,
+                                                                     LedgerManager &ledgerManager,
+                                                                     LedgerDelta &delta,
+                                                                     ReviewableRequestFrame::pointer reviewableRequest)
+{
+    Database& db = ledgerManager.getDatabase();
     // shield outer scope of any side effects by using
     // a StorageHelper and LedgerDelta
     LedgerDeltaImpl reviewRequestDelta(delta);
@@ -24,23 +33,25 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
     StorageHelper& storageHelper = storageHelperImpl;
 
     auto helper = ReviewRequestHelper(app, ledgerManager, reviewRequestDelta, reviewableRequest);
-    auto resultCode = helper.tryApproveRequest(parentTx);
-    if (resultCode != ReviewRequestResultCode::SUCCESS)
-        return resultCode;
+    auto result = helper.tryApproveRequest(parentTx);
+    if (result.code() != ReviewRequestResultCode::SUCCESS)
+    {
+        return result;
+    }
 
     storageHelper.commit();
 
-    return resultCode;
+    return result;
 }
 
-ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame &parentTx)
+    ReviewRequestResult ReviewRequestHelper::tryApproveRequest(TransactionFrame &parentTx)
 {
     auto result = tryReviewRequest(parentTx);
     bool isApplied = result.first;
     ReviewRequestResult reviewRequestResult = result.second;
     if (!isApplied)
     {
-        return reviewRequestResult.code();
+        return reviewRequestResult;
     }
 
     auto resultCode = reviewRequestResult.code();
@@ -50,7 +61,7 @@ ReviewRequestResultCode ReviewRequestHelper::tryApproveRequest(TransactionFrame 
         throw std::runtime_error("Unexpected state: doApply returned true, but result code is not success.");
     }
 
-    return resultCode;
+    return reviewRequestResult;
 }
 
 std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(TransactionFrame &parentTx)
@@ -69,6 +80,14 @@ std::pair<bool, ReviewRequestResult> ReviewRequestHelper::tryReviewRequest(Trans
         reviewRequestOp.requestDetails.updateKYC().tasksToAdd = 0;
         reviewRequestOp.requestDetails.updateKYC().tasksToRemove = 0;
         reviewRequestOp.requestDetails.updateKYC().externalDetails = "{}";
+    }
+
+    if (mRequest->getRequestType() == ReviewableRequestType::ISSUANCE_CREATE)
+    {
+        reviewRequestOp.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+        reviewRequestOp.ext.reviewDetails().tasksToAdd = 0;
+        reviewRequestOp.ext.reviewDetails().tasksToRemove = 0;
+        reviewRequestOp.ext.reviewDetails().externalDetails = "{}";
     }
 
     OperationResult opRes;

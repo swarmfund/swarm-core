@@ -1,5 +1,4 @@
-#ifndef STELLAR_REVIEWREQUESTHELPER_H
-#define STELLAR_REVIEWREQUESTHELPER_H
+#pragma once
 
 #include <ledger/ReviewableRequestFrame.h>
 #include <transactions/TransactionFrame.h>
@@ -25,14 +24,17 @@ private:
     ReviewRequestHelper(Application &app, LedgerManager &ledgerManager, LedgerDelta &delta,
                         ReviewableRequestFrame::pointer reviewableRequest);
 
-    ReviewRequestResultCode tryApproveRequest(TransactionFrame &parentTx);
+    ReviewRequestResult tryApproveRequest(TransactionFrame &parentTx);
 
 public:
 
-    static ReviewRequestResultCode tryApproveRequest(TransactionFrame &parentTx, Application &app, LedgerManager &ledgerManager, LedgerDelta &delta,
-                                              ReviewableRequestFrame::pointer reviewableRequest);
+    static ReviewRequestResultCode tryApproveRequest(TransactionFrame &parentTx, Application &app,
+                                                     LedgerManager &ledgerManager, LedgerDelta &delta,
+                                                     ReviewableRequestFrame::pointer reviewableRequest);
+
+    static ReviewRequestResult tryApproveRequestWithResult(TransactionFrame &parentTx, Application &app,
+                                                 LedgerManager &ledgerManager, LedgerDelta &delta,
+                                                 ReviewableRequestFrame::pointer reviewableRequest);
 };
 
 }
-
-#endif //STELLAR_REVIEWREQUESTHELPER_H

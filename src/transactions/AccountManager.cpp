@@ -4,6 +4,7 @@
 
 #include <ledger/AssetFrame.h>
 #include <ledger/BalanceHelper.h>
+#include <ledger/BalanceFrame.h>
 #include <ledger/AccountHelper.h>
 #include "transactions/AccountManager.h"
 #include "main/Application.h"
@@ -373,21 +374,28 @@ namespace stellar {
         return balance;
     }
 
-    [[deprecated]]
-    AccountManager::Result AccountManager::isAllowedToReceive(BalanceID receivingBalance, Database &db) {
-        auto balanceFrame = BalanceHelper::Instance()->loadBalance(receivingBalance, db);
+    AccountManager::Result AccountManager::isAllowedToReceive(BalanceID balanceID, Database& db){
+        auto balanceFrame = BalanceHelper::Instance()->loadBalance(balanceID, db);
         if (!balanceFrame)
             return AccountManager::Result::BALANCE_NOT_FOUND;
 
-        auto receiver = AccountHelper::Instance()->mustLoadAccount(balanceFrame->getAccountID(), db);
-        auto receivingAsset = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
+        return isAllowedToReceive(balanceFrame, db);
+    }
 
-        if (receivingAsset->isRequireVerification() && receiver->getAccountType() == AccountType::NOT_VERIFIED)
+    AccountManager::Result  AccountManager::isAllowedToReceive(BalanceFrame::pointer balanceFrame, Database& db){
+        auto accountID = balanceFrame->getAccountID();
+        auto accountFrame = AccountHelper::Instance()->mustLoadAccount(accountID, db);
+        return isAllowedToReceive(accountFrame, balanceFrame, db);
+    }
+    AccountManager::Result  AccountManager::isAllowedToReceive(AccountFrame::pointer account, BalanceFrame::pointer balance, Database& db){
+        auto asset = AssetHelper::Instance()->mustLoadAsset(balance->getAsset(), db);
+
+        if (asset->isRequireVerification() && account->getAccountType() == AccountType::NOT_VERIFIED)
             return AccountManager::Result::REQUIRED_VERIFICATION;
 
-        if (receivingAsset->isRequireKYC()){
-            if (receiver->getAccountType() == AccountType::NOT_VERIFIED ||
-                receiver->getAccountType() == AccountType::VERIFIED)
+        if (asset->isRequireKYC()){
+            if (account->getAccountType() == AccountType::NOT_VERIFIED ||
+            account->getAccountType() == AccountType::VERIFIED)
                 return AccountManager::Result::REQUIRED_KYC;
         }
 

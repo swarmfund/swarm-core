@@ -66,11 +66,6 @@ struct LedgerEntryIdCmp
                 auto const &bb = b.balance();
                 return ab.balanceID < bb.balanceID;
             }
-            case LedgerEntryType::PAYMENT_REQUEST: {
-                auto const &ab = a.paymentRequest();
-                auto const &bb = b.paymentRequest();
-                return ab.paymentID < bb.paymentID;
-            }
             case LedgerEntryType::ASSET: {
                 auto const &aa = a.asset();
                 auto const &ba = b.asset();
@@ -122,11 +117,6 @@ struct LedgerEntryIdCmp
                 if (bp.offerID < ap.offerID)
                     return false;
                 return ap.ownerID < bp.ownerID;
-            }
-            case LedgerEntryType::INVOICE: {
-                auto const &ai = a.invoice();
-                auto const &bi = b.invoice();
-                return ai.invoiceID < bi.invoiceID;
             }
             case LedgerEntryType::REVIEWABLE_REQUEST: {
                 auto const &ar = a.reviewableRequest();
@@ -195,6 +185,12 @@ struct LedgerEntryIdCmp
                     return false;
                 }
                 return asa.participantBalanceID < bsa.participantBalanceID;
+            }
+            case LedgerEntryType::CONTRACT:
+            {
+                auto const& acon = a.contract();
+                auto const& bcon = b.contract();
+                return acon.contractID < bcon.contractID;
             }
             default:
             {

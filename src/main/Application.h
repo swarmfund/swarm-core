@@ -263,6 +263,10 @@ class Application
     virtual uint64 getWithdrawalDetailsMaxLength() const = 0;
 	virtual uint64 getIssuanceDetailsMaxLength() const = 0;
 	virtual uint64 getRejectReasonMaxLength() const = 0;
+    virtual uint64 getMaxContractDetailLength() const = 0;
+    virtual uint64 getMaxContractInitialDetailLength() const = 0;
+    virtual uint64 getMaxContractsForContractor() const = 0;
+    virtual uint64 getMaxInvoiceDetailLength() const = 0;
     virtual int64 getMaxInvoicesForReceiverAccount() const = 0;
     virtual int32 getKYCSuperAdminMask() const = 0;
 

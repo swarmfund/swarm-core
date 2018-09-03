@@ -66,10 +66,11 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
 
     SECTION("malformed")
     {
-        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::MALFORMED);
+        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp,
+                                                   ManageLimitsResultCode::CANNOT_CREATE_FOR_ACC_ID_AND_ACC_TYPE);
         manageLimitsOp.details.limitsCreateDetails().annualOut = 0;
         manageLimitsOp.details.limitsCreateDetails().accountType = nullptr;
-        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::MALFORMED);
+        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::INVALID_LIMITS);
     }
     SECTION("success accountID limits setting")
     {

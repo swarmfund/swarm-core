@@ -7,6 +7,7 @@
 #include "LedgerDelta.h"
 #include "xdrpp/printer.h"
 #include "AssetFrame.h"
+#include "AssetHelper.h"
 
 using namespace soci;
 using namespace std;
@@ -74,12 +75,10 @@ SaleFrame::ensureValid(SaleEntry const& oe)
         {
             throw runtime_error("details is invalid");
         }
-
         if (oe.currentCapInBase > oe.maxAmountToBeSold)
         {
             throw runtime_error("current cap in base exceeds maxAmountToBeSold");
         }
-
         if (oe.quoteAssets.empty())
         {
             throw runtime_error("Quote assets is empty");
@@ -274,7 +273,6 @@ uint64_t SaleFrame::getBaseAmountForCurrentCap(AssetCode const& asset)
     }
 
     return baseAmount;
-
 }
 
 uint64_t SaleFrame::getBaseAmountForCurrentCap()
@@ -299,7 +297,6 @@ bool SaleFrame::tryLockBaseAsset(uint64_t amount)
     {
         return true;
     }
-
     if (!safeSum(mSale.currentCapInBase, amount, mSale.currentCapInBase))
     {
         return false;
@@ -421,7 +418,7 @@ void SaleFrame::setSaleType(SaleEntry& sale, const SaleType saleType)
         return;
     default:
         CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected ledger version of sale. version: " << xdr::xdr_to_string(version);
-        throw runtime_error("Unexpected ledger verison of sale");
+        throw runtime_error("Unexpected ledger version of sale");
 
     }
 }
@@ -436,7 +433,7 @@ void SaleFrame::setSaleState(SaleEntry & sale, SaleState saleState)
         if (saleState == SaleState::NONE) {
             return;
         }
-        throw std::runtime_error("Unexpected action: not able to set state for sale of unepxected version");
+        throw std::runtime_error("Unexpected action: not able to set state for sale of unexpected version");
     }
 }
 

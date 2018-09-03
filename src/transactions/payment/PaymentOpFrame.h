@@ -5,7 +5,6 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/OperationFrame.h"
-#include "ledger/InvoiceFrame.h"
 #include "ledger/BalanceHelper.h"
 
 namespace stellar
@@ -21,7 +20,6 @@ class PaymentOpFrame : public OperationFrame
     PaymentOp const& mPayment;
     int64_t sourceSent;
     int64_t destReceived;
-    InvoiceFrame::pointer invoiceFrame;
     
 	std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
 	SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,

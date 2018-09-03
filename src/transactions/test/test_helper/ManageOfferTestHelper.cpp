@@ -143,11 +143,11 @@ ManageOfferResult ManageOfferTestHelper::applyManageOffer(Account& source,
     const auto isCreate = manageOfferOp.offerID == 0;
     if (isCreate)
     {
-        ensureCreateSuccess(source, manageOfferOp, manageOfferResult.success(), stateBeforeOp);
+        ManageOfferTestHelper::ensureCreateSuccess(source, manageOfferOp, manageOfferResult.success(), stateBeforeOp);
         return manageOfferResult;
     }
 
-    ensureDeleteSuccess(source, manageOfferOp, manageOfferResult.success(), stateBeforeOp);
+    ManageOfferTestHelper::ensureDeleteSuccess(source, manageOfferOp, manageOfferResult.success(), stateBeforeOp);
     return manageOfferResult;
 }
 

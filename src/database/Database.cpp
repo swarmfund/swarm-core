@@ -21,13 +21,11 @@
 #include "ledger/EntryHelperLegacy.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/PaymentRequestFrame.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/StatisticsFrame.h"
 #include "ledger/AssetPairFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/OfferFrame.h"
-#include "ledger/InvoiceFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
@@ -53,6 +51,8 @@
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/StatisticsV2Helper.h>
 #include <ledger/PendingStatisticsHelper.h>
+#include <ledger/ReviewableRequestHelper.h>
+#include <ledger/ContractHelper.h>
 #include "ledger/SaleHelper.h"
 #include "ledger/ReferenceHelper.h"
 #include "ledger/SaleAnteHelper.h"
@@ -89,10 +89,15 @@ enum databaseSchemaVersion : unsigned long {
     EXTERNAL_POOL_FIX_PARENT_DB_TYPE = 13,
     ADD_SALE_ANTE = 14,
     ADD_SALE_STATE = 15,
-    ADD_LIMITS_V2 = 16
+    ADD_LIMITS_V2 = 16,
+    ADD_REVIEWABLE_REQUEST_TASKS = 17,
+    ADD_CONTRACTS = 18,
+    REVIEWABLE_REQUEST_FIX_DEFAULT_VALUE = 19,
+    REVIEWABLE_REQUEST_FIX_EXTERNAL_DETAILS = 20,
+    ADD_CUSTOMER_DETAILS_TO_CONTRACT = 21
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_LIMITS_V2;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT;
 
 static void
 setSerializable(soci::session& sess)
@@ -192,6 +197,22 @@ DatabaseImpl::applySchemaUpgrade(unsigned long vers)
             LimitsV2Helper::Instance()->dropAll(*this);
             StatisticsV2Helper::Instance()->dropAll(*this);
             PendingStatisticsHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::ADD_REVIEWABLE_REQUEST_TASKS:
+            ReviewableRequestHelper::Instance()->addTasks(*this);
+            PendingStatisticsHelper::Instance()->restrictUpdateDelete(*this);
+            break;
+        case databaseSchemaVersion::ADD_CONTRACTS:
+            ContractHelper::Instance()->dropAll(*this);
+            break;
+        case databaseSchemaVersion::REVIEWABLE_REQUEST_FIX_DEFAULT_VALUE:
+            ReviewableRequestHelper::Instance()->changeDefaultExternalDetails(*this);
+            break;
+        case databaseSchemaVersion::REVIEWABLE_REQUEST_FIX_EXTERNAL_DETAILS:
+            ReviewableRequestHelper::Instance()->setEmptyStringToExternalDetailsInsteadNull(*this);
+            break;
+        case databaseSchemaVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT:
+            ContractHelper::Instance()->addCustomerDetails(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

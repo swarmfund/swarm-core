@@ -23,16 +23,12 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/PaymentRequestFrame.h"
-#include "ledger/PaymentRequestHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
 #include "ledger/OfferFrame.h"
 #include "ledger/OfferHelper.h"
-#include "ledger/InvoiceFrame.h"
-#include "ledger/InvoiceHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDHelperLegacy.h"
 #include "ledger/KeyValueEntryFrame.h"
@@ -49,6 +45,7 @@
 #include "StatisticsV2Helper.h"
 #include "PendingStatisticsHelper.h"
 #include "SaleAnteHelper.h"
+#include "ContractHelper.h"
 
 namespace stellar
 {
@@ -182,9 +179,7 @@ namespace stellar
 		{ LedgerEntryType::BALANCE, BalanceHelper::Instance() },
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID, ExternalSystemAccountIDHelperLegacy::Instance() },
 		{ LedgerEntryType::FEE, FeeHelper::Instance() },
-		{ LedgerEntryType::INVOICE, InvoiceHelper::Instance() },
 		{ LedgerEntryType::OFFER_ENTRY, OfferHelper::Instance() },
-		{ LedgerEntryType::PAYMENT_REQUEST, PaymentRequestHelper::Instance() },
 		{ LedgerEntryType::REFERENCE_ENTRY, ReferenceHelper::Instance() },
 		{ LedgerEntryType::REVIEWABLE_REQUEST, ReviewableRequestHelper::Instance() },
 		{ LedgerEntryType::STATISTICS, StatisticsHelper::Instance() },
@@ -196,6 +191,7 @@ namespace stellar
         { LedgerEntryType::LIMITS_V2, LimitsV2Helper::Instance() },
 		{ LedgerEntryType::STATISTICS_V2, StatisticsV2Helper::Instance() },
 		{ LedgerEntryType::PENDING_STATISTICS, PendingStatisticsHelper::Instance() },
-		{ LedgerEntryType::SALE_ANTE, SaleAnteHelper::Instance()}
+		{ LedgerEntryType::SALE_ANTE, SaleAnteHelper::Instance()},
+		{ LedgerEntryType::CONTRACT, ContractHelper::Instance() }
 	};
 }

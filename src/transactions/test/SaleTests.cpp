@@ -296,16 +296,18 @@ TEST_CASE("Sale", "[tx][sale]")
 
     SECTION("Simple happy path for test fee")
     {
-        auto fee = setFeesTestHelper.createFeeEntry(FeeType::OFFER_FEE, quoteAsset, 0, 1 * ONE);
+        auto fee = setFeesTestHelper.createFeeEntry(FeeType::INVEST_FEE, quoteAsset, 0, 1 * ONE);
         setFeesTestHelper.applySetFeesTx(root, &fee, false);
-        fee = setFeesTestHelper.createFeeEntry(FeeType::CAPITAL_DEPLOYMENT, quoteAsset, 0, 1 * ONE);
+        fee = setFeesTestHelper.createFeeEntry(FeeType::OFFER_FEE, quoteAsset, 0, 1 * ONE);
+        setFeesTestHelper.applySetFeesTx(root, &fee, false);
+        fee = setFeesTestHelper.createFeeEntry(FeeType::CAPITAL_DEPLOYMENT_FEE, quoteAsset, 0, 1 * ONE);
         setFeesTestHelper.applySetFeesTx(root, &fee, false);
 
         saleRequest.hardCap = 200 * ONE;
         saleRequest.softCap = 100 * ONE;
 
         auto syndicateAccountFrame = std::make_shared<AccountFrame>(syndicatePubKey);
-        auto syndicateFee = FeeHelper::Instance()->loadForAccount(FeeType::CAPITAL_DEPLOYMENT,
+        auto syndicateFee = FeeHelper::Instance()->loadForAccount(FeeType::CAPITAL_DEPLOYMENT_FEE,
                 quoteAsset, FeeFrame::SUBTYPE_ANY, syndicateAccountFrame, saleRequest.hardCap, db);
         uint64_t feeToPayBySyndicate = 0;
         REQUIRE(syndicateFee->calculatePercentFee(saleRequest.hardCap, feeToPayBySyndicate, ROUND_UP));
@@ -313,13 +315,13 @@ TEST_CASE("Sale", "[tx][sale]")
         uint64_t feeToPay(2 * ONE);
         auto result = saleRequestHelper.createApprovedSale(root, syndicate, saleRequest);
         auto saleID = result.success().ext.extendedResult().typeExt.saleExtended().saleID;
-        participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, saleRequest.hardCap, price, feeToPay);
+        participationHelper.addNewParticipant(root, saleID, baseAsset, quoteAsset, saleRequest.hardCap, price, feeToPay, &feeToPay);
 
         checkStateHelper.applyCheckSaleStateTx(root, saleID);
 
         auto commissionBalance = BalanceHelper::Instance()->loadBalance(app.getCommissionID(),  quoteAsset, db, nullptr);
         REQUIRE(!!commissionBalance);
-        REQUIRE(commissionBalance->getAmount() == feeToPay + feeToPayBySyndicate);
+        REQUIRE(commissionBalance->getAmount() == 2 * feeToPay + feeToPayBySyndicate);
     }
 
     SECTION("Happy path")
@@ -331,7 +333,7 @@ TEST_CASE("Sale", "[tx][sale]")
         LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
         EntryHelperProvider::storeAddEntry(delta, db, sellerFeeFrame->mEntry);
         EntryHelperProvider::storeAddEntry(delta, db, participantsFeeFrame->mEntry);
-        auto fee = setFeesTestHelper.createFeeEntry(FeeType::CAPITAL_DEPLOYMENT, quoteAsset, 0, 1 * ONE);
+        auto fee = setFeesTestHelper.createFeeEntry(FeeType::CAPITAL_DEPLOYMENT_FEE, quoteAsset, 0, 1 * ONE);
         setFeesTestHelper.applySetFeesTx(root, &fee, false);
 
         uint64_t quotePreIssued(0);

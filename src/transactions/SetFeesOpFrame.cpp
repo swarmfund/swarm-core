@@ -223,7 +223,7 @@ namespace stellar {
     }
 
     bool SetFeesOpFrame::isCapitalDeploymentFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
-        if (fee.feeType != FeeType::CAPITAL_DEPLOYMENT)
+        if (fee.feeType != FeeType::CAPITAL_DEPLOYMENT_FEE)
         {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected fee type: expected capital deployment fee type, "
                                                    << "got: " + xdr::xdr_to_string(fee.feeType);
@@ -358,7 +358,7 @@ namespace stellar {
             case FeeType::INVEST_FEE:
                 isValidFee = isInvestFeeValid(*mSetFees.fee, app.getMetrics());
                 break;
-            case FeeType::CAPITAL_DEPLOYMENT:
+            case FeeType::CAPITAL_DEPLOYMENT_FEE:
                 isValidFee = isCapitalDeploymentFeeValid(*mSetFees.fee, app.getMetrics());
                 break;
             default:

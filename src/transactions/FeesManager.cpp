@@ -38,7 +38,7 @@ FeeManager::calculateCapitalDeploymentFeeForAccount(const AccountFrame::pointer 
                                                     AssetCode const& quoteAsset,
                                                     uint64_t const quoteAmount, Database& db)
 {
-    return calculateFeeForAccount(account, FeeType::CAPITAL_DEPLOYMENT, quoteAsset,
+    return calculateFeeForAccount(account, FeeType::CAPITAL_DEPLOYMENT_FEE, quoteAsset,
                                   FeeFrame::SUBTYPE_ANY, quoteAmount, db);
 }
 }

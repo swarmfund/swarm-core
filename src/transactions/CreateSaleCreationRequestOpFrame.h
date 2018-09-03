@@ -44,7 +44,8 @@ public:
 
     bool doCheckValid(Application& app) override;
 
-    static bool ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest, AccountID const& source);
+    static bool ensureEnoughAvailable(Application& app, const SaleCreationRequest& saleCreationRequest,
+            const AssetFrame::pointer baseAsset);
 
     static CreateSaleCreationRequestResultCode doCheckValid(Application& app,
                                                             SaleCreationRequest const& saleCreationRequest, AccountID const& source);

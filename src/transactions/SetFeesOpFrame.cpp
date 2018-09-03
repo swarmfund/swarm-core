@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/xdrpp/xdrpp/printer.h>
 #include "transactions/SetFeesOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
@@ -221,6 +222,23 @@ namespace stellar {
         return true;
     }
 
+    bool SetFeesOpFrame::isCapitalDeploymentFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
+        if (fee.feeType != FeeType::CAPITAL_DEPLOYMENT_FEE)
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected fee type: expected capital deployment fee type, "
+                                                   << "got: " + xdr::xdr_to_string(fee.feeType);
+            throw runtime_error("Unexpected fee type: expected capital deployment fee type");
+        }
+
+        if (!mustValidFeeAmounts(fee, metrics))
+            return false;
+
+        if (!mustEmptyFixed(fee, metrics))
+            return false;
+
+        return mustDefaultSubtype(fee, metrics);
+    }
+
     bool SetFeesOpFrame::isEmissionFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
         assert(fee.feeType == FeeType::ISSUANCE_FEE);
 
@@ -339,6 +357,9 @@ namespace stellar {
                 break;
             case FeeType::INVEST_FEE:
                 isValidFee = isInvestFeeValid(*mSetFees.fee, app.getMetrics());
+                break;
+            case FeeType::CAPITAL_DEPLOYMENT_FEE:
+                isValidFee = isCapitalDeploymentFeeValid(*mSetFees.fee, app.getMetrics());
                 break;
             default:
                 innerResult().code(SetFeesResultCode::INVALID_FEE_TYPE);

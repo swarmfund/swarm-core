@@ -27,6 +27,7 @@ public:
 class ReviewContractRequestHelper : public ReviewRequestHelper
 {
 public:
+    longstring customerDetails;
 
     explicit ReviewContractRequestHelper(TestManager::pointer testManager);
 
@@ -36,6 +37,12 @@ public:
                                              ReviewRequestOpAction action, std::string rejectReason,
                                              ReviewRequestResultCode expectedResult =
                                              ReviewRequestResultCode::SUCCESS) override;
+
+    TransactionFramePtr createReviewRequestTx(Account& source,
+                                              uint64_t requestID, Hash requestHash,
+                                              ReviewableRequestType requestType,
+                                              ReviewRequestOpAction action,
+                                              std::string rejectReason) override;
 };
 
 }

@@ -60,10 +60,22 @@ ManageContractRequestOpFrame::doApply(Application& app, LedgerDelta& delta, Ledg
 
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto reviewableRequest = reviewableRequestHelper->loadRequest(mManageContractRequest.details.requestID(), db);
-    if (!reviewableRequest || reviewableRequest->getRequestType() != ReviewableRequestType::INVOICE)
+
+    if (ledgerManager.shouldUse(LedgerVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT))
     {
-        innerResult().code(ManageContractRequestResultCode::NOT_FOUND);
-        return false;
+        if (!reviewableRequest || reviewableRequest->getRequestType() != ReviewableRequestType::CONTRACT)
+        {
+            innerResult().code(ManageContractRequestResultCode::NOT_FOUND);
+            return false;
+        }
+    }
+    else
+    {
+        if (!reviewableRequest || reviewableRequest->getRequestType() != ReviewableRequestType::INVOICE)
+        {
+            innerResult().code(ManageContractRequestResultCode::NOT_FOUND);
+            return false;
+        }
     }
 
     if (!(reviewableRequest->getRequestor() == getSourceID()))

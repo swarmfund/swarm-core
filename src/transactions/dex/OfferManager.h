@@ -28,5 +28,5 @@ public:
     // Calculates quote amount. Returns 0 if fails due to overflow
     static int64_t calculateQuoteAmount(int64_t const baseAmount, int64_t const price);
 
-};
+    };
 }

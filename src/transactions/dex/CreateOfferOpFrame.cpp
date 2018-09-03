@@ -149,6 +149,17 @@ bool CreateOfferOpFrame::lockSellingAmount(OfferEntry const& offer)
            SUCCESS;
 }
 
+FeeManager::FeeResult
+CreateOfferOpFrame::obtainCalculatedFeeForAccount(int64_t amount, LedgerManager& lm, Database& db) const
+{
+    if (lm.shouldUse(LedgerVersion::ADD_CAPITAL_DEPLOYMENT_FEE_TYPE) && isCapitalDeployment)
+    {
+        return FeeManager::calculateCapitalDeploymentFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), amount, db);
+    }
+
+    return FeeManager::calculateOfferFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), amount, db);
+}
+
 bool
 CreateOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
                             LedgerManager& ledgerManager)
@@ -169,7 +180,8 @@ CreateOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     auto& offer = offerFrame->getOffer();
     offer.createdAt = ledgerManager.getCloseTime();
-    const auto feeResult = FeeManager::calculateOfferFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), offer.quoteAmount, db);
+    auto const feeResult = obtainCalculatedFeeForAccount(offer.quoteAmount, ledgerManager, db);
+
     if (feeResult.isOverflow)
     {
         innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);

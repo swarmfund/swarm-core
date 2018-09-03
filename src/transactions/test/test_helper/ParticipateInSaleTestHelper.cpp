@@ -7,7 +7,10 @@
 #include "ledger/OfferHelper.h"
 #include "ledger/SaleHelper.h"
 #include "test/test_marshaler.h"
-
+#include "IssuanceRequestHelper.h"
+#include "ManageBalanceTestHelper.h"
+#include "CreateAccountTestHelper.h"
+#include "transactions/dex/OfferManager.h"
 namespace stellar
 {
 namespace txtest
@@ -77,5 +80,41 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
 
     return ManageOfferTestHelper::ensureCreateSuccess(source, op, success, stateBeforeTx);
 }
+
+    uint64_t ParticipateInSaleTestHelper::addNewParticipant(Account& root, Account& participant, const uint64_t saleID, const AssetCode baseAsset,
+                               const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee, const uint64_t* saleAnteAmount)
+    {
+        IssuanceRequestHelper issuanceRequestHelper(mTestManager);
+        auto quoteBalance = BalanceHelper::Instance()->loadBalance(participant.key.getPublicKey(), quoteAsset, mTestManager->getDB(), nullptr);
+        REQUIRE(!!quoteBalance);
+        // issue 1 more to ensure that it is enough to cover rounded up base amount
+        uint32_t allTasks = 0;
+        if (!!saleAnteAmount) {
+            issuanceRequestHelper.authorizePreIssuedAmount(root, root.key, quoteAsset, quoteAssetAmount + *saleAnteAmount + fee + 1, root);
+            issuanceRequestHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + *saleAnteAmount + fee + 1, quoteBalance->getBalanceID(),
+                                                                          SecretKey::random().getStrKeyPublic(), &allTasks);
+        } else {
+            issuanceRequestHelper.authorizePreIssuedAmount(root, root.key, quoteAsset, quoteAssetAmount + fee + 1, root);
+            issuanceRequestHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteAssetAmount + fee + 1, quoteBalance->getBalanceID(),
+                                                                          SecretKey::random().getStrKeyPublic(), &allTasks);
+        }
+
+        auto accountID = participant.key.getPublicKey();
+        auto balanceCreationResult = ManageBalanceTestHelper(mTestManager).applyManageBalanceTx(participant, accountID, baseAsset);
+        const auto baseAssetAmount = bigDivide(quoteAssetAmount, ONE, price, ROUND_UP);
+        auto manageOfferOp = OfferManager::buildManageOfferOp(balanceCreationResult.success().balanceID, quoteBalance->getBalanceID(),
+                                                              true, baseAssetAmount, price, fee, 0, saleID);
+        auto result = applyManageOffer(participant, manageOfferOp);
+        return result.success().offer.offer().offerID;
+    }
+
+    uint64_t ParticipateInSaleTestHelper::addNewParticipant(Account& root, const uint64_t saleID, const AssetCode baseAsset,
+                               const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee, const uint64_t* saleAnteAmount)
+    {
+        auto account = Account{ SecretKey::random(), 0 };
+        CreateAccountTestHelper(mTestManager).applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
+        return addNewParticipant(root, account, saleID, baseAsset, quoteAsset, quoteAssetAmount, price, fee, saleAnteAmount);
+    }
+
 }
 }

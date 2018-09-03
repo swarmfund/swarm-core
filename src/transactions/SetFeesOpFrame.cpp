@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/xdrpp/xdrpp/printer.h>
 #include "transactions/SetFeesOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
@@ -223,6 +224,18 @@ namespace stellar {
         return true;
     }
 
+    bool SetFeesOpFrame::isCapitalDeploymentFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
+        FeeFrame::checkFeeType(fee, FeeType::CAPITAL_DEPLOYMENT_FEE);
+
+        if (!mustValidFeeAmounts(fee, metrics))
+            return false;
+
+        if (!mustEmptyFixed(fee, metrics))
+            return false;
+
+        return mustDefaultSubtype(fee, metrics);
+    }
+
     bool SetFeesOpFrame::isEmissionFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
         FeeFrame::checkFeeType(fee, FeeType::ISSUANCE_FEE);
 
@@ -362,6 +375,9 @@ namespace stellar {
                 break;
             case FeeType::OPERATION_FEE:
                 isValidFee = isOperationFeeValid(*mSetFees.fee, app.getMetrics());
+                break;
+            case FeeType::CAPITAL_DEPLOYMENT_FEE:
+                isValidFee = isCapitalDeploymentFeeValid(*mSetFees.fee, app.getMetrics());
                 break;
             default:
                 innerResult().code(SetFeesResultCode::INVALID_FEE_TYPE);

@@ -26,6 +26,7 @@ public:
     ContractHelper(ContractHelper const&) = delete;
     ContractHelper& operator=(ContractHelper const&) = delete;
 
+    void addCustomerDetails(Database &db);
     void dropAll(Database& db) override;
     void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
     void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;

@@ -31,6 +31,7 @@ namespace stellar
 
         void addTasks(Database& db);
         void changeDefaultExternalDetails(Database &db);
+        void setEmptyStringToExternalDetailsInsteadNull(Database &db);
 
         void dropAll(Database& db) override;
         void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;

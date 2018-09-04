@@ -290,6 +290,17 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
         return false;
     }
 
+    const auto &policyDetails = getPolicyDetails(db, delta);
+    if (!policyDetails.empty())
+    {
+        const bool isAllow = IdentityPolicyChecker::doCheckPolicies(mSourceAccount->getID(), policyDetails, db, delta);
+
+        if (!isAllow)
+            app.getMetrics().NewMeter({ "operation", "rejected", "due-to-policy" }, "operation").Mark();
+
+        return isAllow;
+    }
+
     if (!forApply)
     {
         // safety: operations should not rely on ledger state as
@@ -305,17 +316,6 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 		app.getMetrics().NewMeter({ "operation", "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
         return isValid;
 	}
-
-    const auto &policyDetails = getPolicyDetails(db, delta);
-	if (!policyDetails.empty())
-    {
-        const bool isAllow = IdentityPolicyChecker::doCheckPolicies(app.getMasterID(), policyDetails, db, delta);
-
-        if (!isAllow)
-            app.getMetrics().NewMeter({ "operation", "rejected", "due-to-policy" }, "operation").Mark();
-
-        return isAllow;
-    }
 
     return true;
 }

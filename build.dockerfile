@@ -15,7 +15,7 @@ RUN true \
       libpq-dev \
       libssl1.0-dev \
       pkg-config \
-      make 
+      make
 
 ARG RSA_KEY
 WORKDIR /build
@@ -43,7 +43,7 @@ COPY --from=0 /build/entrypoint.sh /entrypoint.sh
 
 RUN true \
  && apt update \
- && apt install --no-install-recommends -y libpq5 libssl1.0.0 awscli \
+ && apt install --no-install-recommends -y libpq5 libssl1.0.0 awscli s3cmd \
  && rm -rf /var/lib/apt/lists/* /var/log/*.log /var/log/*/*.log \
  && mkdir /data \
  && chmod +x /entrypoint.sh 

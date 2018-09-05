@@ -19,7 +19,7 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("KV limits", "[tx][withdraw][limits]")
+TEST_CASE("KV limits", "[tx][withdraw][limits][manage_key_value]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
     VirtualClock clock;
@@ -89,7 +89,7 @@ TEST_CASE("KV limits", "[tx][withdraw][limits]")
             manageKVHelper.setKey("WithdrawLowerBound:USD");
             manageKVHelper.setValue(lowerLimits);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
-            auto withdrawResult = withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
                     CreateWithdrawalRequestResultCode::SUCCESS);
         }
         SECTION("Reject")
@@ -98,8 +98,13 @@ TEST_CASE("KV limits", "[tx][withdraw][limits]")
             manageKVHelper.setKey("WithdrawLowerBound:USD");
             manageKVHelper.setValue(lowerLimits);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
-            auto withdrawResult = withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
                     CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
+        }
+
+        SECTION("KV limits not set")
+        {
+            withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest);
         }
     }
 

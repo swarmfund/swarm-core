@@ -4,6 +4,7 @@
 
 #include <ledger/StatisticsHelper.h>
 #include "transactions/CreateWithdrawalRequestOpFrame.h"
+#include "ledger/KeyValueHelper.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/metrics_registry.h"
@@ -228,6 +229,10 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         innerResult().code(CreateWithdrawalRequestResultCode::ASSET_IS_NOT_WITHDRAWABLE);
         return false;
     }
+    auto lowerBound = KeyValueHelper::Instance()->loadKeyValue("withdraw_lower_bound", db, &delta);
+    if (!checkLowerBound(lowerBound)){
+        innerResult().code(CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
+    }
 
     AccountManager accountManager(app, db, delta, ledgerManager);
     if (!isFeeMatches(accountManager, balanceFrame))
@@ -240,6 +245,7 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         return false;
     }
+
 
     if (!tryLockBalance(balanceFrame))
     {
@@ -348,6 +354,19 @@ bool CreateWithdrawalRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statis
             throw std::runtime_error("Unexpected state from statisticsV2Processor when updating statsV2");
     }
 
+}
+
+bool CreateWithdrawalRequestOpFrame::checkLowerBound(KeyValueEntryFrame::pointer lowerBound)
+{
+    if (!lowerBound){
+        return true;
+    }
+
+    auto lowerBoundInUniversal = lowerBound->getKeyValue().value.stringValue();
+    auto& request = mCreateWithdrawalRequest.request;
+    if (request.universalAmount < lowerBoundInUniversal){
+        return false;
+    }
 }
 
 }

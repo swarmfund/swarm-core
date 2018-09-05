@@ -43,7 +43,7 @@ class CreateWithdrawalRequestOpFrame : public OperationFrame
     bool tryAddStatsV2(StatisticsV2Processor& statisticsV2Processor, const BalanceFrame::pointer balance,
                        const uint64_t amountToAdd, uint64_t& universalAmount, uint64_t requestID);
 
-    bool checkLowerBound(KeyValueEntryFrame::pointer lowerBound);
+    bool checkLowerBound(Database &db);
 
     ReviewableRequestFrame::pointer
     createRequest(LedgerDelta& delta, LedgerManager& ledgerManager, Database& db,

@@ -229,8 +229,9 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         innerResult().code(CreateWithdrawalRequestResultCode::ASSET_IS_NOT_WITHDRAWABLE);
         return false;
     }
-    auto lowerBound = KeyValueHelper::Instance()->loadKeyValue("withdraw_lower_bound", db, &delta);
-    if (!checkLowerBound(lowerBound)){
+
+    auto lowerBound = KeyValueHelper::Instance()->loadKeyValue("WithdrawLower_bound", db, &delta);
+    if (!checkLowerBound(db)){
         innerResult().code(CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
     }
 
@@ -356,17 +357,21 @@ bool CreateWithdrawalRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statis
 
 }
 
-bool CreateWithdrawalRequestOpFrame::checkLowerBound(KeyValueEntryFrame::pointer lowerBound)
-{
-    if (!lowerBound){
+bool CreateWithdrawalRequestOpFrame::checkLowerBound(Database &db) {
+    auto lowerBound = KeyValueHelper::Instance()->loadKeyValue("WithdrawLowerBound", db);
+    if (!lowerBound) {
         return true;
     }
 
-    auto lowerBoundInUniversal = lowerBound->getKeyValue().value.stringValue();
-    auto& request = mCreateWithdrawalRequest.request;
-    if (request.universalAmount < lowerBoundInUniversal){
-        return false;
+    if (lowerBound.get()->getKeyValue().value.type() != KeyValueEntryType::UINT64) {
+        CLOG(WARNING, "WithdrawLowerBound") << "KeyValueEntryType: "
+                                                     << std::to_string(
+                                                             static_cast<int32>(lowerBound.get()->getKeyValue().value.type()));
+        return true;
     }
+
+    auto &request = mCreateWithdrawalRequest.request;
+    return lowerBound.get()->getKeyValue().value.ui64Value() < request.universalAmount;
 }
 
 }

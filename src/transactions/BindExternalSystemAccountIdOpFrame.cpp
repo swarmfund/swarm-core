@@ -35,6 +35,11 @@ BindExternalSystemAccountIdOpFrame::getSourceAccountDetails(
                          static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
+PolicyDetails BindExternalSystemAccountIdOpFrame::getPolicyDetails(Database &db, LedgerDelta *delta) const {
+    const AccountID accountID = mSourceAccount->getAccount().accountID;
+    return PolicyDetails{"bind-external", "bind"};
+}
+
 BindExternalSystemAccountIdOpFrame::BindExternalSystemAccountIdOpFrame(Operation const &op, OperationResult &res,
                                                                        TransactionFrame &parentTx)
         : OperationFrame(op, res, parentTx),

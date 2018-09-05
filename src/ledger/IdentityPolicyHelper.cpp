@@ -25,7 +25,7 @@ IdentityPolicyHelper::dropAll(Database& db)
            "("
            "id             BIGINT                 NOT NULL CHECK (id > 0),"
            "ownerid        VARCHAR(56)            NOT NULL,"
-           "priority       BIGINT                 NOT NULL CHECK (priority >= 0),"
+           "role           BIGINT                 NOT NULL CHECK (role >= 0),"
            "resource       TEXT                   NOT NULL,"
            "action         TEXT                   NOT NULL,"
            "effect         SMALLINT               NOT NULL CHECK (effect >= 0 AND effect <= 1),"

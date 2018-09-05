@@ -294,11 +294,11 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
     if (!policyDetails.empty())
     {
         const bool isAllow = IdentityPolicyChecker::doCheckPolicies(mSourceAccount->getID(), policyDetails, db, delta);
-
         if (!isAllow)
+        {
             app.getMetrics().NewMeter({ "operation", "rejected", "due-to-policy" }, "operation").Mark();
-
-        return isAllow;
+            return isAllow;
+        }
     }
 
     if (!forApply)

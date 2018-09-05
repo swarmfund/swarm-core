@@ -98,4 +98,27 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
 
         bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ERC20_TokenExternalSystemType);
     }
+    SECTION("Cannot proceed frame due to policy attachment")
+    {
+        manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
+                                                                                                ERC20_TokenExternalSystemType,
+                                                                                                "Some data");
+
+        bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ERC20_TokenExternalSystemType);
+
+        /*
+        auto actorWithAccType =
+                managePAHelper.createActorForAccountType(AccountType::GENERAL);
+        auto creationOpInput =
+                managePAHelper.createCreationOpInput(1, actorWithAccType);
+        auto account = Account { SecretKey::random(), Salt(0) };
+        auto const ERC20_TokenExternalSystemType = 4;
+        Operation op;
+        op.body.type(OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID);
+        auto& bindExternalSystemAccountId = op.body.bindExternalSystemAccountIdOp();
+        bindExternalSystemAccountId.externalSystemType = ERC20_TokenExternalSystemType;
+
+        TxHelper txHelper(testManager);
+        TransactionFramePtr bindExtSystemFrame = txHelper.txFromOperation(account, op, nullptr);*/
+    }
 }

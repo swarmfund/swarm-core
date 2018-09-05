@@ -11,25 +11,15 @@ struct PolicyDetails
 {
   private:
     bool isEmpty;
+    const std::string mResourceID;
+    const std::string mAction;
 
   public:
-    const std::vector<std::string> mResourceIDs;
-    const AccountID mPolicyOwner;
-    std::string mAction;
-    AccountID mInitiator;
-
     PolicyDetails() : isEmpty(true)
     {
     }
-    PolicyDetails(const std::vector<std::string>& resourceIDs,
-                  const AccountID &policyOwner,
-                  const std::string& action,
-                  const AccountID& initiator)
-        : mResourceIDs(resourceIDs)
-        , mPolicyOwner(policyOwner)
-        , mAction(action)
-        , mInitiator(initiator)
-        , isEmpty(false)
+    PolicyDetails(const std::string& resourceID, const std::string& action)
+        : mResourceID(resourceID), mAction(action), isEmpty(false)
     {
     }
 
@@ -37,6 +27,18 @@ struct PolicyDetails
     empty() const
     {
         return isEmpty;
+    }
+
+    const std::string&
+    getResourceID() const
+    {
+        return mResourceID;
+    }
+
+    const std::string&
+    getAction() const
+    {
+        return mAction;
     }
 };
 

@@ -15,6 +15,7 @@ class BindExternalSystemAccountIdOpFrame : public OperationFrame
     BindExternalSystemAccountIdOp const& mBindExternalSystemAccountId;
 
     std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
+    PolicyDetails getPolicyDetails(Database &db, LedgerDelta *delta) const override;
     SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
                                           int32_t ledgerVersion) const override;
     int getExpiresAt(Database &db, LedgerManager &ledgerManager, int32 externalSystemType);

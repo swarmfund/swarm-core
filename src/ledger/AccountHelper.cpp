@@ -278,6 +278,11 @@ namespace stellar
 		AccountHelper::addKYCLevel(Database & db) {
 		db.getSession() << "ALTER TABLE accounts ADD kyc_level INT DEFAULT 0";
 	}
+	void AccountHelper::addAccountRole(Database& db)
+    {
+        db.getSession() << "ALTER TABLE accounts ADD account_role INT "
+                           "DEFAULT 0 CHECK (account_role >= 0)";
+    }
 	void
 	AccountHelper::dropAll(Database& db)
 	{
@@ -411,12 +416,13 @@ namespace stellar
 		AccountEntry& account = res->getAccount();
 
 		int32 accountType;
+		uint32 accountRole;
 		uint32 accountPolicies;
 		uint32 kycLevel;
 		int32_t accountVersion;
 		auto prep =
-			db.getPreparedStatement("SELECT recoveryid, thresholds, lastmodified, account_type, block_reasons,"
-				"referrer, policies, kyc_level, version "
+			db.getPreparedStatement("SELECT recoveryid, thresholds, lastmodified, account_type, account_role, "
+				"block_reasons, referrer, policies, kyc_level, version "
 				"FROM   accounts "
 				"WHERE  accountid=:v1");
 		auto& st = prep.statement();
@@ -424,6 +430,7 @@ namespace stellar
 		st.exchange(into(thresholds));
 		st.exchange(into(res->mEntry.lastModifiedLedgerSeq));
 		st.exchange(into(accountType));
+		st.exchange(into(accountRole));
 		st.exchange(into(account.blockReasons));
 		st.exchange(into(referrer));
 		st.exchange(into(accountPolicies));
@@ -445,6 +452,7 @@ namespace stellar
 		account.ext.v((LedgerVersion)accountVersion);
 		account.policies = accountPolicies;
 		res->setKYCLevel(kycLevel);
+		res->setAccountRole(accountRole);
 		if (referrer != "")
 			account.referrer.activate() = PubKeyUtils::fromStrKey(referrer);
 		bn::decode_b64(thresholds.begin(), thresholds.end(),

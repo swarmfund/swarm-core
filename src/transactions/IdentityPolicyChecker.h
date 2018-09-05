@@ -24,10 +24,6 @@ class IdentityPolicyChecker
   private:
     static bool checkPolicy(IdentityPolicyFrame::pointer policy,
                             uint64_t& lastPriority);
-    static std::vector<IdentityPolicyFrame::pointer> loadPolicies(const AccountID &masterID,
-                                                                  const PolicyDetails &policyDetails,
-                                                                  Database &db,
-                                                                  LedgerDelta* delta = nullptr);
 };
 
 } // namespace stellar

@@ -211,6 +211,7 @@ Database::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_POLICY_ATTACHMENT:
             PolicyAttachmentHelper::Instance()->dropAll(*this);
+            AccountHelper::Instance()->addAccountRole(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

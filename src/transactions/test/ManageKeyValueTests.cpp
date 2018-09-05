@@ -26,7 +26,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
 
     ManageKeyValueTestHelper testHelper(testManager);
     testHelper.setKey(key);
-    testHelper.setValue(30);
+    testHelper.setValue((uint32)30);
 
     auto keyValueHelper = KeyValueHelper::Instance();
 
@@ -64,7 +64,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
         SECTION("Can update after create") {
             auto kvFrame = keyValueHelper->loadKeyValue(key, testManager->getDB());
             REQUIRE(!!kvFrame);
-            testHelper.setValue(40);
+            testHelper.setValue((uint32)40);
             testHelper.doApply(app, ManageKVAction::PUT, true);
         }
 

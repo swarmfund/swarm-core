@@ -21,6 +21,7 @@ namespace stellar{
             ManageKeyValueTestHelper* setKey(longstring key);
 
             ManageKeyValueTestHelper* setValue(uint32 value);
+            ManageKeyValueTestHelper* setValue(uint64 value);
             ManageKeyValueTestHelper* setValue(std::string value);
 
             ManageKeyValueTestHelper* setResult(ManageKeyValueResultCode resultCode);

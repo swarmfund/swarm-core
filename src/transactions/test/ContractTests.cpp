@@ -140,7 +140,23 @@ TEST_CASE("Contract", "[tx][contract]")
         auto result = manageContractRequestTestHelper.applyManageContractRequest(recipient, createContractRequestOp);
         auto requestID = result.success().details.response().requestID;
 
+        SECTION("Approve contract request without customer details")
+        {
+            auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(payer, requestID,
+                                                                                 ReviewRequestOpAction::APPROVE, "");
+            auto contractID = reviewResult.success().ext.contractID();
+            auto contractHelper = ContractHelper::Instance();
+            auto contractFrame = contractHelper->loadContract(contractID, db);
+            REQUIRE(!!contractFrame);
+            REQUIRE(contractFrame->getContractor() == recipient.key.getPublicKey());
+            REQUIRE(contractFrame->getCustomer() == payer.key.getPublicKey());
+            REQUIRE(contractFrame->getEscrow() == root.key.getPublicKey());
+            REQUIRE(contractFrame->getStartTime() == startTime);
+            REQUIRE(contractFrame->getEndTime() == endTime);
+        }
+
         SECTION("Approve contract request") {
+            reviewContractRequestHelper.customerDetails = "Some details, all okay.";
             auto reviewResult = reviewContractRequestHelper.applyReviewRequestTx(payer, requestID,
                                                                                  ReviewRequestOpAction::APPROVE, "");
             auto contractID = reviewResult.success().ext.contractID();
@@ -243,6 +259,9 @@ TEST_CASE("Contract", "[tx][contract]")
                                                                                         "Some reason");
                     manageContractTestHelper.applyManageContractTx(recipient, startDisputeOp);
 
+                    auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(contractID, details);
+                    manageContractTestHelper.applyManageContractTx(root, addDetailsOp);
+
                     SECTION("Resolve dispute (revert)") {
                         auto resolveDisputeOp = manageContractTestHelper.createResolveDisputeOp(contractID, true);
                         manageContractTestHelper.applyManageContractTx(root, resolveDisputeOp);
@@ -260,6 +279,9 @@ TEST_CASE("Contract", "[tx][contract]")
                 auto startDisputeOp = manageContractTestHelper.createStartDisputeOp(contractID,
                                                                                     "Some reason");
                 manageContractTestHelper.applyManageContractTx(recipient, startDisputeOp);
+
+                auto addDetailsOp = manageContractTestHelper.createAddDetailsOp(contractID, details);
+                manageContractTestHelper.applyManageContractTx(root, addDetailsOp);
 
                 SECTION("Resolve dispute (revert)") {
                     auto resolveDisputeOp = manageContractTestHelper.createResolveDisputeOp(contractID, true);

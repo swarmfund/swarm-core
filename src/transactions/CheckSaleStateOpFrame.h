@@ -6,6 +6,7 @@
 
 #include "transactions/OperationFrame.h"
 #include "ledger/SaleFrame.h"
+#include "FeesManager.h"
 
 namespace stellar
 {
@@ -41,7 +42,7 @@ class CheckSaleStateOpFrame : public OperationFrame
                                               int32_t ledgerVersion) const override;
 
     void issueBaseTokens(SaleFrame::pointer sale, AccountFrame::pointer saleOwnerAccount, Application& app,
-                        LedgerDelta& delta, Database& db, LedgerManager& lm, TokenAction action) const;
+                        LedgerDelta& delta, Database& db, LedgerManager& lm, TokenAction action = NOTHING) const;
 
     bool handleCancel(SaleFrame::pointer sale, LedgerManager& lm, LedgerDelta& delta, Database& db);
     bool handleClose(SaleFrame::pointer sale, Application& app, LedgerManager& lm, LedgerDelta& delta, Database& db);
@@ -53,6 +54,10 @@ class CheckSaleStateOpFrame : public OperationFrame
 
     static void restrictIssuanceAfterSale(SaleFrame::pointer sale, LedgerDelta& delta, Database& db, LedgerManager& lm);
     static void updateMaxIssuance(SaleFrame::pointer sale, LedgerDelta& delta, Database& db, LedgerManager& lm);
+
+    FeeManager::FeeResult obtainCalculatedFeeForAccount(const AccountFrame::pointer saleOwnerAccount,
+                                                        AssetCode const& asset, int64_t amount,
+                                                        LedgerManager& lm, Database& db) const;
 
     ManageOfferSuccessResult applySaleOffer(AccountFrame::pointer saleOwner, SaleFrame::pointer sale, SaleQuoteAsset const& saleQuoteAsset, Application& app, LedgerManager& lm, LedgerDelta& delta) const;
 

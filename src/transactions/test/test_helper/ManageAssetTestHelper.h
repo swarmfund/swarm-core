@@ -24,6 +24,8 @@ namespace txtest
 			ManageAssetResultCode expectedResult = ManageAssetResultCode::SUCCESS, OperationResultCode expectedOpCode = OperationResultCode::opINNER);
 		TransactionFramePtr createManageAssetTx(Account& source, uint64_t requestID, ManageAssetOp::_request_t request);
 
+		Operation createManageAssetOp(Account& source, uint64_t requestID, ManageAssetOp::_request_t request);
+
 		ManageAssetOp::_request_t createAssetCreationRequest(
 				AssetCode code,
 				AccountID preissuedAssetSigner,

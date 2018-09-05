@@ -3,22 +3,26 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "TransactionFrameImpl.h"
-#include "util/asio.h"
 #include "OperationFrame.h"
-#include "main/Application.h"
-#include "xdrpp/marshal.h"
-#include <string>
-#include "util/Logging.h"
-#include "util/XDRStream.h"
-#include "ledger/LedgerDeltaImpl.h"
-#include "ledger/AccountHelper.h"
-#include "ledger/StorageHelperImpl.h"
+#include "crypto/Hex.h"
 #include "crypto/SHA.h"
 #include "crypto/SecretKey.h"
 #include "database/Database.h"
 #include "herder/TxSetFrame.h"
-#include "crypto/Hex.h"
+#include "ledger/AccountHelper.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/FeeHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
+#include "ledger/LedgerDeltaImpl.h"
+#include "ledger/StorageHelperImpl.h"
+#include "main/Application.h"
+#include "transactions/ManageKeyValueOpFrame.h"
+#include "util/Logging.h"
+#include "util/XDRStream.h"
+#include "util/asio.h"
 #include "util/basen.h"
+#include "xdrpp/marshal.h"
+#include <string>
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
@@ -35,6 +39,147 @@ TransactionFrameImpl::TransactionFrameImpl(Hash const& networkID,
 {
 }
 
+void
+TransactionFrameImpl::storeFeeForOpType(
+    OperationType opType, std::map<OperationType, uint64_t>& feesForOpTypes,
+    AccountFrame::pointer source, AssetCode txFeeAssetCode, Database& db)
+{
+    auto opFeeFrame = FeeHelper::Instance()->loadForAccount(
+        FeeType::OPERATION_FEE, txFeeAssetCode, static_cast<int64_t>(opType),
+        source, 0, db);
+    feesForOpTypes[opType] =
+        opFeeFrame != nullptr ? static_cast<uint64_t>(opFeeFrame->getFixedFee())
+                              : 0;
+}
+
+bool
+TransactionFrameImpl::tryGetTxFeeAsset(Database& db, AssetCode& txFeeAssetCode)
+{
+    auto txFeeAssetKV = KeyValueHelperLegacy::Instance()->loadKeyValue(
+        ManageKeyValueOpFrame::transactionFeeAssetKey, db);
+    if (txFeeAssetKV == nullptr)
+    {
+        return false;
+    }
+
+    if (txFeeAssetKV->getKeyValue().value.type() != KeyValueEntryType::STRING)
+    {
+        throw std::runtime_error(
+            "Unexpected database state, expected issuance tasks to be STRING");
+    }
+
+    if (!AssetFrame::isAssetCodeValid(
+            txFeeAssetKV->getKeyValue().value.stringValue()))
+    {
+        throw std::invalid_argument("Tx fee asset code is invalid");
+    }
+
+    txFeeAssetCode = txFeeAssetKV->getKeyValue().value.stringValue();
+    return true;
+}
+
+bool
+TransactionFrameImpl::processTxFee(Application& app, LedgerDelta* delta)
+{
+    auto& ledgerManager = app.getLedgerManager();
+
+    if (!ledgerManager.shouldUse(LedgerVersion::ADD_TRANSACTION_FEE))
+    {
+        return true;
+    }
+
+    uint64_t maxTotalFee = UINT64_MAX;
+
+    if (mEnvelope.tx.ext.v() == LedgerVersion::ADD_TRANSACTION_FEE)
+    {
+        maxTotalFee = mEnvelope.tx.ext.maxTotalFee();
+    }
+
+    auto& db = app.getDatabase();
+    AssetCode txFeeAssetCode;
+
+    if (!tryGetTxFeeAsset(db, txFeeAssetCode))
+    {
+        return true;
+    }
+
+    getResult().ext.v(LedgerVersion::ADD_TRANSACTION_FEE);
+    getResult().ext.transactionFee().assetCode = txFeeAssetCode;
+
+    std::map<OperationType, uint64_t> feesForOpTypes;
+    uint64_t totalFeeAmount = 0;
+    for (auto& op : mOperations)
+    {
+        auto opType = op->getOperation().body.type();
+
+        if (feesForOpTypes.find(opType) == feesForOpTypes.end())
+        {
+            storeFeeForOpType(opType, feesForOpTypes, getSourceAccountPtr(),
+                              txFeeAssetCode, db);
+        }
+
+        uint64_t opFeeAmount = feesForOpTypes[opType];
+
+        if (!safeSum(opFeeAmount, totalFeeAmount, totalFeeAmount))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                << "Overflow on tx fee calculation. Failed to add operation "
+                   "fee, operation type: "
+                << xdr::xdr_traits<OperationType>::enum_name(opType)
+                << "; amount: " << opFeeAmount;
+            throw runtime_error(
+                "Overflow on tx fee calculation. Failed to add operation fee");
+        }
+
+        OperationFee opFee;
+        opFee.operationType = opType;
+        opFee.amount = opFeeAmount;
+        getResult().ext.transactionFee().operationFees.push_back(opFee);
+    }
+
+    if (totalFeeAmount > maxTotalFee)
+    {
+        app.getMetrics()
+            .NewMeter({"transaction", "invalid", "insufficient-fee"},
+                      "transaction")
+            .Mark();
+        getResult().result.code(TransactionResultCode::txINSUFFICIENT_FEE);
+        return false;
+    }
+
+    auto sourceBalance = BalanceHelper::Instance()->mustLoadBalance(
+        getSourceID(), txFeeAssetCode, db, delta);
+
+    auto commissionBalance = AccountManager::loadOrCreateBalanceFrameForAsset(
+        app.getCommissionID(), txFeeAssetCode, db, *delta);
+
+    if (!sourceBalance->tryCharge(totalFeeAmount))
+    {
+        app.getMetrics()
+            .NewMeter({"transaction", "invalid", "source-underfunded"},
+                      "transaction")
+            .Mark();
+        getResult().result.code(TransactionResultCode::txSOURCE_UNDERFUNDED);
+        return false;
+    }
+
+    EntryHelperProvider::storeChangeEntry(*delta, db, sourceBalance->mEntry);
+
+    if (!commissionBalance->tryFundAccount(totalFeeAmount))
+    {
+        app.getMetrics()
+            .NewMeter({"transaction", "invalid", "commission-line-full"},
+                      "transaction")
+            .Mark();
+        getResult().result.code(TransactionResultCode::txCOMMISSION_LINE_FULL);
+        return false;
+    }
+
+    EntryHelperProvider::storeChangeEntry(*delta, db,
+                                          commissionBalance->mEntry);
+
+    return true;
+}
 
 Hash const&
 TransactionFrameImpl::getFullHash() const
@@ -60,7 +205,7 @@ TransactionFrameImpl::getContentsHash() const
 void
 TransactionFrameImpl::clearCached()
 {
-	mSignatureValidator = nullptr;
+    mSignatureValidator = nullptr;
     Hash zero;
     mContentsHash = zero;
     mFullHash = zero;
@@ -113,10 +258,10 @@ TransactionFrameImpl::addSignature(SecretKey const& secretKey)
 
 AccountFrame::pointer
 TransactionFrameImpl::loadAccount(LedgerDelta* delta, Database& db,
-                              AccountID const& accountID)
+                                  AccountID const& accountID)
 {
     AccountFrame::pointer res;
-	auto accountHelper = AccountHelper::Instance();
+    auto accountHelper = AccountHelper::Instance();
 
     if (mSigningAccount && mSigningAccount->getID() == accountID)
     {
@@ -162,35 +307,48 @@ TransactionFrameImpl::resetResults()
     getResult().feeCharged = getPaidFee();
 }
 
-bool TransactionFrameImpl::doCheckSignature(Application& app, Database& db, AccountFrame& account)
+bool
+TransactionFrameImpl::doCheckSignature(Application& app, Database& db,
+                                       AccountFrame& account)
 {
-	auto signatureValidator = getSignatureValidator();
-	// block reasons are handeled on operation level
-	auto sourceDetails = SourceDetails(getAllAccountTypes(), mSigningAccount->getLowThreshold(),
-                                       getAnySignerType() ^ static_cast<int32_t>(SignerType::READER), getAnyBlockReason());
-	SignatureValidator::Result result = signatureValidator->check(app, db, account, sourceDetails);
-	switch (result)
-	{
-	case SignatureValidator::Result::SUCCESS:
-		return true;
-	case SignatureValidator::Result::INVALID_ACCOUNT_TYPE:
-		throw runtime_error("Did not expect INVALID_ACCOUNT_TYPE error for tx");
-	case SignatureValidator::Result::NOT_ENOUGH_WEIGHT:
-		app.getMetrics().NewMeter({ "transaction", "invalid", "bad-auth" }, "transaction").Mark();
-		getResult().result.code(TransactionResultCode::txBAD_AUTH);
-		return false;
-	case SignatureValidator::Result::EXTRA:
-	case SignatureValidator::Result::INVALID_SIGNER_TYPE:
-		app.getMetrics().NewMeter({ "transaction", "invalid", "bad-auth-extra" }, "transaction").Mark();
-		getResult().result.code(TransactionResultCode::txBAD_AUTH_EXTRA);
-		return false;
-	case SignatureValidator::Result::ACCOUNT_BLOCKED:
-		app.getMetrics().NewMeter({ "transaction", "invalid", "account-blocked" }, "transaction").Mark();
-		getResult().result.code(TransactionResultCode::txACCOUNT_BLOCKED);
-		return false;
-	}
+    auto signatureValidator = getSignatureValidator();
+    // block reasons are handeled on operation level
+    auto sourceDetails = SourceDetails(
+        getAllAccountTypes(), mSigningAccount->getLowThreshold(),
+        getAnySignerType() ^ static_cast<int32_t>(SignerType::READER),
+        getAnyBlockReason());
+    SignatureValidator::Result result =
+        signatureValidator->check(app, db, account, sourceDetails);
+    switch (result)
+    {
+    case SignatureValidator::Result::SUCCESS:
+        return true;
+    case SignatureValidator::Result::INVALID_ACCOUNT_TYPE:
+        throw runtime_error("Did not expect INVALID_ACCOUNT_TYPE error for tx");
+    case SignatureValidator::Result::NOT_ENOUGH_WEIGHT:
+        app.getMetrics()
+            .NewMeter({"transaction", "invalid", "bad-auth"}, "transaction")
+            .Mark();
+        getResult().result.code(TransactionResultCode::txBAD_AUTH);
+        return false;
+    case SignatureValidator::Result::EXTRA:
+    case SignatureValidator::Result::INVALID_SIGNER_TYPE:
+        app.getMetrics()
+            .NewMeter({"transaction", "invalid", "bad-auth-extra"},
+                      "transaction")
+            .Mark();
+        getResult().result.code(TransactionResultCode::txBAD_AUTH_EXTRA);
+        return false;
+    case SignatureValidator::Result::ACCOUNT_BLOCKED:
+        app.getMetrics()
+            .NewMeter({"transaction", "invalid", "account-blocked"},
+                      "transaction")
+            .Mark();
+        getResult().result.code(TransactionResultCode::txACCOUNT_BLOCKED);
+        return false;
+    }
 
-	throw runtime_error("Unexpected error code from signatureValidator");
+    throw runtime_error("Unexpected error code from signatureValidator");
 }
 
 bool
@@ -205,7 +363,7 @@ TransactionFrameImpl::commonValid(Application& app, LedgerDelta* delta)
         getResult().result.code(TransactionResultCode::txMISSING_OPERATION);
         return false;
     }
-    
+
     auto& lm = app.getLedgerManager();
 
     uint64 closeTime = lm.getCurrentLedgerHeader().scpValue.closeTime;
@@ -213,14 +371,14 @@ TransactionFrameImpl::commonValid(Application& app, LedgerDelta* delta)
     if (mEnvelope.tx.timeBounds.minTime > closeTime)
     {
         app.getMetrics()
-            .NewMeter({"transaction", "invalid", "too-early"},
-                        "transaction")
+            .NewMeter({"transaction", "invalid", "too-early"}, "transaction")
             .Mark();
         getResult().result.code(TransactionResultCode::txTOO_EARLY);
         return false;
     }
     if (mEnvelope.tx.timeBounds.maxTime < closeTime ||
-        mEnvelope.tx.timeBounds.maxTime - closeTime > lm.getTxExpirationPeriod())
+        mEnvelope.tx.timeBounds.maxTime - closeTime >
+            lm.getTxExpirationPeriod())
     {
         app.getMetrics()
             .NewMeter({"transaction", "invalid", "too-late"}, "transaction")
@@ -229,8 +387,8 @@ TransactionFrameImpl::commonValid(Application& app, LedgerDelta* delta)
         return false;
     }
 
-	auto& db = app.getDatabase();
-    
+    auto& db = app.getDatabase();
+
     if (!loadAccount(delta, db))
     {
         app.getMetrics()
@@ -240,7 +398,7 @@ TransactionFrameImpl::commonValid(Application& app, LedgerDelta* delta)
         return false;
     }
 
-	// error code already set
+    // error code already set
     if (!doCheckSignature(app, db, *mSigningAccount))
     {
         return false;
@@ -266,19 +424,19 @@ void
 TransactionFrameImpl::resetSignatureTracker()
 {
     mSigningAccount.reset();
-	auto signatureValidator = getSignatureValidator();
-	signatureValidator->resetSignatureTracker();
+    auto signatureValidator = getSignatureValidator();
+    signatureValidator->resetSignatureTracker();
 }
 
 bool
 TransactionFrameImpl::checkAllSignaturesUsed()
 {
-	auto signatureValidator = getSignatureValidator();
-	if (signatureValidator->checkAllSignaturesUsed())
-		return true;
+    auto signatureValidator = getSignatureValidator();
+    if (signatureValidator->checkAllSignaturesUsed())
+        return true;
 
-	getResult().result.code(TransactionResultCode::txBAD_AUTH_EXTRA);
-	return false;
+    getResult().result.code(TransactionResultCode::txBAD_AUTH_EXTRA);
+    return false;
 }
 
 bool
@@ -288,44 +446,44 @@ TransactionFrameImpl::checkValid(Application& app)
     resetResults();
     bool res = commonValid(app, nullptr);
     if (!res)
-    {    
-		return res;
+    {
+        return res;
     }
 
-	for (auto& op : mOperations)
-	{
-		if (!op->checkValid(app))
-		{
-			// it's OK to just fast fail here and not try to call
-			// checkValid on all operations as the resulting object
-			// is only used by applications
-			app.getMetrics()
-				.NewMeter({ "transaction", "invalid", "invalid-op" },
-					"transaction")
-				.Mark();
-			markResultFailed();
-			return false;
-		}
-	}
-	res = checkAllSignaturesUsed();
-	if (!res)
-	{
-		app.getMetrics()
-			.NewMeter({ "transaction", "invalid", "bad-auth-extra" },
-				"transaction")
-			.Mark();
-		return false;
-	}
+    for (auto& op : mOperations)
+    {
+        if (!op->checkValid(app))
+        {
+            // it's OK to just fast fail here and not try to call
+            // checkValid on all operations as the resulting object
+            // is only used by applications
+            app.getMetrics()
+                .NewMeter({"transaction", "invalid", "invalid-op"},
+                          "transaction")
+                .Mark();
+            markResultFailed();
+            return false;
+        }
+    }
+    res = checkAllSignaturesUsed();
+    if (!res)
+    {
+        app.getMetrics()
+            .NewMeter({"transaction", "invalid", "bad-auth-extra"},
+                      "transaction")
+            .Mark();
+        return false;
+    }
 
-	string txIDString(binToHex(getContentsHash()));
-	if (TransactionFrame::timingExists(app.getDatabase(), txIDString))
-	{
-		app.getMetrics()
-			.NewMeter({ "transaction", "invalid", "duplication" }, "transaction")
-			.Mark();
-		getResult().result.code(TransactionResultCode::txDUPLICATION);
-		return false;
-	}
+    string txIDString(binToHex(getContentsHash()));
+    if (TransactionFrame::timingExists(app.getDatabase(), txIDString))
+    {
+        app.getMetrics()
+            .NewMeter({"transaction", "invalid", "duplication"}, "transaction")
+            .Mark();
+        getResult().result.code(TransactionResultCode::txDUPLICATION);
+        return false;
+    }
 
     return res;
 }
@@ -352,15 +510,16 @@ TransactionFrameImpl::markResultFailed()
     }
 }
 
-bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
-    Application& app, vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
+bool
+TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
+                              Application& app,
+                              vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
 {
     resetSignatureTracker();
     if (!commonValid(app, &delta))
     {
         return false;
     }
-
 
     bool errorEncountered = false;
 
@@ -374,11 +533,18 @@ bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
         auto& txInternal = app.getConfig().TX_INTERNAL_ERROR;
         if (txInternal.find(txIDString) != txInternal.end())
         {
-            throw runtime_error("Throwing exception to have consistent blockchain");
+            throw runtime_error(
+                "Throwing exception to have consistent blockchain");
         }
 
         auto& opTimer =
-            app.getMetrics().NewTimer({ "transaction", "op", "apply" });
+            app.getMetrics().NewTimer({"transaction", "op", "apply"});
+
+        if (!processTxFee(app, &thisTxDelta))
+        {
+            meta.operations().clear();
+            return false;
+        }
 
         for (auto& op : mOperations)
         {
@@ -394,11 +560,14 @@ bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
                 errorEncountered = true;
             }
             stateBeforeOp.push_back(opDelta.getState());
-            auto detailedChangesVersion = static_cast<uint32_t>(LedgerVersion::DETAILED_LEDGER_CHANGES);
-            if (app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion >= detailedChangesVersion)
+            auto detailedChangesVersion =
+                static_cast<uint32_t>(LedgerVersion::DETAILED_LEDGER_CHANGES);
+            if (app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion >=
+                detailedChangesVersion)
             {
                 meta.operations().emplace_back(opDelta.getAllChanges());
-            } else
+            }
+            else
             {
                 meta.operations().emplace_back(opDelta.getChanges());
             }
@@ -428,14 +597,17 @@ bool TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
     return !errorEncountered;
 }
 
-void TransactionFrameImpl::unwrapNestedException(const exception& e,
-    stringstream& str)
+void
+TransactionFrameImpl::unwrapNestedException(const exception& e,
+                                            stringstream& str)
 {
     str << e.what();
-    try {
+    try
+    {
         rethrow_if_nested(e);
     }
-    catch (const exception& nested) {
+    catch (const exception& nested)
+    {
         str << "->";
         unwrapNestedException(nested, str);
     }
@@ -451,16 +623,19 @@ TransactionFrameImpl::apply(LedgerDelta& delta, Application& app)
 
 bool
 TransactionFrameImpl::apply(LedgerDelta& delta, TransactionMeta& meta,
-                        Application& app, vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
+                            Application& app,
+                            vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
 {
     try
     {
         return applyTx(delta, meta, app, stateBeforeOp);
-    } catch (exception& e)
+    }
+    catch (exception& e)
     {
         stringstream details;
         unwrapNestedException(e, details);
-        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to apply tx: " << details.str();
+        CLOG(ERROR, Logging::OPERATION_LOGGER)
+            << "Failed to apply tx: " << details.str();
         throw;
     }
 }
@@ -476,8 +651,8 @@ TransactionFrameImpl::toStellarMessage() const
 
 void
 TransactionFrameImpl::storeTransaction(LedgerManager& ledgerManager,
-                                   TransactionMeta& tm, int txindex,
-                                   TransactionResultSet& resultSet) const
+                                       TransactionMeta& tm, int txindex,
+                                       TransactionResultSet& resultSet) const
 {
     auto txBytes(xdr::xdr_to_opaque(mEnvelope));
 
@@ -529,18 +704,16 @@ TransactionFrameImpl::processSeqNum()
     resetResults();
 }
 
-
 void
 TransactionFrameImpl::storeTransactionTiming(LedgerManager& ledgerManager,
-                                      uint64 maxTime) const
-{    
+                                             uint64 maxTime) const
+{
     string txIDString(binToHex(getContentsHash()));
 
     auto& db = ledgerManager.getDatabase();
-    auto prep = db.getPreparedStatement(
-        "INSERT INTO txtiming "
-        "( txid, valid_before) VALUES "
-        "(:id,  :vb)");
+    auto prep = db.getPreparedStatement("INSERT INTO txtiming "
+                                        "( txid, valid_before) VALUES "
+                                        "(:id,  :vb)");
 
     auto& st = prep.statement();
     st.exchange(soci::use(txIDString));
@@ -557,11 +730,10 @@ TransactionFrameImpl::storeTransactionTiming(LedgerManager& ledgerManager,
     }
 }
 
-
 void
 TransactionFrameImpl::storeTransactionFee(LedgerManager& ledgerManager,
-                                      LedgerEntryChanges const& changes,
-                                      int txindex) const
+                                          LedgerEntryChanges const& changes,
+                                          int txindex) const
 {
     xdr::opaque_vec<> txChanges(xdr::xdr_to_opaque(changes));
 
@@ -592,4 +764,4 @@ TransactionFrameImpl::storeTransactionFee(LedgerManager& ledgerManager,
         throw std::runtime_error("Could not update data in SQL");
     }
 }
-}
+} // namespace stellar

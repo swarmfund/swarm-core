@@ -83,6 +83,8 @@ namespace stellar
             return mFee.fixedFee;
         }
 
+        static void checkFeeType(FeeEntry const& feeEntry, FeeType feeType);
+
         bool isCrossAssetFee() const;
 
         AssetCode getFeeAsset() const;

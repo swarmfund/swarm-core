@@ -19,9 +19,6 @@
 #include "util/XDRStream.h"
 #include "util/asio.h"
 #include "util/basen.h"
-#include "xdrpp/marshal.h"
-#include <string>
-
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 

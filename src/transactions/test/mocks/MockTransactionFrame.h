@@ -49,6 +49,13 @@ class MockTransactionFrame : public TransactionFrame
                             LedgerEntryChanges const& changes, int txindex));
     MOCK_CONST_METHOD2(storeTransactionTiming,
                        void(LedgerManager& ledgerManager, uint64 maxTime));
+    MOCK_METHOD2(processTxFee, bool(Application& app, LedgerDelta* delta));
+    MOCK_METHOD2(tryGetTxFeeAsset, bool(Database& db, AssetCode& txFeeAssetCode));
+    MOCK_METHOD5(storeFeeForOpType,
+                 void(OperationType opType,
+                      std::map<OperationType, uint64_t>& feesForOpTypes,
+                      AccountFrame::pointer source, AssetCode txFeeAssetCode,
+                      Database& db));
     MOCK_METHOD0(clearCached, void());
 };
 

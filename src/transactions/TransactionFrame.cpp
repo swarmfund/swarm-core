@@ -4,20 +4,16 @@
 
 #include "util/asio.h"
 #include "TransactionFrame.h"
-#include "OperationFrame.h"
 #include "main/Application.h"
-#include "xdrpp/marshal.h"
-#include <string>
-#include "util/Logging.h"
 #include "util/XDRStream.h"
-#include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
-#include "crypto/SHA.h"
-#include "crypto/SecretKey.h"
-#include "database/Database.h"
+#include "ledger/BalanceHelper.h"
+#include "ledger/FeeHelper.h"
+#include "ledger/KeyValueHelper.h"
 #include "herder/TxSetFrame.h"
-#include "crypto/Hex.h"
+#include "transactions/ManageKeyValueOpFrame.h"
 #include "util/basen.h"
+#include "xdrpp/printer.h"
 
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
@@ -358,6 +354,130 @@ TransactionFrame::markResultFailed()
     }
 }
 
+void
+TransactionFrame::storeFeeForOpType(OperationType opType, std::map<OperationType, uint64_t>& feesForOpTypes,
+                                    AccountFrame::pointer source, AssetCode txFeeAssetCode, Database& db)
+{
+    auto opFeeFrame = FeeHelper::Instance()->loadForAccount(FeeType::OPERATION_FEE,
+                                                            txFeeAssetCode,
+                                                            static_cast<int64_t>(opType),
+                                                            source, 0, db);
+    feesForOpTypes[opType] = opFeeFrame != nullptr ? static_cast<uint64_t>(opFeeFrame->getFixedFee()) : 0;
+}
+
+bool TransactionFrame::tryGetTxFeeAsset(Database& db, AssetCode& txFeeAssetCode)
+{
+    auto txFeeAssetKV = KeyValueHelper::Instance()->loadKeyValue(ManageKeyValueOpFrame::transactionFeeAssetKey, db);
+    if (txFeeAssetKV == nullptr)
+    {
+        return false;
+    }
+
+    if (txFeeAssetKV->getKeyValue().value.type() != KeyValueEntryType::STRING)
+    {
+        throw std::runtime_error("Unexpected database state, expected issuance tasks to be STRING");
+    }
+
+    if (!AssetFrame::isAssetCodeValid(txFeeAssetKV->getKeyValue().value.stringValue()))
+    {
+        throw std::invalid_argument("Tx fee asset code is invalid");
+    }
+
+    txFeeAssetCode = txFeeAssetKV->getKeyValue().value.stringValue();
+    return true;
+}
+
+bool TransactionFrame::processTxFee(Application& app, LedgerDelta* delta)
+{
+    auto& ledgerManager = app.getLedgerManager();
+
+    if (!ledgerManager.shouldUse(LedgerVersion::ADD_TRANSACTION_FEE))
+    {
+        return true;
+    }
+
+    uint64_t maxTotalFee = UINT64_MAX;
+
+    if (mEnvelope.tx.ext.v() == LedgerVersion::ADD_TRANSACTION_FEE)
+    {
+        maxTotalFee = mEnvelope.tx.ext.maxTotalFee();
+    }
+
+    auto& db = app.getDatabase();
+    AssetCode txFeeAssetCode;
+
+    if (!tryGetTxFeeAsset(db, txFeeAssetCode))
+    {
+        return true;
+    }
+
+    getResult().ext.v(LedgerVersion::ADD_TRANSACTION_FEE);
+    getResult().ext.transactionFee().assetCode = txFeeAssetCode;
+
+    std::map<OperationType, uint64_t> feesForOpTypes;
+    uint64_t totalFeeAmount = 0;
+    for (auto& op : mOperations)
+    {
+        auto opType = op->getOperation().body.type();
+
+        if (feesForOpTypes.find(opType) == feesForOpTypes.end())
+        {
+            storeFeeForOpType(opType, feesForOpTypes, getSourceAccountPtr(), txFeeAssetCode, db);
+        }
+
+        uint64_t opFeeAmount = feesForOpTypes[opType];
+
+        if (!safeSum(opFeeAmount, totalFeeAmount, totalFeeAmount))
+        {
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                    << "Overflow on tx fee calculation. Failed to add operation fee, operation type: "
+                    << xdr::xdr_traits<OperationType>::enum_name(opType) << "; amount: " << opFeeAmount;
+            throw runtime_error("Overflow on tx fee calculation. Failed to add operation fee");
+        }
+
+        OperationFee opFee;
+        opFee.operationType = opType;
+        opFee.amount = opFeeAmount;
+        getResult().ext.transactionFee().operationFees.push_back(opFee);
+    }
+
+    if (totalFeeAmount > maxTotalFee)
+    {
+        app.getMetrics()
+                .NewMeter({ "transaction", "invalid", "insufficient-fee" }, "transaction")
+                .Mark();
+        getResult().result.code(TransactionResultCode::txINSUFFICIENT_FEE);
+        return false;
+    }
+
+    auto sourceBalance = BalanceHelper::Instance()->mustLoadBalance(getSourceID(), txFeeAssetCode, db, delta);
+
+    auto commissionBalance = AccountManager::loadOrCreateBalanceFrameForAsset(app.getCommissionID(), txFeeAssetCode,
+                                                                              db, *delta);
+
+    if (!sourceBalance->tryCharge(totalFeeAmount)) {
+        app.getMetrics()
+                .NewMeter({ "transaction", "invalid", "source-underfunded" }, "transaction")
+                .Mark();
+        getResult().result.code(TransactionResultCode::txSOURCE_UNDERFUNDED);
+        return false;
+    }
+
+    EntryHelperProvider::storeChangeEntry(*delta, db, sourceBalance->mEntry);
+
+    if (!commissionBalance->tryFundAccount(totalFeeAmount)) {
+        app.getMetrics()
+                .NewMeter({ "transaction", "invalid", "commission-line-full" }, "transaction")
+                .Mark();
+        getResult().result.code(TransactionResultCode::txCOMMISSION_LINE_FULL);
+        return false;
+    }
+
+    EntryHelperProvider::storeChangeEntry(*delta, db, commissionBalance->mEntry);
+
+    return true;
+}
+
 bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
     Application& app, vector<LedgerDelta::KeyEntryMap>& stateBeforeOp)
 {
@@ -385,6 +505,12 @@ bool TransactionFrame::applyTx(LedgerDelta& delta, TransactionMeta& meta,
 
         auto& opTimer =
             app.getMetrics().NewTimer({ "transaction", "op", "apply" });
+
+        if (!processTxFee(app, &thisTxDelta))
+        {
+            meta.operations().clear();
+            return false;
+        }
 
         for (auto& op : mOperations)
         {

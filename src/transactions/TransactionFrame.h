@@ -4,6 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <map>
 #include <memory>
 #include "ledger/LedgerManager.h"
 #include "ledger/AccountFrame.h"
@@ -185,6 +186,14 @@ class TransactionFrame
     void storeTransactionTiming(LedgerManager& ledgerManager,
                                       uint64 maxTime) const;
 
+
+    // transaction fee
+    bool processTxFee(Application& app, LedgerDelta* delta);
+
+    bool tryGetTxFeeAsset(Database& db, AssetCode& txFeeAssetCode);
+
+    void storeFeeForOpType(OperationType opType, std::map<OperationType, uint64_t>& feesForOpTypes,
+                           AccountFrame::pointer source, AssetCode txFeeAssetCode, Database& db);
 
 
     // access to history tables

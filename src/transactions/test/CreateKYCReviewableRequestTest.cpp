@@ -62,9 +62,9 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
 
     SECTION("success") {
         //store KV record into DB
-        manageKVHelper.setKey(key)->setValue((uint32)30);
+        manageKVHelper.setKey(key)->setUi32Value(30);
         manageKVHelper.doApply(app, ManageKVAction::PUT, true);
-        manageKVHelper.setKey(syndicateKey)->setValue((uint32)30);
+        manageKVHelper.setKey(syndicateKey)->setUi32Value(30);
         manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
         SECTION("source master, create and approve") {

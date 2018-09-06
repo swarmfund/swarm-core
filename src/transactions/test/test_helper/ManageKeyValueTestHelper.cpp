@@ -21,7 +21,7 @@ namespace stellar {
             return this;
         }
 
-        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(uint32 value) {
+        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setUi32Value(uint32 value) {
             this->value.type(KeyValueEntryType::UINT32);
             this->value.ui32Value() = value;
             return this;
@@ -32,7 +32,7 @@ namespace stellar {
             this->value.stringValue() = value;
             return this;
         }
-        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(uint64 value) {
+        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setUi64Value(uint64 value) {
             this->value.type(KeyValueEntryType::UINT64);
             this->value.ui64Value() = value;
             return this;

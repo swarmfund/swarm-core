@@ -2,20 +2,20 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include <ledger/StatisticsHelper.h>
-#include "transactions/CreateWithdrawalRequestOpFrame.h"
-#include "ledger/KeyValueHelper.h"
-#include "database/Database.h"
-#include "main/Application.h"
-#include "medida/metrics_registry.h"
+#include "ledger/StatisticsHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
-#include "xdrpp/printer.h"
+#include "ledger/KeyValueHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
+#include "transactions/CreateWithdrawalRequestOpFrame.h"
+#include "database/Database.h"
+#include "main/Application.h"
+#include "medida/metrics_registry.h"
+#include "xdrpp/printer.h"
 #include "StatisticsV2Processor.h"
 
 namespace stellar
@@ -231,7 +231,8 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     }
 
     auto code = assetFrame->getAsset().code;
-    if (!exceedsLowerBound(db, code)){
+    if (!exceedsLowerBound(db, code))
+    {
         innerResult().code(CreateWithdrawalRequestResultCode::LOWER_BOUND_NOT_EXCEEDED);
         return false;
     }
@@ -358,18 +359,20 @@ bool CreateWithdrawalRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statis
 
 }
 
-bool CreateWithdrawalRequestOpFrame::exceedsLowerBound(Database &db, AssetCode& code) {
-    auto key = "WithdrawLowerBound:" + code;
+bool CreateWithdrawalRequestOpFrame::exceedsLowerBound(Database& db, AssetCode& code)
+{
+    xdr::xstring<256> key = "WithdrawLowerBound:" + code;
     auto lowerBound = KeyValueHelper::Instance()->loadKeyValue(key, db);
     if (!lowerBound) {
         return true;
     }
 
     if (lowerBound.get()->getKeyValue().value.type() != KeyValueEntryType::UINT64) {
-        CLOG(WARNING, "WithdrawLowerBound") << "AssetCode:" << code
-                                            << "KeyValueEntryType: "
-                                            << std::to_string(
-                                                    static_cast<int32>(lowerBound.get()->getKeyValue().value.type()));
+        CLOG(WARNING, "WithdrawLowerBound")
+            << "AssetCode:" << code
+            << "KeyValueEntryType: "
+            << std::to_string(
+                static_cast<int32>(lowerBound.get()->getKeyValue().value.type()));
         return true;
     }
 

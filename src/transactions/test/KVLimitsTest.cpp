@@ -43,7 +43,8 @@ TEST_CASE("KV limits", "[tx][withdraw][limits][manage_key_value]")
     const AssetCode asset = "USD";
     const uint64_t preIssuedAmount = 10000 * ONE;
     issuanceHelper.createAssetWithPreIssuedAmount(root, asset, preIssuedAmount, root);
-    assetHelper.updateAsset(root, asset, root, static_cast<uint32_t>(AssetPolicy::BASE_ASSET) | static_cast<uint32_t>(AssetPolicy::WITHDRAWABLE));
+    assetHelper.updateAsset(root, asset, root,
+            static_cast<uint32_t>(AssetPolicy::BASE_ASSET) | static_cast<uint32_t>(AssetPolicy::WITHDRAWABLE));
 
     //create stats asset and stats asset pair
     const AssetCode statsAsset = "UAH";
@@ -56,8 +57,9 @@ TEST_CASE("KV limits", "[tx][withdraw][limits][manage_key_value]")
     auto withdrawerKP = SecretKey::random();
     createAccountTestHelper.applyCreateAccountTx(root, withdrawerKP.getPublicKey(), AccountType::GENERAL);
     auto withdrawer = Account{ withdrawerKP, Salt(0) };
-    auto withdrawerBalance = BalanceHelper::Instance()->loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
-    REQUIRE(!!withdrawerBalance);
+    auto withdrawerBalance = BalanceHelper::Instance()->
+            loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
+    REQUIRE(withdrawerBalance);
     uint32_t allTasks = 0;
     issuanceHelper.applyCreateIssuanceRequest(root, asset, preIssuedAmount, withdrawerBalance->getBalanceID(),
                                               "RANDOM ISSUANCE REFERENCE", &allTasks);
@@ -87,7 +89,7 @@ TEST_CASE("KV limits", "[tx][withdraw][limits][manage_key_value]")
         {
             uint64 lowerLimits = ONE;
             manageKVHelper.setKey("WithdrawLowerBound:USD");
-            manageKVHelper.setValue(lowerLimits);
+            manageKVHelper.setUi64Value(lowerLimits);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
                     CreateWithdrawalRequestResultCode::SUCCESS);
@@ -96,7 +98,7 @@ TEST_CASE("KV limits", "[tx][withdraw][limits][manage_key_value]")
         {
             uint64 lowerLimits = 1000 * ONE;
             manageKVHelper.setKey("WithdrawLowerBound:USD");
-            manageKVHelper.setValue(lowerLimits);
+            manageKVHelper.setUi64Value(lowerLimits);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
                     CreateWithdrawalRequestResultCode::LOWER_BOUND_NOT_EXCEEDED);

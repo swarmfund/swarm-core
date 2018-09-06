@@ -290,14 +290,18 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
         return false;
     }
 
-    const auto &policyDetails = getPolicyDetails(db, delta);
-    if (!policyDetails.empty())
+    if (!xdr::operator==(mSourceAccount->getID(), app.getMasterID()))
     {
-        const bool isAllow = IdentityPolicyChecker::doCheckPolicies(mSourceAccount->getID(), policyDetails, db, delta);
-        if (!isAllow)
+        const auto &policyDetails = getPolicyDetails(db, delta);
+        if (!policyDetails.empty())
         {
-            app.getMetrics().NewMeter({ "operation", "rejected", "due-to-policy" }, "operation").Mark();
-            return isAllow;
+            const bool isAllow = IdentityPolicyChecker::doCheckPolicies(mSourceAccount->getID(), policyDetails, db,
+                                                                        delta);
+            if (!isAllow)
+            {
+                app.getMetrics().NewMeter({"operation", "rejected", "due-to-policy"}, "operation").Mark();
+                return false;
+            }
         }
     }
 

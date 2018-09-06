@@ -99,7 +99,7 @@ TEST_CASE("KV limits", "[tx][withdraw][limits][manage_key_value]")
             manageKVHelper.setValue(lowerLimits);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
             withdrawRequestHelper.applyCreateWithdrawRequest(withdrawer, withdrawRequest,
-                    CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
+                    CreateWithdrawalRequestResultCode::LOWER_BOUND_NOT_EXCEEDED);
         }
 
         SECTION("KV limits not set")

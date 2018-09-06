@@ -232,7 +232,7 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     auto code = assetFrame->getAsset().code;
     if (!exceedsLowerBound(db, code)){
-        innerResult().code(CreateWithdrawalRequestResultCode::LIMITS_EXCEEDED);
+        innerResult().code(CreateWithdrawalRequestResultCode::LOWER_BOUND_NOT_EXCEEDED);
         return false;
     }
 

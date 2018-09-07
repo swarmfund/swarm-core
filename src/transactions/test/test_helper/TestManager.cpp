@@ -4,8 +4,10 @@
 
 #include <herder/LedgerCloseData.h>
 #include "TestManager.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "invariant/Invariants.h"
 #include "test/test_marshaler.h"
+#include "xdrpp/marshal.h"
 
 namespace stellar {
 
@@ -97,7 +99,7 @@ namespace stellar {
         }
 
         bool TestManager::applyCheck(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp) {
-            LedgerDelta delta(mLm.getCurrentLedgerHeader(), mDB);
+            LedgerDeltaImpl delta(mLm.getCurrentLedgerHeader(), mDB);
             const bool isApplied = apply(tx, stateBeforeOp, delta);
             // validates db state
             mLm.checkDbState();

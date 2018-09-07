@@ -4,6 +4,7 @@
 
 #include "transactions/ManageBalanceOpFrame.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"

@@ -4,7 +4,7 @@
 
 #include <lib/xdrpp/xdrpp/printer.h>
 #include "transactions/SetFeesOpFrame.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/AssetHelper.h"
@@ -131,7 +131,8 @@ namespace stellar {
         Database &db = ledgerManager.getDatabase();
         innerResult().code(SetFeesResultCode::SUCCESS);
 
-        LedgerDelta setFeesDelta(delta);
+        LedgerDeltaImpl setFeesDeltaImpl(delta);
+        LedgerDelta& setFeesDelta = setFeesDeltaImpl;
 
         LedgerHeader &ledgerHeader = setFeesDelta.getHeader();
 

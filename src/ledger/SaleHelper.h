@@ -4,7 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
 #include <functional>
 #include "SaleFrame.h"
@@ -18,7 +18,7 @@ namespace stellar
 {
     class StatementContext;
 
-    class SaleHelper : public EntryHelper {
+    class SaleHelper : public EntryHelperLegacy {
     public:
         SaleHelper(SaleHelper const&) = delete;
         SaleHelper& operator= (SaleHelper const&) = delete;

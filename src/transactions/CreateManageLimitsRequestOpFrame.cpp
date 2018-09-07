@@ -1,4 +1,4 @@
-#include <ledger/EntryHelper.h>
+#include <ledger/EntryHelperLegacy.h>
 #include <ledger/ReviewableRequestFrame.h>
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>

@@ -36,164 +36,82 @@ typedef std::shared_ptr<TransactionFrame> TransactionFramePtr;
 
 class TransactionFrame
 {
-  private:
-	SignatureValidator::pointer mSignatureValidator;
-
-  protected:
-    TransactionEnvelope mEnvelope;
-    TransactionResult mResult;
-
-    AccountFrame::pointer mSigningAccount;
-
-    Hash const& mNetworkID;     // used to change the way we compute signatures
-    mutable Hash mContentsHash; // the hash of the contents
-    mutable Hash mFullHash;     // the hash of the contents and the sig.
-
-    std::vector<std::shared_ptr<OperationFrame>> mOperations;
-
-    bool loadAccount(LedgerDelta* delta, Database& app);
-    bool commonValid(Application& app, LedgerDelta* delta);
-
-	bool checkAllSignaturesUsed();
-	void resetSignatureTracker();
-    void resetResults();
-    void markResultFailed();
-
-    bool applyTx(LedgerDelta& delta, TransactionMeta& meta, Application& app, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp);
-    static void unwrapNestedException(const std::exception& e, std::stringstream& str);
-
   public:
-    TransactionFrame(Hash const& networkID,
-                     TransactionEnvelope const& envelope);
-    TransactionFrame(TransactionFrame const&) = delete;
-    TransactionFrame() = delete;
-
     static TransactionFramePtr
     makeTransactionFromWire(Hash const& networkID,
                             TransactionEnvelope const& msg);
 
-    Hash const& getFullHash() const;
-    Hash const& getContentsHash() const;
+    virtual Hash const& getFullHash() const = 0;
+    virtual Hash const& getContentsHash() const = 0;
 
-	SignatureValidator::pointer getSignatureValidator()
-	{
-		if (!mSignatureValidator)
-		{
-			mSignatureValidator = std::make_shared<SignatureValidator>(getContentsHash(), getEnvelope().signatures);
-		}
+    virtual SignatureValidator::pointer getSignatureValidator() = 0;
+    virtual AccountFrame::pointer getSourceAccountPtr() const = 0;
 
-		return mSignatureValidator;
-	}
+    virtual void setSourceAccountPtr(AccountFrame::pointer signingAccount) = 0;
 
-    AccountFrame::pointer
-    getSourceAccountPtr() const
-    {
-        return mSigningAccount;
-    }
+    virtual std::vector<std::shared_ptr<OperationFrame>> const& getOperations() const = 0;
+    virtual TransactionResult const& getResult() const = 0;
+    virtual TransactionResult& getResult() = 0;
 
-    void setSourceAccountPtr(AccountFrame::pointer signingAccount);
+    virtual TransactionResultCode getResultCode() const = 0;
 
-    std::vector<std::shared_ptr<OperationFrame>> const&
-    getOperations() const
-    {
-        return mOperations;
-    }
+    virtual TransactionResultPair getResultPair() const = 0;
+    virtual TransactionEnvelope const& getEnvelope() const = 0;
+    virtual TransactionEnvelope& getEnvelope() = 0;
 
-    TransactionResult const&
-    getResult() const
-    {
-        return mResult;
-    }
+    virtual Salt getSalt() const = 0;
 
-    TransactionResult&
-    getResult()
-    {
-        return mResult;
-    }
+    virtual AccountFrame const& getSourceAccount() const = 0;
 
-    TransactionResultCode
-    getResultCode() const
-    {
-        return getResult().result.code();
-    }
+    virtual AccountID const& getSourceID() const = 0;
+    virtual TimeBounds getTimeBounds() const = 0;
+    virtual int64_t getPaidFee() const = 0;
 
-    TransactionResultPair getResultPair() const;
-    TransactionEnvelope const& getEnvelope() const;
-    TransactionEnvelope& getEnvelope();
-
-    Salt
-    getSalt() const
-    {
-        return mEnvelope.tx.salt;
-    }
-
-    AccountFrame const&
-    getSourceAccount() const
-    {
-        assert(mSigningAccount);
-        return *mSigningAccount;
-    }
-
-
-    AccountID const&
-    getSourceID() const
-    {
-        return mEnvelope.tx.sourceAccount;
-    }
-
-
-    TimeBounds
-    getTimeBounds() const
-    {
-        return mEnvelope.tx.timeBounds;
-    }
-
-
-    int64_t getPaidFee() const;
-
-    void addSignature(SecretKey const& secretKey);
+    virtual void addSignature(SecretKey const& secretKey) = 0;
 
 	// Checks signature, if not valid - returns false and sets valid error code
-    bool doCheckSignature(Application& app, Database& db, AccountFrame& account);
+    virtual bool doCheckSignature(Application& app, Database& db, AccountFrame& account) = 0;
 
-    bool checkValid(Application& app);
+    virtual bool checkValid(Application& app) = 0;
 
-    void processSeqNum();
+    virtual void processSeqNum() = 0;
 
 
     // apply this transaction to the current ledger
     // returns true if successfully applied
-    bool apply(LedgerDelta& delta, TransactionMeta& meta, Application& app, std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp);
+    virtual bool
+    apply(LedgerDelta& delta, TransactionMeta& meta, Application& app,
+          std::vector<LedgerDelta::KeyEntryMap>& stateBeforeOp) = 0;
 
     // version without meta
-    bool apply(LedgerDelta& delta, Application& app);
+    virtual bool apply(LedgerDelta& delta, Application& app) = 0;
 
-    StellarMessage toStellarMessage() const;
+    virtual StellarMessage toStellarMessage() const = 0;
 
-    AccountFrame::pointer loadAccount(LedgerDelta* delta, Database& app,
-                                      AccountID const& accountID);
+    virtual AccountFrame::pointer loadAccount(LedgerDelta* delta, Database& app,
+                                              AccountID const& accountID) = 0;
 
 
     // transaction history
-    void storeTransaction(LedgerManager& ledgerManager, TransactionMeta& tm,
-                          int txindex, TransactionResultSet& resultSet) const;
+    virtual void storeTransaction(LedgerManager& ledgerManager,
+                                  TransactionMeta& tm, int txindex,
+                                  TransactionResultSet& resultSet) const = 0;
 
     // fee history
-    void storeTransactionFee(LedgerManager& ledgerManager,
-                             LedgerEntryChanges const& changes,
-                             int txindex) const;
+    virtual void storeTransactionFee(LedgerManager& ledgerManager,
+                                     LedgerEntryChanges const& changes,
+                                     int txindex) const = 0;
 
-    void storeTransactionTiming(LedgerManager& ledgerManager,
-                                      uint64 maxTime) const;
-
+    virtual void storeTransactionTiming(LedgerManager& ledgerManager,
+                                        uint64 maxTime) const = 0;
 
     // transaction fee
-    bool processTxFee(Application& app, LedgerDelta* delta);
+    virtual bool processTxFee(Application& app, LedgerDelta* delta) = 0;
 
-    bool tryGetTxFeeAsset(Database& db, AssetCode& txFeeAssetCode);
+    virtual bool tryGetTxFeeAsset(Database& db, AssetCode& txFeeAssetCode) = 0;
 
-    void storeFeeForOpType(OperationType opType, std::map<OperationType, uint64_t>& feesForOpTypes,
-                           AccountFrame::pointer source, AssetCode txFeeAssetCode, Database& db);
+    virtual void storeFeeForOpType(OperationType opType, std::map<OperationType, uint64_t>& feesForOpTypes,
+                                   AccountFrame::pointer source, AssetCode txFeeAssetCode, Database& db) = 0;
 
 
     // access to history tables
@@ -219,6 +137,6 @@ class TransactionFrame
     static void deleteOldEntries(Database& db, uint32_t ledgerSeq,
         uint64 ledgerCloseTime);
 
-	void clearCached();
+	virtual void clearCached() = 0;
 };
 }

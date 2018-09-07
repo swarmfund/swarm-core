@@ -18,7 +18,7 @@
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/AssetFrame.h"
 #include "ledger/BalanceFrame.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/ReferenceFrame.h"
@@ -28,7 +28,7 @@
 #include "ledger/OfferFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -47,7 +47,7 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
-#include <ledger/KeyValueHelper.h>
+#include <ledger/KeyValueHelperLegacy.h>
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/StatisticsV2Helper.h>
 #include <ledger/PendingStatisticsHelper.h>
@@ -72,7 +72,7 @@ namespace stellar
 using namespace soci;
 using namespace std;
 
-bool Database::gDriversRegistered = false;
+bool DatabaseImpl::gDriversRegistered = false;
 
 enum databaseSchemaVersion : unsigned long {
 	DROP_SCP = 2,
@@ -107,7 +107,7 @@ setSerializable(soci::session& sess)
 }
 
 void
-Database::registerDrivers()
+DatabaseImpl::registerDrivers()
 {
     if (!gDriversRegistered)
     {
@@ -119,7 +119,7 @@ Database::registerDrivers()
     }
 }
 
-Database::Database(Application& app)
+DatabaseImpl::DatabaseImpl(Application& app)
     : mApp(app)
     , mQueryMeter(
           app.getMetrics().NewMeter({"database", "query", "exec"}, "query"))
@@ -148,7 +148,7 @@ Database::Database(Application& app)
 }
 
 void
-Database::applySchemaUpgrade(unsigned long vers)
+DatabaseImpl::applySchemaUpgrade(unsigned long vers)
 {
     clearPreparedStatementCache();
 
@@ -179,13 +179,13 @@ Database::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::EXTERNAL_POOL_FIX_DB_TYPES:
             break;
         case databaseSchemaVersion::EXTERNAL_POOL_FIX_MIGRATION:
-            ExternalSystemAccountIDPoolEntryHelper::Instance()->dropAll(*this);
+            ExternalSystemAccountIDPoolEntryHelperLegacy::Instance()->dropAll(*this);
             break;
         case databaseSchemaVersion::KEY_VALUE_FIX_MIGRATION:
-            KeyValueHelper::Instance()->dropAll(*this);
+            KeyValueHelperLegacy::Instance()->dropAll(*this);
             break;
         case databaseSchemaVersion::EXTERNAL_POOL_FIX_PARENT_DB_TYPE:
-            ExternalSystemAccountIDPoolEntryHelper::Instance()->parentToNumeric(*this);
+            ExternalSystemAccountIDPoolEntryHelperLegacy::Instance()->parentToNumeric(*this);
             break;
         case databaseSchemaVersion::ADD_SALE_ANTE:
             SaleAnteHelper::Instance()->dropAll(*this);
@@ -220,7 +220,7 @@ Database::applySchemaUpgrade(unsigned long vers)
 }
 
 void
-Database::upgradeToCurrentSchema()
+DatabaseImpl::upgradeToCurrentSchema()
 {
     auto vers = getDBSchemaVersion();
     if (vers > SCHEMA_VERSION)
@@ -242,14 +242,14 @@ Database::upgradeToCurrentSchema()
 }
 
 void
-Database::putSchemaVersion(unsigned long vers)
+DatabaseImpl::putSchemaVersion(unsigned long vers)
 {
     mApp.getPersistentState().setState(PersistentState::kDatabaseSchema,
                                        std::to_string(vers));
 }
 
 unsigned long
-Database::getDBSchemaVersion()
+DatabaseImpl::getDBSchemaVersion()
 {
     auto vstr =
         mApp.getPersistentState().getState(PersistentState::kDatabaseSchema);
@@ -269,13 +269,13 @@ Database::getDBSchemaVersion()
 }
 
 unsigned long
-Database::getAppSchemaVersion()
+DatabaseImpl::getAppSchemaVersion()
 {
     return SCHEMA_VERSION;
 }
 
 medida::TimerContext
-Database::getInsertTimer(std::string const& entityName)
+DatabaseImpl::getInsertTimer(std::string const& entityName)
 {
     mEntityTypes.insert(entityName);
     mQueryMeter.Mark();
@@ -285,7 +285,7 @@ Database::getInsertTimer(std::string const& entityName)
 }
 
 medida::TimerContext
-Database::getSelectTimer(std::string const& entityName)
+DatabaseImpl::getSelectTimer(std::string const& entityName)
 {
     mEntityTypes.insert(entityName);
     mQueryMeter.Mark();
@@ -295,7 +295,7 @@ Database::getSelectTimer(std::string const& entityName)
 }
 
 medida::TimerContext
-Database::getDeleteTimer(std::string const& entityName)
+DatabaseImpl::getDeleteTimer(std::string const& entityName)
 {
     mEntityTypes.insert(entityName);
     mQueryMeter.Mark();
@@ -305,7 +305,7 @@ Database::getDeleteTimer(std::string const& entityName)
 }
 
 medida::TimerContext
-Database::getUpdateTimer(std::string const& entityName)
+DatabaseImpl::getUpdateTimer(std::string const& entityName)
 {
     mEntityTypes.insert(entityName);
     mQueryMeter.Mark();
@@ -315,7 +315,7 @@ Database::getUpdateTimer(std::string const& entityName)
 }
 
 void
-Database::setCurrentTransactionReadOnly()
+DatabaseImpl::setCurrentTransactionReadOnly()
 {
     if (!isSqlite())
     {
@@ -327,19 +327,19 @@ Database::setCurrentTransactionReadOnly()
 }
 
 bool
-Database::isSqlite() const
+DatabaseImpl::isSqlite() const
 {
     return mApp.getConfig().DATABASE.find("sqlite3:") != std::string::npos;
 }
 
 bool
-Database::canUsePool() const
+DatabaseImpl::canUsePool() const
 {
     return !(mApp.getConfig().DATABASE == ("sqlite3://:memory:"));
 }
 
 void
-Database::clearPreparedStatementCache()
+DatabaseImpl::clearPreparedStatementCache()
 {
     // Flush all prepared statements; in sqlite they represent open cursors
     // and will conflict with any DROP TABLE commands issued below
@@ -352,7 +352,7 @@ Database::clearPreparedStatementCache()
 }
 
 void
-Database::initialize()
+DatabaseImpl::initialize()
 {
     clearPreparedStatementCache();
     // normally you do not want to touch this section as
@@ -372,7 +372,7 @@ Database::initialize()
 }
 
 soci::session&
-Database::getSession()
+DatabaseImpl::getSession()
 {
     // global session can only be used from the main thread
     assertThreadIsMain();
@@ -380,7 +380,7 @@ Database::getSession()
 }
 
 soci::connection_pool&
-Database::getPool()
+DatabaseImpl::getPool()
 {
     if (!mPool)
     {
@@ -410,7 +410,7 @@ Database::getPool()
 }
 
 cache::lru_cache<std::string, std::shared_ptr<LedgerEntry const>>&
-Database::getEntryCache()
+DatabaseImpl::getEntryCache()
 {
     return mEntryCache;
 }
@@ -452,7 +452,7 @@ class SQLLogContext : NonCopyable
 };
 
 StatementContext
-Database::getPreparedStatement(std::string const& query)
+DatabaseImpl::getPreparedStatement(std::string const& query)
 {
     auto i = mStatements.find(query);
     std::shared_ptr<soci::statement> p;
@@ -473,19 +473,19 @@ Database::getPreparedStatement(std::string const& query)
 }
 
 std::shared_ptr<SQLLogContext>
-Database::captureAndLogSQL(std::string contextName)
+DatabaseImpl::captureAndLogSQL(std::string contextName)
 {
     return make_shared<SQLLogContext>(contextName, mSession);
 }
 
 medida::Meter&
-Database::getQueryMeter()
+DatabaseImpl::getQueryMeter()
 {
     return mQueryMeter;
 }
 
 std::chrono::nanoseconds
-Database::totalQueryTime() const
+DatabaseImpl::totalQueryTime() const
 {
     std::vector<std::string> qtypes = {"insert", "delete", "select", "update"};
     std::chrono::nanoseconds nsq(0);
@@ -504,7 +504,7 @@ Database::totalQueryTime() const
 }
 
 void
-Database::excludeTime(std::chrono::nanoseconds const& queryTime,
+DatabaseImpl::excludeTime(std::chrono::nanoseconds const& queryTime,
                       std::chrono::nanoseconds const& totalTime)
 {
     mExcludedQueryTime += queryTime;
@@ -512,7 +512,7 @@ Database::excludeTime(std::chrono::nanoseconds const& queryTime,
 }
 
 uint32_t
-Database::recentIdleDbPercent()
+DatabaseImpl::recentIdleDbPercent()
 {
     std::chrono::nanoseconds query = totalQueryTime();
     query -= mLastIdleQueryTime;

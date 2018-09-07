@@ -1,4 +1,5 @@
 #include <ledger/LimitsV2Helper.h>
+#include "ledger/LedgerDeltaImpl.h"
 #include <transactions/test/test_helper/ManageLimitsTestHelper.h>
 #include "main/Application.h"
 #include "main/Config.h"
@@ -33,7 +34,7 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
 
     auto testManager = TestManager::make(app);
 
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(), app.getDatabase());
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(), app.getDatabase());
 
 	upgradeToCurrentLedgerVersion(app);
 

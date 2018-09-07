@@ -7,7 +7,7 @@
 #include "util/make_unique.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/FeeHelper.h"
 #include "transactions/SetFeesOpFrame.h"
 #include "crypto/SHA.h"
@@ -37,8 +37,8 @@ TEST_CASE("Set fee", "[tx][set_fees]") {
 
     auto testManager = TestManager::make(app);
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
 
     // set up world
     auto master = Account{getRoot(), Salt(1)};

@@ -1,13 +1,15 @@
+#include "PaymentOpV2Frame.h"
+#include "ledger/LedgerDelta.h"
+#include "ledger/StorageHelper.h"
 #include "main/Application.h"
 #include <ledger/AccountHelper.h>
 #include <ledger/AssetHelper.h>
+#include <ledger/AssetPairHelper.h>
 #include <ledger/BalanceHelper.h>
 #include <ledger/FeeHelper.h>
+#include <ledger/LedgerHeaderFrame.h>
 #include <ledger/ReferenceHelper.h>
-#include <ledger/AssetPairHelper.h>
-#include "ledger/LedgerDelta.h"
 #include <transactions/AccountManager.h>
-#include "PaymentOpV2Frame.h"
 
 namespace stellar {
     using namespace std;
@@ -286,11 +288,16 @@ namespace stellar {
         return sourceBalanceID == destBalanceID;
     }
 
-    bool PaymentOpV2Frame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager) {
-        Database &db = app.getDatabase();
-        auto sourceBalance = BalanceHelper::Instance()->loadBalance(getSourceID(), mPayment.sourceBalanceID, db,
-                                                                    &delta);
-        if (!sourceBalance) {
+    bool
+    PaymentOpV2Frame::doApply(Application& app, StorageHelper& storageHelper,
+                            LedgerManager& ledgerManager)
+    {
+        Database& db = storageHelper.getDatabase();
+        LedgerDelta& delta = storageHelper.getLedgerDelta();
+        auto sourceBalance = BalanceHelper::Instance()->loadBalance(
+            getSourceID(), mPayment.sourceBalanceID, db, &delta);
+        if (!sourceBalance)
+        {
             innerResult().code(PaymentV2ResultCode::SRC_BALANCE_NOT_FOUND);
             return false;
         }
@@ -370,7 +377,7 @@ namespace stellar {
                 innerResult().code(PaymentV2ResultCode::REFERENCE_DUPLICATION);
                 return false;
             }
-            createReferenceEntry(mPayment.reference, &delta, db);
+        createReferenceEntry(mPayment.reference, storageHelper);
         }
 
         innerResult().code(PaymentV2ResultCode::SUCCESS);

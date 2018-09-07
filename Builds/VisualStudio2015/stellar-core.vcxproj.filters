@@ -130,6 +130,12 @@
     <Filter Include="transactions\manage_external_system_account_id_pool">
       <UniqueIdentifier>{6aec5968-a2d4-45ca-9415-9be83be0841c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="transactions\test\mocks">
+      <UniqueIdentifier>{5b541ac1-a0a0-4eae-9970-d0e4d1980f4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="transactions\test\unit">
+      <UniqueIdentifier>{acd017e7-ed50-4d24-b65d-90d039fd5123}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ledger\LedgerManagerImpl.cpp">
@@ -717,7 +723,7 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\EntryHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\EntryHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\ledger\AccountHelper.cpp">
@@ -762,7 +768,7 @@
     <ClCompile Include="..\..\src\ledger\TrustHelper.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\manage_asset\ManageAssetHelper.cpp">
@@ -948,13 +954,13 @@
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\ledger\KeyValueEntryFrame.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\KeyValueHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\KeyValueHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\ManageKeyValueOpFrame.cpp">
@@ -1085,6 +1091,15 @@
     </ClCompile>
     <ClCompile Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleEndTimeRequestHelper.cpp">
       <Filter>transactions\test\helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\test\unit\BindExternalSystemAccountIdUnitTests.cpp">
+      <Filter>transactions\test\unit</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transactions\TransactionFrameImpl.cpp">
+      <Filter>transactions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ledger\StorageHelperImpl.cpp">
+      <Filter>ledger</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1736,7 +1751,7 @@
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewRequestTestHelper.h">
       <Filter>transactions\test\helper</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\EntryHelper.h">
+    <ClInclude Include="..\..\src\ledger\EntryHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ledger\AccountHelper.h">
@@ -1781,7 +1796,7 @@
     <ClInclude Include="..\..\src\ledger\TrustHelper.h">
       <Filter>ledger</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelper.h">
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\manage_asset\ManageAssetHelper.h">
@@ -1986,13 +2001,13 @@
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.h">
       <Filter>ledger</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.h">
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ledger\KeyValueEntryFrame.h">
       <Filter>ledger</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\KeyValueHelper.h">
+    <ClInclude Include="..\..\src\ledger\KeyValueHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\ManageKeyValueOpFrame.h">
@@ -2096,6 +2111,27 @@
     </ClInclude>
     <ClInclude Include="..\..\src\transactions\test\test_helper\ReviewUpdateSaleEndTimeRequestHelper.h">
       <Filter>transactions\test\helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockApplication.h">
+      <Filter>transactions\test\mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockLedgerManager.h">
+      <Filter>transactions\test\mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\TransactionFrameImpl.h">
+      <Filter>transactions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockTransactionFrame.h">
+      <Filter>transactions\test\mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockDatabase.h">
+      <Filter>transactions\test\mocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\StorageHelper.h">
+      <Filter>ledger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ledger\StorageHelperImpl.h">
+      <Filter>ledger</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

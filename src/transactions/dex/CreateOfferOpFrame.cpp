@@ -8,6 +8,7 @@
 #include "OfferExchange.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/BalanceHelper.h"

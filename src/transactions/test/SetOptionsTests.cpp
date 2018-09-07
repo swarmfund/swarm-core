@@ -10,7 +10,7 @@
 #include "main/test.h"
 #include "TxTests.h"
 #include "crypto/SHA.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
@@ -81,7 +81,7 @@ TEST_CASE("set options", "[tx][set_options]")
 						   getAnySignerType() & ~static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), 2, "", Signer::_ext_t{}); // high right regular account
             setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &regular);
 
-			LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+			LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 				app.getDatabase());
 
 			SECTION("Can't add new signer")
@@ -112,7 +112,7 @@ TEST_CASE("set options", "[tx][set_options]")
             setOptionsTestHelper.applySetOptionsTx(a1, nullptr, &sk, nullptr, nullptr, SetOptionsResultCode::BAD_SIGNER);
         }
 
-		LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+		LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 			app.getDatabase());
 		auto checkSignerName = [&app, &delta](AccountID accountID, Signer expectedSigner) {
 			auto accountHelper = AccountHelper::Instance();

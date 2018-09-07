@@ -8,7 +8,7 @@
 #include "util/make_unique.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "transactions/ManageAccountOpFrame.h"
 #include "test/test_marshaler.h"
 
@@ -26,7 +26,7 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
     Application& app = *appPtr;
     app.start();
     closeLedgerOn(app, 2, 1, 7, 2014);
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
 
     // set up world

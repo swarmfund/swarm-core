@@ -7,7 +7,7 @@
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/ReferenceFrame.h"
 #include "crypto/SHA.h"
 #include "test/test_marshaler.h"
@@ -33,8 +33,8 @@ TEST_CASE("direct_debit", "[dep_tx][direct_debit]")
 	int64 paymentAmount = 10 * ONE;
 
     Salt rootSeq = 1;
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
 
 	auto emissionAmount = 2 * paymentAmount;
     

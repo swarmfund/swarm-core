@@ -5,6 +5,7 @@
 #include "main/test.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountKYCHelper.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "bucket/BucketApplicator.h"
 #include "test_helper/CreateAccountTestHelper.h"
@@ -48,8 +49,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     uint32 tasks = 0;
     ReviewKYCRequestTestHelper reviewKYCRequestTestHelper(testManager);
 
-    LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(),testManager->getDB());
-
+    LedgerDeltaImpl delta(testManager->getLedgerManager().getCurrentLedgerHeader(),testManager->getDB());
 
     auto account = AccountHelper::Instance()->loadAccount(updatedAccountID.getPublicKey(),
                                                           testManager->getDB());

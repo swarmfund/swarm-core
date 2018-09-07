@@ -5,7 +5,7 @@
 #include "crypto/SHA.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/BalanceHelper.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "main/Application.h"
 #include "main/test.h"
 #include "overlay/LoopbackPeer.h"

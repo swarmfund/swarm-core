@@ -1,13 +1,14 @@
-#include <ledger/KeyValueHelper.h>
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
-#include "ledger/LedgerDelta.h"
+#include "ManageKeyValueOpFrame.h"
+#include "database/Database.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
-#include "database/Database.h"
+#include "ledger/KeyValueHelper.h"
+#include "ledger/LedgerDelta.h"
+#include "ledger/StorageHelper.h"
 #include "main/Application.h"
-#include "ManageKeyValueOpFrame.h"
 
 namespace stellar
 {
@@ -15,8 +16,9 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
-std::unordered_map<AccountID , CounterpartyDetails>
-BindExternalSystemAccountIdOpFrame::getCounterpartyDetails(Database &db, LedgerDelta *delta) const
+std::unordered_map<AccountID, CounterpartyDetails>
+BindExternalSystemAccountIdOpFrame::getCounterpartyDetails(
+    Database& db, LedgerDelta* delta) const
 {
     // no counterparties
     return std::unordered_map<AccountID, CounterpartyDetails>();
@@ -24,7 +26,8 @@ BindExternalSystemAccountIdOpFrame::getCounterpartyDetails(Database &db, LedgerD
 
 SourceDetails
 BindExternalSystemAccountIdOpFrame::getSourceAccountDetails(
-        std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails, int32_t ledgerVersion) const
+    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+    int32_t ledgerVersion) const
 {
     std::vector<AccountType> allowedSourceAccounts;
     allowedSourceAccounts = { AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::SYNDICATE,
@@ -35,82 +38,106 @@ BindExternalSystemAccountIdOpFrame::getSourceAccountDetails(
                          static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
-BindExternalSystemAccountIdOpFrame::BindExternalSystemAccountIdOpFrame(Operation const &op, OperationResult &res,
-                                                                       TransactionFrame &parentTx)
-        : OperationFrame(op, res, parentTx),
-          mBindExternalSystemAccountId(mOperation.body.bindExternalSystemAccountIdOp())
+BindExternalSystemAccountIdOpFrame::BindExternalSystemAccountIdOpFrame(
+    Operation const& op, OperationResult& res, TransactionFrame& parentTx)
+    : OperationFrame(op, res, parentTx)
+    , mBindExternalSystemAccountId(
+          mOperation.body.bindExternalSystemAccountIdOp())
 {
 }
 
 bool
-BindExternalSystemAccountIdOpFrame::doApply(Application &app, LedgerDelta &delta, LedgerManager &ledgerManager)
+BindExternalSystemAccountIdOpFrame::doApply(Application& app,
+                                            StorageHelper& storageHelper,
+                                            LedgerManager& ledgerManager)
 {
-    Database& db = app.getDatabase();
+    Database& db = storageHelper.getDatabase();
+    LedgerDelta& delta = storageHelper.getLedgerDelta();
 
-    auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
-    auto externalSystemAccountIDPoolEntryHelper = ExternalSystemAccountIDPoolEntryHelper::Instance();
+    auto& externalSystemAccountIDHelper =
+        storageHelper.getExternalSystemAccountIDHelper();
+    auto& externalSystemAccountIDPoolEntryHelper =
+        storageHelper.getExternalSystemAccountIDPoolEntryHelper();
 
-    auto existingPoolEntryFrame = externalSystemAccountIDPoolEntryHelper->load(mBindExternalSystemAccountId.externalSystemType,
-                                                                          mSourceAccount->getID(), db);
+    auto existingPoolEntryFrame = externalSystemAccountIDPoolEntryHelper.load(
+        mBindExternalSystemAccountId.externalSystemType,
+        mSourceAccount->getID());
     if (!!existingPoolEntryFrame)
     {
-        existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry().expiresAt = ledgerManager.getCloseTime() + dayInSeconds;
-        externalSystemAccountIDPoolEntryHelper->storeChange(delta, db, existingPoolEntryFrame->mEntry);
+        existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry()
+            .expiresAt = ledgerManager.getCloseTime() + dayInSeconds;
+        externalSystemAccountIDPoolEntryHelper.storeChange(
+            existingPoolEntryFrame->mEntry);
         innerResult().code(BindExternalSystemAccountIdResultCode::SUCCESS);
-        innerResult().success().data = existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry().data;
+        innerResult().success().data =
+            existingPoolEntryFrame->getExternalSystemAccountIDPoolEntry().data;
         return true;
     }
 
-    auto poolEntryToBindFrame = externalSystemAccountIDPoolEntryHelper->loadAvailablePoolEntry(db, ledgerManager,
-                                                                                               mBindExternalSystemAccountId.externalSystemType);
+    auto poolEntryToBindFrame =
+        externalSystemAccountIDPoolEntryHelper.loadAvailablePoolEntry(
+            ledgerManager, mBindExternalSystemAccountId.externalSystemType);
     if (!poolEntryToBindFrame)
     {
-        innerResult().code(BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
+        innerResult().code(
+            BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
         return false;
     }
 
-    ExternalSystemAccountIDPoolEntry& poolEntryToBind = poolEntryToBindFrame->getExternalSystemAccountIDPoolEntry();
+    ExternalSystemAccountIDPoolEntry& poolEntryToBind =
+        poolEntryToBindFrame->getExternalSystemAccountIDPoolEntry();
 
     if (poolEntryToBind.accountID)
     {
-        auto existingExternalSystemAccountIDFrame = externalSystemAccountIDHelper->load(*poolEntryToBind.accountID,
-                                                                                        mBindExternalSystemAccountId.externalSystemType,
-                                                                                        db, &delta);
+        auto existingExternalSystemAccountIDFrame =
+            externalSystemAccountIDHelper.load(
+                *poolEntryToBind.accountID,
+                mBindExternalSystemAccountId.externalSystemType);
         if (!existingExternalSystemAccountIDFrame)
         {
             auto accIDStr = PubKeyUtils::toStrKey(*poolEntryToBind.accountID);
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to load existing external system account id for account id:"
-                                                   << accIDStr;
-            throw runtime_error("Unexpected state: external system account id expected to exist");
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                << "Failed to load existing external system account id for "
+                   "account id:"
+                << accIDStr;
+            throw runtime_error("Unexpected state: external system account id "
+                                "expected to exist");
         }
 
-        externalSystemAccountIDHelper->storeDelete(delta, db, existingExternalSystemAccountIDFrame->getKey());
+        externalSystemAccountIDHelper.storeDelete(
+            existingExternalSystemAccountIDFrame->getKey());
     }
 
     poolEntryToBind.accountID.activate() = mSourceAccount->getID();
 
-    int expiresAt = getExpiresAt(db, ledgerManager, mBindExternalSystemAccountId.externalSystemType);
+    int expiresAt =
+        getExpiresAt(storageHelper, ledgerManager,
+                     mBindExternalSystemAccountId.externalSystemType);
     poolEntryToBind.expiresAt = ledgerManager.getCloseTime() + expiresAt;
 
     poolEntryToBind.bindedAt = ledgerManager.getCloseTime();
 
-    auto externalSystemAccountIDFrame = ExternalSystemAccountIDFrame::createNew(mSourceAccount->getID(),
-                                                                                mBindExternalSystemAccountId.externalSystemType,
-                                                                                poolEntryToBind.data);
+    auto externalSystemAccountIDFrame = ExternalSystemAccountIDFrame::createNew(
+        mSourceAccount->getID(),
+        mBindExternalSystemAccountId.externalSystemType, poolEntryToBind.data);
 
-    externalSystemAccountIDPoolEntryHelper->storeChange(delta, db, poolEntryToBindFrame->mEntry);
-    externalSystemAccountIDHelper->storeAdd(delta, db, externalSystemAccountIDFrame->mEntry);
+    externalSystemAccountIDPoolEntryHelper.storeChange(
+        poolEntryToBindFrame->mEntry);
+    externalSystemAccountIDHelper.storeAdd(
+        externalSystemAccountIDFrame->mEntry);
     innerResult().code(BindExternalSystemAccountIdResultCode::SUCCESS);
     innerResult().success().data = poolEntryToBind.data;
     return true;
 }
 
 bool
-BindExternalSystemAccountIdOpFrame::doCheckValid(Application &app)
+BindExternalSystemAccountIdOpFrame::doCheckValid(Application& app)
 {
-    if (ExternalSystemAccountIDPoolEntryFrame::isAutoGenerated(mBindExternalSystemAccountId.externalSystemType))
+    if (ExternalSystemAccountIDPoolEntryFrame::isAutoGenerated(
+            mBindExternalSystemAccountId.externalSystemType))
     {
-        innerResult().code(BindExternalSystemAccountIdResultCode::AUTO_GENERATED_TYPE_NOT_ALLOWED);
+        innerResult().code(BindExternalSystemAccountIdResultCode::
+                               AUTO_GENERATED_TYPE_NOT_ALLOWED);
         return false;
     }
 
@@ -118,16 +145,20 @@ BindExternalSystemAccountIdOpFrame::doCheckValid(Application &app)
 }
 
 int
-BindExternalSystemAccountIdOpFrame::getExpiresAt(Database &db, LedgerManager &ledgerManager, int32 externalSystemType)
+BindExternalSystemAccountIdOpFrame::getExpiresAt(StorageHelper& storageHelper,
+                                                 LedgerManager& ledgerManager,
+                                                 int32 externalSystemType)
 {
-    if(!ledgerManager.shouldUse(LedgerVersion::KEY_VALUE_POOL_ENTRY_EXPIRES_AT))
+    if (!ledgerManager.shouldUse(
+            LedgerVersion::KEY_VALUE_POOL_ENTRY_EXPIRES_AT))
     {
         return dayInSeconds;
     }
 
-    auto key = ManageKeyValueOpFrame::makeExternalSystemExpirationPeriodKey(externalSystemType);
+    auto key = ManageKeyValueOpFrame::makeExternalSystemExpirationPeriodKey(
+        externalSystemType);
 
-    auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key, db);
+    auto kvEntry = storageHelper.getKeyValueHelper().loadKeyValue(key);
 
     if (!kvEntry)
     {
@@ -136,12 +167,14 @@ BindExternalSystemAccountIdOpFrame::getExpiresAt(Database &db, LedgerManager &le
 
     if (kvEntry.get()->getKeyValue().value.type() != KeyValueEntryType::UINT32)
     {
-        CLOG(WARNING, "BindExternalSystemAccountId") << "KeyValueEntryType: "
-                                            << to_string(static_cast<int32>(kvEntry.get()->getKeyValue().value.type()));
+        CLOG(WARNING, "BindExternalSystemAccountId")
+            << "KeyValueEntryType: "
+            << to_string(static_cast<int32>(
+                   kvEntry.get()->getKeyValue().value.type()));
         return dayInSeconds;
     }
 
     return kvEntry.get()->getKeyValue().value.ui32Value();
 }
 
-}
+} // namespace stellar

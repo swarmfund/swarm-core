@@ -1,7 +1,7 @@
 
 #include "ManageKeyValueOpFrame.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -36,7 +36,7 @@ namespace stellar {
         innerResult().code(ManageKeyValueResultCode::SUCCESS);
 
         Database &db = ledgerManager.getDatabase();
-        auto keyValueHelper = KeyValueHelper::Instance();
+        auto keyValueHelper = KeyValueHelperLegacy::Instance();
         auto keyValueFrame = keyValueHelper->loadKeyValue(this->mManageKeyValue.key, db, &delta);
 
         if (mManageKeyValue.action.action() == ManageKVAction::REMOVE) {

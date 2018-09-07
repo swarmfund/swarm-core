@@ -2,7 +2,7 @@
 #include <transactions/issuance/CreateIssuanceRequestOpFrame.h>
 #include <ledger/ReviewableRequestHelper.h>
 #include <ledger/PendingStatisticsHelper.h>
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "main/Application.h"
@@ -311,7 +311,8 @@ uint32_t ReviewIssuanceCreationRequestOpFrame::getSystemTasksToAdd( Application 
         // shield outer scope of any side effects by using
 		// a sql transaction for ledger state and LedgerDelta
 		soci::transaction localTx(db.getSession());
-		LedgerDelta localDelta(delta);
+		LedgerDeltaImpl localDeltaImpl(delta);
+		LedgerDelta& localDelta = localDeltaImpl;
 
 		request->checkRequestType(ReviewableRequestType::ISSUANCE_CREATE);
 		auto& requestEntry = request->getRequestEntry();

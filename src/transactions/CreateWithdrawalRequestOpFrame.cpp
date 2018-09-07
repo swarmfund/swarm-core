@@ -377,7 +377,7 @@ bool CreateWithdrawalRequestOpFrame::exceedsLowerBound(Database& db, AssetCode& 
     }
 
     auto &request = mCreateWithdrawalRequest.request;
-    return lowerBound.get()->getKeyValue().value.ui64Value() < request.amount;
+    return lowerBound.get()->getKeyValue().value.ui64Value() <= request.amount;
 }
 
 }

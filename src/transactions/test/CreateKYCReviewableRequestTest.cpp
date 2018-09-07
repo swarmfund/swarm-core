@@ -153,13 +153,13 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                              CreateUpdateKYCRequestResultCode::KYC_RULE_NOT_FOUND);
         }
 
-        manageKVHelper.setKey(key)->setValue(tasks);
+        manageKVHelper.setKey(key)->setUi32Value(tasks);
         manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
 
         SECTION("double creating, request exists") {
             tasks = 30;
-            manageKVHelper.setValue(tasks);
+            manageKVHelper.setUi32Value(tasks);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
@@ -179,7 +179,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
         }
         SECTION("update pending is not allowed for user") {
             tasks = 30;
-            manageKVHelper.setValue(tasks);
+            manageKVHelper.setUi32Value(tasks);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
@@ -200,13 +200,13 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                                                                  AccountType::GENERAL,
                                                                                                  kycData, kycLevel,
                                                                                                  &tasks);
-            manageKVHelper.setValue(tasks);
+            manageKVHelper.setUi32Value(tasks);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             requestID = createUpdateKYCRequestResult.success().requestID;
             uint32 newTasks = 1;
 
-            manageKVHelper.setValue(newTasks);
+            manageKVHelper.setUi32Value(newTasks);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             testKYCRequestHelper.applyCreateUpdateKYCRequest(master, requestID, updatedAccountID.getPublicKey(),

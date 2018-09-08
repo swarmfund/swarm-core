@@ -9,7 +9,7 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "transactions/CreateWithdrawalRequestOpFrame.h"
 #include "database/Database.h"
@@ -362,7 +362,7 @@ bool CreateWithdrawalRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statis
 bool CreateWithdrawalRequestOpFrame::exceedsLowerBound(Database& db, AssetCode& code)
 {
     xdr::xstring<256> key = "WithdrawLowerBound:" + code;
-    auto lowerBound = KeyValueHelper::Instance()->loadKeyValue(key, db);
+    auto lowerBound = KeyValueHelperLegacy::Instance()->loadKeyValue(key, db);
     if (!lowerBound) {
         return true;
     }

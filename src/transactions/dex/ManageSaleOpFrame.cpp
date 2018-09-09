@@ -1,6 +1,6 @@
 #include "ManageSaleOpFrame.h"
 #include "OfferManager.h"
-#include "transactions/CreateSaleCreationRequestOpFrame.h"
+#include "transactions/sale/CreateSaleCreationRequestOpFrame.h"
 #include <ledger/BalanceHelper.h>
 #include <ledger/OfferHelper.h>
 #include <ledger/ReviewableRequestHelper.h>

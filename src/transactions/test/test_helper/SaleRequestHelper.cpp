@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <transactions/sale/CancelSaleCreationRequestOpFrame.h>
 #include "SaleRequestHelper.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/SaleHelper.h"
@@ -66,6 +67,36 @@ CreateSaleCreationRequestResult SaleRequestHelper::applyCreateSaleRequest(
     return opResult.tr().createSaleCreationRequestResult();
 }
 
+CancelSaleCreationRequestResult
+SaleRequestHelper::applyCancelSaleRequest(Account &source, uint64_t requestID,
+        CancelSaleCreationRequestResultCode expectedResult)
+{
+    auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
+    auto reviewableRequestCountBeforeTx = reviewableRequestHelper->
+            countObjects(mTestManager->getDB().getSession());
+
+
+    auto txFrame = cancelSaleRequestTx(source, requestID);
+    mTestManager->applyCheck(txFrame);
+    auto txResult = txFrame->getResult();
+    auto opResult = txResult.result.results()[0];
+    auto actualResultCode =
+            CancelSaleCreationRequestOpFrame::getInnerCode(opResult);
+    REQUIRE(actualResultCode == expectedResult);
+
+    auto reviewableRequestCountAfterTx = reviewableRequestHelper->
+            countObjects(mTestManager->getDB().getSession());
+    if (expectedResult != CancelSaleCreationRequestResultCode::SUCCESS)
+    {
+        REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx);
+        return CancelSaleCreationRequestResult{};
+    }
+
+    REQUIRE(reviewableRequestCountBeforeTx == reviewableRequestCountAfterTx + 1);
+
+    return opResult.tr().cancelSaleCreationRequestResult();
+}
+
 SaleCreationRequest SaleRequestHelper::createSaleRequest(AssetCode base,
     AssetCode defaultQuoteAsset, const uint64_t startTime, const uint64_t endTime,
     const uint64_t softCap, const uint64_t hardCap, std::string details, std::vector<SaleCreationRequestQuoteAsset> quoteAssets,
@@ -111,6 +142,17 @@ TransactionFramePtr SaleRequestHelper::createSaleRequestTx(Account& source, cons
     baseOp.body.type(OperationType::CREATE_SALE_REQUEST);
     auto& op = baseOp.body.createSaleCreationRequestOp();
     op.request = request;
+    op.requestID = requestID;
+    op.ext.v(LedgerVersion::EMPTY_VERSION);
+    return txFromOperation(source, baseOp, nullptr);
+}
+
+TransactionFramePtr SaleRequestHelper::cancelSaleRequestTx(Account &source,
+                                                           uint64_t requestID)
+{
+    Operation baseOp;
+    baseOp.body.type(OperationType::CANCEL_SALE_REQUEST);
+    auto& op = baseOp.body.cancelSaleCreationRequestOp();
     op.requestID = requestID;
     op.ext.v(LedgerVersion::EMPTY_VERSION);
     return txFromOperation(source, baseOp, nullptr);

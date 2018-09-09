@@ -6,7 +6,7 @@
 
 #include "overlay/StellarXDR.h"
 #include "TxHelper.h"
-#include "transactions/CreateSaleCreationRequestOpFrame.h"
+#include "transactions/sale/CreateSaleCreationRequestOpFrame.h"
 
 namespace stellar
 {
@@ -25,15 +25,25 @@ public:
         Account& source, uint64_t requestID, SaleCreationRequest request,
         CreateSaleCreationRequestResultCode expectedResult =
         CreateSaleCreationRequestResultCode::SUCCESS);
+
+    CancelSaleCreationRequestResult applyCancelSaleRequest(
+            Account& source, uint64_t requestID,
+            CancelSaleCreationRequestResultCode expectedResult =
+            CancelSaleCreationRequestResultCode::SUCCESS);
+
     static SaleCreationRequest createSaleRequest(AssetCode base,
         AssetCode defaultQuoteAsset, const uint64_t startTime, const uint64_t endTime,
         const uint64_t softCap, const uint64_t hardCap, std::string details,
-                                                 std::vector<SaleCreationRequestQuoteAsset> quoteAssets,
-                                                 SaleType* saleType = nullptr,
-                                                 const uint64_t* requiredBaseAssetForHardCap = nullptr, SaleState state = SaleState::NONE);
+        std::vector<SaleCreationRequestQuoteAsset> quoteAssets,
+        SaleType* saleType = nullptr,
+        const uint64_t* requiredBaseAssetForHardCap = nullptr,
+        SaleState state = SaleState::NONE);
 
     TransactionFramePtr createSaleRequestTx(
         Account& source, uint64_t requestID, SaleCreationRequest request);
+
+    TransactionFramePtr cancelSaleRequestTx(
+            Account& source, uint64_t requestID);
 };
 }
 }

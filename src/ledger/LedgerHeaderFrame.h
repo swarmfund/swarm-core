@@ -19,29 +19,23 @@ class XDROutputFileStream;
 
 class LedgerHeaderFrame
 {
-    mutable Hash mHash;
-
-    IdGenerator& getIDGenerator(const LedgerEntryType entryType);
-	
   public:
     typedef std::shared_ptr<LedgerHeaderFrame> pointer;
 
-    LedgerHeader mHeader;
+    virtual ~LedgerHeaderFrame() = default;
 
-    // wraps the given ledger as is
-    explicit LedgerHeaderFrame(LedgerHeader const& lh);
+    virtual Hash const& getHash() const = 0;
 
-    // creates a new, _subsequent_ ledger, following the provided closed ledger
-    explicit LedgerHeaderFrame(LedgerHeaderHistoryEntry const& lastClosed);
+    virtual const LedgerHeader& getHeader() const = 0;
+    virtual LedgerHeader& getHeader() = 0;
 
-    Hash const& getHash() const;
-
-	// methods to generate IDs
-    uint64_t getLastGeneratedID(const LedgerEntryType ledgerEntryType) const;
+    // methods to generate IDs
+    virtual uint64_t
+    getLastGeneratedID(const LedgerEntryType ledgerEntryType) const = 0;
     // generates a new ID and returns it
-    uint64_t generateID(const LedgerEntryType ledgerEntryType);
+    virtual uint64_t generateID(const LedgerEntryType ledgerEntryType) = 0;
 
-    void storeInsert(LedgerManager& ledgerManager) const;
+    virtual void storeInsert(LedgerManager& ledgerManager) const = 0;
 
     static LedgerHeaderFrame::pointer loadByHash(Hash const& hash,
                                                  Database& db);
@@ -61,4 +55,4 @@ class LedgerHeaderFrame
   private:
     static LedgerHeaderFrame::pointer decodeFromData(std::string const& data);
 };
-}
+} // namespace stellar

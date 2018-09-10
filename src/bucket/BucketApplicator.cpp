@@ -4,8 +4,8 @@
 
 #include "bucket/Bucket.h"
 #include "bucket/BucketApplicator.h"
-#include "ledger/LedgerDelta.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/LedgerDeltaImpl.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "util/Logging.h"
 
 namespace stellar
@@ -34,7 +34,7 @@ BucketApplicator::advance()
     while (mIn && mIn.readOne(entry))
     {
         LedgerHeader lh;
-        LedgerDelta delta(lh, mDb, false);
+        LedgerDeltaImpl delta(lh, mDb, false);
         if (entry.type() == BucketEntryType::LIVEENTRY)
         {
             EntryFrame::pointer ep = EntryHelperProvider::fromXDREntry(entry.liveEntry());
@@ -45,7 +45,7 @@ BucketApplicator::advance()
 			EntryHelperProvider::storeDeleteEntry(delta, mDb, entry.deadEntry());
         }
         // No-op, just to avoid needless rollback.
-        delta.commit();
+        static_cast<LedgerDelta&>(delta).commit();
         if ((++mSize & 0xff) == 0xff)
         {
             break;

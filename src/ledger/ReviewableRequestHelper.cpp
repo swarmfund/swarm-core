@@ -1,4 +1,5 @@
 #include "ReviewableRequestHelper.h"
+#include "xdrpp/marshal.h"
 #include "xdrpp/printer.h"
 #include "LedgerDelta.h"
 #include "util/basen.h"
@@ -19,6 +20,16 @@ namespace stellar {
         db.getSession() << "ALTER TABLE reviewable_request ADD all_tasks INT DEFAULT 0";
         db.getSession() << "ALTER TABLE reviewable_request ADD pending_tasks INT DEFAULT 0";
         db.getSession() << "ALTER TABLE reviewable_request ADD external_details TEXT";
+    }
+
+    void ReviewableRequestHelper::changeDefaultExternalDetails(Database &db)
+    {
+        db.getSession() << "ALTER TABLE reviewable_request ALTER COLUMN external_details SET DEFAULT ''";
+    }
+
+    void ReviewableRequestHelper::setEmptyStringToExternalDetailsInsteadNull(Database &db)
+    {
+        db.getSession() << "UPDATE reviewable_request SET external_details = '' where external_details is null";
     }
 
     void ReviewableRequestHelper::dropAll(Database &db) {

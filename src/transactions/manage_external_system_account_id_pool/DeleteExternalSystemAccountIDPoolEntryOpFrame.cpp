@@ -2,8 +2,8 @@
 #include <transactions/review_request/ReviewIssuanceCreationRequestOpFrame.h>
 #include <main/Application.h>
 #include <transactions/review_request/ReviewRequestHelper.h>
-#include <ledger/ExternalSystemAccountIDHelper.h>
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include <ledger/ExternalSystemAccountIDHelperLegacy.h>
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
 #include "DeleteExternalSystemAccountIDPoolEntryOpFrame.h"
 
 namespace stellar
@@ -25,7 +25,7 @@ DeleteExternalSystemAccountIDPoolEntryOpFrame::doApply(Application &app, LedgerD
     innerResult().code(ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS);
 
     Database& db = ledgerManager.getDatabase();
-    auto poolEntryHelper = ExternalSystemAccountIDPoolEntryHelper::Instance();
+    auto poolEntryHelper = ExternalSystemAccountIDPoolEntryHelperLegacy::Instance();
 
     auto poolEntryToDeleteFrame = poolEntryHelper->load(mInput.poolEntryID, db, &delta);
 
@@ -46,7 +46,7 @@ DeleteExternalSystemAccountIDPoolEntryOpFrame::doApply(Application &app, LedgerD
 
     if (!!poolEntryToDelete.accountID)
     {
-        auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
+        auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelperLegacy::Instance();
         auto existingExternalSystemAccountIDFrame = externalSystemAccountIDHelper->load(*poolEntryToDelete.accountID,
                                                                                    poolEntryToDelete.externalSystemType,
                                                                                    db, &delta);

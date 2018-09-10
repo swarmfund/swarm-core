@@ -3,7 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "Generator.h"
-#include "ledger/ExternalSystemAccountIDHelper.h"
+#include "ledger/ExternalSystemAccountIDHelperLegacy.h"
 
 namespace stellar {
 
@@ -16,7 +16,7 @@ Generator::~Generator() = default;
 ExternalSystemAccountIDFrame::pointer Generator::tryGenerateNewID(
     AccountID const& accountID, const uint64_t id)
 {
-	auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelper::Instance();
+	auto externalSystemAccountIDHelper = ExternalSystemAccountIDHelperLegacy::Instance();
     if (externalSystemAccountIDHelper->exists(mDb, accountID, getExternalSystemType()))
     {
         return nullptr;

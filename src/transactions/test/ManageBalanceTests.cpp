@@ -8,7 +8,7 @@
 #include "main/test.h"
 #include "TxTests.h"
 #include "ledger/BalanceHelper.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "test_helper/TestManager.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"
@@ -30,8 +30,8 @@ TEST_CASE("manage balance", "[tx][manage_balance]")
     app.start();
     auto testManager = TestManager::make(app);
     TestManager::upgradeToCurrentLedgerVersion(app);
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
 
     auto root = Account{getRoot(), Salt(0)};
 

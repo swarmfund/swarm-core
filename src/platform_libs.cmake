@@ -20,6 +20,7 @@ target_link_libraries(core medida)
 target_link_libraries(core xdrpp)
 target_link_libraries(core sodium)
 target_link_libraries(core coincore)
+target_link_libraries(core gmock)
 
 #For windows.
 if(${CMAKE_HOST_WIN32})

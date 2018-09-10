@@ -4,6 +4,7 @@
 
 #include <transactions/manage_asset/ManageAssetHelper.h>
 #include <transactions/payment/PaymentOpV2Frame.h>
+#include <ledger/StorageHelperImpl.h>
 #include "util/asio.h"
 #include "ReviewInvoiceRequestOpFrame.h"
 #include "database/Database.h"
@@ -188,7 +189,9 @@ ReviewInvoiceRequestOpFrame::processPaymentV2(Application &app, LedgerDelta &del
 
     paymentOpV2Frame.setSourceAccountPtr(mSourceAccount);
 
-    if (!paymentOpV2Frame.doCheckValid(app) || !paymentOpV2Frame.doApply(app, delta, ledgerManager))
+    StorageHelperImpl storageHelper(app.getDatabase(), delta);
+    static_cast<StorageHelper&>(storageHelper).release();
+    if (!paymentOpV2Frame.doCheckValid(app) || !paymentOpV2Frame.doApply(app, storageHelper, ledgerManager))
     {
         auto resultCode = PaymentOpV2Frame::getInnerCode(opRes);
         trySetErrorCode(resultCode);

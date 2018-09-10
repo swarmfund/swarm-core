@@ -26,8 +26,6 @@ class ManageContractOpFrame : public OperationFrame
     bool tryAddContractDetails(ContractFrame::pointer contractFrame, Application &app,
                                Database &db, LedgerDelta &delta);
 
-    uint64_t obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta);
-
     bool tryConfirmCompleted(ContractFrame::pointer contractFrame, Database &db, LedgerDelta &delta);
 
     bool tryCompleted(ContractFrame::pointer contractFrame,
@@ -45,6 +43,8 @@ class ManageContractOpFrame : public OperationFrame
 
     void unlockApprovedInvoicesAmounts(ContractFrame::pointer contractFrame, Database& db, LedgerDelta & delta);
 public:
+
+    static uint64_t obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta);
 
     ManageContractOpFrame(Operation const& op, OperationResult& res,
                            TransactionFrame& parentTx);

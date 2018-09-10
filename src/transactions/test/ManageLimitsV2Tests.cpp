@@ -1,4 +1,5 @@
 #include <ledger/LimitsV2Helper.h>
+#include "ledger/LedgerDeltaImpl.h"
 #include <transactions/test/test_helper/ManageLimitsTestHelper.h>
 #include "main/Application.h"
 #include "main/Config.h"
@@ -33,7 +34,7 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
 
     auto testManager = TestManager::make(app);
 
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(), app.getDatabase());
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(), app.getDatabase());
 
 	upgradeToCurrentLedgerVersion(app);
 
@@ -65,10 +66,11 @@ TEST_CASE("manage limits", "[tx][manage_limits]")
 
     SECTION("malformed")
     {
-        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::MALFORMED);
+        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp,
+                                                   ManageLimitsResultCode::CANNOT_CREATE_FOR_ACC_ID_AND_ACC_TYPE);
         manageLimitsOp.details.limitsCreateDetails().annualOut = 0;
         manageLimitsOp.details.limitsCreateDetails().accountType = nullptr;
-        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::MALFORMED);
+        manageLimitsTestHelper.applyManageLimitsTx(root, manageLimitsOp, ManageLimitsResultCode::INVALID_LIMITS);
     }
     SECTION("success accountID limits setting")
     {

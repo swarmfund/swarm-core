@@ -132,14 +132,22 @@ ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(
     return manageAssetResult;
 }
 
-TransactionFramePtr ManageAssetTestHelper::createManageAssetTx(
-    Account& source, uint64_t requestID, ManageAssetOp::_request_t request)
+Operation
+ManageAssetTestHelper::createManageAssetOp(Account &source, uint64_t requestID, ManageAssetOp::_request_t request)
 {
     Operation op;
     op.body.type(OperationType::MANAGE_ASSET);
     ManageAssetOp& manageAssetOp = op.body.manageAssetOp();
     manageAssetOp.requestID = requestID;
     manageAssetOp.request = request;
+
+    return op;
+}
+
+TransactionFramePtr ManageAssetTestHelper::createManageAssetTx(
+    Account& source, uint64_t requestID, ManageAssetOp::_request_t request)
+{
+    Operation op = createManageAssetOp(source, requestID, request);
     return txFromOperation(source, op, nullptr);
 }
 

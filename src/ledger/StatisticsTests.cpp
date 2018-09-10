@@ -3,10 +3,10 @@
 #include <src/main/test.h>
 #include <util/Timer.h>
 #include <main/Application.h>
-#include "LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/LedgerManager.h"
 #include "StatisticsFrame.h"
-#include "EntryHelper.h"
+#include "EntryHelperLegacy.h"
 #include <src/transactions/test/TxTests.h>
 
 using namespace stellar;
@@ -28,7 +28,8 @@ TEST_CASE("Statistics tests", "[dep_tx][stats]")
 
     Database& db = app->getDatabase();
     LedgerManager& ledgerManager(app->getLedgerManager());
-    LedgerDelta delta(ledgerManager.getCurrentLedgerHeader(), db);
+    LedgerDeltaImpl deltaImpl(ledgerManager.getCurrentLedgerHeader(), db);
+    LedgerDelta& delta = deltaImpl;
 
     LedgerEntry ledgerEntry;
     ledgerEntry.data.type(LedgerEntryType::STATISTICS);

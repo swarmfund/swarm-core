@@ -20,7 +20,7 @@
 #include "xdrpp/message.h"
 #include "database/Database.h"
 #include "ledger/EntryFrame.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/BalanceFrame.h"

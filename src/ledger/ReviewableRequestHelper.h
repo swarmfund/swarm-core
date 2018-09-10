@@ -4,7 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
 #include <functional>
 #include <unordered_map>
@@ -19,7 +19,7 @@ namespace stellar
 {
     class StatementContext;
 
-    class ReviewableRequestHelper : public EntryHelper {
+    class ReviewableRequestHelper : public EntryHelperLegacy {
     public:
         ReviewableRequestHelper(ReviewableRequestHelper const&) = delete;
         ReviewableRequestHelper& operator= (ReviewableRequestHelper const&) = delete;
@@ -30,6 +30,8 @@ namespace stellar
         }
 
         void addTasks(Database& db);
+        void changeDefaultExternalDetails(Database &db);
+        void setEmptyStringToExternalDetailsInsteadNull(Database &db);
 
         void dropAll(Database& db) override;
         void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;

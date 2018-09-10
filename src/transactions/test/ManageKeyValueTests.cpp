@@ -3,7 +3,7 @@
 #include <transactions/ManageKeyValueOpFrame.h>
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
 #include "test/test_marshaler.h"
 #include "TxTests.h"
 
@@ -26,9 +26,9 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
 
     ManageKeyValueTestHelper testHelper(testManager);
     testHelper.setKey(key);
-    testHelper.setValue(30);
+    testHelper.setUi32Value(30);
 
-    auto keyValueHelper = KeyValueHelper::Instance();
+    auto keyValueHelper = KeyValueHelperLegacy::Instance();
 
     SECTION("Can`t delete before create"){
         testHelper.setResult(ManageKeyValueResultCode::NOT_FOUND);
@@ -64,7 +64,7 @@ TEST_CASE("manage KeyValue", "[tx][manage_key_value]") {
         SECTION("Can update after create") {
             auto kvFrame = keyValueHelper->loadKeyValue(key, testManager->getDB());
             REQUIRE(!!kvFrame);
-            testHelper.setValue(40);
+            testHelper.setUi32Value(40);
             testHelper.doApply(app, ManageKVAction::PUT, true);
         }
 

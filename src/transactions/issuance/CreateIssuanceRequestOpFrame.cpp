@@ -5,7 +5,7 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include <ledger/FeeHelper.h>
 #include <transactions/ManageKeyValueOpFrame.h>
-#include <ledger/KeyValueHelper.h>
+#include <ledger/KeyValueHelperLegacy.h>
 #include "util/asio.h"
 #include "CreateIssuanceRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
@@ -20,6 +20,7 @@
 #include "ledger/LedgerDelta.h"
 #include "main/Application.h"
 #include "crypto/SHA.h"
+#include "xdrpp/marshal.h"
 #include "xdrpp/printer.h"
 
 namespace stellar
@@ -244,7 +245,7 @@ SourceDetails CreateIssuanceRequestOpFrame::getSourceAccountDetails(std::unorder
 							 static_cast<int32_t>(SignerType::ISSUANCE_MANAGER));
 	}
 
-	if (!mCreateIssuanceRequest.ext.allTasks())
+	if (mCreateIssuanceRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST && !mCreateIssuanceRequest.ext.allTasks())
 	{
 		return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
 							 static_cast<uint32_t>(SignerType::ISSUANCE_MANAGER) |
@@ -392,14 +393,14 @@ CreateIssuanceRequestOpFrame::isAllowedToReceive(BalanceID receivingBalance, Dat
 
 bool CreateIssuanceRequestOpFrame::loadIssuanceTasks(Database &db, uint32_t &allTasks)
 {
-    if (mCreateIssuanceRequest.ext.allTasks())
+    if (mCreateIssuanceRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST && mCreateIssuanceRequest.ext.allTasks())
     {
         allTasks = *mCreateIssuanceRequest.ext.allTasks().get();
         return true;
     }
 
     auto key = ManageKeyValueOpFrame::makeIssuanceTasksKey(mCreateIssuanceRequest.request.asset);
-    auto keyValueFrame = KeyValueHelper::Instance()->loadKeyValue(key, db);
+    auto keyValueFrame = KeyValueHelperLegacy::Instance()->loadKeyValue(key, db);
     if (!keyValueFrame)
     {
         return false;

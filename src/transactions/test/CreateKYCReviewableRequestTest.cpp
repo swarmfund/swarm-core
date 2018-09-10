@@ -5,6 +5,7 @@
 #include "main/test.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountKYCHelper.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "bucket/BucketApplicator.h"
 #include "test_helper/CreateAccountTestHelper.h"
@@ -48,8 +49,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
     uint32 tasks = 0;
     ReviewKYCRequestTestHelper reviewKYCRequestTestHelper(testManager);
 
-    LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(),testManager->getDB());
-
+    LedgerDeltaImpl delta(testManager->getLedgerManager().getCurrentLedgerHeader(),testManager->getDB());
 
     auto account = AccountHelper::Instance()->loadAccount(updatedAccountID.getPublicKey(),
                                                           testManager->getDB());
@@ -62,9 +62,9 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
 
     SECTION("success") {
         //store KV record into DB
-        manageKVHelper.setKey(key)->setValue(30);
+        manageKVHelper.setKey(key)->setUi32Value(30);
         manageKVHelper.doApply(app, ManageKVAction::PUT, true);
-        manageKVHelper.setKey(syndicateKey)->setValue(30);
+        manageKVHelper.setKey(syndicateKey)->setUi32Value(30);
         manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
         SECTION("source master, create and approve") {
@@ -153,13 +153,13 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                              CreateUpdateKYCRequestResultCode::KYC_RULE_NOT_FOUND);
         }
 
-        manageKVHelper.setKey(key)->setValue(tasks);
+        manageKVHelper.setKey(key)->setUi32Value(tasks);
         manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
 
         SECTION("double creating, request exists") {
             tasks = 30;
-            manageKVHelper.setValue(tasks);
+            manageKVHelper.setUi32Value(tasks);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0, updatedAccountID.getPublicKey(),
@@ -179,7 +179,7 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
         }
         SECTION("update pending is not allowed for user") {
             tasks = 30;
-            manageKVHelper.setValue(tasks);
+            manageKVHelper.setUi32Value(tasks);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             auto createUpdateKYCRequestResult = testKYCRequestHelper.applyCreateUpdateKYCRequest(updatedAccount, 0,
@@ -200,13 +200,13 @@ TEST_CASE("create KYC request", "[tx][create_KYC_request]") {
                                                                                                  AccountType::GENERAL,
                                                                                                  kycData, kycLevel,
                                                                                                  &tasks);
-            manageKVHelper.setValue(tasks);
+            manageKVHelper.setUi32Value(tasks);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             requestID = createUpdateKYCRequestResult.success().requestID;
             uint32 newTasks = 1;
 
-            manageKVHelper.setValue(newTasks);
+            manageKVHelper.setUi32Value(newTasks);
             manageKVHelper.doApply(app, ManageKVAction::PUT, true);
 
             testKYCRequestHelper.applyCreateUpdateKYCRequest(master, requestID, updatedAccountID.getPublicKey(),

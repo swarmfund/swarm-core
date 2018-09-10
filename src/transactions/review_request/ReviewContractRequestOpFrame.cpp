@@ -4,6 +4,7 @@
 
 #include <transactions/manage_asset/ManageAssetHelper.h>
 #include <transactions/payment/PaymentOpV2Frame.h>
+#include <transactions/ManageContractOpFrame.h>
 #include "util/asio.h"
 #include "ReviewContractRequestOpFrame.h"
 #include "database/Database.h"
@@ -11,6 +12,7 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/ContractHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "main/Application.h"
 
 namespace stellar
@@ -43,6 +45,7 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
     }
 
     Database& db = ledgerManager.getDatabase();
+
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
 
     auto contractFrame = make_shared<ContractFrame>();
@@ -58,6 +61,15 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
     contractEntry.initialDetails = contractRequest.details;
     contractEntry.state = static_cast<uint32_t>(ContractState::NO_CONFIRMATIONS);
 
+    if (ledgerManager.shouldUse(LedgerVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT))
+    {
+        if (!checkCustomerDetailsLength(app, db, delta))
+            return false;
+
+        contractEntry.ext.v(LedgerVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT);
+        contractEntry.ext.customerDetails() = mReviewRequest.requestDetails.contract().details;
+    }
+
     EntryHelperProvider::storeAddEntry(delta, db, contractFrame->mEntry);
 
     if (ledgerManager.shouldUse(LedgerVersion::ADD_CONTRACT_ID_REVIEW_REQUEST_RESULT))
@@ -69,6 +81,18 @@ ReviewContractRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta
     return true;
 }
 
+bool
+ReviewContractRequestOpFrame::checkCustomerDetailsLength(Application& app, Database& db, LedgerDelta& delta)
+{
+    auto maxCustomerDetailsLength = ManageContractOpFrame::obtainMaxContractDetailLength(app, db, delta);
+    if (mReviewRequest.requestDetails.contract().details.size() > maxCustomerDetailsLength)
+    {
+        innerResult().code(ReviewRequestResultCode::CONTRACT_DETAILS_TOO_LONG);
+        return false;
+    }
+    
+    return true;
+}
 
 bool
 ReviewContractRequestOpFrame::handleReject(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager,

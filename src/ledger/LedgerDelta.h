@@ -1,109 +1,61 @@
 #pragma once
 
-// Copyright 2015 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-
 #include <map>
 #include <set>
 #include "ledger/EntryFrame.h"
-#include "ledger/LedgerHeaderFrame.h"
-#include "bucket/LedgerCmp.h"
-#include "xdrpp/marshal.h"
 
 namespace stellar
 {
+class LedgerHeader;
+class LedgerHeaderFrame;
 class Application;
-class Database;
 
 class LedgerDelta
 {
-public:
+  public:
     typedef std::map<LedgerKey, EntryFrame::pointer, LedgerEntryIdCmp>
         KeyEntryMap;
-private:
-    LedgerDelta*
-        mOuterDelta;       // set when this delta is nested inside another delta
-    LedgerHeader* mHeader; // LedgerHeader to commit changes to
-
-    // objects to keep track of changes
-    // ledger header itself
-    LedgerHeaderFrame mCurrentHeader;
-    LedgerHeader mPreviousHeaderValue;
-    // ledger entries
-    KeyEntryMap mNew;
-    KeyEntryMap mMod;
-    std::set<LedgerKey, LedgerEntryIdCmp> mDelete;
-
-    // all created/changed ledger entries:
-    LedgerEntryChanges mAllChanges;
-
-    KeyEntryMap mPrevious;
-
-    Database& mDb; // Used strictly for rollback of db entry cache.
-
-    bool mUpdateLastModified;
-
-    void checkState();
-    void addEntry(EntryFrame::pointer entry);
-    void deleteEntry(EntryFrame::pointer entry);
-    void modEntry(EntryFrame::pointer entry);
-    void recordEntry(EntryFrame::pointer entry);
-
-    // merge "other" into current ledgerDelta
-    void mergeEntries(LedgerDelta& other);
-
-    // helper method that adds a meta entry to "changes"
-    // with the previous value of an entry if needed
-    void addCurrentMeta(LedgerEntryChanges& changes,
-                        LedgerKey const& key) const;
-
-  public:
-    // keeps an internal reference to the outerDelta,
-    // will apply changes to the outer scope on commit
-    explicit LedgerDelta(LedgerDelta& outerDelta);
-
-    // keeps an internal reference to ledgerHeader,
-    // will apply changes to ledgerHeader on commit,
-    // will clear db entry cache on rollback.
-    // updateLastModified: if true, revs the lastModified field
-    LedgerDelta(LedgerHeader& ledgerHeader, Database& db,
-                bool updateLastModified = true);
-
-    ~LedgerDelta();
-
-    LedgerHeader& getHeader();
-    LedgerHeader const& getHeader() const;
-    LedgerHeaderFrame& getHeaderFrame();
+    virtual LedgerHeader& getHeader() = 0;
+    virtual LedgerHeader const& getHeader() const = 0;
+    virtual LedgerHeaderFrame& getHeaderFrame() = 0;
 
     // methods to register changes in the ledger entries
-    void addEntry(EntryFrame const& entry);
-    void deleteEntry(EntryFrame const& entry);
-    void deleteEntry(LedgerKey const& key);
-    void modEntry(EntryFrame const& entry);
-    void recordEntry(EntryFrame const& entry);
+    virtual void addEntry(EntryFrame const& entry) = 0;
+    virtual void deleteEntry(EntryFrame const& entry) = 0;
+    virtual void deleteEntry(LedgerKey const& key) = 0;
+    virtual void modEntry(EntryFrame const& entry) = 0;
+    virtual void recordEntry(EntryFrame const& entry) = 0;
+
+    virtual void mergeEntries(LedgerDelta& other) = 0;
 
     // commits this delta into outer delta
-    void commit();
+    virtual void commit() = 0;
     // aborts any changes pending, flush db cache entries
-    void rollback();
+    virtual void rollback() = 0;
 
-    bool updateLastModified() const;
+    virtual bool updateLastModified() const = 0;
 
-    void markMeters(Application& app) const;
+    virtual void markMeters(Application& app) const = 0;
 
-    std::vector<LedgerEntry> getLiveEntries() const;
-    std::vector<LedgerKey> getDeadEntries() const;
+    virtual std::vector<LedgerEntry> getLiveEntries() const = 0;
+    virtual std::vector<LedgerKey> getDeadEntries() const = 0;
 
-    LedgerEntryChanges getChanges() const;
-    LedgerEntryChanges getAllChanges() const;
+    virtual LedgerEntryChanges getChanges() const = 0;
+    virtual const LedgerEntryChanges& getAllChanges() const = 0;
 
     // performs sanity checks against the local state
-    void checkAgainstDatabase(Application& app) const;
+    virtual void checkAgainstDatabase(Application& app) const = 0;
 
-    KeyEntryMap getState() const
-    {
-        return mPrevious;
-    }
+    virtual KeyEntryMap getState() const = 0;
+
+    virtual bool isStateActive() const = 0;
+
+    virtual Database& getDatabase() = 0;
+
+    virtual const KeyEntryMap& getPreviousFrames() const = 0;
+    virtual const std::set<LedgerKey, LedgerEntryIdCmp>& getDeletionFramesSet() const = 0;
+    virtual const KeyEntryMap& getCreationFrames() const = 0;
+    virtual const KeyEntryMap& getModificationFrames() const = 0;
 };
-}
+
+} // namespace stellar

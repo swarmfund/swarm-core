@@ -23,10 +23,16 @@ public:
         bool isOverflow;
     };
 
-    static FeeResult calcualteFeeForAccount(AccountFrame::pointer account, FeeType const feeType, AssetCode const& asset,
-        int64_t const subtype, uint64_t const amount, Database& db);
+    static FeeResult calculateFeeForAccount(const AccountFrame::pointer account, FeeType const feeType,
+                                            AssetCode const &asset,
+                                            int64_t const subtype, uint64_t const amount, Database &db);
 
-    static FeeResult calculateOfferFeeForAccount(AccountFrame::pointer account, AssetCode const& quoteAsset, uint64_t const quoteAmount, Database& db);
+    static FeeResult calculateOfferFeeForAccount(AccountFrame::pointer account, AssetCode const& quoteAsset,
+                                                 uint64_t const quoteAmount, Database& db);
+
+    static FeeResult calculateCapitalDeploymentFeeForAccount(const AccountFrame::pointer account,
+                                                      AssetCode const& quoteAsset,
+                                                      uint64_t const quoteAmount, Database& db);
 
 };
 }

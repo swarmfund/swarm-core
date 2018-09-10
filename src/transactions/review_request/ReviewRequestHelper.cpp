@@ -1,6 +1,8 @@
+#include "ledger/AccountHelper.h"
+#include "ledger/LedgerDeltaImpl.h"
+#include "ledger/StorageHelperImpl.h"
 #include "ReviewRequestHelper.h"
 #include "ReviewRequestOpFrame.h"
-#include "ledger/AccountHelper.h"
 
 
 namespace stellar {
@@ -25,9 +27,10 @@ ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(Transaction
 {
     Database& db = ledgerManager.getDatabase();
     // shield outer scope of any side effects by using
-    // a sql transaction for ledger state and LedgerDelta
-    soci::transaction reviewRequestTx(db.getSession());
-    LedgerDelta reviewRequestDelta(delta);
+    // a StorageHelper and LedgerDelta
+    LedgerDeltaImpl reviewRequestDelta(delta);
+    StorageHelperImpl storageHelperImpl(ledgerManager.getDatabase(), reviewRequestDelta);
+    StorageHelper& storageHelper = storageHelperImpl;
 
     auto helper = ReviewRequestHelper(app, ledgerManager, reviewRequestDelta, reviewableRequest);
     auto result = helper.tryApproveRequest(parentTx);
@@ -36,8 +39,7 @@ ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(Transaction
         return result;
     }
 
-    reviewRequestTx.commit();
-    reviewRequestDelta.commit();
+    storageHelper.commit();
 
     return result;
 }

@@ -4,6 +4,7 @@
 
 #include "ReviewSaleCreationRequestOpFrame.h"
 #include "database/Database.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/LedgerDelta.h"

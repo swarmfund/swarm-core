@@ -40,11 +40,11 @@ getTestConfig(int instanceNumber, Config::TestDbMode mode)
 {
     if (mode == Config::TESTDB_DEFAULT)
     {
-        // by default, tests should be run with in memory SQLITE as it's faster
+        // we don't maintain sqlite anymore, but if we will,
         // you can change this by enabling the appropriate line below
-        mode = Config::TESTDB_IN_MEMORY_SQLITE;
+        // mode = Config::TESTDB_IN_MEMORY_SQLITE;
         // mode = Config::TESTDB_ON_DISK_SQLITE;
-        // mode = Config::TESTDB_POSTGRESQL;
+        mode = Config::TESTDB_POSTGRESQL;
     }
     auto& cfgs = gTestCfg[mode];
     if (cfgs.size() <= static_cast<size_t>(instanceNumber))
@@ -181,6 +181,9 @@ test(int argc, char* argv[], el::Level ll,
     Logging::setLogLevel(ll, nullptr);
     LOG(INFO) << "Testing stellar-core " << STELLAR_CORE_VERSION;
     LOG(INFO) << "Logging to " << cfg.LOG_FILE_PATH;
+
+    ::testing::GTEST_FLAG(throw_on_failure) = true;
+    ::testing::InitGoogleMock(&argc, argv);
 
     return Catch::Session().run(argc, argv);
 }

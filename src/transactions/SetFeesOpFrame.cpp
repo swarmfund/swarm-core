@@ -2,8 +2,9 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/xdrpp/xdrpp/printer.h>
 #include "transactions/SetFeesOpFrame.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/AssetHelper.h"
@@ -130,7 +131,8 @@ namespace stellar {
         Database &db = ledgerManager.getDatabase();
         innerResult().code(SetFeesResultCode::SUCCESS);
 
-        LedgerDelta setFeesDelta(delta);
+        LedgerDeltaImpl setFeesDeltaImpl(delta);
+        LedgerDelta& setFeesDelta = setFeesDeltaImpl;
 
         LedgerHeader &ledgerHeader = setFeesDelta.getHeader();
 
@@ -191,7 +193,8 @@ namespace stellar {
     }
 
     bool SetFeesOpFrame::isPaymentFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
-        assert(fee.feeType == FeeType::PAYMENT_FEE);
+        FeeFrame::checkFeeType(fee, FeeType::PAYMENT_FEE);
+
         if (!mustValidFeeAmounts(fee, metrics))
             return false;
 
@@ -199,7 +202,8 @@ namespace stellar {
     }
 
     bool SetFeesOpFrame::isForfeitFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
-        assert(fee.feeType == FeeType::WITHDRAWAL_FEE);
+        FeeFrame::checkFeeType(fee, FeeType::WITHDRAWAL_FEE);
+
         if (!mustValidFeeAmounts(fee, metrics))
             return false;
 
@@ -207,7 +211,7 @@ namespace stellar {
     }
 
     bool SetFeesOpFrame::isOfferFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
-        assert(fee.feeType == FeeType::OFFER_FEE);
+        FeeFrame::checkFeeType(fee, FeeType::OFFER_FEE);
 
         if (!mustValidFeeAmounts(fee, metrics))
             return false;
@@ -221,8 +225,20 @@ namespace stellar {
         return true;
     }
 
+    bool SetFeesOpFrame::isCapitalDeploymentFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
+        FeeFrame::checkFeeType(fee, FeeType::CAPITAL_DEPLOYMENT_FEE);
+
+        if (!mustValidFeeAmounts(fee, metrics))
+            return false;
+
+        if (!mustEmptyFixed(fee, metrics))
+            return false;
+
+        return mustDefaultSubtype(fee, metrics);
+    }
+
     bool SetFeesOpFrame::isEmissionFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
-        assert(fee.feeType == FeeType::ISSUANCE_FEE);
+        FeeFrame::checkFeeType(fee, FeeType::ISSUANCE_FEE);
 
         if (!mustValidFeeAmounts(fee, metrics))
             return false;
@@ -231,18 +247,27 @@ namespace stellar {
     }
 
     bool SetFeesOpFrame::isInvestFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
-        if (fee.feeType != FeeType::INVEST_FEE) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected fee type. Expected: "
-                                                   << xdr::xdr_traits<FeeType>::enum_name(FeeType::INVEST_FEE)
-                                                   << " but was: "
-                                                   << xdr::xdr_traits<FeeType>::enum_name(fee.feeType);
-            throw std::runtime_error("Unexpected fee type");
-        }
+        FeeFrame::checkFeeType(fee, FeeType::INVEST_FEE);
 
         if (!mustValidFeeAmounts(fee, metrics))
             return false;
 
         return mustDefaultSubtype(fee, metrics);
+    }
+
+    bool SetFeesOpFrame::isOperationFeeValid(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
+        FeeFrame::checkFeeType(fee, FeeType::OPERATION_FEE);
+
+        if (!mustValidFeeAmounts(fee, metrics))
+            return false;
+
+        if (!mustEmptyPercent(fee, metrics))
+            return false;
+
+        auto operationTypes = xdr::xdr_traits<OperationType>::enum_values();
+
+        return fee.subtype >= 0 &&
+               (std::find(operationTypes.begin(), operationTypes.end(), fee.subtype) != operationTypes.end());
     }
 
     std::unordered_map<AccountID, CounterpartyDetails>
@@ -272,7 +297,16 @@ namespace stellar {
             return true;
 
         innerResult().code(SetFeesResultCode::INVALID_AMOUNT);
-        metrics.NewMeter({"op-set-fees", "invalid", "fixed-fee-must-be-emoty"}, "operation").Mark();
+        metrics.NewMeter({"op-set-fees", "invalid", "fixed-fee-must-be-empty"}, "operation").Mark();
+        return false;
+    }
+
+    bool SetFeesOpFrame::mustEmptyPercent(FeeEntry const &fee, medida::MetricsRegistry &metrics) {
+        if (fee.percentFee == 0) {
+            return true;
+        }
+
+        innerResult().code(SetFeesResultCode::INVALID_AMOUNT);
         return false;
     }
 
@@ -339,6 +373,12 @@ namespace stellar {
                 break;
             case FeeType::INVEST_FEE:
                 isValidFee = isInvestFeeValid(*mSetFees.fee, app.getMetrics());
+                break;
+            case FeeType::OPERATION_FEE:
+                isValidFee = isOperationFeeValid(*mSetFees.fee, app.getMetrics());
+                break;
+            case FeeType::CAPITAL_DEPLOYMENT_FEE:
+                isValidFee = isCapitalDeploymentFeeValid(*mSetFees.fee, app.getMetrics());
                 break;
             default:
                 innerResult().code(SetFeesResultCode::INVALID_FEE_TYPE);

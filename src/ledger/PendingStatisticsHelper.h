@@ -1,6 +1,6 @@
 #pragma once
 #include "LedgerDelta.h"
-#include "EntryHelper.h"
+#include "EntryHelperLegacy.h"
 #include "PendingStatisticsFrame.h"
 
 namespace soci
@@ -12,7 +12,7 @@ namespace stellar
 {
     class StatementContext;
 
-class PendingStatisticsHelper : public EntryHelper {
+class PendingStatisticsHelper : public EntryHelperLegacy {
 
 public:
 

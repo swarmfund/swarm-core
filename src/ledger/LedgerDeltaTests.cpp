@@ -4,7 +4,7 @@
 
 #include "util/Timer.h"
 #include "main/test.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "main/Application.h"
 #include "LedgerTestUtils.h"
 #include "ledger/LedgerManager.h"
@@ -22,7 +22,8 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
     LedgerHeader& curHeader = app->getLedgerManager().getCurrentLedgerHeader();
     LedgerHeader orgHeader = curHeader;
 
-    LedgerDelta delta(curHeader, app->getDatabase());
+    LedgerDeltaImpl deltaImpl(curHeader, app->getDatabase());
+    LedgerDelta& delta = deltaImpl;
 
     SECTION("header changes")
     {
@@ -42,15 +43,17 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
             }
             SECTION("nested")
             {
-                LedgerDelta delta2(delta);
+                LedgerDeltaImpl delta2Impl(delta);
+                LedgerDelta& delta2 = delta2Impl;
                 delta2.getHeaderFrame().generateID(LedgerEntryType::BALANCE);
                 SECTION("inner no op")
                 {
-                    LedgerDelta delta3(delta2);
+                    LedgerDeltaImpl delta3(delta2);
                 }
                 SECTION("inner rollback")
                 {
-                    LedgerDelta delta3(delta2);
+                    LedgerDeltaImpl delta3Impl(delta2);
+                    LedgerDelta& delta3 = delta3Impl;
                     delta3.getHeaderFrame().generateID(LedgerEntryType::BALANCE);
                     delta3.rollback();
                 }
@@ -59,13 +62,14 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
             }
             SECTION("nested2")
             {
-                LedgerDelta delta2(delta);
+                LedgerDeltaImpl delta2(delta);
                 {
-                    LedgerDelta delta3(delta2);
+                    LedgerDeltaImpl delta3Impl(delta2);
+                    LedgerDelta& delta3 = delta3Impl;
                     delta3.getHeaderFrame().generateID(LedgerEntryType::BALANCE);
                     delta3.commit();
                 }
-                delta2.commit();
+                static_cast<LedgerDelta&>(delta2).commit();
                 delta.commit();
             }
             REQUIRE(curHeader == expHeader);
@@ -251,21 +255,21 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
         {
             SECTION("commit")
             {
-                LedgerDelta delta2(delta);
+                LedgerDeltaImpl delta2(delta);
                 addEntries(nbAccountsGroupSize * 3, nbAccountsGroupSize * 4,
                            delta2, accountsByKey);
-                delta2.commit();
+                static_cast<LedgerDelta&>(delta2).commit();
                 checkChanges(delta, nbAccountsGroupSize * 2,
                              nbAccountsGroupSize, nbAccountsGroupSize,
                              nbAccountsGroupSize * 2, orgAccounts);
             }
             SECTION("rollback")
             {
-                LedgerDelta delta2(delta);
+                LedgerDeltaImpl delta2(delta);
                 MapAccounts accountsByKey2;
                 addEntries(nbAccountsGroupSize * 3, nbAccountsGroupSize * 4,
                            delta2, accountsByKey2);
-                delta2.rollback();
+                static_cast<LedgerDelta&>(delta2).rollback();
                 checkChanges(delta, nbAccountsGroupSize, nbAccountsGroupSize,
                              nbAccountsGroupSize, nbAccountsGroupSize * 2,
                              orgAccounts);
@@ -273,7 +277,7 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
         }
         SECTION("modified entries")
         {
-            LedgerDelta delta2(delta);
+            LedgerDeltaImpl delta2(delta);
             MapAccounts modAccounts = accountsByKey;
 
             // modify entries that were added and modified
@@ -288,14 +292,14 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
                 accountsByKey = modAccounts;
                 checkChanges(delta2, 0, nbAccountsGroupSize * 2, 0,
                              nbAccountsGroupSize, orgAccountsBeforeD2);
-                delta2.commit();
+                static_cast<LedgerDelta&>(delta2).commit();
                 checkChanges(delta, nbAccountsGroupSize,
                              nbAccountsGroupSize * 2, nbAccountsGroupSize,
                              nbAccountsGroupSize * 3, orgAccounts);
             }
             SECTION("rollback")
             {
-                delta2.rollback();
+                static_cast<LedgerDelta&>(delta2).rollback();
                 checkChanges(delta, nbAccountsGroupSize, nbAccountsGroupSize,
                              nbAccountsGroupSize, nbAccountsGroupSize * 2,
                              orgAccounts);
@@ -303,7 +307,8 @@ TEST_CASE("Ledger delta", "[ledger][ledgerdelta]")
         }
         SECTION("deleted entries")
         {
-            LedgerDelta delta2(delta);
+            LedgerDeltaImpl delta2Impl(delta);
+            LedgerDelta& delta2 = delta2Impl;
             MapAccounts delAccounts = accountsByKey;
 
             // delete entries that were added and modified

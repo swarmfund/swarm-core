@@ -5,6 +5,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "xdrpp/printer.h"
 #include "ledger/ReviewableRequestHelper.h"

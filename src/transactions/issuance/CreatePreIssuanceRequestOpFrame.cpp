@@ -5,7 +5,7 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include "util/asio.h"
 #include "CreatePreIssuanceRequestOpFrame.h"
-#include "transactions/SignatureValidator.h"
+#include "transactions/SignatureValidatorImpl.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -134,7 +134,7 @@ bool CreatePreIssuanceRequestOpFrame::isSignatureValid(AssetFrame::pointer asset
 {
 	auto& request = mCreatePreIssuanceRequest.request;
 	auto signatureData = getSignatureData(mCreatePreIssuanceRequest.request.reference, request.amount, request.asset);
-	auto signatureValidator = SignatureValidator(signatureData, { request.signature });
+	auto signatureValidator = SignatureValidatorImpl(signatureData, { request.signature });
 
 	const int VALID_SIGNATURES_REQUIRED = 1;
 	SignatureValidator::Result result = signatureValidator.check({ asset->getPreIssuedAssetSigner() }, VALID_SIGNATURES_REQUIRED, version);

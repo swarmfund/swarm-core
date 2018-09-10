@@ -8,7 +8,7 @@
 #include "ledger/LedgerDelta.h"
 #include "transactions/review_request/ReviewRequestHelper.h"
 #include "transactions/review_request/ReviewUpdateKYCRequestOpFrame.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
 
 namespace stellar {
     using namespace std;
@@ -249,7 +249,7 @@ namespace stellar {
         auto  key = ManageKeyValueOpFrame::makeKYCRuleKey(account->getAccount().accountType,account->getKYCLevel(),
                                                           kycRequestData.accountTypeToSet,kycRequestData.kycLevelToSet);
 
-        auto kvEntry = KeyValueHelper::Instance()->loadKeyValue(key,db);
+        auto kvEntry = KeyValueHelperLegacy::Instance()->loadKeyValue(key,db);
 
         if (!kvEntry)
         {

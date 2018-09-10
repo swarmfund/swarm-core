@@ -1,7 +1,7 @@
 
 #include "ManageKeyValueOpFrame.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -17,6 +17,7 @@ namespace stellar {
 
     char const * ManageKeyValueOpFrame::kycRulesPrefix = "kyc_lvlup_rules";
     char const * ManageKeyValueOpFrame::externalSystemPrefix = "ext_sys_exp_period";
+    char const * ManageKeyValueOpFrame::transactionFeeAssetKey = "tx_fee_asset";
     char const * ManageKeyValueOpFrame::issuanceTasksPrefix = "issuance_tasks";
     char const * ManageKeyValueOpFrame::maxContractDetailLengthPrefix = "max_contract_detail_length";
     char const * ManageKeyValueOpFrame::maxContractInitialDetailLengthPrefix = "max_contract_initial_detail_length";
@@ -35,7 +36,7 @@ namespace stellar {
         innerResult().code(ManageKeyValueResultCode::SUCCESS);
 
         Database &db = ledgerManager.getDatabase();
-        auto keyValueHelper = KeyValueHelper::Instance();
+        auto keyValueHelper = KeyValueHelperLegacy::Instance();
         auto keyValueFrame = keyValueHelper->loadKeyValue(this->mManageKeyValue.key, db, &delta);
 
         if (mManageKeyValue.action.action() == ManageKVAction::REMOVE) {

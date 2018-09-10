@@ -169,23 +169,18 @@ struct LedgerEntryIdCmp
             auto const& bpool = b.externalSystemAccountIDPoolEntry();
             return apool.poolEntryID < bpool.poolEntryID;
         }
-        case LedgerEntryType::IDENTITY_POLICY:
+        case LedgerEntryType::ACCOUNT_ROLE:
         {
-            auto const& aip = a.identityPolicy();
-            auto const& bip = b.identityPolicy();
+            auto const& arole = a.accountRole();
+            auto const& brole = b.accountRole();
 
-            if (aip.id == bip.id)
-            {
-                return aip.ownerID < bip.ownerID;
-            }
-
-            return aip.id < bip.id;
+            return arole.accountRoleID < brole.accountRoleID;
         }
-        case LedgerEntryType::POLICY_ATTACHMENT:
+        case LedgerEntryType::ACCOUNT_ROLE_POLICY:
         {
-            auto const& apa = a.policyAttachment();
-            auto const& bpa = b.policyAttachment();
-            return apa.policyAttachmentID < bpa.policyAttachmentID;
+            auto const& aarp = a.accountRolePolicy();
+            auto const& barp = b.accountRolePolicy();
+            return aarp.accountRolePolicyID < barp.accountRolePolicyID;
         }
             case LedgerEntryType::LIMITS_V2:
             {

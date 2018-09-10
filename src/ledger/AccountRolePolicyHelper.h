@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "IdentityPolicyFrame.h"
+#include "AccountRolePolicyFrame.h"
 #include "ledger/EntryHelper.h"
 #include "map"
 #include "xdr/Stellar-types.h"
@@ -12,16 +12,16 @@ namespace stellar
 {
 class LedgerManager;
 
-class IdentityPolicyHelper : public EntryHelper
+class AccountRolePolicyHelper : public EntryHelper
 {
   public:
-    IdentityPolicyHelper(IdentityPolicyHelper const&) = delete;
-    IdentityPolicyHelper& operator=(IdentityPolicyHelper const&) = delete;
+    AccountRolePolicyHelper(AccountRolePolicyHelper const&) = delete;
+    AccountRolePolicyHelper& operator=(AccountRolePolicyHelper const&) = delete;
 
-    static IdentityPolicyHelper*
+    static AccountRolePolicyHelper*
     Instance()
     {
-        static IdentityPolicyHelper singleton;
+        static AccountRolePolicyHelper singleton;
         return &singleton;
     }
 
@@ -42,14 +42,14 @@ class IdentityPolicyHelper : public EntryHelper
     EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
     EntryFrame::pointer storeLoad(LedgerKey const& key, Database& db) override;
 
-    IdentityPolicyFrame::pointer
-    loadIdentityPolicy(uint64_t id, AccountID ownerID, Database& db, LedgerDelta* delta = nullptr);
+    AccountRolePolicyFrame::pointer
+    loadPolicy(uint64_t id, AccountID ownerID, Database &db, LedgerDelta *delta = nullptr);
 
     uint64_t countObjectsForOwner(const AccountID &ownerID, soci::session& sess);
 
 
   private:
-    IdentityPolicyHelper() = default;
+    AccountRolePolicyHelper() = default;
 
     void storeUpdate(LedgerDelta& delta, Database& db, bool insert,
                      LedgerEntry const& entry);

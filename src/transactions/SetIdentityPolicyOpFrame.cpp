@@ -1,7 +1,7 @@
 
 #include "SetIdentityPolicyOpFrame.h"
 #include "database/Database.h"
-#include "ledger/IdentityPolicyHelper.h"
+#include "ledger/AccountRolePolicyHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -37,7 +37,7 @@ SetIdentityPolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (!(sourceID == app.getMasterID()))
     {
         const auto countOfOwnerPolicies =
-                IdentityPolicyHelper::Instance()->countObjectsForOwner(sourceID,
+                AccountRolePolicyHelper::Instance()->countObjectsForOwner(sourceID,
                                                                        app.getDatabase().getSession());
         if (countOfOwnerPolicies >= app.getMaxIdentityPoliciesPerAccount())
         {
@@ -103,7 +103,7 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
     {
         innerResult().success().identityPolicyID = mSetIdentityPolicy.id;
 
-        auto identityPolicyFrame = IdentityPolicyHelper::Instance()->loadIdentityPolicy(
+        auto identityPolicyFrame = AccountRolePolicyHelper::Instance()->loadPolicy(
                 mSetIdentityPolicy.id, getSourceID(), db, &delta);
 
         if (!identityPolicyFrame)

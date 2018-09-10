@@ -47,7 +47,7 @@
 #include "PendingStatisticsHelper.h"
 #include "SaleAnteHelper.h"
 #include "ContractHelper.h"
-#include "IdentityPolicyHelper.h"
+#include "AccountRolePolicyHelper.h"
 
 namespace stellar
 {
@@ -195,7 +195,7 @@ namespace stellar
 		{ LedgerEntryType::PENDING_STATISTICS, PendingStatisticsHelper::Instance() },
 		{ LedgerEntryType::SALE_ANTE, SaleAnteHelper::Instance() },
 		{ LedgerEntryType::CONTRACT, ContractHelper::Instance() },
-		{ LedgerEntryType::IDENTITY_POLICY, IdentityPolicyHelper::Instance() },
+		{ LedgerEntryType::IDENTITY_POLICY, AccountRolePolicyHelper::Instance() },
 		{ LedgerEntryType::POLICY_ATTACHMENT, PolicyAttachmentHelper::Instance() }
 	};
 }

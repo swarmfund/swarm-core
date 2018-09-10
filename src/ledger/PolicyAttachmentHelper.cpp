@@ -17,20 +17,19 @@ namespace stellar {
         db.getSession() << "DROP TABLE IF EXISTS policy_attachment;";
         db.getSession() << "CREATE TABLE policy_attachment"
                            "("
-                           "policy_attachment_id    BIGINT      NOT NULL CHECK (policy_attachment_id >= 0), "
                            "policy_id               BIGINT      NOT NULL CHECK (policy_id >= 0), "
                            "owner_id                VARCHAR(56) NOT NULL, "
-                           "account_type            INT, "
-                           "account_id              VARCHAR(56), "
+                           "account_role            INT         NOT NULL, "
                            "lastmodified            INT         NOT NULL, "
                            "version                 INT         NOT NULL DEFAULT 0, "
-                           "PRIMARY KEY (policy_attachment_id)"
+                           "PRIMARY KEY (policy_id),"
+                           "FOREIGN KEY(account_role) REFERENCES account_roles(id) ON DELETE CASCADE ON UPDATE CASCADE"
                            ");";
     }
 
     void
     PolicyAttachmentHelper::storeUpdateHelper(LedgerDelta &delta, Database &db, bool insert, LedgerEntry const &entry) {
-        auto policyAttachmentFrame = make_shared<PolicyAttachmentFrame>(entry);
+        auto policyAttachmentFrame = make_shared<AccountRoleFrame>(entry);
         auto policyAttachmentEntry = policyAttachmentFrame->getPolicyAttachment();
 
         policyAttachmentFrame->touch(delta);
@@ -176,7 +175,7 @@ namespace stellar {
     }
 
     EntryFrame::pointer PolicyAttachmentHelper::fromXDR(LedgerEntry const &from) {
-        return make_shared<PolicyAttachmentFrame>(from);
+        return make_shared<AccountRoleFrame>(from);
     }
 
     uint64_t PolicyAttachmentHelper::countObjects(soci::session &sess) {
@@ -200,9 +199,9 @@ namespace stellar {
         return count;
     }
 
-    PolicyAttachmentFrame::pointer
+    AccountRoleFrame::pointer
     PolicyAttachmentHelper::loadPolicyAttachment(uint64_t policyAttachmentID, Database &db, LedgerDelta *delta) {
-        PolicyAttachmentFrame::pointer retPolicyAttachment;
+        AccountRoleFrame::pointer retPolicyAttachment;
 
         string sql = policyAttachmentColumnSelector;
         sql += " WHERE policy_attachment_id = :id";
@@ -212,7 +211,7 @@ namespace stellar {
 
         auto timer = db.getSelectTimer("policy-attachment");
         loadPolicyAttachments(prep, [&retPolicyAttachment](LedgerEntry const &policyAttachment) {
-            retPolicyAttachment = make_shared<PolicyAttachmentFrame>(policyAttachment);
+            retPolicyAttachment = make_shared<AccountRoleFrame>(policyAttachment);
         });
 
         if (delta && retPolicyAttachment) {
@@ -222,7 +221,7 @@ namespace stellar {
         return retPolicyAttachment;
     }
 
-    PolicyAttachmentFrame::pointer
+    AccountRoleFrame::pointer
     PolicyAttachmentHelper::loadPolicyAttachment(uint64_t policyAttachmentID, AccountID const &ownerID,
                                                  Database &db, LedgerDelta *delta) {
         auto policyAttachmentFrame = loadPolicyAttachment(policyAttachmentID, db, delta);
@@ -274,7 +273,7 @@ namespace stellar {
                                     "to account type and account id within one attachment");
             }
 
-            PolicyAttachmentFrame::ensureValid(le.data.policyAttachment());
+            AccountRoleFrame::ensureValid(le.data.policyAttachment());
 
             policyAttachmentProcessor(le);
             st.fetch();
@@ -282,7 +281,7 @@ namespace stellar {
     }
 
     void PolicyAttachmentHelper::loadPolicyAttachments(AccountType const &accountType,
-                                                       std::vector<PolicyAttachmentFrame::pointer> &retAttachments,
+                                                       std::vector<AccountRoleFrame::pointer> &retAttachments,
                                                        Database &db) {
         auto accType = (int32_t) accountType;
 
@@ -294,12 +293,12 @@ namespace stellar {
 
         auto timer = db.getSelectTimer("policy-attachment");
         loadPolicyAttachments(prep, [&retAttachments](LedgerEntry const &entry) {
-            retAttachments.emplace_back(make_shared<PolicyAttachmentFrame>(entry));
+            retAttachments.emplace_back(make_shared<AccountRoleFrame>(entry));
         });
     }
 
     void PolicyAttachmentHelper::loadPolicyAttachments(AccountID const &accountID,
-                                                       std::vector<PolicyAttachmentFrame::pointer> &retAttachments,
+                                                       std::vector<AccountRoleFrame::pointer> &retAttachments,
                                                        Database &db) {
         string accIDStrKey = PubKeyUtils::toStrKey(accountID);
 
@@ -311,7 +310,7 @@ namespace stellar {
 
         auto timer = db.getSelectTimer("policy-attachment");
         loadPolicyAttachments(prep, [&retAttachments](LedgerEntry const &entry) {
-            retAttachments.emplace_back(make_shared<PolicyAttachmentFrame>(entry));
+            retAttachments.emplace_back(make_shared<AccountRoleFrame>(entry));
         });
     }
 }

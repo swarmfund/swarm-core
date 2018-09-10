@@ -1,5 +1,5 @@
 
-#include "IdentityPolicyHelper.h"
+#include "AccountRolePolicyHelper.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountTypeLimitsFrame.h"
 
@@ -17,11 +17,11 @@ namespace stellar
 using xdr::operator<;
 
 void
-IdentityPolicyHelper::dropAll(Database& db)
+AccountRolePolicyHelper::dropAll(Database& db)
 {
-    db.getSession() << "DROP TABLE IF EXISTS identity_policies;";
+    db.getSession() << "DROP TABLE IF EXISTS account_role_policies;";
     db.getSession()
-        << "CREATE TABLE identity_policies"
+        << "CREATE TABLE account_role_policies"
            "("
            "id             BIGINT                 NOT NULL CHECK (id > 0),"
            "ownerid        VARCHAR(56)            NOT NULL,"
@@ -31,26 +31,27 @@ IdentityPolicyHelper::dropAll(Database& db)
            "effect         SMALLINT               NOT NULL CHECK (effect >= 0 AND effect <= 1),"
            "lastmodified   INT                    NOT NULL,"
            "version        INT                    NOT NULL,"
-           "PRIMARY KEY(id, ownerid)"
+           "PRIMARY KEY(id, ownerid),"
+           "FOREGIN KEY(role) REFERENCES account_roles(id) ON DELETE CASCADE ON UPDATE CASCADE"
            ");";
 }
 
 void
-IdentityPolicyHelper::storeAdd(LedgerDelta& delta, Database& db,
+AccountRolePolicyHelper::storeAdd(LedgerDelta& delta, Database& db,
                                LedgerEntry const& entry)
 {
     storeUpdate(delta, db, true, entry);
 }
 
 void
-IdentityPolicyHelper::storeChange(LedgerDelta& delta, Database& db,
+AccountRolePolicyHelper::storeChange(LedgerDelta& delta, Database& db,
                                   LedgerEntry const& entry)
 {
     storeUpdate(delta, db, false, entry);
 }
 
 void
-IdentityPolicyHelper::storeDelete(LedgerDelta& delta, Database& db,
+AccountRolePolicyHelper::storeDelete(LedgerDelta& delta, Database& db,
                                   LedgerKey const& key)
 {
     flushCachedEntry(key, db);
@@ -71,10 +72,10 @@ IdentityPolicyHelper::storeDelete(LedgerDelta& delta, Database& db,
 }
 
 void
-IdentityPolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
+AccountRolePolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
                                   LedgerEntry const& entry)
 {
-    const auto identityPolicyFrame = make_shared<IdentityPolicyFrame>(entry);
+    const auto identityPolicyFrame = make_shared<AccountRolePolicyFrame>(entry);
 
     identityPolicyFrame->ensureValid();
     identityPolicyFrame->touch(delta);
@@ -142,7 +143,7 @@ IdentityPolicyHelper::storeUpdate(LedgerDelta& delta, Database& db, bool insert,
 }
 
 bool
-IdentityPolicyHelper::exists(Database& db, LedgerKey const& key)
+AccountRolePolicyHelper::exists(Database& db, LedgerKey const& key)
 {
     int exists = 0;
     auto timer = db.getSelectTimer("identity_policy-exists");
@@ -165,7 +166,7 @@ IdentityPolicyHelper::exists(Database& db, LedgerKey const& key)
 }
 
 bool
-IdentityPolicyHelper::exists(Database& db, uint64_t id)
+AccountRolePolicyHelper::exists(Database& db, uint64_t id)
 {
     LedgerKey key;
 
@@ -176,7 +177,7 @@ IdentityPolicyHelper::exists(Database& db, uint64_t id)
 }
 
 uint64_t
-IdentityPolicyHelper::countObjects(soci::session& sess)
+AccountRolePolicyHelper::countObjects(soci::session& sess)
 {
     uint64_t count = 0;
     sess << "SELECT COUNT(*) FROM identity_policies;", into(count);
@@ -185,7 +186,7 @@ IdentityPolicyHelper::countObjects(soci::session& sess)
 }
 
 uint64_t
-IdentityPolicyHelper::countObjectsForOwner(const AccountID &ownerID, soci::session& sess)
+AccountRolePolicyHelper::countObjectsForOwner(const AccountID &ownerID, soci::session& sess)
 {
     uint64_t count = 0;
     const std::string ownerIDStrKey = PubKeyUtils::toStrKey(ownerID);
@@ -195,7 +196,7 @@ IdentityPolicyHelper::countObjectsForOwner(const AccountID &ownerID, soci::sessi
 }
 
 LedgerKey
-IdentityPolicyHelper::getLedgerKey(LedgerEntry const& from)
+AccountRolePolicyHelper::getLedgerKey(LedgerEntry const& from)
 {
     LedgerKey ledgerKey;
 
@@ -207,20 +208,20 @@ IdentityPolicyHelper::getLedgerKey(LedgerEntry const& from)
 }
 
 EntryFrame::pointer
-IdentityPolicyHelper::fromXDR(LedgerEntry const& from)
+AccountRolePolicyHelper::fromXDR(LedgerEntry const& from)
 {
-    return make_shared<IdentityPolicyFrame>(from);
+    return make_shared<AccountRolePolicyFrame>(from);
 }
 
 EntryFrame::pointer
-IdentityPolicyHelper::storeLoad(LedgerKey const& key, Database& db)
+AccountRolePolicyHelper::storeLoad(LedgerKey const& key, Database& db)
 {
-    return loadIdentityPolicy(key.identityPolicy().id, key.identityPolicy().ownerID, db);
+    return loadPolicy(key.identityPolicy().id, key.identityPolicy().ownerID, db);
 }
 
-IdentityPolicyFrame::pointer
-IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, AccountID ownerID, Database& db,
-                                         LedgerDelta* delta)
+AccountRolePolicyFrame::pointer
+AccountRolePolicyHelper::loadPolicy(uint64_t id, AccountID ownerID, Database &db,
+                                    LedgerDelta *delta)
 {
     uint64_t priority;
     std::string resource;
@@ -241,7 +242,7 @@ IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, AccountID ownerID, Databas
     if (cachedEntryExists(key, db))
     {
         auto p = getCachedEntry(key, db);
-        return p ? std::make_shared<IdentityPolicyFrame>(*p) : nullptr;
+        return p ? std::make_shared<AccountRolePolicyFrame>(*p) : nullptr;
     }
 
     std::string name;
@@ -271,7 +272,7 @@ IdentityPolicyHelper::loadIdentityPolicy(uint64_t id, AccountID ownerID, Databas
         return nullptr;
     }
 
-    auto result = make_shared<IdentityPolicyFrame>(le);
+    auto result = make_shared<AccountRolePolicyFrame>(le);
     auto& policyEntry = result->getIdentityPolicy();
 
     policyEntry.id = id;

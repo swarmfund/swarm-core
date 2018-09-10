@@ -48,7 +48,7 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
-#include <ledger/IdentityPolicyHelper.h>
+#include <ledger/AccountRolePolicyHelper.h>
 #include <ledger/KeyValueHelper.h>
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/StatisticsV2Helper.h>
@@ -207,7 +207,7 @@ Database::applySchemaUpgrade(unsigned long vers)
             ContractHelper::Instance()->dropAll(*this);
             break;
         case databaseSchemaVersion::ADD_IDENTITY_POLICY:
-            IdentityPolicyHelper::Instance()->dropAll(*this);
+            AccountRolePolicyHelper::Instance()->dropAll(*this);
             break;
         case databaseSchemaVersion::ADD_POLICY_ATTACHMENT:
             PolicyAttachmentHelper::Instance()->dropAll(*this);

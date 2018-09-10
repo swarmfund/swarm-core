@@ -25,7 +25,7 @@ IdentityPolicyChecker::doCheckPolicies(const AccountID& initiatorID,
                             "AND identity_policies.action = :ac";
 
     auto prep = db.getPreparedStatement(sql);
-    std::vector<stellar::IdentityPolicyFrame::pointer> result;
+    std::vector<stellar::AccountRolePolicyFrame::pointer> result;
 
     uint64_t id;
     std::string resource;
@@ -60,7 +60,7 @@ IdentityPolicyChecker::doCheckPolicies(const AccountID& initiatorID,
         return false;
     }
 
-    auto policy = std::make_shared<IdentityPolicyFrame>(le);
+    auto policy = std::make_shared<AccountRolePolicyFrame>(le);
     auto policyEntry = policy->getIdentityPolicy();
 
     policyEntry.id = id;
@@ -70,7 +70,7 @@ IdentityPolicyChecker::doCheckPolicies(const AccountID& initiatorID,
     policyEntry.ownerID = ownerIDStrKey;
     policyEntry.ext.v(static_cast<LedgerVersion>(version));
 
-    IdentityPolicyFrame::ensureValid(policyEntry);
+    AccountRolePolicyFrame::ensureValid(policyEntry);
 
     result.push_back(policy);
 
@@ -81,7 +81,7 @@ IdentityPolicyChecker::doCheckPolicies(const AccountID& initiatorID,
 }
 
 bool
-IdentityPolicyChecker::checkPolicy(IdentityPolicyFrame::pointer policy,
+IdentityPolicyChecker::checkPolicy(AccountRolePolicyFrame::pointer policy,
                                    uint64_t& lastPriority)
 {
     bool result = false;

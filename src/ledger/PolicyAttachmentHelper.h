@@ -2,7 +2,7 @@
 
 #include "ledger/LedgerManager.h"
 #include "EntryHelper.h"
-#include "PolicyAttachmentFrame.h"
+#include "AccountRoleFrame.h"
 
 namespace soci {
     class session;
@@ -45,20 +45,20 @@ namespace stellar {
 
         uint64_t countObjects(Database &db, AccountID const& ownerID);
 
-        PolicyAttachmentFrame::pointer
+        AccountRoleFrame::pointer
         loadPolicyAttachment(uint64_t policyAttachmentID, Database &db, LedgerDelta *delta = nullptr);
 
-        PolicyAttachmentFrame::pointer
+        AccountRoleFrame::pointer
         loadPolicyAttachment(uint64_t policyAttachmentID, AccountID const& ownerID,
                              Database &db, LedgerDelta *delta = nullptr);
 
         void
         loadPolicyAttachments(AccountType const &accountType,
-                              std::vector<PolicyAttachmentFrame::pointer> &retAttachments, Database &db);
+                              std::vector<AccountRoleFrame::pointer> &retAttachments, Database &db);
 
         void
         loadPolicyAttachments(AccountID const &accountID,
-                              std::vector<PolicyAttachmentFrame::pointer> &retAttachments, Database &db);
+                              std::vector<AccountRoleFrame::pointer> &retAttachments, Database &db);
 
     private:
         PolicyAttachmentHelper() { ; }

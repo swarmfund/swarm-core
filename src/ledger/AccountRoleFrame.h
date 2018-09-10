@@ -1,0 +1,68 @@
+#pragma once
+
+#include "ledger/EntryFrame.h"
+
+namespace soci
+{
+class session;
+}
+
+namespace stellar
+{
+class StatementContext;
+
+class AccountRoleFrame : public EntryFrame
+{
+    AccountRoleEntry& mAccountRole;
+
+    AccountRoleFrame(AccountRoleFrame const& from);
+
+  public:
+    typedef std::shared_ptr<AccountRoleFrame> pointer;
+
+    AccountRoleFrame();
+
+    explicit AccountRoleFrame(LedgerEntry const& from);
+
+    AccountRoleFrame& operator=(AccountRoleFrame const& other);
+
+    EntryFrame::pointer
+    copy() const override
+    {
+        return EntryFrame::pointer(new AccountRoleFrame(*this));
+    }
+
+    AccountRoleEntry const&
+    getPolicyAttachment() const
+    {
+        return mAccountRole;
+    }
+
+    uint64_t
+    getID() const
+    {
+        return mAccountRole.accountRoleID;
+    }
+
+    std::string
+    getName() const
+    {
+        return mAccountRole.accountRoleName;
+    }
+
+    AccountID const&
+    getOwnerID() const
+    {
+        return mAccountRole.ownerID;
+    }
+
+    static void ensureValid(AccountRoleEntry const& entry);
+
+    void ensureValid() const;
+
+    static pointer createNew(uint64_t id,
+                             AccountID const& ownerID,
+                             std::string const& name,
+                             LedgerDelta& delta);
+};
+} // namespace stellar

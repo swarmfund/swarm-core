@@ -1,7 +1,7 @@
 #include "ManagePolicyAttachmentOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/IdentityPolicyHelper.h"
+#include "ledger/AccountRolePolicyHelper.h"
 #include "ledger/PolicyAttachmentHelper.h"
 
 namespace stellar {
@@ -52,7 +52,7 @@ namespace stellar {
         }
 
         // create
-        auto policyFrame = IdentityPolicyHelper::Instance()->loadIdentityPolicy(
+        auto policyFrame = AccountRolePolicyHelper::Instance()->loadPolicy(
                 mManagePolicyAttachment.opInput.creationData().policyID, getSourceID(), db, &delta
         );
         if (!policyFrame) {
@@ -84,7 +84,7 @@ namespace stellar {
 
         auto newPolicyAttachmentID = delta.getHeaderFrame().generateID(LedgerEntryType::POLICY_ATTACHMENT);
 
-        auto policyAttachmentFrame = PolicyAttachmentFrame::createNew(newPolicyAttachmentID, getSourceID(),
+        auto policyAttachmentFrame = AccountRoleFrame::createNew(newPolicyAttachmentID, getSourceID(),
                                                                       mManagePolicyAttachment.opInput.creationData(),
                                                                       delta);
 

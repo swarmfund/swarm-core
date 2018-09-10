@@ -5,7 +5,7 @@
 #include "main/test.h"
 #include "TxTests.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/IdentityPolicyHelper.h"
+#include "ledger/AccountRolePolicyHelper.h"
 #include "transactions/SetIdentityPolicyOpFrame.h"
 #include "crypto/SHA.h"
 #include "test_helper/CreateAccountTestHelper.h"
@@ -40,7 +40,7 @@ TEST_CASE("Set identity policy", "[tx][set_identity_policy]") {
     // set up world
     auto master = Account{getRoot(), Salt(1)};
 
-    const auto identityPolicyHelper = IdentityPolicyHelper::Instance();
+    const auto identityPolicyHelper = AccountRolePolicyHelper::Instance();
 
     CreateAccountTestHelper createAccountTestHelper(testManager);
     SetIdentityPolicyTestHelper setIdentityPolicyTestHelper(testManager);

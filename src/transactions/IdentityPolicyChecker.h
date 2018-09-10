@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "ledger/IdentityPolicyHelper.h"
+#include "ledger/AccountRolePolicyHelper.h"
 #include "xdr/Stellar-types.h"
 #include "transactions/PolicyDetails.h"
 
@@ -22,7 +22,7 @@ class IdentityPolicyChecker
                                 LedgerDelta* delta = nullptr);
 
   private:
-    static bool checkPolicy(IdentityPolicyFrame::pointer policy,
+    static bool checkPolicy(AccountRolePolicyFrame::pointer policy,
                             uint64_t& lastPriority);
 };
 

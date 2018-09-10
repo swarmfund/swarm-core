@@ -1,7 +1,7 @@
 
 #include "SetIdentityPolicyTestHelper.h"
 #include <lib/catch.hpp>
-#include "ledger/IdentityPolicyHelper.h"
+#include "ledger/AccountRolePolicyHelper.h"
 #include "transactions/SetIdentityPolicyOpFrame.h"
 
 namespace stellar
@@ -55,7 +55,8 @@ void SetIdentityPolicyTestHelper::applySetIdentityPolicyTx(Account &source,
     SetIdentityPolicyResult setIdentityPolicyResult = txResult.result.results()[0].tr().setIdentityPolicyResult();
 
     auto storedIdentityPolicy =
-            IdentityPolicyHelper::Instance()->loadIdentityPolicy(setIdentityPolicyResult.success().identityPolicyID, policyEntry.ownerID, mTestManager->getDB());
+            AccountRolePolicyHelper::Instance()->loadPolicy(setIdentityPolicyResult.success().identityPolicyID,
+                                                            policyEntry.ownerID, mTestManager->getDB());
     if (isDelete)
     {
         REQUIRE(!storedIdentityPolicy);

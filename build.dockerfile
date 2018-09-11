@@ -15,6 +15,7 @@ RUN true \
       libpq-dev \
       libssl1.0-dev \
       pkg-config \
+      cmake \
       make
 
 ARG RSA_KEY
@@ -31,14 +32,13 @@ RUN true \
  && echo "Host gitlab\n\tHostName gitlab.com\n\tIdentityFile ~/.ssh/id_rsa\n\tUser git\n" >> ~/.ssh/config \
  && git config --global url.ssh://git@gitlab.com/.insteadOf https://gitlab.com/ \
  && git submodule update --init \
- && ./autogen.sh \
- && ./configure \
- && make -j 4
+ && cmake CMakeLists.txt -DPostgreSQL_INCLUDE_DIRS=/usr/include/postgresql/ -DPostgreSQL_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpq.so \
+ && make -j4
 
 
 FROM ubuntu:18.04
 
-COPY --from=0 /build/src/stellar-core /usr/local/bin/stellar-core
+COPY --from=0 /build/src/core /usr/local/bin/stellar-core
 COPY --from=0 /build/entrypoint.sh /entrypoint.sh
 
 RUN true \

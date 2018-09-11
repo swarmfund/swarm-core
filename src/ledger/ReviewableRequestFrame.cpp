@@ -2,14 +2,18 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <lib/json/json.h>
 #include "ReviewableRequestFrame.h"
 #include "database/Database.h"
 #include "LedgerDelta.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/AssetFrame.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "xdrpp/printer.h"
+#include "xdrpp/marshal.h"
 #include "crypto/SHA.h"
 #include "SaleFrame.h"
+#include "util/types.h"
 
 using namespace soci;
 using namespace std;
@@ -165,8 +169,41 @@ void ReviewableRequestFrame::ensureSaleCreationValid(
     {
         dummyBalances[quoteAsset.quoteAsset] = dummyBalanceID;
     }
-    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalances);
+    const auto saleFrame = SaleFrame::createNew(0, dummyAccountID, request, dummyBalances, 0);
     saleFrame->ensureValid();
+}
+void ReviewableRequestFrame::ensureAMLAlertValid(AMLAlertRequest const &request) {
+    if(request.reason.empty()){
+        throw runtime_error("reason is invalid");
+    }
+
+    if (request.amount == 0)
+    {
+        throw runtime_error("amount can not be 0");
+    }
+
+}
+
+void ReviewableRequestFrame::ensureUpdateKYCValid(UpdateKYCRequest const &request) {
+	if (!isValidJson(request.kycData)) {
+		throw std::runtime_error("KYC data is invalid");
+	}
+	bool res = isValidEnumValue(request.accountTypeToSet);
+	if (!res) {
+		throw runtime_error("invalid account type");
+	}
+}
+
+void ReviewableRequestFrame::ensureUpdateSaleDetailsValid(UpdateSaleDetailsRequest const &request) {
+    if (!isValidJson(request.newDetails)) {
+        throw std::runtime_error("New sale details is invalid");
+    }
+}
+
+void ReviewableRequestFrame::ensureInvoiceValid(InvoiceRequest const& request)
+{
+    if (request.amount == 0)
+        throw runtime_error("amount can not be 0");
 }
 
 uint256 ReviewableRequestFrame::calculateHash(ReviewableRequestEntry::_body_t const & body)
@@ -200,13 +237,31 @@ void ReviewableRequestFrame::ensureValid(ReviewableRequestEntry const& oe)
         case ReviewableRequestType::SALE:
             ensureSaleCreationValid(oe.body.saleCreationRequest());
             return;
-        case ReviewableRequestType ::LIMITS_UPDATE:
+        case ReviewableRequestType::LIMITS_UPDATE:
             return;
         case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
             ensureWithdrawalValid(oe.body.twoStepWithdrawalRequest());
             return;
+        case ReviewableRequestType::AML_ALERT:
+            ensureAMLAlertValid(oe.body.amlAlertRequest());
+            return;
+		case ReviewableRequestType::UPDATE_KYC:
+            ensureUpdateKYCValid(oe.body.updateKYCRequest());
+			return;
+        case ReviewableRequestType::UPDATE_SALE_DETAILS:
+            ensureUpdateSaleDetailsValid(oe.body.updateSaleDetailsRequest());
+            return;
+        case ReviewableRequestType::INVOICE:
+            ensureInvoiceValid(oe.body.invoiceRequest());
+            return;
+        case ReviewableRequestType::UPDATE_SALE_END_TIME:
+            return;
+        case ReviewableRequestType ::UPDATE_PROMOTION:
+            return;
+        case ReviewableRequestType::CONTRACT:
+            return;
         default:
-            throw runtime_error("Unexpected reviewable request typw");
+            throw runtime_error("Unexpected reviewable request type");
         }
     } catch(exception ex)
     {
@@ -220,4 +275,35 @@ ReviewableRequestFrame::ensureValid() const
 {
     ensureValid(mRequest);
 }
+
+void ReviewableRequestFrame::setTasks(uint32_t allTasks)
+{
+    mRequest.ext.v(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST);
+    mRequest.ext.tasksExt().allTasks = allTasks;
+    mRequest.ext.tasksExt().pendingTasks = allTasks;
+}
+
+void ReviewableRequestFrame::checkRequestType(ReviewableRequestType requestType) const
+{
+    if (mRequest.body.type() != requestType) {
+        CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected request type. Expected "
+                                               << xdr::xdr_traits<ReviewableRequestType>::enum_name(requestType)
+                                               << " but got "
+                                               << xdr::xdr_traits<ReviewableRequestType>::enum_name(
+                                                       mRequest.body.type());
+        throw std::invalid_argument("Unexpected request type");
+    }
+}
+
+bool ReviewableRequestFrame::canBeFulfilled(LedgerManager& lm) const
+{
+    if (!lm.shouldUse(LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST) ||
+        mRequest.ext.v() != LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+    {
+        return true;
+    }
+
+    return mRequest.ext.tasksExt().pendingTasks == 0;
+}
+
 }

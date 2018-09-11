@@ -9,7 +9,7 @@
 #include "util/make_unique.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/BalanceHelper.h"
 #include "test/test_marshaler.h"
 
@@ -47,14 +47,14 @@ TEST_CASE("account_manager", "[dep_tx][account_manager]")
     
     auto amount = ONE;
 
-    applySetLimits(app, root, rootSeq++, nullptr, &accountType, limits);
+    //applySetLimits(app, root, rootSeq++, nullptr, &accountType, limits);
 
     auto a = SecretKey::random();
     applyCreateAccountTx(app, root, a, rootSeq++, accountType);
     auto account = loadAccount(a, app);
 	REQUIRE(account);
 
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
     AccountManager accountManager(app, app.getDatabase(), delta, app.getLedgerManager());
     auto now = app.getLedgerManager().getCloseTime();

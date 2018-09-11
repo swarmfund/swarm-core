@@ -8,6 +8,7 @@
 #include "OfferExchange.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/BalanceHelper.h"
@@ -92,9 +93,8 @@ bool CreateOfferOpFrame::checkOfferValid(Database& db, LedgerDelta& delta)
     else
         receivingBalance = mManageOffer.quoteBalance;
 
-    if (!AccountManager::isAllowedToReceive(receivingBalance, db))
+    if (!isAllowedToReceive(receivingBalance, db))
     {
-        innerResult().code(ManageOfferResultCode::REQUIRES_KYC);
         return false;
     }
 
@@ -150,6 +150,17 @@ bool CreateOfferOpFrame::lockSellingAmount(OfferEntry const& offer)
            SUCCESS;
 }
 
+FeeManager::FeeResult
+CreateOfferOpFrame::obtainCalculatedFeeForAccount(int64_t amount, LedgerManager& lm, Database& db) const
+{
+    if (lm.shouldUse(LedgerVersion::ADD_CAPITAL_DEPLOYMENT_FEE_TYPE) && isCapitalDeployment)
+    {
+        return FeeManager::calculateCapitalDeploymentFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), amount, db);
+    }
+
+    return FeeManager::calculateOfferFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), amount, db);
+}
+
 bool
 CreateOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
                             LedgerManager& ledgerManager)
@@ -170,7 +181,8 @@ CreateOfferOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     auto& offer = offerFrame->getOffer();
     offer.createdAt = ledgerManager.getCloseTime();
-    const auto feeResult = FeeManager::calculateOfferFeeForAccount(mSourceAccount, mQuoteBalance->getAsset(), offer.quoteAmount, db);
+    auto const feeResult = obtainCalculatedFeeForAccount(offer.quoteAmount, ledgerManager, db);
+
     if (feeResult.isOverflow)
     {
         innerResult().code(ManageOfferResultCode::OFFER_OVERFLOW);
@@ -315,5 +327,28 @@ bool CreateOfferOpFrame::doCheckValid(Application& app)
     }
 
     return true;
+}
+
+bool
+CreateOfferOpFrame::isAllowedToReceive(BalanceID receivingBalance, Database &db)
+{
+    const auto result = AccountManager::isAllowedToReceive(receivingBalance, db);
+    switch (result){
+        case AccountManager::SUCCESS:
+            return true;
+        case AccountManager::BALANCE_NOT_FOUND:
+            innerResult().code(ManageOfferResultCode::BALANCE_NOT_FOUND);
+            return false;
+        case AccountManager::REQUIRED_VERIFICATION:
+            innerResult().code(ManageOfferResultCode::REQUIRES_VERIFICATION);
+            return false;
+        case AccountManager::REQUIRED_KYC:
+            innerResult().code(ManageOfferResultCode::REQUIRES_KYC);
+            return false;
+        default:
+            CLOG(ERROR, Logging::OPERATION_LOGGER)
+                    << "Unexpected isAllowedToReceive method result from accountManager:" << result;
+            throw std::runtime_error("Unexpected isAllowedToReceive method result from accountManager");
+    }
 }
 }

@@ -38,7 +38,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageAssetPairOpFrame::getCo
 	return std::unordered_map<AccountID, CounterpartyDetails>();
 }
 
-SourceDetails ManageAssetPairOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ManageAssetPairOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                              int32_t ledgerVersion) const
 {
 	int32_t signerType = mManageAssetPair.action == ManageAssetPairAction::UPDATE_PRICE ?
 						 							static_cast<int32_t >(SignerType::ASSET_RATE_MANAGER):

@@ -17,30 +17,41 @@ using xdr::operator<;
 
 const char* selectorSale =
     "SELECT id, owner_id, base_asset, default_quote_asset, start_time, "
-    "end_time, soft_cap, hard_cap, details, base_balance, version, lastmodified FROM sale";
+    "end_time, soft_cap, hard_cap, details, base_balance, version, lastmodified, current_cap_in_base, hard_cap_in_base, sale_type, state FROM sale";
 
 void SaleHelper::dropAll(Database& db)
 {
-    db.getSession() << "DROP TABLE IF EXISTS sale;";
+    db.getSession() << "DROP TABLE IF EXISTS sale CASCADE;";
     db.getSession() << "CREATE TABLE sale"
         "("
-        "id            BIGINT        NOT NULL CHECK (id >= 0),"
-        "owner_id      VARCHAR(56)   NOT NULL,"
-        "base_asset    VARCHAR(16)   NOT NULL,"
-        "default_quote_asset   VARCHAR(16)   NOT NULL,"
-        "start_time    BIGINT        NOT NULL CHECK (start_time >= 0),"
-        "end_time      BIGINT        NOT NULL CHECK (end_time >= 0),"
-        "soft_cap      NUMERIC(20,0) NOT NULL CHECK (soft_cap >= 0),"
-        "hard_cap      NUMERIC(20,0) NOT NULL CHECK (hard_cap >= 0),"
-        "details       TEXT          NOT NULL,"
-        "base_balance  VARCHAR(56)   NOT NULL,"
-        "version       INT           NOT NULL,"
-        "lastmodified  INT           NOT NULL,"
+        "id                  BIGINT        NOT NULL CHECK (id >= 0),"
+        "owner_id            VARCHAR(56)   NOT NULL,"
+        "base_asset          VARCHAR(16)   NOT NULL,"
+        "default_quote_asset VARCHAR(16)   NOT NULL,"
+        "start_time          BIGINT        NOT NULL CHECK (start_time >= 0),"
+        "end_time            BIGINT        NOT NULL CHECK (end_time >= 0),"
+        "soft_cap            NUMERIC(20,0) NOT NULL CHECK (soft_cap >= 0),"
+        "hard_cap            NUMERIC(20,0) NOT NULL CHECK (hard_cap >= 0),"
+        "hard_cap_in_base    NUMERIC(20,0) NOT NULL CHECK (hard_cap_in_base >= 0),"
+        "current_cap_in_base NUMERIC(20,0) NOT NULL CHECK (current_cap_in_base >= 0),"
+        "details             TEXT          NOT NULL,"
+        "base_balance        VARCHAR(56)   NOT NULL,"
+        "version             INT           NOT NULL,"
+        "lastmodified        INT           NOT NULL,"
         "PRIMARY KEY (id)"
         ");";
 
     SaleQuoteAssetHelper::dropAll(db);
+}
 
+void SaleHelper::addType(Database& db)
+{
+    db.getSession() << "ALTER TABLE sale ADD COLUMN sale_type INT NOT NULL DEFAULT 0";
+}
+
+void SaleHelper::addState(Database & db)
+{
+    db.getSession() << "ALTER TABLE sale ADD column state INT NOT NULL DEFAULT 0";
 }
 
 void SaleHelper::storeAdd(LedgerDelta& delta, Database& db,
@@ -90,6 +101,20 @@ bool SaleHelper::exists(Database& db, LedgerKey const& key)
     return exists != 0;
 }
 
+bool SaleHelper::exists(Database &db, uint64_t saleID)
+{
+    auto timer = db.getSelectTimer("sale_exists");
+    auto prep = db.getPreparedStatement("SELECT EXISTS (SELECT NULL FROM sale WHERE id=:id)");
+    auto& st = prep.statement();
+    st.exchange(use(saleID));
+    auto exists = 0;
+    st.exchange(into(exists));
+    st.define_and_bind();
+    st.execute(true);
+
+    return exists != 0;
+}
+
 LedgerKey SaleHelper::getLedgerKey(LedgerEntry const& from)
 {
     LedgerKey ledgerKey;
@@ -130,17 +155,17 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     {
         sql =
             "INSERT INTO sale (id, owner_id, base_asset, default_quote_asset, start_time,"
-            " end_time, soft_cap, hard_cap, details, version, lastmodified, base_balance)"
+            " end_time, soft_cap, hard_cap, details, version, lastmodified, base_balance, current_cap_in_base, hard_cap_in_base, sale_type, state)"
             " VALUES (:id, :owner_id, :base_asset, :default_quote_asset, :start_time,"
-            " :end_time, :soft_cap, :hard_cap, :details, :v, :lm, :base_balance)";
+            " :end_time, :soft_cap, :hard_cap, :details, :v, :lm, :base_balance, :current_cap_in_base, :hard_cap_in_base, :sale_type, :state)";
     }
     else
     {
         sql =
             "UPDATE sale SET owner_id=:owner_id, base_asset = :base_asset, default_quote_asset = :default_quote_asset, start_time = :start_time,"
             " end_time= :end_time, soft_cap = :soft_cap, hard_cap = :hard_cap, details = :details, version=:v, lastmodified=:lm, "
-            " base_balance = :base_balance "
-            " WHERE id = :id";
+            " base_balance = :base_balance, current_cap_in_base = :current_cap_in_base, hard_cap_in_base = :hard_cap_in_base, sale_type = :sale_type, "
+            " state = :state WHERE id = :id";
     }
 
     auto prep = db.getPreparedStatement(sql);
@@ -160,6 +185,12 @@ void SaleHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     st.exchange(use(saleFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     auto baseBalance = BalanceKeyUtils::toStrKey(saleEntry.baseBalance);
     st.exchange(use(baseBalance, "base_balance"));
+    st.exchange(use(saleEntry.currentCapInBase, "current_cap_in_base"));
+    st.exchange(use(saleEntry.maxAmountToBeSold, "hard_cap_in_base"));
+    auto saleType = static_cast<int>(SaleFrame::getSaleType(saleEntry));
+    st.exchange(use(saleType, "sale_type"));
+    auto saleState = static_cast<int>(saleFrame->getState());
+    st.exchange(use(saleState, "state"));
     st.define_and_bind();
 
     auto timer = insert
@@ -189,37 +220,62 @@ void SaleHelper::loadSales(Database& db, StatementContext& prep,
                               const function<void(LedgerEntry const&)>
                               saleProcessor) const
 {
-    LedgerEntry le;
-    le.data.type(LedgerEntryType::SALE);
-    auto& oe = le.data.sale();
-    int version;
-
-    statement& st = prep.statement();
-    st.exchange(into(oe.saleID));
-    st.exchange(into(oe.ownerID));
-    st.exchange(into(oe.baseAsset));
-    st.exchange(into(oe.defaultQuoteAsset));
-    st.exchange(into(oe.startTime));
-    st.exchange(into(oe.endTime));
-    st.exchange(into(oe.softCap));
-    st.exchange(into(oe.hardCap));
-    st.exchange(into(oe.details));
-    st.exchange(into(oe.baseBalance));
-    st.exchange(into(version));
-    st.exchange(into(le.lastModifiedLedgerSeq));
-    st.define_and_bind();
-    st.execute(true);
-
-    while (st.got_data())
+    try
     {
-        oe.ext.v(static_cast<LedgerVersion>(version));
-        oe.quoteAssets = SaleQuoteAssetHelper::loadQuoteAssets(db, oe.saleID);
-        SaleFrame::ensureValid(oe);
+        LedgerEntry le;
+        le.data.type(LedgerEntryType::SALE);
+        auto& oe = le.data.sale();
+        int version;
 
-        saleProcessor(le);
-        st.fetch();
+        statement& st = prep.statement();
+        st.exchange(into(oe.saleID));
+        st.exchange(into(oe.ownerID));
+        st.exchange(into(oe.baseAsset));
+        st.exchange(into(oe.defaultQuoteAsset));
+        st.exchange(into(oe.startTime));
+        st.exchange(into(oe.endTime));
+        st.exchange(into(oe.softCap));
+        st.exchange(into(oe.hardCap));
+        st.exchange(into(oe.details));
+        st.exchange(into(oe.baseBalance));
+        st.exchange(into(version));
+        st.exchange(into(le.lastModifiedLedgerSeq));
+        st.exchange(into(oe.currentCapInBase));
+        st.exchange(into(oe.maxAmountToBeSold));
+        int rawSaleType = 0;
+        st.exchange(into(rawSaleType));
+        int rawSaleState = 0;
+        st.exchange(into(rawSaleState));
+
+        st.define_and_bind();
+        st.execute(true);
+
+        while (st.got_data())
+        {
+            oe.ext.v(static_cast<LedgerVersion>(version));
+            const auto saleType = SaleType(rawSaleType);
+            SaleFrame::setSaleType(oe, saleType);
+            const auto saleState = SaleState(rawSaleState);
+            SaleFrame::setSaleState(oe, saleState);
+            oe.quoteAssets = SaleQuoteAssetHelper::loadQuoteAssets(db, oe.saleID);
+            SaleFrame::ensureValid(oe);
+
+            saleProcessor(le);
+            st.fetch();
+        }
+    } catch (...)
+    {
+        throw_with_nested(runtime_error("Failed to load sale"));
     }
 }
+
+SaleFrame::pointer SaleHelper::loadSale(uint64_t saleID, AccountID ownerID, Database &db, LedgerDelta *delta) {
+    auto saleFrame = loadSale(saleID, db, delta);
+    if (!saleFrame)
+        return nullptr;
+    return ownerID == saleFrame->getOwnerID() ? saleFrame : nullptr;
+}
+
 SaleFrame::pointer SaleHelper::loadSale(uint64_t saleID, Database& db,
                                            LedgerDelta* delta)
 {
@@ -317,4 +373,6 @@ EntryFrame::pointer SaleHelper::storeLoad(LedgerKey const& key, Database& db)
 {
     return loadSale(key.sale().saleID, db);
 }
+
+
 }

@@ -1,11 +1,10 @@
 #pragma once
-#pragma once
 
 // Copyright 2014 Stellar Development Foundation and contributors. Licensed
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include <functional>
 #include "map"
 #include <unordered_map>
@@ -25,7 +24,7 @@ namespace stellar
 {
 	class LedgerManager;
 
-	class AccountHelper : public EntryHelper {
+	class AccountHelper : public EntryHelperLegacy {
 	public:
 		AccountHelper(AccountHelper const&) = delete;
 		AccountHelper &operator=(AccountHelper const&) = delete;
@@ -34,7 +33,7 @@ namespace stellar
 			static AccountHelper singleton;
 			return &singleton;
 		}
-
+		void addKYCLevel(Database& db);
 		void dropAll(Database& db) override;
 
 		void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;

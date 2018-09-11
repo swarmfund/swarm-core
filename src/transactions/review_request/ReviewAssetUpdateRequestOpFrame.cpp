@@ -41,14 +41,14 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 			"request id: " << request->getRequestID();
 		throw std::runtime_error("Received approval for update request not initiated by owner of asset.");
 	}
-    bool wasBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
+    bool wasBase = assetFrame->isPolicySet(AssetPolicy::BASE_ASSET);
     
 	AssetEntry& assetEntry = assetFrame->getAsset();
 	assetEntry.details = assetUpdateRequest.details;
 	assetEntry.policies = assetUpdateRequest.policies;
     
 	EntryHelperProvider::storeChangeEntry(delta, db, assetFrame->mEntry);
-    bool isBase = assetFrame->checkPolicy(AssetPolicy::BASE_ASSET);
+    bool isBase = assetFrame->isPolicySet(AssetPolicy::BASE_ASSET);
     
     if (!wasBase && isBase)
         ManageAssetHelper::createSystemBalances(assetFrame->getCode(), app, delta);
@@ -58,10 +58,18 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 	return true;
 }
 
-SourceDetails ReviewAssetUpdateRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ReviewAssetUpdateRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                       int32_t ledgerVersion) const
 {
-	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(),
-						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
+    auto allowedSigners = static_cast<int32_t>(SignerType::ASSET_MANAGER);
+
+    auto newSingersVersion = static_cast<int32_t>(LedgerVersion::NEW_SIGNER_TYPES);
+    if (ledgerVersion >= newSingersVersion)
+    {
+        allowedSigners = static_cast<int32_t>(SignerType::USER_ASSET_MANAGER);
+    }
+
+	return SourceDetails({AccountType::MASTER}, mSourceAccount->getHighThreshold(), allowedSigners);
 }
 
 ReviewAssetUpdateRequestOpFrame::ReviewAssetUpdateRequestOpFrame(Operation const & op, OperationResult & res, TransactionFrame & parentTx) :

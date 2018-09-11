@@ -5,7 +5,7 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include "util/asio.h"
 #include "CreatePreIssuanceRequestOpFrame.h"
-#include "transactions/SignatureValidator.h"
+#include "transactions/SignatureValidatorImpl.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -55,7 +55,7 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	if (!isSignatureValid(asset)) {
+	if (!isSignatureValid(asset, LedgerVersion(ledgerManager.getCurrentLedgerHeader().ledgerVersion))) {
 		innerResult().code(CreatePreIssuanceRequestResultCode::INVALID_SIGNATURE);
 		return false;
 	}
@@ -123,20 +123,21 @@ std::unordered_map<AccountID, CounterpartyDetails> CreatePreIssuanceRequestOpFra
 	return{};
 }
 
-SourceDetails CreatePreIssuanceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails CreatePreIssuanceRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                       int32_t ledgerVersion) const
 {
 	return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
 						 static_cast<int32_t>(SignerType::ISSUANCE_MANAGER));
 }
 
-bool CreatePreIssuanceRequestOpFrame::isSignatureValid(AssetFrame::pointer asset)
+bool CreatePreIssuanceRequestOpFrame::isSignatureValid(AssetFrame::pointer asset, LedgerVersion version)
 {
 	auto& request = mCreatePreIssuanceRequest.request;
 	auto signatureData = getSignatureData(mCreatePreIssuanceRequest.request.reference, request.amount, request.asset);
-	auto signatureValidator = SignatureValidator(signatureData, { request.signature });
+	auto signatureValidator = SignatureValidatorImpl(signatureData, { request.signature });
 
 	const int VALID_SIGNATURES_REQUIRED = 1;
-	SignatureValidator::Result result = signatureValidator.check({ asset->getPreIssuedAssetSigner() }, VALID_SIGNATURES_REQUIRED);
+	SignatureValidator::Result result = signatureValidator.check({ asset->getPreIssuedAssetSigner() }, VALID_SIGNATURES_REQUIRED, version);
 	return result == SignatureValidator::Result::SUCCESS;
 }
 

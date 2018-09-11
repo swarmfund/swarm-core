@@ -31,6 +31,11 @@ class ReviewableRequestFrame : public EntryFrame
 	static void ensureIssuanceValid(IssuanceRequest const& request);
 	static void ensureWithdrawalValid(WithdrawalRequest const& request);
 	static void ensureSaleCreationValid(SaleCreationRequest const& request);
+	static void ensureAMLAlertValid(AMLAlertRequest const& request);
+	static void ensureUpdateKYCValid(UpdateKYCRequest const &request);
+	static void ensureUpdateSaleDetailsValid(UpdateSaleDetailsRequest const &request);
+	static void ensureInvoiceValid(InvoiceRequest const& request);
+
 
   public:
     typedef std::shared_ptr<ReviewableRequestFrame> pointer;
@@ -53,6 +58,8 @@ class ReviewableRequestFrame : public EntryFrame
 		mRequest.body = body;
 	}
 
+	void setTasks(uint32_t allTasks);
+
 	AccountID& getRequestor() const {
 		return mRequest.requestor;
 	}
@@ -74,7 +81,7 @@ class ReviewableRequestFrame : public EntryFrame
 		mRequest.requestID = requestID;
 	}
 
-	stellar::string256 const& getRejectReason() const {
+	stellar::longstring const& getRejectReason() const {
 		return mRequest.rejectReason;
 	}
 
@@ -102,14 +109,44 @@ class ReviewableRequestFrame : public EntryFrame
         return mRequest.createdAt;
     }
 
-	void setRejectReason(stellar::string256 rejectReason) {
+    uint32_t getAllTasks() const
+	{
+		uint32_t allTasks = 0;
+		if (mRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+		{
+			allTasks = mRequest.ext.tasksExt().allTasks;
+		}
+		return allTasks;
+	}
+
+	uint32_t getPendingTasks() const
+	{
+		uint32_t pendingTasks = 0;
+		if (mRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+		{
+			pendingTasks = mRequest.ext.tasksExt().pendingTasks;
+		}
+		return pendingTasks;
+	}
+
+	xdr::xvector<longstring> getExternalDetails() const
+	{
+		xdr::xvector<longstring> externalDetails;
+		if (mRequest.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+		{
+			externalDetails = mRequest.ext.tasksExt().externalDetails;
+		}
+		return externalDetails;
+	}
+
+	void setRejectReason(stellar::longstring rejectReason) {
 		mRequest.rejectReason = rejectReason;
 	}
 
 	static uint256 calculateHash(ReviewableRequestEntry::_body_t const& body);
 
 	void recalculateHashRejectReason() {
-	        const auto newHash = calculateHash(mRequest.body);
+		const auto newHash = calculateHash(mRequest.body);
 		mRequest.hash = newHash;
 		mRequest.rejectReason = "";
 	}
@@ -123,5 +160,9 @@ class ReviewableRequestFrame : public EntryFrame
     static void ensureValid(ReviewableRequestEntry const& oe);
     void ensureValid() const;
 
+	void checkRequestType(ReviewableRequestType requestType) const;
+
+	bool canBeFulfilled(LedgerManager& lm) const;
 };
+
 }

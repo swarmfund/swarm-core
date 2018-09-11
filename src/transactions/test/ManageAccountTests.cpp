@@ -8,7 +8,7 @@
 #include "util/make_unique.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "transactions/ManageAccountOpFrame.h"
 #include "test/test_marshaler.h"
 
@@ -26,7 +26,7 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
     Application& app = *appPtr;
     app.start();
     closeLedgerOn(app, 2, 1, 7, 2014);
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());
 
     // set up world
@@ -44,7 +44,7 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
 			auto op = tx->getOperations()[0];
 			op->checkValid(app, &delta);
 			// Master is only source
-			auto sourceDetails = op->getSourceAccountDetails({});
+			auto sourceDetails = op->getSourceAccountDetails({}, 0);
 			auto allowedSources = sourceDetails.mAllowedSourceAccountTypes;
 			REQUIRE(allowedSources.size() == 1);
 			REQUIRE(allowedSources[0] == AccountType::MASTER);
@@ -66,7 +66,7 @@ TEST_CASE("Manage account", "[dep_tx][manage_account]")
 			auto op = tx->getOperations()[0];
 			op->checkValid(app, &delta);
 			// Master is only source
-			auto sourceDetails = op->getSourceAccountDetails({});
+			auto sourceDetails = op->getSourceAccountDetails({}, 0);
 			auto allowedSources = sourceDetails.mAllowedSourceAccountTypes;
 			REQUIRE(sourceDetails.mNeededSignedClass == 0);
 		}

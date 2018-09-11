@@ -1,0 +1,69 @@
+- hosts: localhost
+  connection: local
+  tasks:
+
+  - set_fact:
+      core_docker_image: registry.gitlab.com/swarmfund/core
+      docker_network: core-network
+      config_volume: core-config
+      data_volume: core-data
+      pg_volume: core-pg-data
+
+  - name: pull images
+    with_items:
+      - "{{ core_docker_image }}:{{ core_revision }}"
+      - "postgres:9.6"
+    docker_image:
+      name: "{{ item }}"
+
+  - name: isolated network for containers
+    docker_network:
+      name: "{{ docker_network }}"
+
+  - name: create docker volumes
+    with_items:
+      - "{{ config_volume }}"
+      - "{{ data_volume }}"
+      - "{{ pg_volume }}"
+    docker_volume:
+      name: "{{ item }}"
+
+  - name: start database
+    docker_container:
+      state: started
+      name: core_db
+      image: "postgres:9.6"
+      restart_policy: unless-stopped
+      volumes:
+        - "{{ pg_volume }}:/var/lib/postgresql/data"
+      networks:
+        - name: "{{ docker_network }}"
+      env:
+        POSTGRES_USER: "core"
+        POSTGRES_PASSWORD: "core"
+        POSTGRES_DB: "core"
+      log_driver: syslog
+      log_options:
+        tag: core_db
+
+  - name: wait for database to get up, hopefully
+    wait_for: timeout=5
+
+  - name: init
+    docker_container:
+      detach: false
+      name: core_init
+      state: started
+      image: "{{ core_docker_image }}:{{ core_revision }}"
+      command: /config/config.ini init
+      volumes:
+        - "{{ data_volume }}:/data"
+        - "{{ config_volume }}:/config"
+      networks:
+        - name: "{{ docker_network }}"
+      cleanup: true
+
+  - name: stop database
+    docker_container:
+      state: absent
+      name: core_db

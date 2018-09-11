@@ -8,6 +8,7 @@
 #include "TestManager.h"
 #include "Account.h"
 #include "transactions/TransactionFrame.h"
+#include <vector>
 
 namespace stellar
 {
@@ -71,6 +72,8 @@ namespace txtest
     public:
 
         TransactionFramePtr txFromOperation(Account& account, Operation const& op, Account* signer = nullptr);
+        TransactionFramePtr txFromOperations(Account& source, std::vector<Operation>& ops,
+                                             uint64_t* maxTotalFee = nullptr, Account* signer = nullptr);
         TxHelper(TestManager::pointer testManager);
 
 	};

@@ -22,7 +22,6 @@ namespace stellar {
     protected:
 
         uint64_t mActualPayoutAmount = 0;
-        AssetFrame::pointer mAsset;
         std::vector<BalanceFrame::pointer> mHolders;
         std::vector<BalanceFrame::pointer> mReceivers;
         std::map<AccountID, uint64> mShareAmounts;

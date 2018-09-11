@@ -63,8 +63,19 @@ namespace stellar {
         mStopSignals.add(SIGTERM);
 #endif
 
-        ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::BITCOIN_BASIC);
-        ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::ETHEREUM_BASIC);
+        if (mConfig.BTC_ADDRESS_ROOT != "") {
+            ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::BITCOIN_BASIC);
+        }
+        else {
+            CLOG(WARNING, Logging::OPERATION_LOGGER) << "BTC ID Generator is not available as BTC_ADDRESS_ROOT is empty";
+        }
+
+        if (mConfig.ETH_ADDRESS_ROOT != "") {
+            ApplicationImpl::addAvailableExternalSystemGenerator(ExternalSystemIDGeneratorType::ETHEREUM_BASIC);
+        }
+        else {
+            CLOG(WARNING, Logging::OPERATION_LOGGER) << "BTC ID Generator is not available as ETH_ADDRESS_ROOT is empty";
+        }
 
         std::srand(static_cast<uint32>(clock.now().time_since_epoch().count()));
 
@@ -83,7 +94,7 @@ namespace stellar {
 
         // These must be constructed _after_ because they frequently call back
         // into App.getFoo() to get information / start up.
-        mDatabase = make_unique<Database>(*this);
+        mDatabase = make_unique<DatabaseImpl>(*this);
         mPersistentState = make_unique<PersistentState>(*this);
 
         mTmpDirManager = make_unique<TmpDirManager>(cfg.TMP_DIR_PATH);
@@ -222,15 +233,41 @@ namespace stellar {
         return mConfig.MAX_INVOICES_FOR_RECEIVER_ACCOUNT;
     }
 
+    uint64 ApplicationImpl::getMaxInvoiceDetailLength() const {
+        assert(mConfig.MAX_INVOICE_DETAIL_LENGTH >= 0);
+        return mConfig.MAX_INVOICE_DETAIL_LENGTH;
+    }
+
+    uint64 ApplicationImpl::getMaxContractDetailLength() const {
+        assert(mConfig.MAX_CONTRACT_DETAIL_LENGTH >= 0);
+        return mConfig.MAX_CONTRACT_DETAIL_LENGTH;
+    }
+
+    uint64 ApplicationImpl::getMaxContractInitialDetailLength() const {
+        assert(mConfig.MAX_CONTRACT_INITIAL_DETAIL_LENGTH > 0);
+        return mConfig.MAX_CONTRACT_INITIAL_DETAIL_LENGTH;
+    }
+
+    uint64 ApplicationImpl::getMaxContractsForContractor() const {
+        assert(mConfig.MAX_CONTRACTS_FOR_CONTRACTOR >= 0);
+        return mConfig.MAX_CONTRACTS_FOR_CONTRACTOR;
+    }
 
     uint64 ApplicationImpl::getWithdrawalDetailsMaxLength() const {
-        return mConfig.WITHDRAWAL_DETAILS_MAX_LENGTH;
+        return this->mLedgerManager->shouldUse(LedgerVersion::DETAILS_MAX_LENGTH_EXTENDED) ? 20000 : 1000;
     }
 
 	uint64 ApplicationImpl::getIssuanceDetailsMaxLength() const {
-		return mConfig.ISSUANCE_DETAILS_MAX_LENGTH;
+		return 1000;
 	}
 
+	uint64 ApplicationImpl::getRejectReasonMaxLength() const {
+        return this->mLedgerManager->shouldUse(LedgerVersion::DETAILS_MAX_LENGTH_EXTENDED) ? 2000 : 256;
+    }
+
+    int32 ApplicationImpl::getKYCSuperAdminMask() const {
+        return mConfig.KYC_SUPER_ADMIN_MASK;
+    }
 
     ApplicationImpl::~ApplicationImpl() {
         LOG(INFO) << "Application destructing";

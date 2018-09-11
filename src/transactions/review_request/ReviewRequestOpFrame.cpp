@@ -2,6 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/AccountHelper.h>
 #include "util/asio.h"
 #include "ReviewRequestOpFrame.h"
 #include "ReviewAssetCreationRequestOpFrame.h"
@@ -10,6 +11,7 @@
 #include "ReviewLimitsUpdateRequestOpFrame.h"
 #include "ReviewPreIssuanceCreationRequestOpFrame.h"
 #include "ReviewWithdrawalRequestOpFrame.h"
+#include "ReviewUpdateSaleDetailsRequestOpFrame.h"
 #include "util/Logging.h"
 #include "util/types.h"
 #include "database/Database.h"
@@ -20,12 +22,45 @@
 #include "ledger/ReferenceHelper.h"
 #include "main/Application.h"
 #include "ReviewSaleCreationRequestOpFrame.h"
+#include "ReviewAMLAlertRequestOpFrame.h"
+#include "ReviewUpdateKYCRequestOpFrame.h"
+#include "ReviewInvoiceRequestOpFrame.h"
+#include "ReviewUpdateSaleEndTimeRequestOpFrame.h"
+#include "ReviewPromotionUpdateRequestOpFrame.h"
+#include "ReviewContractRequestOpFrame.h"
 
 namespace stellar
 {
 
 using namespace std;
 using xdr::operator==;
+
+bool ReviewRequestOpFrame::areBlockingRulesFulfilled(ReviewableRequestFrame::pointer request, LedgerManager& lm, Database & db, LedgerDelta & delta)
+{
+    auto requestorAccount = AccountHelper::Instance()->loadAccount(request->getRequestor(), db, &delta);
+    // just go through old flow
+    if (!lm.shouldUse(LedgerVersion::ALLOW_REJECT_REQUEST_OF_BLOCKED_REQUESTOR)) {
+        if (isSetFlag(requestorAccount->getBlockReasons(), BlockReasons::SUSPICIOUS_BEHAVIOR)) {
+            innerResult().code(ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
+            return false;
+        }
+
+        return true;
+    }
+
+    // we do not care about user state if it's not approval
+    if (mReviewRequest.action != ReviewRequestOpAction::APPROVE) {
+        return true;
+    }
+
+    if (isSetFlag(requestorAccount->getBlockReasons(), BlockReasons::SUSPICIOUS_BEHAVIOR)) {
+        innerResult().code(ReviewRequestResultCode::REQUESTOR_IS_BLOCKED);
+        return false;
+    }
+
+    return true;
+    
+}
 
 void ReviewRequestOpFrame::createReference(LedgerDelta & delta, Database & db, AccountID const & requestor, xdr::pointer<stellar::string64> reference)
 {
@@ -70,10 +105,24 @@ ReviewRequestOpFrame* ReviewRequestOpFrame::makeHelper(Operation const & op, Ope
 		return new ReviewSaleCreationRequestOpFrame(op, res, parentTx);
 	case ReviewableRequestType::LIMITS_UPDATE:
 		return new ReviewLimitsUpdateRequestOpFrame(op, res, parentTx);
-        case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
-            return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
+    case ReviewableRequestType::TWO_STEP_WITHDRAWAL:
+        return new ReviewTwoStepWithdrawalRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::AML_ALERT:
+		return new ReviewAMLAlertRequestOpFrame(op,res,parentTx);
+    case ReviewableRequestType::UPDATE_KYC:
+        return new ReviewUpdateKYCRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::UPDATE_SALE_DETAILS:
+		return new ReviewUpdateSaleDetailsRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::INVOICE:
+		return new ReviewInvoiceRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::UPDATE_SALE_END_TIME:
+		return new ReviewUpdateSaleEndTimeRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::UPDATE_PROMOTION:
+		return new ReviewPromotionUpdateRequestOpFrame(op, res, parentTx);
+	case ReviewableRequestType::CONTRACT:
+		return new ReviewContractRequestOpFrame(op, res, parentTx);
 	default:
-		throw std::runtime_error("Unexpceted request type for review request op");
+		throw std::runtime_error("Unexpected request type for review request op");
 	}
 }
 
@@ -104,14 +153,16 @@ bool
 ReviewRequestOpFrame::doApply(Application& app,
                             LedgerDelta& delta, LedgerManager& ledgerManager)
 {
-
 	Database& db = ledgerManager.getDatabase();
-	auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
-	auto request = reviewableRequestHelper->loadRequest(mReviewRequest.requestID, db, &delta);
+	auto request = ReviewableRequestHelper::Instance()->loadRequest(mReviewRequest.requestID, db, &delta);
 	if (!request || !(request->getReviewer() == getSourceID())) {
 		innerResult().code(ReviewRequestResultCode::NOT_FOUND);
 		return false;
 	}
+
+        if (!areBlockingRulesFulfilled(request, ledgerManager, db, delta)) {
+            return false;
+        }
 
 	if (!(request->getHash() == mReviewRequest.requestHash)) {
 		innerResult().code(ReviewRequestResultCode::HASH_MISMATCHED);
@@ -144,7 +195,7 @@ ReviewRequestOpFrame::doCheckValid(Application& app)
 		return false;
 	}
 
-	if (!isRejectReasonValid()) {
+	if (!isRejectReasonValid(app)) {
 		innerResult().code(ReviewRequestResultCode::INVALID_REASON);
 		return false;
 	}
@@ -153,13 +204,17 @@ ReviewRequestOpFrame::doCheckValid(Application& app)
     return true;
 }
 
-bool ReviewRequestOpFrame::isRejectReasonValid()
+bool ReviewRequestOpFrame::isRejectReasonValid(Application& app)
 {
 	if (mReviewRequest.action == ReviewRequestOpAction::APPROVE) {
 		return mReviewRequest.reason.empty();
 	}
 
-	return !mReviewRequest.reason.empty();
+	if (mReviewRequest.reason.empty()) {
+		return false;
+	}
+
+	return mReviewRequest.reason.length() <= app.getRejectReasonMaxLength();
 }
 
 uint64_t ReviewRequestOpFrame::getTotalFee(uint64_t requestID, Fee fee)

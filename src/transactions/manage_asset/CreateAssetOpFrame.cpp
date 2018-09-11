@@ -25,7 +25,8 @@ CreateAssetOpFrame::CreateAssetOpFrame(Operation const& op,
 
 }
 
-SourceDetails CreateAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails CreateAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                          int32_t ledgerVersion) const
 {
     vector<AccountType> allowedAccountTypes = {AccountType::MASTER};
 

@@ -13,6 +13,7 @@
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "xdrpp/marshal.h"
 
 namespace stellar
 {
@@ -24,18 +25,23 @@ std::unordered_map<AccountID, CounterpartyDetails> SetOptionsOpFrame::getCounter
 	return{};
 }
 
-SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails SetOptionsOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                         int32_t ledgerVersion) const
 {
     std::vector<AccountType> allowedAccountTypes;
     if (!mSetOptions.limitsUpdateRequestData)
     {
         allowedAccountTypes = {AccountType::MASTER, AccountType::GENERAL, AccountType::NOT_VERIFIED,
-                               AccountType::SYNDICATE, AccountType::EXCHANGE};
+                               AccountType::SYNDICATE, AccountType::EXCHANGE, AccountType::VERIFIED,
+                               AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR};
     }
     // disallow to create update limits requests
 	return SourceDetails(allowedAccountTypes,
                          mSourceAccount->getHighThreshold(),
-                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER), static_cast<int32_t>(BlockReasons::KYC_UPDATE));
+                         static_cast<int32_t>(SignerType::ACCOUNT_MANAGER),
+                         static_cast<int32_t>(BlockReasons::KYC_UPDATE) |
+                         static_cast<int32_t>(BlockReasons::TOO_MANY_KYC_UPDATE_REQUESTS) |
+                         static_cast<uint32_t>(BlockReasons::WITHDRAWAL));
 }
 
 SetOptionsOpFrame::SetOptionsOpFrame(Operation const& op, OperationResult& res,
@@ -83,7 +89,7 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 				it = signers.erase(it);
 				continue;
 			}
-			
+
 			it++;
 		}
 
@@ -92,7 +98,7 @@ bool SetOptionsOpFrame::tryUpdateSigners(Application& app, LedgerManager& ledger
 	}
 
 
-	
+
 	// update
 	for (size_t i = 0; i < signers.size(); i++)
 	{
@@ -127,6 +133,7 @@ SetOptionsOpFrame::getLimitsUpdateRequestReference(Hash const& documentHash) con
     return binToHex(hash);
 }
 
+[[deprecated]]
 bool
 SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager) {
     Database& db = ledgerManager.getDatabase();
@@ -143,7 +150,7 @@ SetOptionsOpFrame::tryCreateUpdateLimitsRequest(Application& app, LedgerDelta& d
 
     ReviewableRequestEntry::_body_t body;
     body.type(ReviewableRequestType::LIMITS_UPDATE);
-    body.limitsUpdateRequest().documentHash = mSetOptions.limitsUpdateRequestData->documentHash;
+    body.limitsUpdateRequest().deprecatedDocumentHash = mSetOptions.limitsUpdateRequestData->documentHash;
 
     auto request = ReviewableRequestFrame::createNewWithHash(delta, getSourceID(), app.getMasterID(), referencePtr, body,
                                                              ledgerManager.getCloseTime());
@@ -203,7 +210,7 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
                                 "operation").Mark();
             innerResult().code(SetOptionsResultCode::BALANCE_NOT_FOUND);
             return false;
-        }        
+        }
 
 		auto trustHelper = TrustHelper::Instance();
 

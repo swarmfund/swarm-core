@@ -8,6 +8,7 @@
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/SaleFrame.h"
 #include "test/test_marshaler.h"
+#include "transactions/review_request/ReviewSaleCreationRequestOpFrame.h"
 
 
 namespace stellar
@@ -33,8 +34,11 @@ void SaleReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(!!baseAssetBeforeTx);
     auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(saleCreationRequest->baseAsset, mTestManager->getDB());
     REQUIRE(!!baseAssetAfterTx);
-    // TODO: should be fixed 
-    uint64_t hardCapInBaseAsset = baseAssetBeforeTx->getMaxIssuanceAmount();
+    auto saleCreationRequestTemp = *saleCreationRequest;
+    uint64_t hardCapInBaseAsset = saleCreationRequest->ext.v() >=
+                                  LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP
+                                  ? ReviewSaleCreationRequestOpFrame::getRequiredBaseAssetForHardCap(saleCreationRequestTemp)
+                                  : baseAssetBeforeTx->getMaxIssuanceAmount();
     const auto saleRequest = *saleCreationRequest;
     REQUIRE(baseAssetBeforeTx->getPendingIssuance() + hardCapInBaseAsset == baseAssetAfterTx->getPendingIssuance());
 

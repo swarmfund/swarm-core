@@ -68,8 +68,8 @@ getCounterpartyDetails(Database& db, LedgerDelta* delta) const
     return {};
 }
 
-SourceDetails ManageOfferOpFrame::getSourceAccountDetails(
-    unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
+SourceDetails ManageOfferOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                          int32_t ledgerVersion)
 const
 {
     uint32_t allowedBlockedReasons = 0;
@@ -77,7 +77,8 @@ const
         allowedBlockedReasons = getAnyBlockReason();
     return SourceDetails({
                              AccountType::GENERAL, AccountType::NOT_VERIFIED,
-                             AccountType::SYNDICATE, AccountType::EXCHANGE
+                             AccountType::SYNDICATE, AccountType::EXCHANGE, AccountType::VERIFIED,
+                             AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR
                          },
                          mSourceAccount->getMediumThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER),

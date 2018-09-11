@@ -4,7 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
 #include <functional>
 #include "SaleFrame.h"
@@ -18,7 +18,7 @@ namespace stellar
 {
     class StatementContext;
 
-    class SaleHelper : public EntryHelper {
+    class SaleHelper : public EntryHelperLegacy {
     public:
         SaleHelper(SaleHelper const&) = delete;
         SaleHelper& operator= (SaleHelper const&) = delete;
@@ -29,6 +29,8 @@ namespace stellar
         }
 
         void dropAll(Database& db) override;
+        void addType(Database& db);
+        void addState(Database& db);
         void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
         void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
         void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key) override;
@@ -38,6 +40,9 @@ namespace stellar
         EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
         uint64_t countObjects(soci::session& sess) override;
 
+        bool exists(Database& db, uint64_t saleID);
+
+        SaleFrame::pointer loadSale(uint64_t saleID, AccountID ownerID, Database& db, LedgerDelta* delta = nullptr);
         SaleFrame::pointer loadSale(uint64_t saleID, Database& db, LedgerDelta* delta = nullptr);
         SaleFrame::pointer loadSale(uint64_t saleID, AssetCode const& base, AssetCode const& quote, Database& db, LedgerDelta* delta = nullptr);
 

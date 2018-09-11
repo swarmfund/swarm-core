@@ -11,7 +11,7 @@ namespace stellar
 {
 class ReviewRequestOpFrame : public OperationFrame
 {
-	bool isRejectReasonValid();
+	bool isRejectReasonValid(Application& app);
 protected:
     ReviewRequestResult&
     innerResult()
@@ -22,7 +22,8 @@ protected:
     ReviewRequestOp const& mReviewRequest;
 
 	virtual std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override
+	virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                      int32_t ledgerVersion) const override
 	{
 		// no one is allowed to run default implementation of ReviewRequestOp
 		return SourceDetails({}, mSourceAccount->getHighThreshold(), 0);
@@ -33,6 +34,9 @@ protected:
 	virtual bool handleApprove(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request) {
 		throw std::runtime_error("There is no default implementation of handleApprove of Reviewable Request");
 	}
+
+        // ensures that blocking rules are fulfilled, if not sets the error code and returns false
+        bool areBlockingRulesFulfilled(ReviewableRequestFrame::pointer request, LedgerManager& lm, Database& db, LedgerDelta& delta);
 
 	// creates reference entry, throws excpetion if reference already exist. Throws expception if reference is null
 	void createReference(LedgerDelta& delta, Database& db, AccountID const& requestor, xdr::pointer<stellar::string64> reference);

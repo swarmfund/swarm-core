@@ -4,7 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
 #include <functional>
 #include <unordered_map>
@@ -19,7 +19,7 @@ namespace stellar
 {
     class StatementContext;
 
-    class OfferHelper : public EntryHelper {
+    class OfferHelper : public EntryHelperLegacy {
 
     public:
         OfferHelper(OfferHelper const&) = delete;
@@ -48,6 +48,9 @@ namespace stellar
 
         std::vector<OfferFrame::pointer> loadOffersWithFilters(AssetCode const& base, AssetCode const& quote, uint64_t* orderBookID,
             uint64_t* priceUpperBound, Database& db);
+
+        std::vector<OfferFrame::pointer> loadOffers(AssetCode const& base, AssetCode const& quote, uint64_t const orderBookID,
+            int64_t quoteamountUpperBound, Database& db);
 
         std::unordered_map<AccountID, std::vector<OfferFrame::pointer>> loadAllOffers(Database& db);
 

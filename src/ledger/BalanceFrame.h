@@ -45,13 +45,13 @@ class BalanceFrame : public EntryFrame
         return mBalance;
     }
 
-    int64_t
+    uint64_t
     getAmount()
     {
         return mBalance.amount;
     }
 
-    int64_t
+    uint64_t
     getLocked()
     {
         return mBalance.locked;
@@ -74,8 +74,10 @@ class BalanceFrame : public EntryFrame
     {
         return mBalance.balanceID;
     }
+
+    uint64_t getTotal() const;
         
-    static bool ensureValid(BalanceEntry const &oe);
+    static bool isValid(BalanceEntry const &oe);
     bool isValid() const;
 	[[deprecated]]
 	bool addBalance(int64_t delta);
@@ -94,6 +96,8 @@ class BalanceFrame : public EntryFrame
         bool tryChargeFromLocked(uint64_t amountToCharge);
         // unlock - removes from lock and adds to balance specified amount. Returns false - if fails
         bool unlock(uint64_t amountToUnlock);
+        // tryCharge - charges specified amount from available amount. Returns false, if failed to do it;
+        bool tryCharge(uint64_t amountToCharge);
 
 	static pointer createNew(BalanceID id, AccountID owner, AssetCode asset);
 

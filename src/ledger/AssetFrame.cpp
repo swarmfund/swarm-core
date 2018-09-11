@@ -96,6 +96,16 @@ bool AssetFrame::tryIssue(uint64_t amount)
     return true;
 }
 
+bool AssetFrame::tryUnIssue(uint64_t amount)
+{
+    if (mAsset.issued < amount) {
+        return false;
+    }
+
+    mAsset.issued -= amount;
+    return tryAddAvailableForIssuance(amount);
+}
+
 bool AssetFrame::canAddAvailableForIssuance(uint64_t amount)
 {
     uint64_t availableForIssuance;
@@ -107,7 +117,7 @@ bool AssetFrame::canAddAvailableForIssuance(uint64_t amount)
                  maxAmountCanBeIssuedAfterUpdate))
         return false;
 
-    return maxAmountCanBeIssuedAfterUpdate < mAsset.maxIssuanceAmount;
+    return maxAmountCanBeIssuedAfterUpdate <= mAsset.maxIssuanceAmount;
 }
 
 bool AssetFrame::tryAddAvailableForIssuance(uint64_t amount)

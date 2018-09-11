@@ -1,8 +1,5 @@
-//
-// Created by kirill on 05.12.17.
-//
-
 #include "ReviewableRequestHelper.h"
+#include "xdrpp/marshal.h"
 #include "xdrpp/printer.h"
 #include "LedgerDelta.h"
 #include "util/basen.h"
@@ -15,10 +12,28 @@ namespace stellar {
     using xdr::operator<;
 
     const char* selectorReviewableRequest = "SELECT id, hash, body, requestor, reviewer, reference, "
-            "reject_reason, created_at, version, lastmodified FROM reviewable_request";
+                                            "reject_reason, created_at, version, lastmodified, "
+                                            "all_tasks, pending_tasks, external_details FROM reviewable_request";
+
+    void ReviewableRequestHelper::addTasks(Database &db)
+    {
+        db.getSession() << "ALTER TABLE reviewable_request ADD all_tasks INT DEFAULT 0";
+        db.getSession() << "ALTER TABLE reviewable_request ADD pending_tasks INT DEFAULT 0";
+        db.getSession() << "ALTER TABLE reviewable_request ADD external_details TEXT";
+    }
+
+    void ReviewableRequestHelper::changeDefaultExternalDetails(Database &db)
+    {
+        db.getSession() << "ALTER TABLE reviewable_request ALTER COLUMN external_details SET DEFAULT ''";
+    }
+
+    void ReviewableRequestHelper::setEmptyStringToExternalDetailsInsteadNull(Database &db)
+    {
+        db.getSession() << "UPDATE reviewable_request SET external_details = '' where external_details is null";
+    }
 
     void ReviewableRequestHelper::dropAll(Database &db) {
-        db.getSession() << "DROP TABLE IF EXISTS reviewable_request;";
+        db.getSession() << "DROP TABLE IF EXISTS reviewable_request CASCADE;";
         db.getSession() << "CREATE TABLE reviewable_request"
                 "("
                 "id            BIGINT        NOT NULL CHECK (id >= 0),"
@@ -111,15 +126,23 @@ namespace stellar {
         std::string rejectReason = reviewableRequestFrame->getRejectReason();
         auto version = static_cast<int32_t>(reviewableRequestFrame->getRequestEntry().ext.v());
 
+        uint32_t allTasks = reviewableRequestFrame->getAllTasks();
+        uint32_t pendingTasks = reviewableRequestFrame->getPendingTasks();
+        auto externalDetailsBytes = xdr::xdr_to_opaque(reviewableRequestFrame->getExternalDetails());
+        auto strExternalDetails = bn::encode_b64(externalDetailsBytes);
+
         if (insert)
         {
-            sql = "INSERT INTO reviewable_request (id, hash, body, requestor, reviewer, reference, reject_reason, created_at, version, lastmodified)"
-                  " VALUES (:id, :hash, :body, :requestor, :reviewer, :reference, :reject_reason, :created, :v, :lm)";
+            sql = "INSERT INTO reviewable_request (id, hash, body, requestor, reviewer, reference, reject_reason, "
+                  "created_at, version, lastmodified, all_tasks, pending_tasks, external_details) "
+                  "VALUES (:id, :hash, :body, :requestor, :reviewer, :reference, :reject_reason, :created, :v, :lm, :at, :pt, :ed)";
         }
         else
         {
-            sql = "UPDATE reviewable_request SET hash=:hash, body = :body, requestor = :requestor, reviewer = :reviewer, reference = :reference, reject_reason = :reject_reason, created_at = :created, version=:v, lastmodified=:lm"
-                    " WHERE id = :id";
+            sql = "UPDATE reviewable_request SET hash=:hash, body = :body, requestor = :requestor, reviewer = :reviewer, "
+                  "reference = :reference, reject_reason = :reject_reason, created_at = :created, version=:v, "
+                  "lastmodified=:lm, all_tasks = :at, pending_tasks = :pt, external_details = :ed "
+                  "WHERE id = :id";
         }
 
         auto prep = db.getPreparedStatement(sql);
@@ -137,6 +160,9 @@ namespace stellar {
         st.exchange(use(reviewableRequestEntry.createdAt, "created"));
         st.exchange(use(version, "v"));
         st.exchange(use(reviewableRequestFrame->mEntry.lastModifiedLedgerSeq, "lm"));
+        st.exchange(use(allTasks, "at"));
+        st.exchange(use(pendingTasks, "pt"));
+        st.exchange(use(strExternalDetails, "ed"));
         st.define_and_bind();
 
         auto timer = insert ? db.getInsertTimer("reviewable_request") : db.getUpdateTimer("reviewable_request");
@@ -162,8 +188,9 @@ namespace stellar {
         LedgerEntry le;
         le.data.type(LedgerEntryType::REVIEWABLE_REQUEST);
         ReviewableRequestEntry& oe = le.data.reviewableRequest();
-        std::string hash, body, rejectReason;
+        std::string hash, body, rejectReason, externalDetails;
         int version;
+        uint32_t allTasks, pendingTasks;
 
         statement& st = prep.statement();
         st.exchange(into(oe.requestID));
@@ -176,6 +203,9 @@ namespace stellar {
         st.exchange(into(oe.createdAt));
         st.exchange(into(version));
         st.exchange(into(le.lastModifiedLedgerSeq));
+        st.exchange(into(allTasks));
+        st.exchange(into(pendingTasks));
+        st.exchange(into(externalDetails));
         st.define_and_bind();
         st.execute(true);
 
@@ -192,6 +222,23 @@ namespace stellar {
 
             oe.rejectReason = rejectReason;
             oe.ext.v(static_cast<LedgerVersion>(version));
+
+            if(oe.ext.v() < LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST && allTasks != 0)
+                throw std::runtime_error("version is incorrect but AllTasks in not empty");
+
+            if (oe.ext.v() == LedgerVersion::ADD_TASKS_TO_REVIEWABLE_REQUEST)
+            {
+                oe.ext.tasksExt().allTasks = allTasks;
+                oe.ext.tasksExt().pendingTasks = pendingTasks;
+
+                // unmarshal external details
+                std::vector<uint8_t> decodedDetails;
+                bn::decode_b64(externalDetails, decodedDetails);
+                xdr::xdr_get detailsUnmarshaler(&decodedDetails.front(), &decodedDetails.back() + 1);
+                xdr::xdr_argpack_archive(detailsUnmarshaler, oe.ext.tasksExt().externalDetails);
+                detailsUnmarshaler.done();
+            }
+
             ReviewableRequestFrame::ensureValid(oe);
 
             requestsProcessor(le);
@@ -300,6 +347,39 @@ loadRequests(AccountID const& rawRequestor, ReviewableRequestType requestType,
         if (request->getRequestType() != requestType)
             return;
         result.push_back(request);
+    });
+
+    return result;
+}
+
+string
+ReviewableRequestHelper::obtainSqlRequestIDsString(std::vector<uint64_t> requestIDs)
+{
+    string result;
+    for (auto requestID : requestIDs)
+    {
+        result += to_string(requestID);
+        result += ", ";
+    }
+
+    return result.substr(0, result.size() - 2);
+}
+
+vector<ReviewableRequestFrame::pointer>
+ReviewableRequestHelper::loadRequests(std::vector<uint64_t> requestIDs, Database& db)
+{
+    if (requestIDs.size() == 0)
+        return vector<ReviewableRequestFrame::pointer>{};
+
+    string sql = selectorReviewableRequest;
+    sql += " WHERE id IN (" + obtainSqlRequestIDsString(requestIDs) + ")";
+    auto prep = db.getPreparedStatement(sql);
+
+    vector<ReviewableRequestFrame::pointer> result;
+    auto timer = db.getSelectTimer("reviewable_request");
+    loadRequests(prep, [&result](LedgerEntry const& entry)
+    {
+        result.emplace_back(make_shared<ReviewableRequestFrame>(entry));
     });
 
     return result;

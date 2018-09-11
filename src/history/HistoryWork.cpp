@@ -12,7 +12,7 @@
 #include "history/HistoryManager.h"
 #include "history/HistoryWork.h"
 #include "history/StateSnapshot.h"
-#include "ledger/LedgerHeaderFrame.h"
+#include "ledger/LedgerHeaderFrameImpl.h"
 #include "ledger/LedgerManager.h"
 #include "main/Config.h"
 #include "process/ProcessManager.h"
@@ -355,7 +355,7 @@ VerifyLedgerChainWork::onReset()
 static HistoryManager::VerifyHashStatus
 verifyLedgerHistoryEntry(LedgerHeaderHistoryEntry const& hhe)
 {
-    LedgerHeaderFrame lFrame(hhe.header);
+    LedgerHeaderFrameImpl lFrame(hhe.header);
     Hash calculated = lFrame.getHash();
     if (calculated != hhe.hash)
     {
@@ -1029,6 +1029,8 @@ ApplyLedgerChainWork::applyHistoryOfSingleLedger()
     {
         if (hHeader.hash != lm.getLastClosedLedgerHeader().hash)
         {
+            CLOG(ERROR, "History") << "replay at LCL disagreed on hash; hHeader.hash: " <<
+                binToHex(hHeader.hash) << "; lm.getLastClosedLedgerHeader().hash: " << binToHex(lm.getLastClosedLedgerHeader().hash);
             throw std::runtime_error("replay at LCL disagreed on hash");
         }
         CLOG(DEBUG, "History") << "Catchup at LCL=" << header.ledgerSeq
@@ -1072,6 +1074,7 @@ ApplyLedgerChainWork::applyHistoryOfSingleLedger()
     CLOG(DEBUG, "History") << "Replay header:\n" << xdr::xdr_to_string(hHeader);
     if (lm.getLastClosedLedgerHeader().hash != hHeader.hash)
     {
+        CLOG(ERROR, "History") << "replay produced mismatched ledger hash. Expected: " << binToHex(lm.getLastClosedLedgerHeader().hash) << " , but got: " << binToHex(hHeader.hash);
         throw std::runtime_error("replay produced mismatched ledger hash");
     }
     mLastApplied = hHeader;

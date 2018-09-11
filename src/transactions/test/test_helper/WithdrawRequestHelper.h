@@ -18,7 +18,7 @@ private:
     // returns true if there are stats asset and corresponding asset pair
     bool canCalculateStats(AssetCode baseAsset);
 
-    void validateStatsChange(StatisticsFrame::pointer statsBefore, StatisticsFrame::pointer statsAfter,
+    void validateStatsChange(StatisticsV2Frame::pointer statsBefore, StatisticsV2Frame::pointer statsAfter,
                              ReviewableRequestFrame::pointer withdrawRequest);
 public:
     WithdrawRequestHelper(TestManager::pointer testManager);

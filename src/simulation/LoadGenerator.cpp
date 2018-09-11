@@ -8,7 +8,7 @@
 #include "herder/Herder.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/LedgerManager.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "overlay/OverlayManager.h"
 #include "util/Logging.h"
 #include "util/Math.h"
@@ -19,7 +19,7 @@
 #include "database/Database.h"
 
 #include "transactions/TransactionFrame.h"
-#include "transactions/PaymentOpFrame.h"
+#include "transactions/payment/PaymentOpFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
 
 #include "xdrpp/printer.h"
@@ -695,7 +695,7 @@ LoadGenerator::AccountInfo::createDirectly(Application& app)
 	AccountFrame a(mKey.getPublicKey());
 	auto ledger = app.getLedgerManager().getLedgerNum();
 	a.touch(ledger);
-	LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
+	LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
 		app.getDatabase());;
 	EntryHelperProvider::storeAddEntry(delta, app.getDatabase(), a.mEntry);
 }

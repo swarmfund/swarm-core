@@ -26,6 +26,7 @@ namespace stellar
 class Application;
 class LedgerManager;
 class LedgerDelta;
+class StorageHelper;
 
 class TransactionFrame;
 
@@ -47,13 +48,20 @@ class OperationFrame
 
     virtual bool doCheckValid(Application& app) = 0;
     virtual bool doApply(Application& app, LedgerDelta& delta,
-                         LedgerManager& ledgerManager) = 0;
+                         LedgerManager& ledgerManager);
+    virtual bool doApply(Application& app, StorageHelper& storageHelper,
+                         LedgerManager& ledgerManager);
 
   public:
     virtual ~OperationFrame() = default;
 
     virtual std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta) const = 0;
-	  virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const = 0;
+    virtual std::unordered_map<AccountID, CounterpartyDetails> getCounterpartyDetails(Database& db, LedgerDelta* delta,
+                                                                                      int32_t ledgerVersion) const;
+    virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                      int32_t ledgerVersion) const = 0;
+    virtual SourceDetails getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+        int32_t ledgerVersion, Database& db) const;
 
 	// returns true if operation is allowed in the system
 	virtual bool isAllowed() const;
@@ -91,16 +99,8 @@ class OperationFrame
     // returns true on success
     bool loadAccount(LedgerDelta* delta, Database& db);
 
-
-
-    PaymentRequestEntry
-    createPaymentRequest(uint64 paymentID, BalanceID sourceBalance, int64 sourceSend,
-            int64 sourceSendUniversal,
-            BalanceID* destBalance, int64 destReceive, LedgerDelta& delta,
-            Database& db, uint64 createdAt, uint64* invoiceID = nullptr);
-
     void
-    createReferenceEntry(std::string reference, LedgerDelta* delta, Database& db);
+    createReferenceEntry(std::string reference, StorageHelper& storageHelper);
 
     OperationResult&
     getResult() const
@@ -111,7 +111,7 @@ class OperationFrame
 
     bool checkValid(Application& app, LedgerDelta* delta = nullptr);
 
-    bool apply(LedgerDelta& delta, Application& app);
+    bool apply(StorageHelper& storageHelper, Application& app);
 
     Operation const&
     getOperation() const

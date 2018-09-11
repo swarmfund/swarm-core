@@ -29,7 +29,7 @@ operationalID(PubKeyUtils::fromStrKey("GABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
     // non configurable
     FORCE_SCP = false;
-    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::EMPTY_VERSION);
+    LEDGER_PROTOCOL_VERSION = static_cast<int32_t >(LedgerVersion::ADD_TRANSACTION_FEE);
     OVERLAY_PROTOCOL_MIN_VERSION = 5;
     OVERLAY_PROTOCOL_VERSION = 5;
 
@@ -218,7 +218,7 @@ Config::load(std::string const& filename)
                     throw std::invalid_argument("bad HTTP_MAX_CLIENT");
                 HTTP_MAX_CLIENT = static_cast<unsigned short>(maxHttpClient);
             }
-			
+
             else if (item.first == "PUBLIC_HTTP_PORT")
             {
                 if (!item.second->as<bool>())
@@ -459,6 +459,22 @@ Config::load(std::string const& filename)
             else if (item.first == "QUORUM_SET")
             {
                 // processing performed after this loop
+            }
+            else if (item.first == "TX_INTERNAL_ERROR")
+            {
+                auto internalErrorsTxs = readStrVector(item.first, item.second);
+                for (std::string txHash : internalErrorsTxs)
+                {
+                    TX_INTERNAL_ERROR.emplace(txHash);
+                }
+            }
+            else if (item.first == "TX_SKIP_SIG_CHECK")
+            {
+                auto txs = readStrVector(item.first, item.second);
+                for (std::string txHash : txs)
+                {
+                    TX_SKIP_SIG_CHECK.emplace(txHash);
+                }
             }
             else if (item.first == "COMMANDS")
             {
@@ -711,17 +727,6 @@ Config::validateConfig()
 	{
 		throw std::invalid_argument("BASE_EXCHANGE_NAME must not be empty");
 	}
-
-        if (ETH_ADDRESS_ROOT.empty())
-        {
-            throw std::invalid_argument("ETH_ADDRESS_ROOT must not be empty");
-        }
-
-        if (BTC_ADDRESS_ROOT.empty())
-        {
-            throw std::invalid_argument("BTC_ADDRESS_ROOT must not be empty");
-        }
-
 
 	if (TX_EXPIRATION_PERIOD_WINDOW == 0)
 		throw std::invalid_argument("TX_EXPIRATION_PERIOD_WINDOW must be set");

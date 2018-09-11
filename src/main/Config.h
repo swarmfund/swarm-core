@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <set>
 #include "crypto/SecretKey.h"
 #include "lib/util/cpptoml.h"
 #include "util/types.h"
@@ -140,10 +141,14 @@ class Config : public std::enable_shared_from_this<Config>
     std::string BASE_EXCHANGE_NAME;
     int64 TX_EXPIRATION_PERIOD;
     int64 TX_EXPIRATION_PERIOD_WINDOW = 60*60;
-    uint64 WITHDRAWAL_DETAILS_MAX_LENGTH = 1000;
-	uint64 ISSUANCE_DETAILS_MAX_LENGTH = 1000;
     
     uint64 MAX_INVOICES_FOR_RECEIVER_ACCOUNT = 20;
+    uint64 MAX_INVOICE_DETAIL_LENGTH = 256;
+    uint64 MAX_CONTRACTS_FOR_CONTRACTOR = 20;
+    uint64 MAX_CONTRACT_DETAIL_LENGTH = 256;
+    uint64 MAX_CONTRACT_INITIAL_DETAIL_LENGTH = 1000;
+
+    int32 KYC_SUPER_ADMIN_MASK = 1;
 
     // overlay config
     unsigned short PEER_PORT;
@@ -152,6 +157,11 @@ class Config : public std::enable_shared_from_this<Config>
     // Peers we will always try to stay connected to
     std::vector<std::string> PREFERRED_PEERS;
     std::vector<std::string> KNOWN_PEERS;
+
+    std::set<std::string> TX_INTERNAL_ERROR;
+    // set of txs for which we need to skip signatures checks - used for forking
+    // TODO: should also handle enabling it from specific block
+    std::set<std::string> TX_SKIP_SIG_CHECK;
 
     // Preference can also be expressed by peer pubkey
     std::vector<std::string> PREFERRED_PEER_KEYS;

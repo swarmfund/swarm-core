@@ -11,6 +11,8 @@
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/PendingStatisticsHelper.h"
+#include "transactions/CreateWithdrawalRequestOpFrame.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
 
@@ -36,6 +38,16 @@ bool ReviewWithdrawalRequestOpFrame::handleApprove(
     auto& withdrawRequest = request->getRequestEntry().body.withdrawalRequest();
 
     Database& db = ledgerManager.getDatabase();
+    //Delete pending_statistics entries before reviwable_request due to constraint change
+    auto reqID = request->getRequestID();
+    auto pendingStats = PendingStatisticsHelper::Instance()->loadPendingStatistics(reqID, db, delta);
+    for (auto& pending : pendingStats){
+        auto lk = request->getKey();
+        lk = lk.type(LedgerEntryType::PENDING_STATISTICS);
+        lk.pendingStatistics().statisticsID = pending->getStatsID();
+        lk.pendingStatistics().requestID = reqID;
+        PendingStatisticsHelper::Instance()->storeDelete(delta, db, lk);
+    }
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
  
     auto balance = BalanceHelper::Instance()->mustLoadBalance(withdrawRequest.balance, db, &delta);
@@ -106,9 +118,9 @@ bool ReviewWithdrawalRequestOpFrame::handlePermanentReject(Application& app,
 
 bool ReviewWithdrawalRequestOpFrame::doCheckValid(Application &app)
 {
-    std::string externalDetails = mReviewRequest.requestDetails.withdrawal().externalDetails;
-    if (externalDetails.size() > app.getWithdrawalDetailsMaxLength() || !isValidJson(externalDetails))
-    {
+    auto withdrawalRequest  = mReviewRequest.requestDetails.withdrawal();
+
+    if (!CreateWithdrawalRequestOpFrame::isExternalDetailsValid(app, withdrawalRequest.externalDetails)) {
         innerResult().code(ReviewRequestResultCode::INVALID_EXTERNAL_DETAILS);
         return false;
     }

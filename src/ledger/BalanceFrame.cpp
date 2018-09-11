@@ -60,23 +60,31 @@ namespace stellar
     }
 
     bool
-    BalanceFrame::ensureValid(BalanceEntry const &oe)
+    BalanceFrame::isValid(BalanceEntry const &oe)
     {
-        uint64_t amountAndLocked;
-        if (!safeSum(oe.amount, oe.locked, amountAndLocked)) {
-            CLOG(ERROR, Logging::OPERATION_LOGGER)
-            << "Unexpected state: amount + locked of balance overflows UINT64_MAX, balance id: "
-            << BalanceKeyUtils::toStrKey(oe.balanceID);
-        }
         return AssetFrame::isAssetCodeValid(oe.asset) && oe.locked >= 0 && oe.amount >= 0;
     }
 
     bool
     BalanceFrame::isValid() const
     {
-        return ensureValid(mBalance);
+        return isValid(mBalance);
     }
 
+    uint64_t BalanceFrame::getTotal() const
+    {
+        uint64_t totalAmount;
+        if (!safeSum(mBalance.amount, mBalance.locked, totalAmount))
+        {
+            CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state: "
+                  << "total balance amount overflows UINT64_MAX, balance id: "
+                  << BalanceKeyUtils::toStrKey(mBalance.balanceID);
+            throw runtime_error("Unexpected state: "
+                                "total balance amount overflows UINT64_MAX");
+        }
+
+        return totalAmount;
+    }
 
     bool BalanceFrame::addBalance(int64_t delta)
     {
@@ -171,6 +179,15 @@ namespace stellar
 
         mBalance.locked -= amountToUnlock;
         return tryFundAccount(amountToUnlock);
+    }
+    bool BalanceFrame::tryCharge(uint64_t amountToCharge)
+    {
+        if (mBalance.amount < amountToCharge) {
+            return false;
+        }
+
+        mBalance.amount -= amountToCharge;
+        return true;
     }
 }
 

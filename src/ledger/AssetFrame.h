@@ -97,6 +97,8 @@ public:
 
     // returns true, if specified amount was successfully issued
     bool tryIssue(uint64_t amount);
+    // returns true, if specified amount was successfully unissued
+    bool tryUnIssue(uint64_t amount);
     // returns true, if specified amount can be authorzied to be issued in the future
     bool canAddAvailableForIssuance(uint64_t amount);
     // returns true, if specified amount can be authorized to be issued
@@ -123,14 +125,19 @@ public:
         mAsset.availableForIssueance = availableForIssuance;
     }
 
-    bool checkPolicy(const AssetPolicy policy) const
+    bool isPolicySet(const AssetPolicy policy) const
     {
         return isSetFlag(mAsset.policies, policy);
     }
 
     bool isRequireKYC() const
     {
-        return checkPolicy(AssetPolicy::REQUIRES_KYC);
+        return isPolicySet(AssetPolicy::REQUIRES_KYC);
+    }
+
+    bool isRequireVerification() const
+    {
+        return isPolicySet(AssetPolicy::REQUIRES_VERIFICATION);
     }
 
     static bool isAssetCodeValid(AssetCode const& code);

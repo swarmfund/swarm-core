@@ -4,7 +4,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/FeeFrame.h"
 #include <functional>
@@ -20,7 +20,7 @@ namespace stellar
 {
 	class StatementContext;
 
-	class BalanceHelper : public EntryHelper {
+	class BalanceHelper : public EntryHelperLegacy {
 	public:
 
 		static BalanceHelper *Instance() {
@@ -42,12 +42,12 @@ namespace stellar
 			std::vector<BalanceFrame::pointer>& retBalances,
 			Database& db);
 
-		void loadAssetHolders(AssetCode assetCode, BalanceID balanceID,
-                              std::vector<BalanceFrame::pointer> &holders,
-                              Database &db);
+        std::vector<BalanceFrame::pointer> loadAssetHolders(AssetCode assetCode,
+                                                            BalanceID ownerID,
+                                                            Database &db);
 
-		BalanceFrame::pointer createNewBalance(AccountID const &accountID, AssetCode asset, Database& db,
-                                               LedgerDelta& delta);
+		BalanceFrame::pointer loadBalance(AccountID accountID, BalanceID balanceID,
+                                          Database &db, LedgerDelta *delta = nullptr);
 
 		BalanceFrame::pointer loadBalance(BalanceID balanceID,
 			Database& db, LedgerDelta *delta = nullptr);
@@ -64,6 +64,19 @@ namespace stellar
 
 			CLOG(ERROR, Logging::ENTRY_LOGGER) << "expected balance " << BalanceKeyUtils::toStrKey(balanceID) << " to exist";
 			throw std::runtime_error("expected balance to exist");
+		}
+
+		BalanceFrame::pointer mustLoadBalance(AccountID accountID, AssetCode asset,
+											  Database& db, LedgerDelta* delta = nullptr)
+		{
+			auto result = loadBalance(accountID, asset, db, delta);
+			if (!!result) {
+				return result;
+			}
+
+			CLOG(ERROR, Logging::ENTRY_LOGGER) << "expected balance for account " << PubKeyUtils::toStrKey(accountID)
+											   << " to exist";
+			throw std::runtime_error("expected balance for account to exist");
 		}
 
 		// load all Balances from the database (very slow)

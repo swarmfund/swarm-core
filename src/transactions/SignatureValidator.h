@@ -14,26 +14,12 @@ class SignatureValidator
 {
 public:
 	enum Result { NOT_ENOUGH_WEIGHT, INVALID_ACCOUNT_TYPE, ACCOUNT_BLOCKED, SUCCESS, INVALID_SIGNER_TYPE, EXTRA };
-protected:
-	std::vector<bool> mUsedSignatures;
-	Hash mContentHash;
-	xdr::xvector<DecoratedSignature, 20> mSignatures;
-
-	static bool isAccountTypeAllowed(AccountFrame& account, std::vector<AccountType> allowedAccountTypes);
-
-	static std::vector<Signer> getSigners(Application& app, Database& db, AccountFrame& account);
-
-    Result checkSignature(Application &app, Database &db, AccountFrame &account, SourceDetails &sourceDetails);
-
-
-public:
 	typedef std::shared_ptr<SignatureValidator> pointer;
-	
-	SignatureValidator(Hash contentHash, xdr::xvector<DecoratedSignature, 20> signatures);
+
 	// checks if signature is valid.
-    Result check(std::vector<PublicKey> keys, int signaturesRequired);
-	Result check(Application& app, Database &db, AccountFrame& account, SourceDetails& sourceDetails);
-	bool checkAllSignaturesUsed();
-	void resetSignatureTracker();
+	virtual Result check(Application& app, Database &db, AccountFrame& account, SourceDetails& sourceDetails) = 0;
+	virtual Result check(std::vector<PublicKey> keys, int signaturesRequired, LedgerVersion ledgerVersion) = 0;
+	virtual bool checkAllSignaturesUsed() = 0;
+	virtual void resetSignatureTracker() = 0;
 };
 }

@@ -8,7 +8,6 @@
 #include "crypto/SecretKey.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
-#include "ledger/PaymentRequestFrame.h"
 #include "util/optional.h"
 #include "ledger/FeeFrame.h"
 #include "herder/LedgerCloseData.h"
@@ -147,23 +146,8 @@ PaymentResult applyPaymentTx(Application& app, SecretKey& from, SecretKey& to,
                     InvoiceReference* invoiceReference = nullptr);
 
 TransactionFramePtr
-createManageInvoice(Hash const& networkID, SecretKey& from, AccountID sender,
-                BalanceID receiverBalance, int64_t amount = 0, uint64_t invoiceID = 0);
-
-ManageInvoiceResult
-applyManageInvoice(Application& app, SecretKey& from, AccountID sender,
-                BalanceID receiverBalance, int64_t amount = 0, uint64_t invoiceID = 0,
-                ManageInvoiceResultCode result = ManageInvoiceResultCode::SUCCESS);
-
-TransactionFramePtr
 createReviewPaymentRequestTx(Hash const& networkID, SecretKey& exchange,
                 Salt seq, int64 paymentID,  bool accept = true);
-
-int32
-applyReviewPaymentRequestTx(Application& app, SecretKey& from, 
-            Salt seq, int64 paymentID, 
-            bool accept = true, ReviewPaymentRequestResultCode result = ReviewPaymentRequestResultCode::SUCCESS);
-
 
 TransactionFramePtr createSetOptions(Hash const& networkID, SecretKey& source, Salt seq,
                                      ThresholdSetter* thrs, Signer* signer,
@@ -172,14 +156,6 @@ TransactionFramePtr createSetOptions(Hash const& networkID, SecretKey& source, S
 void applySetOptions(Application& app, SecretKey& source, Salt seq, ThresholdSetter* thrs,
                      Signer* signer, TrustData* trustData = nullptr,
                      SetOptionsResultCode targetResult = SetOptionsResultCode::SUCCESS, SecretKey* txSiger = nullptr);
-
-TransactionFramePtr createSetLimits(Hash const& networkID, SecretKey& source,
-                                     Salt seq,AccountID* account,
-                                     AccountType* accountType, Limits limits);
-
-void applySetLimits(Application& app, SecretKey& source, Salt seq,
-    AccountID* account, AccountType* accountType, Limits limits,  
-    SetLimitsResultCode targetResult = SetLimitsResultCode::SUCCESS);
 
 /*TransactionFramePtr createUploadPreemissions(Hash const& networkID, SecretKey& source, Salt seq,
 	std::vector<PreEmission> preEmissions);

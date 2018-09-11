@@ -6,9 +6,11 @@
 #include "CancelAssetRequestOpFrame.h"
 #include "CreateAssetOpFrame.h"
 #include "UpdateAssetOpFrame.h"
+#include "ChangeAssetMaxIssuanceOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "main/Application.h"
+#include "ChangeAssetPreIssuerOpFrame.h"
 
 namespace stellar
 {
@@ -30,7 +32,8 @@ std::unordered_map<AccountID, CounterpartyDetails> ManageAssetOpFrame::getCounte
 	return std::unordered_map<AccountID, CounterpartyDetails>();
 }
 
-SourceDetails ManageAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ManageAssetOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                          int32_t ledgerVersion) const
 {
 	return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE}, mSourceAccount->getHighThreshold(),
 						 static_cast<int32_t>(SignerType::ASSET_MANAGER));
@@ -45,6 +48,10 @@ ManageAssetOpFrame* ManageAssetOpFrame::makeHelper(Operation const & op, Operati
 		return new UpdateAssetOpFrame(op, res, parentTx);
 	case ManageAssetAction::CANCEL_ASSET_REQUEST:
 		return new CancelAssetRequestOpFrame(op, res, parentTx);
+        case ManageAssetAction::CHANGE_PREISSUED_ASSET_SIGNER:
+            return new ChangeAssetPreIssuerOpFrame(op, res, parentTx);
+        case ManageAssetAction::UPDATE_MAX_ISSUANCE:
+            return new ChangeAssetMaxIssuanceOpFrame(op, res, parentTx);
 	default:
 		throw runtime_error("Unexpected action in manage asset op");
 	}

@@ -3,10 +3,10 @@
 #include <src/main/test.h>
 #include <util/Timer.h>
 #include <main/Application.h>
-#include "LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/LedgerManager.h"
 #include "StatisticsFrame.h"
-#include "EntryHelper.h"
+#include "EntryHelperLegacy.h"
 #include <src/transactions/test/TxTests.h>
 
 using namespace stellar;
@@ -19,7 +19,7 @@ void validateStats(StatisticsFrame& statsFrame, uint64_t amount)
     REQUIRE(statsFrame.getDailyOutcome() == amount);
 }
 
-TEST_CASE("Statistics tests", "[tx][stats]")
+TEST_CASE("Statistics tests", "[dep_tx][stats]")
 {
     Config cfg(getTestConfig(0, Config::TESTDB_POSTGRESQL));
     VirtualClock clock;
@@ -28,7 +28,8 @@ TEST_CASE("Statistics tests", "[tx][stats]")
 
     Database& db = app->getDatabase();
     LedgerManager& ledgerManager(app->getLedgerManager());
-    LedgerDelta delta(ledgerManager.getCurrentLedgerHeader(), db);
+    LedgerDeltaImpl deltaImpl(ledgerManager.getCurrentLedgerHeader(), db);
+    LedgerDelta& delta = deltaImpl;
 
     LedgerEntry ledgerEntry;
     ledgerEntry.data.type(LedgerEntryType::STATISTICS);

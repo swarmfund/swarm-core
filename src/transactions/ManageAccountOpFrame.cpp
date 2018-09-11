@@ -20,12 +20,15 @@ using xdr::operator==;
 std::unordered_map<AccountID, CounterpartyDetails> ManageAccountOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
 	return{ 
-		{ mManageAccount.account, CounterpartyDetails({ AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE},
-                                                      true, true) }
+		{ mManageAccount.account, CounterpartyDetails({ AccountType::GENERAL, AccountType::NOT_VERIFIED, AccountType::EXCHANGE,
+                                                        AccountType::SYNDICATE, AccountType::VERIFIED,
+														AccountType::ACCREDITED_INVESTOR, AccountType::INSTITUTIONAL_INVESTOR},
+													  true, true) }
 	};
 }
 
-SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const
+SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                            int32_t ledgerVersion) const
 {
 	int32_t threshold = mSourceAccount->getMediumThreshold();
 
@@ -36,6 +39,9 @@ SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
 	case AccountType::NOT_VERIFIED:
 		allowedSignerClass = static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER);
 		break;
+	case AccountType::ACCREDITED_INVESTOR:
+	case AccountType::INSTITUTIONAL_INVESTOR:
+	case AccountType::VERIFIED:
 	case AccountType::GENERAL:
 		// not verified account manager is needed here to allow automatic account blocking on KYC update
 		allowedSignerClass = static_cast<int32_t>(SignerType::NOT_VERIFIED_ACC_MANAGER) |
@@ -43,6 +49,9 @@ SourceDetails ManageAccountOpFrame::getSourceAccountDetails(std::unordered_map<A
 		break;
     case AccountType::EXCHANGE:
         allowedSignerClass = static_cast<int32_t>(SignerType::EXCHANGE_ACC_MANAGER);
+        break;
+    case AccountType::SYNDICATE:
+        allowedSignerClass = static_cast<int32_t>(SignerType::SYNDICATE_ACC_MANAGER);
         break;
 	default:
 		// it is not allowed to block/unblock any other account types

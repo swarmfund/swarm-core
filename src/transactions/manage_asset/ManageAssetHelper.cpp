@@ -1,4 +1,5 @@
 #include <ledger/BalanceHelper.h>
+#include <ledger/LedgerHeaderFrame.h>
 #include "ManageAssetHelper.h"
 #include "transactions/AccountManager.h"
 

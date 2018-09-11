@@ -17,8 +17,8 @@ namespace txtest
 
 class LimitsUpdateReviewChecker : public ReviewChecker
 {
-    std::shared_ptr<LimitsUpdateRequest> limitsUpdateRequest;
-    AccountLimitsFrame::pointer accountLimitsBeforeTx;
+    std::shared_ptr<LimitsUpdateRequest> manageLimitsRequest;
+
 public:
     LimitsUpdateReviewChecker(TestManager::pointer testManager, uint64_t requestID);
     void checkApprove(ReviewableRequestFrame::pointer) override;
@@ -28,6 +28,8 @@ public:
 class ReviewLimitsUpdateRequestHelper : public ReviewRequestHelper
 {
 public:
+    LimitsV2Entry limitsV2Entry;
+
     explicit ReviewLimitsUpdateRequestHelper(TestManager::pointer testManager);
 
     using ReviewRequestHelper::applyReviewRequestTx;
@@ -46,8 +48,7 @@ public:
           uint64_t requestID, Hash requestHash, ReviewableRequestType requestType,
           ReviewRequestOpAction action, std::string rejectReason) override;
 
-    Limits createLimits(int64 dailyOut, int64 weeklyOut,
-                        int64 monthlyOut, int64 annualOut);
+    void initializeLimits(AccountID& requestorID);
 };
 
 }

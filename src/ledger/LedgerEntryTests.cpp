@@ -8,7 +8,7 @@
 #include "main/test.h"
 #include "AccountFrame.h"
 #include "AccountHelper.h"
-#include "LedgerDelta.h"
+#include "LedgerDeltaImpl.h"
 #include "xdrpp/autocheck.h"
 #include "ledger/LedgerTestUtils.h"
 #include "test/test_marshaler.h"
@@ -44,7 +44,7 @@ TEST_CASE("Ledger Entry tests", "[ledgerentry]")
         }
 
         LedgerHeader lh;
-        LedgerDelta delta(lh, db, false);
+        LedgerDeltaImpl delta(lh, db, false);
 
         // adding accounts
         for (auto const& l : accountsMap)

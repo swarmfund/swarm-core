@@ -1,6 +1,7 @@
-#ifndef STELLAR_CHECK_SALE_STATE_TEST_HELPER_H
-#define STELLAR_CHECK_SALE_STATE_TEST_HELPER_H
+#pragma once
 
+#include <ledger/SaleAnteFrame.h>
+#include "StateBeforeTxHelper.h"
 #include "ManageOfferTestHelper.h"
 #include "ledger/SaleFrame.h"
 
@@ -8,28 +9,22 @@ namespace stellar
 {
 namespace txtest
 {
-    class StateBeforeTxHelper
-    {
-        LedgerDelta::KeyEntryMap mState;
-    public:
-        explicit StateBeforeTxHelper(LedgerDelta::KeyEntryMap state);
-
-        SaleFrame::pointer getSale(uint64_t id);
-        AssetEntry getAssetEntry(AssetCode assetCode);
-        OfferEntry getOffer(uint64_t offerID, AccountID ownerID);
-        BalanceFrame::pointer getBalance(BalanceID balanceID);
-        std::vector<OfferEntry> getAllOffers();
-    };
 
     class CheckSaleStateHelper : public TxHelper
     {
-        void ensureCancel(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
-        void ensureClose(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
+        void ensureClose(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx,
+                         std::unordered_map<BalanceID, SaleAnteFrame::pointer> saleAntesBeforeTx) const;
+        void ensureUpdated(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
         void ensureNoOffersLeft(CheckSaleStateSuccess result, StateBeforeTxHelper& stateBeforeTx) const;
+        void ensureNoSaleAntesLeft(uint64_t saleID) const;
         void checkBalancesAfterApproval(StateBeforeTxHelper& stateBeforeTx, SaleFrame::pointer sale,
-            SaleQuoteAsset const& saleQuoteAsset, CheckSubSaleClosedResult result) const;
+                                        SaleQuoteAsset const& saleQuoteAsset, CheckSubSaleClosedResult result,
+                                        std::unordered_map<BalanceID, SaleAnteFrame::pointer> saleAntesBeforeTx) const;
     public:
         explicit CheckSaleStateHelper(TestManager::pointer testManager);
+
+        void ensureCancel(uint64_t saleID, StateBeforeTxHelper& stateBeforeTx,
+                          std::unordered_map<BalanceID, SaleAnteFrame::pointer> saleAntesBeforeTx) const;
 
         TransactionFramePtr createCheckSaleStateTx(Account& source, uint64_t saleID);
         CheckSaleStateResult applyCheckSaleStateTx(Account& source, uint64_t saleID, CheckSaleStateResultCode code = CheckSaleStateResultCode::SUCCESS);
@@ -38,6 +33,3 @@ namespace txtest
 }
 
 }
-
-
-#endif //STELLAR_CHECK_SALE_STATE_TEST_HELPER_H

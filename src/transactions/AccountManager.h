@@ -4,10 +4,12 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include <ledger/SaleFrame.h>
 #include "overlay/StellarXDR.h"
 #include "ledger/StatisticsFrame.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/BalanceFrame.h"
+#include "StatisticsV2Processor.h"
 
 
 namespace medida
@@ -28,7 +30,6 @@ protected:
     LedgerDelta& mDelta;
     LedgerManager& mLm;
 
-private:
 public:
     void createStats(AccountFrame::pointer account);
 
@@ -38,16 +39,38 @@ public:
         LINE_FULL,
         UNDERFUNDED,
         STATS_OVERFLOW,
-        LIMITS_EXCEEDED
+        LIMITS_EXCEEDED,
+        REQUIRED_KYC,
+        REQUIRED_VERIFICATION,
+        BALANCE_NOT_FOUND
     };
 
     AccountManager(Application& app, Database& db, LedgerDelta& delta,
                    LedgerManager& lm);
 
+    [[deprecated]]
     Result processTransfer(AccountFrame::pointer account,
                            BalanceFrame::pointer balance, int64 amount,
                            int64& universalAmount, bool requireReview = false,
                            bool ignoreLimits = false);
+
+    struct ProcessTransferResult {
+        Result result;
+        uint64_t universalAmount;
+
+        ProcessTransferResult(Result result, uint64_t universalAmount) {
+            this->result = result;
+            this->universalAmount = universalAmount;
+        }
+    };
+
+    bool calculateUniversalAmount(AssetCode transferAsset, uint64_t amount, uint64_t& universalAmount);
+
+    ProcessTransferResult processTransferV2(AccountFrame::pointer from, BalanceFrame::pointer fromBalance, BalanceFrame::pointer toBalance,
+        uint64_t amount, bool noIncludeIntoStats = false);
+
+    ProcessTransferResult processStatistics(AccountFrame::pointer from, BalanceFrame::pointer fromBalance,
+                                            uint64_t amount, uint64_t& universalAmount);
 
     bool revertRequest(AccountFrame::pointer account,
                        BalanceFrame::pointer balance, int64 amount,
@@ -65,6 +88,9 @@ public:
     Result addStats(AccountFrame::pointer account, BalanceFrame::pointer balance, uint64_t amountToAdd,
                     uint64_t &universalAmount);
 
+    Result tryAddStatsV2(const AccountFrame::pointer account, const BalanceFrame::pointer balance,
+                         const uint64_t amountToAdd, uint64_t& universalAmount);
+
     void revertStats(AccountID account, uint64_t universalAmount, time_t timePerformed);
 
     void transferFee(AssetCode asset, uint64_t totalFee);
@@ -75,6 +101,13 @@ public:
     static BalanceID loadOrCreateBalanceForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
     static BalanceFrame::pointer loadOrCreateBalanceFrameForAsset(AccountID const& account, AssetCode const& asset, Database& db, LedgerDelta& delta);
 
-    static bool isAllowedToReceive(BalanceID receivingBalance, Database& db);
+    static Result isAllowedToReceive(BalanceID receivingBalance, Database& db);
+
+    static Result isAllowedToReceive(BalanceFrame::pointer balanceFrame, Database& db);
+
+    static Result isAllowedToReceive(AccountFrame::pointer account, BalanceFrame::pointer balance, Database& db);
+
+    static void unlockPendingIssuanceForSale(const SaleFrame::pointer sale, LedgerDelta &delta, Database &db,
+                                             LedgerManager &lm);
 };
 }

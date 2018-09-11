@@ -42,130 +42,161 @@ struct LedgerEntryIdCmp
         if (aty > bty)
             return false;
 
-        switch (aty)
-        {
+        switch (aty) {
 
-        case LedgerEntryType::ACCOUNT:
-            return a.account().accountID < b.account().accountID;
-        case LedgerEntryType::FEE:
-        {
-            auto const& af = a.feeState();
-            auto const& bf = b.feeState();
-            auto hashAStr = binToHex(af.hash);
-            auto hashBStr = binToHex(bf.hash);
-			if (hashAStr < hashBStr)
-				return true;
-			if (hashBStr < hashAStr)
-				return false;
-			if (af.lowerBound < bf.lowerBound)
-				return true;
-			if (bf.lowerBound < af.lowerBound)
-				return false;
-			return af.upperBound < bf.upperBound;
-        }
-        case LedgerEntryType::BALANCE:
-		{
-			auto const& ab = a.balance();
-			auto const& bb = b.balance();
-			return ab.balanceID < bb.balanceID;
-		}
-		case LedgerEntryType::PAYMENT_REQUEST:
-		{
-			auto const& ab = a.paymentRequest();
-			auto const& bb = b.paymentRequest();
-			return ab.paymentID < bb.paymentID;
-		}
-		case LedgerEntryType::ASSET:
-		{
-			auto const& aa = a.asset();
-			auto const& ba = b.asset();
-			return aa.code < ba.code;
-        }
-        case LedgerEntryType::ACCOUNT_TYPE_LIMITS:
-        {
-            auto const& aatl = a.accountTypeLimits();
-			auto const& batl = b.accountTypeLimits();
-            return aatl.accountType < batl.accountType;
-        }
-        case LedgerEntryType::STATISTICS:
-        {
-            auto const& as = a.stats();
-			auto const& bs = b.stats();
-            return as.accountID < bs.accountID;
-        }
-        case LedgerEntryType::REFERENCE_ENTRY:
-        {
-            auto const& ap = a.reference();
-			auto const& bp = b.reference();
-			return ap.reference < bp.reference;
-        }
-		case LedgerEntryType::TRUST:
-		{
-			auto const& at = a.trust();
-			auto const& bt = b.trust();
-            if (at.balanceToUse < bt.balanceToUse)
-				return true;
-			if (bt.balanceToUse < at.balanceToUse)
-				return false;
-			return at.allowedAccount < bt.allowedAccount;
-		}
-        case LedgerEntryType::ACCOUNT_LIMITS:
-        {
-            auto const& al = a.accountLimits();
-			auto const& bl = b.accountLimits();
-            return al.accountID < bl.accountID;
-        }
-		case LedgerEntryType::ASSET_PAIR:
-		{
-			auto const& ap = a.assetPair();
-			auto const& bp = b.assetPair();
-			if (ap.base < bp.base)
-				return true;
-			if (bp.base < ap.base)
-				return false;
-			return ap.quote < bp.quote;
-		}
-		case LedgerEntryType::OFFER_ENTRY:
-		{
-			auto const& ap = a.offer();
-			auto const& bp = b.offer();
-			if (ap.offerID < bp.offerID)
-				return true;
-			if (bp.offerID < ap.offerID)
-				return false;
-			return ap.ownerID < bp.ownerID;
-		}
-		case LedgerEntryType::INVOICE:
-		{
-			auto const& ai = a.invoice();
-			auto const& bi = b.invoice();
-			return ai.invoiceID < bi.invoiceID;
-		}
-        case LedgerEntryType::REVIEWABLE_REQUEST:
-		{
-			auto const& ar = a.reviewableRequest();
-			auto const& br = b.reviewableRequest();
-			return ar.requestID < br.requestID;
-		}
-        case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID:
-            {
-                auto const& ae = a.externalSystemAccountID();
-                auto const& be = b.externalSystemAccountID();
+            case LedgerEntryType::ACCOUNT:
+                return a.account().accountID < b.account().accountID;
+            case LedgerEntryType::FEE: {
+                auto const &af = a.feeState();
+                auto const &bf = b.feeState();
+                auto hashAStr = binToHex(af.hash);
+                auto hashBStr = binToHex(bf.hash);
+                if (hashAStr < hashBStr)
+                    return true;
+                if (hashBStr < hashAStr)
+                    return false;
+                if (af.lowerBound < bf.lowerBound)
+                    return true;
+                if (bf.lowerBound < af.lowerBound)
+                    return false;
+                return af.upperBound < bf.upperBound;
+            }
+            case LedgerEntryType::BALANCE: {
+                auto const &ab = a.balance();
+                auto const &bb = b.balance();
+                return ab.balanceID < bb.balanceID;
+            }
+            case LedgerEntryType::ASSET: {
+                auto const &aa = a.asset();
+                auto const &ba = b.asset();
+                return aa.code < ba.code;
+            }
+            case LedgerEntryType::ACCOUNT_TYPE_LIMITS: {
+                auto const &aatl = a.accountTypeLimits();
+                auto const &batl = b.accountTypeLimits();
+                return aatl.accountType < batl.accountType;
+            }
+            case LedgerEntryType::STATISTICS: {
+                auto const &as = a.stats();
+                auto const &bs = b.stats();
+                return as.accountID < bs.accountID;
+            }
+            case LedgerEntryType::REFERENCE_ENTRY: {
+                auto const &ap = a.reference();
+                auto const &bp = b.reference();
+                return ap.reference < bp.reference;
+            }
+            case LedgerEntryType::TRUST: {
+                auto const &at = a.trust();
+                auto const &bt = b.trust();
+                if (at.balanceToUse < bt.balanceToUse)
+                    return true;
+                if (bt.balanceToUse < at.balanceToUse)
+                    return false;
+                return at.allowedAccount < bt.allowedAccount;
+            }
+            case LedgerEntryType::ACCOUNT_LIMITS: {
+                auto const &al = a.accountLimits();
+                auto const &bl = b.accountLimits();
+                return al.accountID < bl.accountID;
+            }
+            case LedgerEntryType::ASSET_PAIR: {
+                auto const &ap = a.assetPair();
+                auto const &bp = b.assetPair();
+                if (ap.base < bp.base)
+                    return true;
+                if (bp.base < ap.base)
+                    return false;
+                return ap.quote < bp.quote;
+            }
+            case LedgerEntryType::OFFER_ENTRY: {
+                auto const &ap = a.offer();
+                auto const &bp = b.offer();
+                if (ap.offerID < bp.offerID)
+                    return true;
+                if (bp.offerID < ap.offerID)
+                    return false;
+                return ap.ownerID < bp.ownerID;
+            }
+            case LedgerEntryType::REVIEWABLE_REQUEST: {
+                auto const &ar = a.reviewableRequest();
+                auto const &br = b.reviewableRequest();
+                return ar.requestID < br.requestID;
+            }
+            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID: {
+                auto const &ae = a.externalSystemAccountID();
+                auto const &be = b.externalSystemAccountID();
                 if (ae.accountID < be.accountID)
                     return true;
                 if (be.accountID < ae.accountID)
                     return false;
                 return ae.externalSystemType < be.externalSystemType;
             }
-        case LedgerEntryType::SALE:
+            case LedgerEntryType::SALE: {
+                auto const &as = a.sale();
+                auto const &bs = b.sale();
+                return as.saleID < bs.saleID;
+            }
+            case LedgerEntryType::KEY_VALUE: {
+                auto const &akv = a.keyValue();
+                auto const &bkv = b.keyValue();
+                return akv.key < bkv.key;
+            }
+            case LedgerEntryType::ACCOUNT_KYC: {
+                auto const &akyc = a.accountKYC();
+                auto const &bkyc = b.accountKYC();
+                return akyc.accountID < bkyc.accountID;
+            }
+            case LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
             {
-            auto const& as = a.sale();
-            auto const& bs = b.sale();
-            return as.saleID < bs.saleID;
+                auto const& apool = a.externalSystemAccountIDPoolEntry();
+                auto const& bpool = b.externalSystemAccountIDPoolEntry();
+                return apool.poolEntryID < bpool.poolEntryID;
+            }
+            case LedgerEntryType::LIMITS_V2:
+            {
+                auto const& alim = a.limitsV2();
+                auto const& blim = b.limitsV2();
+                return alim.id < blim.id;
+            }
+            case LedgerEntryType::STATISTICS_V2:
+            {
+                auto const& astats = a.statisticsV2();
+                auto const& bstats = b.statisticsV2();
+                return astats.id < bstats.id;
+            }
+            case LedgerEntryType::PENDING_STATISTICS:
+            {
+                auto const& apend = a.pendingStatistics();
+                auto const& bpend = b.pendingStatistics();
+                if (apend.requestID < bpend.requestID)
+                    return true;
+                if (bpend.requestID < apend.requestID)
+                    return false;
+                return apend.statisticsID < bpend.statisticsID;
+            }
+            case LedgerEntryType::SALE_ANTE: {
+                auto const& asa = a.saleAnte();
+                auto const& bsa = b.saleAnte();
+                if (asa.saleID < bsa.saleID) {
+                    return true;
+                }
+                if (bsa.saleID < asa.saleID) {
+                    return false;
+                }
+                return asa.participantBalanceID < bsa.participantBalanceID;
+            }
+            case LedgerEntryType::CONTRACT:
+            {
+                auto const& acon = a.contract();
+                auto const& bcon = b.contract();
+                return acon.contractID < bcon.contractID;
+            }
+            default:
+            {
+                throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");
             }
         }
-
-        return false;
     }
 
     template <typename T>

@@ -7,6 +7,7 @@
 #include "main/Application.h"
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/AssetHelper.h"
@@ -30,8 +31,8 @@ CreateSaleCreationRequestOpFrame::getCounterpartyDetails(
     return {};
 }
 
-SourceDetails CreateSaleCreationRequestOpFrame::getSourceAccountDetails(
-    std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails)
+SourceDetails CreateSaleCreationRequestOpFrame::getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
+                                                                        int32_t ledgerVersion)
 const
 {
     return SourceDetails({
@@ -40,23 +41,23 @@ const
                          static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
-AssetFrame::pointer CreateSaleCreationRequestOpFrame::tryLoadBaseAssetOrRequest(
-    SaleCreationRequest const& request,
-    Database& db) const
+AssetFrame::pointer
+CreateSaleCreationRequestOpFrame::tryLoadBaseAssetOrRequest(SaleCreationRequest const& request,
+                                                            Database& db, AccountID const& source)
 {
-    const auto assetFrame = AssetHelper::Instance()->loadAsset(request.baseAsset, getSourceID(), db);
+    const auto assetFrame = AssetHelper::Instance()->loadAsset(request.baseAsset, source, db);
     if (!!assetFrame)
     {
         return assetFrame;
     }
 
-    auto assetCreationRequests = ReviewableRequestHelper::Instance()->loadRequests(getSourceID(), ReviewableRequestType::ASSET_CREATE, db);
+    auto assetCreationRequests = ReviewableRequestHelper::Instance()->loadRequests(source, ReviewableRequestType::ASSET_CREATE, db);
     for (auto assetCreationRequestFrame : assetCreationRequests)
     {
         auto& assetCreationRequest = assetCreationRequestFrame->getRequestEntry().body.assetCreationRequest();
         if (assetCreationRequest.code == request.baseAsset)
         {
-            return AssetFrame::create(assetCreationRequest, getSourceID());
+            return AssetFrame::create(assetCreationRequest, source);
         }
     }
 
@@ -70,7 +71,7 @@ std::string CreateSaleCreationRequestOpFrame::getReference(SaleCreationRequest c
 }
 
 ReviewableRequestFrame::pointer CreateSaleCreationRequestOpFrame::
-createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, const time_t closedAt) const
+createNewUpdateRequest(Application& app, LedgerManager& lm, Database& db, LedgerDelta& delta, const time_t closedAt) const
 {
     if (mCreateSaleCreationRequest.requestID != 0)
     {
@@ -82,8 +83,11 @@ createNewUpdateRequest(Application& app, Database& db, LedgerDelta& delta, const
     }
 
     auto const& sale = mCreateSaleCreationRequest.request;
-    auto reference = getReference(sale);
-    const auto referencePtr = xdr::pointer<string64>(new string64(reference));
+    xdr::pointer<string64> referencePtr = nullptr;
+    if (!lm.shouldUse(LedgerVersion::ALLOW_TO_CREATE_SEVERAL_SALES)) {
+        auto reference = getReference(sale);
+        referencePtr = xdr::pointer<string64>(new string64(reference));
+    }
     auto request = ReviewableRequestFrame::createNew(mCreateSaleCreationRequest.requestID, getSourceID(), app.getMasterID(),
         referencePtr, closedAt);
     auto& requestEntry = request->getRequestEntry();
@@ -136,21 +140,30 @@ bool CreateSaleCreationRequestOpFrame::areQuoteAssetsValid(Database& db, xdr::xv
     return true;
 }
 
-bool CreateSaleCreationRequestOpFrame::isPriceValid(
-    SaleCreationRequestQuoteAsset const& quoteAsset) const
+bool CreateSaleCreationRequestOpFrame::isPriceValid(SaleCreationRequestQuoteAsset const& quoteAsset,
+                                                    SaleCreationRequest const& saleCreationRequest)
 {
     if (quoteAsset.price == 0)
     {
         return false;
     }
 
+    bool isCrowdfunding = saleCreationRequest.ext.v() == LedgerVersion::TYPED_SALE &&
+            saleCreationRequest.ext.saleTypeExt().typedSale.saleType() == SaleType::CROWD_FUNDING;
+    isCrowdfunding = isCrowdfunding || (saleCreationRequest.ext.v() == LedgerVersion::STATABLE_SALES &&
+            saleCreationRequest.ext.extV3().saleTypeExt.typedSale.saleType() == SaleType::CROWD_FUNDING);
+    if (isCrowdfunding)
+    {
+        return quoteAsset.price == ONE;
+    }
+
     uint64_t requiredBaseAsset;
-    if (!SaleFrame::convertToBaseAmount(quoteAsset.price, mCreateSaleCreationRequest.request.hardCap, requiredBaseAsset))
+    if (!SaleFrame::convertToBaseAmount(quoteAsset.price, saleCreationRequest.hardCap, requiredBaseAsset))
     {
         return false;
     }
 
-    if (!SaleFrame::convertToBaseAmount(quoteAsset.price, mCreateSaleCreationRequest.request.softCap, requiredBaseAsset))
+    if (!SaleFrame::convertToBaseAmount(quoteAsset.price, saleCreationRequest.softCap, requiredBaseAsset))
     {
         return false;
     }
@@ -172,6 +185,14 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
                                         LedgerManager& ledgerManager)
 {
     auto const& sale = mCreateSaleCreationRequest.request;
+
+    auto saleVersion = static_cast<int32>(sale.ext.v());
+    if (saleVersion > app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion)
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::VERSION_IS_NOT_SUPPORTED_YET);
+        return false;
+    }
+
     if (sale.endTime <= ledgerManager.getCloseTime())
     {
         innerResult().code(CreateSaleCreationRequestResultCode::INVALID_END);
@@ -179,7 +200,7 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     }
 
     auto& db = ledgerManager.getDatabase();
-    auto request = createNewUpdateRequest(app, db, delta, ledgerManager.getCloseTime());
+    auto request = createNewUpdateRequest(app, ledgerManager, db, delta, ledgerManager.getCloseTime());
     if (!request)
     {
         innerResult().code(CreateSaleCreationRequestResultCode::REQUEST_NOT_FOUND);
@@ -198,13 +219,17 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    const auto baseAsset = tryLoadBaseAssetOrRequest(sale, db);
+    const auto baseAsset = tryLoadBaseAssetOrRequest(sale, db, getSourceID());
     if (!baseAsset)
     {
         innerResult().code(CreateSaleCreationRequestResultCode::BASE_ASSET_OR_ASSET_REQUEST_NOT_FOUND);
         return false;
     }
-
+    if (!ensureEnoughAvailable(app, sale, baseAsset))
+    {
+        innerResult().code(CreateSaleCreationRequestResultCode::INSUFFICIENT_PREISSUED);
+        return false;
+    }
     if (!isBaseAssetHasSufficientIssuance(baseAsset))
     {
         return false;
@@ -224,57 +249,92 @@ CreateSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     return true;
 }
 
+bool CreateSaleCreationRequestOpFrame::ensureEnoughAvailable(Application& app,
+                                                             const SaleCreationRequest& saleCreationRequest,
+                                                             AssetFrame::pointer baseAsset)
+{
+    if(!app.getLedgerManager().shouldUse(LedgerVersion::STATABLE_SALES))
+        return true;
+    SaleType saleType;
+    switch (saleCreationRequest.ext.v()) {
+        case LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP: {
+            saleType = saleCreationRequest.ext.extV2().saleTypeExt.typedSale.saleType();
+            break;
+        }
+        case LedgerVersion::STATABLE_SALES: {
+            saleType = saleCreationRequest.ext.extV3().saleTypeExt.typedSale.saleType();
+            break;
+        }
+        default: {
+            return true;
+        }
+    }
+    if (saleType != SaleType::FIXED_PRICE)
+        return true;
+
+    return baseAsset->getAvailableForIssuance() >= saleCreationRequest.ext.extV3().requiredBaseAssetForHardCap;
+}
+
 bool CreateSaleCreationRequestOpFrame::doCheckValid(Application& app)
 {
-    const auto& request = mCreateSaleCreationRequest.request;
-    if (!AssetFrame::isAssetCodeValid(request.baseAsset) || !AssetFrame::isAssetCodeValid(request.defaultQuoteAsset) 
-        || request.defaultQuoteAsset == request.baseAsset || mCreateSaleCreationRequest.request.quoteAssets.empty())
+    auto checkValidResult = doCheckValid(app, mCreateSaleCreationRequest.request, getSourceID());
+    if (checkValidResult == CreateSaleCreationRequestResultCode::SUCCESS) {
+        return true;
+    }
+
+    innerResult().code(checkValidResult);
+    return false;
+}
+
+CreateSaleCreationRequestResultCode
+CreateSaleCreationRequestOpFrame::doCheckValid(Application &app, const SaleCreationRequest &saleCreationRequest,
+                                               AccountID const& source)
+{
+    if (!AssetFrame::isAssetCodeValid(saleCreationRequest.baseAsset) ||
+        !AssetFrame::isAssetCodeValid(saleCreationRequest.defaultQuoteAsset)
+        || saleCreationRequest.defaultQuoteAsset == saleCreationRequest.baseAsset
+        || saleCreationRequest.quoteAssets.empty())
     {
-        innerResult().code(CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR);
-        return false;
+        return CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR;
     }
 
     std::set<AssetCode> quoteAssets;
-    for (auto const& quoteAsset : mCreateSaleCreationRequest.request.quoteAssets)
+    for (auto const& quoteAsset : saleCreationRequest.quoteAssets)
     {
-        if (!AssetFrame::isAssetCodeValid(quoteAsset.quoteAsset) || quoteAsset.quoteAsset == request.baseAsset)
+        if (!AssetFrame::isAssetCodeValid(quoteAsset.quoteAsset) ||
+            quoteAsset.quoteAsset == saleCreationRequest.baseAsset)
         {
-            innerResult().code(CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR);
-            return false;
+            return CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR;
         }
 
         if (quoteAssets.find(quoteAsset.quoteAsset) != quoteAssets.end())
         {
-            innerResult().code(CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR);
-            return false;
+            return CreateSaleCreationRequestResultCode::INVALID_ASSET_PAIR;
         }
         quoteAssets.insert(quoteAsset.quoteAsset);
 
-        if (!isPriceValid(quoteAsset))
+        if (!isPriceValid(quoteAsset, saleCreationRequest))
         {
-            innerResult().code(CreateSaleCreationRequestResultCode::INVALID_PRICE);
-            return false;
+            return CreateSaleCreationRequestResultCode::INVALID_PRICE;
         }
     }
 
-    if (request.endTime <= request.startTime)
+    if (saleCreationRequest.endTime <= saleCreationRequest.startTime)
     {
-        innerResult().code(CreateSaleCreationRequestResultCode::START_END_INVALID);
-        return false;
+        return CreateSaleCreationRequestResultCode::START_END_INVALID;
     }
 
-    if (request.hardCap < request.softCap)
+    if (saleCreationRequest.hardCap < saleCreationRequest.softCap)
     {
-        innerResult().code(CreateSaleCreationRequestResultCode::INVALID_CAP);
-        return false;
+        return CreateSaleCreationRequestResultCode::INVALID_CAP;
     }
 
-    if (!isValidJson(request.details))
+    if (!isValidJson(saleCreationRequest.details))
     {
-        innerResult().code(CreateSaleCreationRequestResultCode::INVALID_DETAILS);
-        return false;
+        return CreateSaleCreationRequestResultCode::INVALID_DETAILS;
     }
 
-    return true;
+    return CreateSaleCreationRequestResultCode::SUCCESS;
 }
+
 }

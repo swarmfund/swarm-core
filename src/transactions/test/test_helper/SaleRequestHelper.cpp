@@ -68,7 +68,8 @@ CreateSaleCreationRequestResult SaleRequestHelper::applyCreateSaleRequest(
 
 SaleCreationRequest SaleRequestHelper::createSaleRequest(AssetCode base,
     AssetCode defaultQuoteAsset, const uint64_t startTime, const uint64_t endTime,
-    const uint64_t softCap, const uint64_t hardCap, std::string details, std::vector<SaleCreationRequestQuoteAsset> quoteAssets)
+    const uint64_t softCap, const uint64_t hardCap, std::string details, std::vector<SaleCreationRequestQuoteAsset> quoteAssets,
+    SaleType* saleType, const uint64_t* requiredBaseAssetForHardCap, SaleState state)
 {
     SaleCreationRequest request;
     request.baseAsset = base;
@@ -80,6 +81,26 @@ SaleCreationRequest SaleRequestHelper::createSaleRequest(AssetCode base,
     request.softCap = softCap;
     request.hardCap = hardCap;
     request.details = details;
+
+    if (state != SaleState::NONE && saleType != nullptr && requiredBaseAssetForHardCap != nullptr) {
+        request.ext.v(LedgerVersion::STATABLE_SALES);
+        request.ext.extV3().saleTypeExt.typedSale.saleType(*saleType);
+        request.ext.extV3().requiredBaseAssetForHardCap = *requiredBaseAssetForHardCap;
+        request.ext.extV3().state = state;
+        return request;
+    }
+
+    if (saleType != nullptr && requiredBaseAssetForHardCap != nullptr) {
+        request.ext.v(LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP);
+        request.ext.extV2().saleTypeExt.typedSale.saleType(*saleType);
+        request.ext.extV2().requiredBaseAssetForHardCap = *requiredBaseAssetForHardCap;
+        return request;
+    }
+
+    if (saleType != nullptr) {
+        request.ext.v(LedgerVersion::TYPED_SALE).saleTypeExt().typedSale.saleType(*saleType);
+    }
+
     return request;
 }
 

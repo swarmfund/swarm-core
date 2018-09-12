@@ -6,22 +6,6 @@ namespace stellar
 {
 class SetAccountRoleOpFrame : public OperationFrame
 {
-    SetAccountRoleResult&
-    innerResult()
-    {
-        return mResult.tr().setAccountRoleResult();
-    }
-
-    SetAccountRoleOp const& mSetAccountRole;
-
-    std::unordered_map<AccountID, CounterpartyDetails>
-    getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
-
-    SourceDetails
-    getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails>
-                                counterpartiesDetails,
-                            int32_t ledgerVersion) const override;
-
   public:
     SetAccountRoleOpFrame(Operation const& op, OperationResult& res,
                           TransactionFrame& parentTx);
@@ -45,6 +29,22 @@ class SetAccountRoleOpFrame : public OperationFrame
     }
 
   private:
+    SetAccountRoleResult&
+    innerResult()
+    {
+        return mResult.tr().setAccountRoleResult();
+    }
+
+    SetAccountRoleOp const& mSetAccountRole;
+
+    std::unordered_map<AccountID, CounterpartyDetails>
+    getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
+
+    SourceDetails
+    getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails>
+                            counterpartiesDetails,
+                            int32_t ledgerVersion) const override;
+
     bool createAccountRole(Application& app, StorageHelper& storageHelper);
     bool deleteAccountRole(Application& app, StorageHelper& storageHelper);
 };

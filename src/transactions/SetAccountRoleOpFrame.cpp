@@ -3,6 +3,7 @@
 #include "ledger/AccountRoleHelper.h"
 #include "ledger/AccountRolePolicyHelper.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 
 namespace stellar
 {
@@ -55,9 +56,7 @@ SetAccountRoleOpFrame::createAccountRole(Application &app,
         newAccountRoleID, getSourceID(), mSetAccountRole.data->name,
         storageHelper.getLedgerDelta());
 
-    storageHelper.getAccountRoleHelper().storeAdd(
-        storageHelper.getLedgerDelta(), storageHelper.getDatabase(),
-        frame->mEntry);
+    storageHelper.getAccountRoleHelper().storeAdd(frame->mEntry);
 
     innerResult().code(SetAccountRoleResultCode::SUCCESS);
     innerResult().success().accountRoleID = newAccountRoleID;

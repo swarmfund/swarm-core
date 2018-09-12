@@ -317,7 +317,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
         const auto &policyDetails = getPolicyDetails(db, delta);
         if (!policyDetails.empty())
         {
-            const bool isAllow = IdentityPolicyChecker::doCheckPolicies(mSourceAccount->getID(), policyDetails, db,
+            const bool isAllow = IdentityPolicyChecker::isPolicyAllowed(mSourceAccount->getID(), policyDetails, db,
                                                                         delta);
             if (!isAllow)
             {

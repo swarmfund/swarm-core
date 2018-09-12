@@ -9,19 +9,26 @@ namespace stellar
 {
 
 bool
-IdentityPolicyChecker::doCheckPolicies(const AccountID& initiatorID,
+IdentityPolicyChecker::isPolicyAllowed(const AccountID& initiatorID,
                                        const PolicyDetails& policyDetails,
                                        Database& db, LedgerDelta* delta)
 {
-    const auto sourceAccount = AccountHelper::Instance()->loadAccount(
-            initiatorID, db, delta);
+    const auto sourceAccount =
+        AccountHelper::Instance()->loadAccount(initiatorID, db, delta);
     if (!sourceAccount->getAccountRole())
     {
         // accounts with no role assigned will fail policy check
         return false;
     }
+    return findPolicy(*sourceAccount->getAccountRole(), policyDetails, db,
+                      delta) == FindResult::ALLOW;
+}
 
-    const auto accountRole = *sourceAccount->getAccountRole();
+IdentityPolicyChecker::FindResult
+IdentityPolicyChecker::findPolicy(uint32 accountRole,
+                                  const PolicyDetails& policyDetails,
+                                  Database& db, LedgerDelta* delta)
+{
     const std::string sql = "SELECT effect "
                             "FROM account_role_policies "
                             "WHERE account_role_policies.role = :role "
@@ -52,13 +59,14 @@ IdentityPolicyChecker::doCheckPolicies(const AccountID& initiatorID,
 
     if (!st.got_data())
     {
-        return false;
+        return FindResult::NOT_FOUND;
     }
 
     st.fetch();
     assert(!st.got_data());
 
-    return effect == (int32)AccountRolePolicyEffect::ALLOW;
+    return effect == (int32)AccountRolePolicyEffect::ALLOW ? FindResult::ALLOW
+                                                           : FindResult::DENY;
 }
 
 } // namespace stellar

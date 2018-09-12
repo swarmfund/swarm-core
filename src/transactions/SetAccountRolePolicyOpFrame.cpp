@@ -1,15 +1,11 @@
-
 #include "SetAccountRolePolicyOpFrame.h"
 #include "database/Database.h"
 #include "ledger/AccountRolePolicyHelper.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
-
-#include <algorithm>
-#include <regex>
-#include <tuple>
 
 namespace stellar
 {
@@ -17,121 +13,43 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
-SetAccountRolePolicyOpFrame::SetAccountRolePolicyOpFrame(const Operation& op,
-                                                   OperationResult& res,
-                                                   TransactionFrame& parentTx)
+SetAccountRolePolicyOpFrame::SetAccountRolePolicyOpFrame(
+    const Operation& op, OperationResult& res, TransactionFrame& parentTx)
     : OperationFrame(op, res, parentTx)
     , mSetAccountRolePolicy(mOperation.body.setAccountRolePolicyOp())
 {
 }
 
 bool
-SetAccountRolePolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
-                                  LedgerManager& ledgerManager)
+SetAccountRolePolicyOpFrame::doApply(Application& app,
+                                     StorageHelper& storageHelper,
+                                     LedgerManager& ledgerManager)
 {
-    Database& db = ledgerManager.getDatabase();
-    innerResult().code(SetIdentityPolicyResultCode::SUCCESS);
-
-    auto const sourceID = getSourceID();
-
-    if (!(sourceID == app.getMasterID()))
+    if (isDeleteOp(mSetAccountRolePolicy))
     {
-        const auto countOfOwnerPolicies =
-                AccountRolePolicyHelper::Instance()->countObjectsForOwner(sourceID,
-                                                                       app.getDatabase().getSession());
-        if (countOfOwnerPolicies >= app.getMaxIdentityPoliciesPerAccount())
-        {
-            innerResult().code(SetIdentityPolicyResultCode::POLICIES_LIMIT_EXCEED);
-            return false;
-        }
+        deleteAccountPolicy(app, storageHelper);
     }
-
-    return trySetIdentityPolicy(db, delta);
+    else
+    {
+        createOrUpdatePolicy(app, storageHelper);
+    }
 }
 
 bool
 SetAccountRolePolicyOpFrame::doCheckValid(Application& app)
 {
     // if delete action then do not check other fields
-    if (mSetIdentityPolicy.data.get() == nullptr)
+    if (isDeleteOp(mSetAccountRolePolicy))
     {
         return true;
     }
 
-    if (mSetIdentityPolicy.data->resource.empty() || mSetIdentityPolicy.data->action.empty())
+    if (mSetAccountRolePolicy.data->resource.empty() ||
+        mSetAccountRolePolicy.data->action.empty())
     {
-        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
+        innerResult().code(SetAccountRolePolicyResultCode::MALFORMED);
         return false;
     }
-
-    // Priority checks
-    const auto priority = mSetIdentityPolicy.data->priority;
-
-    if (priority >= PRIORITY_USER_MIN &&
-        priority <= PRIORITY_USER_MAX &&
-        getSourceID() == app.getMasterID())
-    {
-        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
-        return false;
-    }// High priority allowed only for master account
-    else if (priority >= PRIORITY_ADMIN_MIN &&
-             priority <= PRIORITY_ADMIN_MAX &&
-            !(getSourceID() == app.getMasterID()))
-    {
-        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
-        return false;
-    }
-
-    // Invalide priority (goes beyond borders)
-    if (priority < PRIORITY_USER_MIN      ||
-        (priority > PRIORITY_USER_MAX   &&
-         priority < PRIORITY_ADMIN_MIN)   ||
-        priority > PRIORITY_ADMIN_MAX)
-    {
-        innerResult().code(SetIdentityPolicyResultCode::MALFORMED);
-        return false;
-    }
-
-    return true;
-}
-
-bool
-SetAccountRolePolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
-{
-    // delete
-    if (mSetIdentityPolicy.data.get() == nullptr)
-    {
-        innerResult().success().identityPolicyID = mSetIdentityPolicy.id;
-
-        auto identityPolicyFrame = AccountRolePolicyHelper::Instance()->loadPolicy(
-                mSetIdentityPolicy.id, getSourceID(), db, &delta);
-
-        if (!identityPolicyFrame)
-        {
-            innerResult().code(SetIdentityPolicyResultCode::NOT_FOUND);
-            return false;
-        }
-
-        EntryHelperProvider::storeDeleteEntry(delta, db,
-                                              identityPolicyFrame->getKey());
-        return true;
-    }
-
-    // construct ledger entry for creating or updating identity policy
-    LedgerEntry le;
-    le.data.type(LedgerEntryType::IDENTITY_POLICY);
-    le.data.identityPolicy().id = mSetIdentityPolicy.id == 0
-                                  ? delta.getHeaderFrame().generateID(LedgerEntryType::IDENTITY_POLICY)
-                                  : mSetIdentityPolicy.id;
-    le.data.identityPolicy().priority = mSetIdentityPolicy.data->priority;
-    le.data.identityPolicy().resource = mSetIdentityPolicy.data->resource;
-    le.data.identityPolicy().action = mSetIdentityPolicy.data->action;
-    le.data.identityPolicy().effect = mSetIdentityPolicy.data->effect;
-    le.data.identityPolicy().ownerID = getSourceID();
-
-    innerResult().success().identityPolicyID = le.data.identityPolicy().id;
-
-    EntryHelperProvider::storeAddOrChangeEntry(delta, db, le);
 
     return true;
 }
@@ -143,19 +61,91 @@ SetAccountRolePolicyOpFrame::getSourceAccountDetails(
 {
     // allow for any user
     return SourceDetails(
-        {AccountType::MASTER, AccountType::COMMISSION,
-         AccountType::EXCHANGE, AccountType::GENERAL,
-         AccountType::OPERATIONAL, AccountType::SYNDICATE,
-         AccountType::NOT_VERIFIED},
-        mSourceAccount->getMediumThreshold(),
+        {AccountType::ANY}, mSourceAccount->getMediumThreshold(),
         static_cast<int32_t>(SignerType::IDENTITY_POLICY_MANAGER));
 }
 
 std::unordered_map<AccountID, CounterpartyDetails>
 SetAccountRolePolicyOpFrame::getCounterpartyDetails(Database& db,
-                                                 LedgerDelta* delta) const
+                                                    LedgerDelta* delta) const
 {
     return {};
+}
+
+bool
+SetAccountRolePolicyOpFrame::createOrUpdatePolicy(Application& app,
+                                                  StorageHelper& storageHelper)
+{
+    LedgerHeaderFrame& headerFrame =
+        storageHelper.getLedgerDelta().getHeaderFrame();
+
+    LedgerEntry le;
+    le.data.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
+    le.data.accountRolePolicy().accountRolePolicyID =
+        mSetAccountRolePolicy.id == 0
+            ? headerFrame.generateID(LedgerEntryType::ACCOUNT_ROLE_POLICY)
+            : mSetAccountRolePolicy.id;
+    le.data.accountRolePolicy().accountRoleID =
+        mSetAccountRolePolicy.data->roleID;
+    le.data.accountRolePolicy().resource = mSetAccountRolePolicy.data->resource;
+    le.data.accountRolePolicy().action = mSetAccountRolePolicy.data->action;
+    le.data.accountRolePolicy().effect = mSetAccountRolePolicy.data->effect;
+    le.data.accountRolePolicy().ownerID = getSourceID();
+
+    auto key = LedgerEntryKey(le);
+    if (!EntryHelperProvider::existsEntry(storageHelper.getDatabase(), key))
+    {
+        PolicyDetails details(mSetAccountRolePolicy.data->resource,
+                              mSetAccountRolePolicy.data->action);
+        if (IdentityPolicyChecker::findPolicy(
+                mSetAccountRolePolicy.data->roleID, details,
+                storageHelper.getDatabase(), &storageHelper.getLedgerDelta()) !=
+            IdentityPolicyChecker::FindResult::NOT_FOUND)
+        {
+            innerResult().code(
+                SetAccountRolePolicyResultCode::POLICY_ALREADY_EXISTS);
+            return false;
+        }
+    }
+
+    innerResult().code(SetAccountRolePolicyResultCode::SUCCESS);
+    innerResult().success().accountRolePolicyID =
+        le.data.accountRolePolicy().accountRolePolicyID;
+
+    EntryHelperProvider::storeAddOrChangeEntry(storageHelper.getLedgerDelta(),
+                                               storageHelper.getDatabase(), le);
+
+    return true;
+}
+bool
+SetAccountRolePolicyOpFrame::deleteAccountPolicy(Application& app,
+                                                 StorageHelper& storageHelper)
+{
+    LedgerKey key;
+    key.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
+    key.accountRolePolicy().accountRolePolicyID = mSetAccountRolePolicy.id;
+    key.accountRolePolicy().ownerID = getSourceID();
+
+    auto frame = storageHelper.getAccountRolePolicyHelper().storeLoad(key);
+    if (!frame)
+    {
+        innerResult().code(SetAccountRolePolicyResultCode::NOT_FOUND);
+        return false;
+    }
+
+    EntryHelperProvider::storeDeleteEntry(storageHelper.getLedgerDelta(),
+                                          storageHelper.getDatabase(),
+                                          frame->getKey());
+    innerResult().code(SetAccountRolePolicyResultCode::SUCCESS);
+    innerResult().success().accountRolePolicyID = mSetAccountRolePolicy.id;
+    return true;
+}
+
+bool
+SetAccountRolePolicyOpFrame::isDeleteOp(
+    const SetAccountRolePolicyOp& accountRolePolicyOp)
+{
+    return !accountRolePolicyOp.data;
 }
 
 } // namespace stellar

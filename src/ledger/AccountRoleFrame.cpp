@@ -37,15 +37,18 @@ AccountRoleFrame::operator=(const AccountRoleFrame& other)
 }
 
 void
-AccountRoleFrame::ensureValid(const AccountRoleEntry& entry)
+AccountRoleFrame::ensureValid(const LedgerEntry& entry)
 {
-    // TODO
+    if (entry.data.type() != LedgerEntryType::ACCOUNT_ROLE)
+    {
+        throw std::runtime_error("Not a valid account role entry.");
+    }
 }
 
 void
 AccountRoleFrame::ensureValid() const
 {
-    return ensureValid(mAccountRole);
+    return ensureValid(mEntry);
 }
 
 AccountRoleFrame::pointer

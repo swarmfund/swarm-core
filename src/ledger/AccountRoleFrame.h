@@ -33,7 +33,7 @@ class AccountRoleFrame : public EntryFrame
     }
 
     AccountRoleEntry const&
-    getPolicyAttachment() const
+    getAccountRole() const
     {
         return mAccountRole;
     }
@@ -56,7 +56,7 @@ class AccountRoleFrame : public EntryFrame
         return mAccountRole.ownerID;
     }
 
-    static void ensureValid(AccountRoleEntry const& entry);
+    static void ensureValid(const LedgerEntry& entry);
 
     void ensureValid() const;
 

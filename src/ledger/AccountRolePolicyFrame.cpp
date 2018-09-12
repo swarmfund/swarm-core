@@ -1,4 +1,3 @@
-
 #include "AccountRolePolicyFrame.h"
 #include "LedgerDelta.h"
 #include "database/Database.h"
@@ -14,25 +13,26 @@ namespace stellar
 using xdr::operator<;
 
 AccountRolePolicyFrame::AccountRolePolicyFrame()
-    : EntryFrame(LedgerEntryType::IDENTITY_POLICY)
-    , mIdentityPolicyEntry(mEntry.data.identityPolicy())
+    : EntryFrame(LedgerEntryType::ACCOUNT_ROLE_POLICY)
+    , mAccountRolePolicyEntry(mEntry.data.accountRolePolicy())
 {
 }
 
 AccountRolePolicyFrame::AccountRolePolicyFrame(LedgerEntry const& from)
-    : EntryFrame(from), mIdentityPolicyEntry(mEntry.data.identityPolicy())
+    : EntryFrame(from), mAccountRolePolicyEntry(mEntry.data.accountRolePolicy())
 {
 }
 
-AccountRolePolicyFrame::AccountRolePolicyFrame(AccountRolePolicyFrame const& from)
+AccountRolePolicyFrame::AccountRolePolicyFrame(
+    AccountRolePolicyFrame const& from)
     : AccountRolePolicyFrame(from.mEntry)
 {
 }
 
 void
-AccountRolePolicyFrame::ensureValid(const IdentityPolicyEntry& mIdentityPolicyEntry)
+AccountRolePolicyFrame::ensureValid(const AccountRolePolicyEntry& entry)
 {
-    if (!AccountRolePolicyFrame::isEffectValid(mIdentityPolicyEntry.effect))
+    if (!AccountRolePolicyFrame::isEffectValid(entry.effect))
     {
         throw std::runtime_error("Identity policy effect invalid");
     }
@@ -41,10 +41,11 @@ AccountRolePolicyFrame::ensureValid(const IdentityPolicyEntry& mIdentityPolicyEn
 void
 AccountRolePolicyFrame::ensureValid() const
 {
-    ensureValid(mIdentityPolicyEntry);
+    ensureValid(mAccountRolePolicyEntry);
 }
 
-bool AccountRolePolicyFrame::isEffectValid(Effect const effect)
+bool
+AccountRolePolicyFrame::isEffectValid(AccountRolePolicyEffect effect)
 {
     return isValidEnumValue(effect);
 }

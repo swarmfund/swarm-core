@@ -28,7 +28,7 @@
 #include "ledger/OfferFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
-#include "ledger/PolicyAttachmentHelper.h"
+#include "ledger/AccountRoleHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
@@ -48,8 +48,8 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
-#include <ledger/AccountRolePolicyHelperLegacy.h>
-#include <ledger/KeyValueHelper.h>
+#include <ledger/AccountRolePolicyHelper.h>
+#include <ledger/KeyValueHelperLegacy.h>
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/StatisticsV2Helper.h>
 #include <ledger/PendingStatisticsHelper.h>
@@ -97,11 +97,11 @@ enum databaseSchemaVersion : unsigned long {
     REVIEWABLE_REQUEST_FIX_DEFAULT_VALUE = 19,
     REVIEWABLE_REQUEST_FIX_EXTERNAL_DETAILS = 20,
     ADD_CUSTOMER_DETAILS_TO_CONTRACT = 21,
-    ADD_IDENTITY_POLICY = 22,
-    ADD_POLICY_ATTACHMENT = 23
+    ADD_ACCOUNT_ROLES = 22,
+    ADD_ACCOUNT_ROLE_POLICIES = 23
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_POLICY_ATTACHMENT;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ACCOUNT_ROLE_POLICIES;
 
 static void
 setSerializable(soci::session& sess)
@@ -218,12 +218,12 @@ DatabaseImpl::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT:
             ContractHelper::Instance()->addCustomerDetails(*this);
             break;
-        case databaseSchemaVersion::ADD_IDENTITY_POLICY:
-            AccountRolePolicyHelper::Instance()->dropAll(*this);
-            break;
-        case databaseSchemaVersion::ADD_POLICY_ATTACHMENT:
-            PolicyAttachmentHelper::Instance()->dropAll(*this);
+        case databaseSchemaVersion::ADD_ACCOUNT_ROLES:
+            AccountRoleHelper::dropAll(*this);
             AccountHelper::Instance()->addAccountRole(*this);
+            break;
+        case databaseSchemaVersion::ADD_ACCOUNT_ROLE_POLICIES:
+            AccountRolePolicyHelper::dropAll(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

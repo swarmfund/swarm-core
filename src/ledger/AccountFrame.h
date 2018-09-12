@@ -192,7 +192,7 @@ class AccountFrame : public EntryFrame
             throw std::runtime_error("Could not read KYC Level");
         }
     }
-    uint32
+    xdr::pointer<uint32>
     getAccountRole() const
     {
         if (mAccountEntry.ext.v() ==
@@ -202,20 +202,20 @@ class AccountFrame : public EntryFrame
         }
         else
         {
-            return 0;
+            return xdr::pointer<uint32>();
         }
     }
     void
-    setAccountRole(uint32 accountRole)
+    setAccountRole(xdr::pointer<uint32> accountRole)
     {
         if (mAccountEntry.ext.v() ==
                  LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
         {
             mAccountEntry.ext.ext_0().accountRole = accountRole;
         }
-        else if (accountRole != 0)
+        else if (accountRole)
         {
-            throw std::runtime_error("Could not read account role");
+            throw std::runtime_error("Could not set account role");
         }
     }
     // compare signers, ignores weight

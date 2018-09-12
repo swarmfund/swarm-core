@@ -6,7 +6,7 @@
 #include "TxTests.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountRolePolicyHelper.h"
-#include "transactions/SetIdentityPolicyOpFrame.h"
+#include "transactions/SetAccountRolePolicyOpFrame.h"
 #include "crypto/SHA.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"

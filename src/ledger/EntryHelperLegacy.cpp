@@ -35,7 +35,6 @@
 #include "ledger/KeyValueHelperLegacy.h"
 #include "ledger/ExternalSystemAccountIDPoolEntry.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
-#include "ledger/PolicyAttachmentHelper.h"
 #include "xdrpp/printer.h"
 #include "xdrpp/marshal.h"
 #include "crypto/Hex.h"
@@ -47,7 +46,6 @@
 #include "PendingStatisticsHelper.h"
 #include "SaleAnteHelper.h"
 #include "ContractHelper.h"
-#include "AccountRolePolicyHelper.h"
 
 namespace stellar
 {
@@ -194,8 +192,6 @@ namespace stellar
 		{ LedgerEntryType::STATISTICS_V2, StatisticsV2Helper::Instance() },
 		{ LedgerEntryType::PENDING_STATISTICS, PendingStatisticsHelper::Instance() },
 		{ LedgerEntryType::SALE_ANTE, SaleAnteHelper::Instance() },
-		{ LedgerEntryType::CONTRACT, ContractHelper::Instance() },
-		{ LedgerEntryType::IDENTITY_POLICY, AccountRolePolicyHelper::Instance() },
-		{ LedgerEntryType::POLICY_ATTACHMENT, PolicyAttachmentHelper::Instance() }
+		{ LedgerEntryType::CONTRACT, ContractHelper::Instance() }
 	};
 }

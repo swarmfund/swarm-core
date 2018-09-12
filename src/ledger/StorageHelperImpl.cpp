@@ -129,5 +129,23 @@ StorageHelperImpl::getExternalSystemAccountIDPoolEntryHelper()
     }
     return *mExternalSystemAccountIDPoolEntryHelper;
 }
+AccountRoleHelper&
+StorageHelperImpl::getAccountRoleHelper()
+{
+    if (!mAccountRoleHelper)
+    {
+        mAccountRoleHelper = std::make_unique<AccountRoleHelper>(*this);
+    }
+    return *mAccountRoleHelper;
+}
+AccountRolePolicyHelper&
+StorageHelperImpl::getAccountRolePolicyHelper()
+{
+    if (!mAccountRolePolicyHelper)
+    {
+        mAccountRolePolicyHelper = std::make_unique<AccountRolePolicyHelper>(*this);
+    }
+    return *mAccountRolePolicyHelper;
+}
 
 } // namespace stellar

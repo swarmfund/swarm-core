@@ -11,7 +11,7 @@
 #include "test_helper/ManagePolicyAttachmentTestHelper.h"
 #include "test_helper/SetIdentityPolicyTestHelper.h"
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
-#include "transactions/SetIdentityPolicyOpFrame.h"
+#include "transactions/SetAccountRolePolicyOpFrame.h"
 #include "util/make_unique.h"
 
 using namespace stellar;

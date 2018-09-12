@@ -9,6 +9,8 @@ class LedgerDelta;
 class KeyValueHelper;
 class ExternalSystemAccountIDHelper;
 class ExternalSystemAccountIDPoolEntryHelper;
+class AccountRoleHelper;
+class AccountRolePolicyHelper;
 
 class StorageHelper
 {
@@ -33,5 +35,7 @@ class StorageHelper
     getExternalSystemAccountIDHelper() = 0;
     virtual ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper() = 0;
+    virtual AccountRoleHelper& getAccountRoleHelper() = 0;
+    virtual AccountRolePolicyHelper& getAccountRolePolicyHelper() = 0;
 };
 } // namespace stellar

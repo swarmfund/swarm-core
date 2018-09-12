@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ledger/StorageHelper.h"
+#include "ledger/AccountRoleHelper.h"
+#include "ledger/AccountRolePolicyHelper.h"
 #include <memory>
 
 namespace soci
@@ -33,10 +35,12 @@ class StorageHelperImpl : public StorageHelper
 
     virtual std::unique_ptr<StorageHelper> startNestedTransaction();
 
-    virtual KeyValueHelper& getKeyValueHelper();
-    virtual ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper();
-    virtual ExternalSystemAccountIDPoolEntryHelper&
-    getExternalSystemAccountIDPoolEntryHelper();
+    KeyValueHelper& getKeyValueHelper() override;
+    ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper() override;
+    ExternalSystemAccountIDPoolEntryHelper&
+    getExternalSystemAccountIDPoolEntryHelper() override;
+    AccountRoleHelper& getAccountRoleHelper() override;
+    AccountRolePolicyHelper& getAccountRolePolicyHelper() override;
 
     Database& mDatabase;
     LedgerDelta& mLedgerDelta;
@@ -49,5 +53,7 @@ class StorageHelperImpl : public StorageHelper
         mExternalSystemAccountIDHelper;
     std::unique_ptr<ExternalSystemAccountIDPoolEntryHelper>
         mExternalSystemAccountIDPoolEntryHelper;
+    std::unique_ptr<AccountRoleHelper> mAccountRoleHelper;
+    std::unique_ptr<AccountRolePolicyHelper> mAccountRolePolicyHelper;
 };
 } // namespace stellar

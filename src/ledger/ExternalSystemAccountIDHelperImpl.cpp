@@ -30,6 +30,22 @@ ExternalSystemAccountIDHelperImpl::ExternalSystemAccountIDHelperImpl(
 }
 
 void
+ExternalSystemAccountIDHelperImpl::dropAll(Database& db)
+{
+    soci::session& sess = db.getSession();
+    sess << "DROP TABLE IF EXISTS external_system_account_id;";
+    sess << "CREATE TABLE external_system_account_id"
+            "("
+            "account_id           VARCHAR(56) NOT NULL,"
+            "external_system_type INT         NOT NULL,"
+            "data                 TEXT        NOT NULL,"
+            "lastmodified         INT         NOT NULL, "
+            "version              INT         NOT NULL DEFAULT 0,"
+            "PRIMARY KEY (account_id, external_system_type)"
+            ");";
+}
+
+void
 ExternalSystemAccountIDHelperImpl::storeUpdateHelper(const bool insert,
                                                      LedgerEntry const& entry)
 {
@@ -130,22 +146,6 @@ ExternalSystemAccountIDHelperImpl::storeDelete(LedgerKey const& key)
     st.define_and_bind();
     st.execute(true);
     mStorageHelper.getLedgerDelta().deleteEntry(key);
-}
-
-void
-ExternalSystemAccountIDHelperImpl::dropAll()
-{
-    soci::session& sess = getDatabase().getSession();
-    sess << "DROP TABLE IF EXISTS external_system_account_id;";
-    sess << "CREATE TABLE external_system_account_id"
-            "("
-            "account_id           VARCHAR(56) NOT NULL,"
-            "external_system_type INT         NOT NULL,"
-            "data                 TEXT        NOT NULL,"
-            "lastmodified         INT         NOT NULL, "
-            "version              INT         NOT NULL DEFAULT 0,"
-            "PRIMARY KEY (account_id, external_system_type)"
-            ");";
 }
 
 bool

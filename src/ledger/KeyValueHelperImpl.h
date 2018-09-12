@@ -14,13 +14,12 @@ class StorageHelper;
 
 class KeyValueHelperImpl : public KeyValueHelper, NonCopyable
 {
-
   public:
     explicit KeyValueHelperImpl(StorageHelper& storageHelper);
 
-  private:
-    void dropAll() override;
+    static void dropAll(Database& db);
 
+  private:
     void storeAdd(LedgerEntry const& entry) override;
 
     void storeChange(LedgerEntry const& entry) override;

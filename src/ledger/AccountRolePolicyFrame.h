@@ -13,7 +13,6 @@ namespace stellar
 {
 class AccountRolePolicyFrame : public EntryFrame
 {
-
     AccountRolePolicyEntry& mAccountRolePolicyEntry;
     AccountRolePolicyFrame(AccountRolePolicyFrame const& from);
 
@@ -24,7 +23,7 @@ class AccountRolePolicyFrame : public EntryFrame
     using pointer = std::shared_ptr<AccountRolePolicyFrame>;
 
     AccountRolePolicyEntry&
-    getIdentityPolicy() const
+    getPolicyEntry() const
     {
         return mAccountRolePolicyEntry;
     }
@@ -33,6 +32,12 @@ class AccountRolePolicyFrame : public EntryFrame
     getID() const
     {
         return mAccountRolePolicyEntry.accountRolePolicyID;
+    }
+
+    uint64_t
+    getRoleID() const
+    {
+        return mAccountRolePolicyEntry.accountRoleID;
     }
 
     std::string
@@ -63,7 +68,7 @@ class AccountRolePolicyFrame : public EntryFrame
 
     static bool isEffectValid(AccountRolePolicyEffect const effect);
 
-    static void ensureValid(AccountRolePolicyEntry const& oeEntry);
+    static void ensureValid(AccountRolePolicyEntry const& entry);
     void ensureValid() const;
 };
 

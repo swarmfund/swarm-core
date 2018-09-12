@@ -146,11 +146,11 @@ ExternalSystemAccountIDPoolEntryHelperImpl::storeDelete(LedgerKey const& key)
 }
 
 void
-ExternalSystemAccountIDPoolEntryHelperImpl::dropAll()
+ExternalSystemAccountIDPoolEntryHelperImpl::dropAll(Database& db)
 {
-    getDatabase().getSession()
+    db.getSession()
         << "DROP TABLE IF EXISTS external_system_account_id_pool;";
-    getDatabase().getSession()
+    db.getSession()
         << "CREATE TABLE external_system_account_id_pool"
            "("
            "id                   BIGINT      NOT NULL CHECK (id >= 0),"
@@ -166,16 +166,16 @@ ExternalSystemAccountIDPoolEntryHelperImpl::dropAll()
            "PRIMARY KEY (id)"
            ");";
 
-    fixTypes();
+    fixTypes(db);
 }
 
 void
-ExternalSystemAccountIDPoolEntryHelperImpl::fixTypes()
+ExternalSystemAccountIDPoolEntryHelperImpl::fixTypes(Database& db)
 {
-    getDatabase().getSession()
+    db.getSession()
         << "ALTER TABLE external_system_account_id_pool ALTER "
            "parent SET DATA TYPE BIGINT;";
-    getDatabase().getSession()
+    db.getSession()
         << "ALTER TABLE external_system_account_id_pool ALTER "
            "external_system_type SET DATA TYPE BIGINT;";
 }

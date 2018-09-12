@@ -20,10 +20,6 @@ class IdentityPolicyChecker
                                 const PolicyDetails &policyDetails,
                                 Database &db,
                                 LedgerDelta* delta = nullptr);
-
-  private:
-    static bool checkPolicy(AccountRolePolicyFrame::pointer policy,
-                            uint64_t& lastPriority);
 };
 
 } // namespace stellar

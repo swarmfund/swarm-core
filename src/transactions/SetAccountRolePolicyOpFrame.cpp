@@ -1,5 +1,5 @@
 
-#include "SetIdentityPolicyOpFrame.h"
+#include "SetAccountRolePolicyOpFrame.h"
 #include "database/Database.h"
 #include "ledger/AccountRolePolicyHelper.h"
 #include "ledger/LedgerDelta.h"
@@ -17,16 +17,16 @@ namespace stellar
 using namespace std;
 using xdr::operator==;
 
-SetIdentityPolicyOpFrame::SetIdentityPolicyOpFrame(const Operation& op,
+SetAccountRolePolicyOpFrame::SetAccountRolePolicyOpFrame(const Operation& op,
                                                    OperationResult& res,
                                                    TransactionFrame& parentTx)
     : OperationFrame(op, res, parentTx)
-    , mSetIdentityPolicy(mOperation.body.setIdentityPolicyOp())
+    , mSetAccountRolePolicy(mOperation.body.setAccountRolePolicyOp())
 {
 }
 
 bool
-SetIdentityPolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
+SetAccountRolePolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
                                   LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
@@ -50,7 +50,7 @@ SetIdentityPolicyOpFrame::doApply(Application& app, LedgerDelta& delta,
 }
 
 bool
-SetIdentityPolicyOpFrame::doCheckValid(Application& app)
+SetAccountRolePolicyOpFrame::doCheckValid(Application& app)
 {
     // if delete action then do not check other fields
     if (mSetIdentityPolicy.data.get() == nullptr)
@@ -96,7 +96,7 @@ SetIdentityPolicyOpFrame::doCheckValid(Application& app)
 }
 
 bool
-SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
+SetAccountRolePolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
 {
     // delete
     if (mSetIdentityPolicy.data.get() == nullptr)
@@ -137,7 +137,7 @@ SetIdentityPolicyOpFrame::trySetIdentityPolicy(Database& db, LedgerDelta& delta)
 }
 
 SourceDetails
-SetIdentityPolicyOpFrame::getSourceAccountDetails(
+SetAccountRolePolicyOpFrame::getSourceAccountDetails(
     std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
     int32_t ledgerVersion) const
 {
@@ -152,7 +152,7 @@ SetIdentityPolicyOpFrame::getSourceAccountDetails(
 }
 
 std::unordered_map<AccountID, CounterpartyDetails>
-SetIdentityPolicyOpFrame::getCounterpartyDetails(Database& db,
+SetAccountRolePolicyOpFrame::getCounterpartyDetails(Database& db,
                                                  LedgerDelta* delta) const
 {
     return {};

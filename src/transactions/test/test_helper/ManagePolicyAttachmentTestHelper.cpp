@@ -1,5 +1,5 @@
 #include "ManagePolicyAttachmentTestHelper.h"
-#include "transactions/ManagePolicyAttachmentOpFrame.h"
+#include "transactions/SetAccountRoleOpFrame.h"
 #include "test/test_marshaler.h"
 
 namespace stellar {
@@ -70,7 +70,7 @@ namespace stellar {
             mTestManager->applyCheck(txFrame);
 
             auto txResult = txFrame->getResult();
-            auto actualResultCode = ManagePolicyAttachmentOpFrame::getInnerCode(txResult.result.results()[0]);
+            auto actualResultCode = SetAccountRoleOpFrame::getInnerCode(txResult.result.results()[0]);
 
             REQUIRE(actualResultCode == expectedResultCode);
 

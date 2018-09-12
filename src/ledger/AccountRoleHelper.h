@@ -1,22 +1,24 @@
-
 #pragma once
 
-#include "AccountRolePolicyFrame.h"
+#include "ledger/AccountRoleFrame.h"
 #include "ledger/EntryHelper.h"
+#include "ledger/LedgerManager.h"
 #include "ledger/StorageHelper.h"
-#include "map"
-#include "xdr/Stellar-types.h"
-#include <functional>
-#include <unordered_map>
+
+namespace soci
+{
+class session;
+}
 
 namespace stellar
 {
-class LedgerManager;
+class Application;
+class StatementContext;
 
-class AccountRolePolicyHelper : public EntryHelper
+class AccountRoleHelper : public EntryHelper
 {
   public:
-    AccountRolePolicyHelper(StorageHelper& storageHelper);
+    AccountRoleHelper(StorageHelper& storageHelper);
 
     static void dropAll(Database& db);
 
@@ -31,9 +33,8 @@ class AccountRolePolicyHelper : public EntryHelper
 
     Database& getDatabase() override;
 
-private:
-    void storeUpdate(LedgerEntry const& entry, bool insert);
+  private:
+    void storeUpdate(LedgerEntry const &entry, bool insert);
     StorageHelper& mStorageHelper;
 };
-
 } // namespace stellar

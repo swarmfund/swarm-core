@@ -2,7 +2,7 @@
 #include "SetIdentityPolicyTestHelper.h"
 #include <lib/catch.hpp>
 #include "ledger/AccountRolePolicyHelper.h"
-#include "transactions/SetIdentityPolicyOpFrame.h"
+#include "transactions/SetAccountRolePolicyOpFrame.h"
 
 namespace stellar
 {
@@ -44,7 +44,7 @@ void SetIdentityPolicyTestHelper::applySetIdentityPolicyTx(Account &source,
     mTestManager->applyCheck(txFrame);
 
     auto txResult = txFrame->getResult();
-    auto actualResult = SetIdentityPolicyOpFrame::getInnerCode(txResult.result.results()[0]);
+    auto actualResult = SetAccountRolePolicyOpFrame::getInnerCode(txResult.result.results()[0]);
 
     REQUIRE(actualResult == expectedResult);
 

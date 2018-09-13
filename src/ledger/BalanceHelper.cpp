@@ -391,4 +391,71 @@ namespace stellar
 
         return holders;
     }
+
+    vector<BalanceFrame::pointer>
+    BalanceHelper::loadBalances(AccountID account, AssetCode asset,
+                                Database &db)
+    {
+        std::string accountIdStr = PubKeyUtils::toStrKey(account);
+
+        std::string sql = balanceColumnSelector;
+        sql += " WHERE asset = :asset AND account_id = :acc_id";
+
+        auto prep = db.getPreparedStatement(sql);
+        auto &st = prep.statement();
+        st.exchange(use(asset, "asset"));
+        st.exchange(use(accountIdStr, "acc_id"));
+
+        auto timer = db.getSelectTimer("balance");
+
+        std::vector<BalanceFrame::pointer> result;
+        loadBalances(prep, [&result](LedgerEntry const &of)
+        {
+            result.emplace_back(make_shared<BalanceFrame>(of));
+        });
+
+        return result;
+    }
+
+	string
+	BalanceHelper::obtainStrAccountIDs(std::vector<AccountID> accountIDs)
+	{
+		string result;
+
+		for (auto accountID : accountIDs)
+		{
+			result += PubKeyUtils::toStrKey(accountID);
+			result += ", ";
+		}
+
+		return result.substr(0, result.size() - 2);
+	}
+
+    vector<BalanceFrame::pointer>
+	BalanceHelper::	loadBalances(std::vector<AccountID> accountIDs,
+								AssetCode assetCode, Database &db)
+	{
+		if (accountIDs.empty())
+			return nullptr;
+
+		string sql = "SELECT DISTINCT ON (account_id) balance_id, asset, "
+			   "amount, locked, account_id, lastmodified, version "
+	           "FROM balance "
+			   "WHERE asset = :asset AND account_id IN (" +
+				obtainStrAccountIDs(accountIDs) + ")";
+
+		auto prep = db.getPreparedStatement(sql);
+		auto &st = prep.statement();
+		st.exchange(use(assetCode, "asset"));
+
+		auto timer = db.getSelectTimer("balances");
+
+		std::vector<BalanceFrame::pointer> result;
+		loadBalances(prep, [&result](LedgerEntry const &of)
+		{
+			result.emplace_back(make_shared<BalanceFrame>(of));
+		});
+
+		return result;
+	}
 }

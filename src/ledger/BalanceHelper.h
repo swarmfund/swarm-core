@@ -42,10 +42,6 @@ namespace stellar
 			std::vector<BalanceFrame::pointer>& retBalances,
 			Database& db);
 
-        std::vector<BalanceFrame::pointer> loadAssetHolders(AssetCode assetCode,
-                                                            BalanceID ownerID,
-                                                            Database &db);
-
 		BalanceFrame::pointer loadBalance(AccountID accountID, BalanceID balanceID,
                                           Database &db, LedgerDelta *delta = nullptr);
 
@@ -83,9 +79,19 @@ namespace stellar
 		std::unordered_map<BalanceID, std::vector<BalanceFrame::pointer>>
 			loadAllBalances(Database& db);
 
-
 		std::unordered_map<std::string, BalanceFrame::pointer>
 			loadBalances(AccountID const& accountID, Database& db);
+
+        std::vector<BalanceFrame::pointer> loadBalances(AccountID account,
+                                                        AssetCode asset, Database& db);
+
+        std::vector<BalanceFrame::pointer> loadAssetHolders(AssetCode assetCode,
+                                                            AccountID ownerID,
+                                                            Database &db);
+
+        std::vector<BalanceFrame::pointer> loadBalances(
+                                            std::vector<AccountID> accountIDs,
+                                            AssetCode assetCode, Database& db);
 
 		bool exists(Database& db, BalanceID balanceID);
 
@@ -95,6 +101,8 @@ namespace stellar
 
 		BalanceHelper(BalanceHelper const&) = delete;
 		BalanceHelper& operator=(BalanceHelper const&) = delete;
+
+        std::string obtainStrAccountIDs(std::vector<AccountID> accountIDs);
 
 		static void loadBalances(StatementContext& prep,
 			std::function<void(LedgerEntry const&)> balanceProcessor);

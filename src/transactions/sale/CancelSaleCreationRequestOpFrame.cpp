@@ -29,7 +29,7 @@ CancelSaleCreationRequestOpFrame::CancelSaleCreationRequestOpFrame(
         Operation const& op, OperationResult& res,
         TransactionFrame& parentTx)
         : OperationFrame(op, res, parentTx),
-      mCancelSaleCreationRequest(mOperation.body.cancelSaleCreationRequestOp())
+        mCancelSaleCreationRequest(mOperation.body.cancelSaleCreationRequestOp())
 {
 }
 

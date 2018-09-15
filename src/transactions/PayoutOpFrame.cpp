@@ -4,6 +4,7 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/LedgerDelta.h"
+#include <ledger/LedgerHeaderFrame.h>
 #include "main/Application.h"
 
 namespace stellar {
@@ -25,7 +26,7 @@ PayoutOpFrame::getCounterpartyDetails(Database &db, LedgerDelta *delta) const
 SourceDetails
 PayoutOpFrame::getSourceAccountDetails(
         std::unordered_map<AccountID, CounterpartyDetails>
-        counterpartiesDetails) const
+        counterpartiesDetails, int32_t ledgerVersion) const
 {
     return SourceDetails({AccountType::SYNDICATE},
                          mSourceAccount->getMediumThreshold(),
@@ -43,90 +44,10 @@ PayoutOpFrame::isFeeMatches(AccountManager &accountManager,
                                        mPayout.maxPayoutAmount);
 }
 
-bool
-PayoutOpFrame::processBalanceChange(Application &app,
-                                    AccountManager::Result balanceChangeResult)
-{
-    if (balanceChangeResult == AccountManager::Result::UNDERFUNDED) {
-        innerResult().code(PayoutResultCode::UNDERFUNDED);
-        return false;
-    }
-
-    if (balanceChangeResult == AccountManager::Result::STATS_OVERFLOW) {
-        innerResult().code(PayoutResultCode::STATS_OVERFLOW);
-        return false;
-    }
-
-    if (balanceChangeResult == AccountManager::Result::LIMITS_EXCEEDED) {
-        innerResult().code(PayoutResultCode::LIMITS_EXCEEDED);
-        return false;
-    }
-    return true;
-}
-
-void
-PayoutOpFrame::addShareAmount(BalanceFrame::pointer const &holder)
-{
-    uint64_t shareAmount = 0;
-
-    if (!bigDivide(shareAmount,
-                   static_cast<uint64_t>(holder->getAmount() + holder->getLocked()),
-                   mPayout.maxPayoutAmount,
-                   mAsset->getIssued(),
-                   ROUND_DOWN)) {
-        CLOG(ERROR, Logging::OPERATION_LOGGER)
-                << "Unexpected state: share amount overflows UINT64_MAX, balance id: "
-                << BalanceKeyUtils::toStrKey(holder->getBalanceID());
-    }
-
-    if (shareAmount > ONE) {
-        mShareAmounts.emplace(holder->getAccountID(), shareAmount);
-        mActualPayoutAmount += shareAmount;
-    }
-}
-
-void
-PayoutOpFrame::addReceiver(AccountID const &shareholderID, Database &db,
-                           LedgerDelta &delta)
-{
-    auto receiverBalance = BalanceHelper::Instance()->loadBalance(shareholderID,
-                                                                  mSourceBalance->getAsset(),
-                                                                  db, &delta);
-    if (!receiverBalance)
-        receiverBalance = BalanceHelper::Instance()->createNewBalance(shareholderID, mSourceBalance->getAsset(),
-                                                                      db, delta);
-
-    mReceivers.emplace_back(receiverBalance);
-}
 
 uint64_t
-PayoutOpFrame::getAssetHoldersTotalAmount(
-        std::vector<BalanceFrame::pointer> holders)
-{
-    uint64_t totalAmount = 0;
-    for (auto balance : holders)
-    {
-        if (balance->getAsset() != mPayout.asset)
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected asset code, "
-                   << "Expected: " << mPayout.asset
-                   << "Actual: " << balance->getAsset();
-            throw std::runtime_error("Unexpected asset code");
-        }
-
-        if (!safeSum(balance->getTotal(), totalAmount, totalAmount))
-        {
-            throw std::runtime_error("Unexpected state: "
-                                     "total amount of issued tokens overflows");
-        }
-    }
-
-    return totalAmount;
-}
-
-uint64_t
-PayoutOpFrame::getHoldersAssetTotalAmount(AssetFrame::pointer assetFrame,
-                                          Database& db)
+PayoutOpFrame::obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame,
+                                             Database& db)
 {
     auto totalAmount = assetFrame->getIssued();
 
@@ -166,14 +87,20 @@ PayoutOpFrame::getAccountIDs(std::map<AccountID, uint64_t> assetHoldersAmounts)
 }
 
 std::map<AccountID, uint64_t>
-PayoutOpFrame::obtainAssetHoldersAmounts(uint64_t& totalAmount,
+PayoutOpFrame::obtainHoldersAmountsMap(Application& app, uint64_t& totalAmount,
         std::vector<BalanceFrame::pointer> holders, uint64_t assetHoldersAmount)
 {
     std::map<AccountID, uint64_t> result;
     totalAmount = 0;
+    auto systemAccounts = app.getSystemAccounts();
 
     for (auto holder : holders)
     {
+        auto systemAccountIter = std::find(systemAccounts.begin(),
+                systemAccounts.end(), holder->getAccountID());
+        if (systemAccountIter != systemAccounts.end())
+            continue;
+
         uint64_t calculatedAmount;
         if (!bigDivide(calculatedAmount, mPayout.maxPayoutAmount,
                        holder->getTotal(), assetHoldersAmount, ROUND_DOWN))
@@ -186,7 +113,10 @@ PayoutOpFrame::obtainAssetHoldersAmounts(uint64_t& totalAmount,
                                      "overflows UINT64_MAX");
         }
 
-        //if (calculatedAmount == 0 && ) // fixme
+        if ((mPayout.minPayoutAmount != 0) &&
+            (calculatedAmount < mPayout.minPayoutAmount))
+            continue;
+
         auto& amountToSend = result[holder->getAccountID()];
         amountToSend += calculatedAmount;
         totalAmount += calculatedAmount;
@@ -196,38 +126,54 @@ PayoutOpFrame::obtainAssetHoldersAmounts(uint64_t& totalAmount,
 }
 
 void
+PayoutOpFrame::addPayoutResponse(AccountID& accountID, uint64_t amount,
+                                 BalanceID balanceID)
+{
+    PayoutResponse response;
+    response.receivedAmount = amount;
+    response.receiverBalanceID = balanceID;
+    response.receiverID = accountID;
+    innerResult().payoutSuccessResult().payoutResponses.emplace_back(response);
+}
+
+void
 PayoutOpFrame::fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
-                                                std::map<AccountID, uint64_t> assetHoldersAmounts,
-                                                Database& db, LedgerDelta& delta)
+                                           std::map<AccountID, uint64_t> assetHoldersAmounts,
+                                           Database& db, LedgerDelta& delta)
 {
     for (auto accountID : accountIDs)
     {
         // we don't check if there is balance for such accountID and asset code
         // because we already check it existing
-        const BalanceID balanceID = BalanceKeyUtils::forAccount(accountID,
+        auto balanceID = BalanceKeyUtils::forAccount(accountID,
                 delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
-        auto newBalance = BalanceFrame::createNew(balanceID, accountID, mPayout.asset);
+        auto newBalance = BalanceFrame::createNew(balanceID, accountID,
+                mPayout.asset);
 
         if (!newBalance->tryFundAccount(assetHoldersAmounts[accountID]))
         {
             throw std::runtime_error("Unexpected state: can't fund new balance");
         }
 
+        addPayoutResponse(accountID, assetHoldersAmounts[accountID],
+                          newBalance->getBalanceID());
+
         EntryHelperProvider::storeAddEntry(delta, db, newBalance->mEntry);
     }
 }
 
 bool
-PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance, uint64_t totalAmount,
-                std::map<AccountID, uint64_t> assetHoldersAmounts, Database db, LedgerDelta& delta)
+PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
+        uint64_t totalAmount, std::map<AccountID, uint64_t> assetHoldersAmounts,
+        Database& db, LedgerDelta& delta)
 {
     if (!sourceBalance->tryCharge(totalAmount))
     {
-        innerResult().code(PayoutResultCode::UNDERFUNDED);//fix code
+        innerResult().code(PayoutResultCode::UNDERFUNDED);
         return false;
     }
 
-    std::vector<AccountID> accountIDs = getAccountIDs(assetHoldersAmounts);
+    auto accountIDs = getAccountIDs(assetHoldersAmounts);
 
     auto balanceHelper = BalanceHelper::Instance();
     auto receiverBalances = balanceHelper->loadBalances(accountIDs,
@@ -256,9 +202,12 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance, uint64_t to
 
         if (!receiverBalance->tryFundAccount(assetHoldersAmounts[accountID]))
         {
-            innerResult().code(PayoutResultCode::LINE_FULL);//fix code
+            innerResult().code(PayoutResultCode::LINE_FULL);
             return false;
         }
+
+        addPayoutResponse(accountID, assetHoldersAmounts[accountID],
+                          receiverBalance->getBalanceID());
 
         balanceHelper->storeChange(delta, db, receiverBalance->mEntry);
     }
@@ -271,7 +220,9 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance, uint64_t to
 }
 
 bool
-PayoutOpFrame::tryProcessTransferFee(AccountManager& accountManager, BalanceFrame::pointer sourceBalance)
+PayoutOpFrame::tryProcessTransferFee(AccountManager& accountManager,
+                                     uint64_t actualTotalAmount,
+                                     BalanceFrame::pointer sourceBalance)
 {
     if (!isFeeMatches(accountManager, sourceBalance))
     {
@@ -289,9 +240,50 @@ PayoutOpFrame::tryProcessTransferFee(AccountManager& accountManager, BalanceFram
     if (totalFee == 0)
         return true;
 
+    if (!sourceBalance->tryCharge(totalFee))
+    {
+        innerResult().code(PayoutResultCode::UNDERFUNDED);
+        return false;
+    }
+
     accountManager.transferFee(sourceBalance->getAsset(), totalFee);
 
     return true;
+}
+
+AssetFrame::pointer
+PayoutOpFrame::obtainAsset(Database& db)
+{
+    auto assetFrame = AssetHelper::Instance()->loadAsset(mPayout.asset,
+                                                         getSourceID(), db);
+    if (assetFrame == nullptr)
+    {
+        innerResult().code(PayoutResultCode::ASSET_NOT_FOUND);
+        return nullptr;
+    }
+
+    if (!assetFrame->isPolicySet(AssetPolicy::TRANSFERABLE))
+    {
+        innerResult().code(PayoutResultCode::ASSET_NOT_TRANSFERABLE);
+        return nullptr;
+    }
+
+    return assetFrame;
+}
+
+std::vector<BalanceFrame::pointer>
+PayoutOpFrame::obtainAssetHoldersBalances(uint64_t& assetHoldersAmount,
+                                          AssetFrame::pointer assetFrame,
+                                          Database& db)
+{
+    assetHoldersAmount = obtainAssetHoldersTotalAmount(assetFrame, db);
+    if (assetHoldersAmount == 0)
+    {
+        return std::vector<BalanceFrame::pointer>{};
+    }
+
+    return BalanceHelper::Instance()->loadAssetHolders(mPayout.asset,
+                                                       getSourceID(), db);
 }
 
 bool
@@ -301,19 +293,9 @@ PayoutOpFrame::doApply(Application &app, LedgerDelta &delta,
     Database &db = app.getDatabase();
     innerResult().code(PayoutResultCode::SUCCESS);
 
-    auto assetFrame = AssetHelper::Instance()->loadAsset(mPayout.asset,
-            getSourceID(), db);
-    if (!assetFrame)
-    {
-        innerResult().code(PayoutResultCode::ASSET_NOT_FOUND);
+    auto assetFrame = obtainAsset(db);
+    if (assetFrame == nullptr)
         return false;
-    }
-
-    if (!assetFrame->isPolicySet(AssetPolicy::TRANSFERABLE))
-    {
-        innerResult().code(PayoutResultCode::NOT_ALLOWED_BY_ASSET_POLICY);//fix code
-        return false;
-    }
 
     auto sourceBalance = BalanceHelper::Instance()->loadBalance(getSourceID(),
             mPayout.sourceBalanceID, db, &delta);
@@ -323,28 +305,18 @@ PayoutOpFrame::doApply(Application &app, LedgerDelta &delta,
         return false;
     }
 
-    AccountManager accountManager(app, db, delta, ledgerManager);
-    if (!tryProcessTransferFee(accountManager, sourceBalance))
-        return false;
-
-    auto holdersAssetAmount = getHoldersAssetTotalAmount(assetFrame, db);
-    if (holdersAssetAmount == 0)
+    uint64_t assetHoldersAmount;
+    auto assetHoldersBalances = obtainAssetHoldersBalances(assetHoldersAmount,
+            assetFrame, db);
+    if (assetHoldersBalances.empty())
     {
         innerResult().code(PayoutResultCode::HOLDERS_NOT_FOUND);
         return false;
     }
 
-    auto balanceHelper = BalanceHelper::Instance();
-    auto assetHolderBalances = balanceHelper->loadAssetHolders(mPayout.asset,
-            getSourceID(), db);
-    if (assetHolderBalances.empty())
-    {
-        innerResult().code(PayoutResultCode::HOLDERS_NOT_FOUND);
-        return false;
-    }
-
-    uint64_t actualTotalAmount = 0;
-    auto assetHoldersAmounts = obtainAssetHoldersAmounts(actualTotalAmount, assetHolderBalances, holdersAssetAmount);
+    uint64_t actualTotalAmount;
+    auto holdersAmountsMap = obtainHoldersAmountsMap(app, actualTotalAmount,
+            assetHoldersBalances, assetHoldersAmount);
 
     if (actualTotalAmount == 0)
     {
@@ -352,40 +324,69 @@ PayoutOpFrame::doApply(Application &app, LedgerDelta &delta,
         return false;
     }
 
-    if (processTransfers())
-
-    for (auto const &holder : mHolders) {
-        addShareAmount(holder);
-    }
-
-    innerResult().payoutSuccessResult().actualPayoutAmount = mActualPayoutAmount;
-
-    for (auto const &shareAmount : mShareAmounts) {
-        addReceiver(shareAmount.first, db, delta);
-    }
-
-    auto totalFee = mPayout.fee.percent + mPayout.fee.fixed;
-    auto totalAmount = mActualPayoutAmount + totalFee;
-
-    int64 sourceSentUniversal;
-    auto transferResult = accountManager.processTransfer(mSourceAccount, mSourceBalance,
-                                                         totalAmount, sourceSentUniversal);
-    if (!processBalanceChange(app, transferResult))
+    AccountManager accountManager(app, db, delta, ledgerManager);
+    if (!tryProcessTransferFee(accountManager, sourceBalance))
         return false;
+
+    innerResult().payoutSuccessResult().actualPayoutAmount = actualTotalAmount;
+
+    if (!processTransfers(sourceBalance, actualTotalAmount, holdersAmountsMap, db, delta))
+        return false;
+
+    return processStatistics(accountManager, sourceBalance, actualTotalAmount);
 }
 
-bool PayoutOpFrame::doCheckValid(Application &app) {
-    if (mPayout.maxPayoutAmount == 0) {
-        innerResult().code(PayoutResultCode::MALFORMED);
+bool
+PayoutOpFrame::processStatistics(AccountManager accountManager,
+                                 BalanceFrame::pointer sourceBalance,
+                                 uint64_t amount)
+{
+    uint64_t universalAmount;
+    // fixme, use statistics processor or fix account manager
+    auto statisticsResult = accountManager.processStatistics(mSourceAccount,
+            sourceBalance, amount, universalAmount);
+
+    switch (statisticsResult.result)
+    {
+        case AccountManager::Result::SUCCESS:
+            return true;
+        case AccountManager::Result::STATS_OVERFLOW:
+            innerResult().code(PayoutResultCode::STATS_OVERFLOW);
+            return false;
+        case AccountManager::Result::LIMITS_EXCEEDED:
+            innerResult().code(PayoutResultCode::LIMITS_EXCEEDED);
+            return false;
+        default:
+            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected case "
+                                                      "in process statistics";
+            throw std::runtime_error("Unexpected case in process statistics");
+    }
+}
+
+bool
+PayoutOpFrame::doCheckValid(Application &app)
+{
+    if (mPayout.maxPayoutAmount == 0)
+    {
+        innerResult().code(PayoutResultCode::INVALID_AMOUNT);
         return false;
     }
 
-    if (!AssetFrame::isAssetCodeValid(mPayout.asset)) {
-        innerResult().code(PayoutResultCode::MALFORMED);
+    if (!AssetFrame::isAssetCodeValid(mPayout.asset))
+    {
+        innerResult().code(PayoutResultCode::INVALID_ASSET);
         return false;
     }
 
     return true;
+}
+
+std::string
+PayoutOpFrame::getInnerResultCodeAsStr()
+{
+    const auto result = getResult();
+    const auto code = getInnerCode(result);
+    return xdr::xdr_traits<PayoutResultCode>::enum_name(code);
 }
 
 }

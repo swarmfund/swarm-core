@@ -2,49 +2,85 @@
 
 #include "transactions/OperationFrame.h"
 
-namespace stellar {
-    class PayoutOpFrame : public OperationFrame {
+namespace stellar
+{
+class PayoutOpFrame : public OperationFrame
+{
 
-        PayoutResult &innerResult() {
-            return mResult.tr().payoutResult();
-        }
+    PayoutResult &innerResult() {
+        return mResult.tr().payoutResult();
+    }
 
-        PayoutOp const &mPayout;
+    PayoutOp const &mPayout;
 
-        std::unordered_map<AccountID, CounterpartyDetails>
-        getCounterpartyDetails(Database &db, LedgerDelta *delta) const override;
+    std::unordered_map<AccountID, CounterpartyDetails>
+    getCounterpartyDetails(Database &db, LedgerDelta *delta) const override;
 
-        SourceDetails getSourceAccountDetails(
-                std::unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails) const override;
+    SourceDetails
+    getSourceAccountDetails(std::unordered_map<AccountID,
+                            CounterpartyDetails> counterpartiesDetails,
+                            int32_t ledgerVersion) const override;
 
-        bool isFeeMatches(AccountManager &accountManager, BalanceFrame::pointer balance) const;
+    bool
+    isFeeMatches(AccountManager &accountManager,
+                 BalanceFrame::pointer balance) const;
 
-    protected:
+    uint64_t
+    obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame, Database& db);
 
-        uint64_t mActualPayoutAmount = 0;
-        std::vector<BalanceFrame::pointer> mHolders;
-        std::vector<BalanceFrame::pointer> mReceivers;
-        std::map<AccountID, uint64> mShareAmounts;
-        BalanceFrame::pointer mSourceBalance;
+    std::vector<AccountID>
+    getAccountIDs(std::map<AccountID, uint64_t> assetHoldersAmounts);
 
-    public:
+    std::map<AccountID, uint64_t>
+    obtainHoldersAmountsMap(Application& app, uint64_t& totalAmount,
+                            std::vector<BalanceFrame::pointer> holders,
+                            uint64_t assetHoldersAmount);
 
-        PayoutOpFrame(Operation const &op, OperationResult &res,
-                      TransactionFrame &parentTx);
+    void
+    addPayoutResponse(AccountID& accountID, uint64_t amount,
+                      BalanceID balanceID);
 
-        bool doApply(Application &app, LedgerDelta &delta,
-                     LedgerManager &ledgerManager) override;
+    void
+    fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
+                                std::map<AccountID, uint64_t> assetHoldersAmounts,
+                                Database& db, LedgerDelta& delta);
 
-        bool doCheckValid(Application &app) override;
+    bool
+    processTransfers(BalanceFrame::pointer sourceBalance, uint64_t totalAmount,
+                     std::map<AccountID, uint64_t> assetHoldersAmounts,
+                     Database& db, LedgerDelta& delta);
 
-        bool processBalanceChange(Application &app, AccountManager::Result balanceChangeResult);
+    bool
+    tryProcessTransferFee(AccountManager& accountManager,
+                          BalanceFrame::pointer sourceBalance);
 
-        void addShareAmount(BalanceFrame::pointer const &holder);
+    AssetFrame::pointer
+    obtainAsset(Database& db);
 
-        void addReceiver(AccountID const &shareholderID, Database &db, LedgerDelta &delta);
+    std::vector<BalanceFrame::pointer>
+    obtainAssetHoldersBalances(uint64_t& assetHoldersAmount,
+                               AssetFrame::pointer assetFrame, Database& db);
 
-        static PayoutResultCode getInnerCode(OperationResult const &res) {
-            return res.tr().payoutResult().code();
-        }
-    };
+    bool
+    processStatistics(AccountManager accountManager,
+                      BalanceFrame::pointer sourceBalance, uint64_t amount);
+
+public:
+
+    PayoutOpFrame(Operation const &op, OperationResult &res,
+                  TransactionFrame &parentTx);
+
+    bool doApply(Application &app, LedgerDelta &delta,
+                 LedgerManager &ledgerManager) override;
+
+    bool doCheckValid(Application &app) override;
+
+    static PayoutResultCode
+    getInnerCode(OperationResult const &res)
+    {
+        return res.tr().payoutResult().code();
+    }
+
+    std::string getInnerResultCodeAsStr() override;
+};
 }

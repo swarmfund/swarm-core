@@ -420,23 +420,23 @@ namespace stellar
 	string
 	BalanceHelper::obtainStrAccountIDs(std::vector<AccountID> accountIDs)
 	{
-		string result;
+		string result = "'";
 
 		for (auto accountID : accountIDs)
 		{
 			result += PubKeyUtils::toStrKey(accountID);
-			result += ", ";
+			result += "', '";
 		}
 
-		return result.substr(0, result.size() - 2);
+		return result.substr(0, result.size() - 3);
 	}
 
     vector<BalanceFrame::pointer>
-	BalanceHelper::	loadBalances(std::vector<AccountID> accountIDs,
+	BalanceHelper::loadBalances(std::vector<AccountID> accountIDs,
 								AssetCode assetCode, Database &db)
 	{
 		if (accountIDs.empty())
-			return nullptr;
+			return vector<BalanceFrame::pointer>{};
 
 		string sql = "SELECT DISTINCT ON (account_id) balance_id, asset, "
 			   "amount, locked, account_id, lastmodified, version "

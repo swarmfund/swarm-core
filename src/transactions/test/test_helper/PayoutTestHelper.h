@@ -9,12 +9,15 @@ namespace txtest {
     public:
         explicit PayoutTestHelper(TestManager::pointer testManager);
 
-        TransactionFramePtr createPayoutTx(Account &source, AssetCode asset, BalanceID sourceBalanceID,
-                                           uint64_t maxPayoutAmount, Fee &fee);
+        TransactionFramePtr
+        createPayoutTx(Account &source, AssetCode asset, BalanceID sourceBalanceID,
+                                           uint64_t maxPayoutAmount, uint64_t minPayOutAmount, Fee &fee);
 
-        void applyPayoutTx(Account &source, AssetCode asset, BalanceID sourceBalanceID,
-                           uint64_t maxPayoutAmount, Fee &fee,
-                           PayoutResultCode expectedResult = PayoutResultCode::SUCCESS);
+        PayoutResult
+        applyPayoutTx(Account &source, AssetCode asset,
+                      BalanceID sourceBalanceID, uint64_t maxPayoutAmount,
+                      uint64_t minPayOutAmount, Fee &fee,
+                      PayoutResultCode expectedResult = PayoutResultCode::SUCCESS);
     };
 }
 }

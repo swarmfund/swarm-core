@@ -49,7 +49,7 @@ namespace stellar
 			Database& db, LedgerDelta *delta = nullptr);
 
 		BalanceFrame::pointer loadBalance(AccountID account, AssetCode asset, Database& db,
-			LedgerDelta *delta);
+			LedgerDelta *delta = nullptr);
 
 		BalanceFrame::pointer mustLoadBalance(BalanceID balanceID, Database& db, LedgerDelta* delta = nullptr)
 		{

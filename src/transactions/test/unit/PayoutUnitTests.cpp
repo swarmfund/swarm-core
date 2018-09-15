@@ -1,3 +1,5 @@
+/*
+#include <transactions/PayoutOpFrame.h>
 #include "bucket/BucketManager.h"
 #include "herder/Herder.h"
 #include "invariant/Invariants.h"
@@ -11,11 +13,8 @@
 #include "process/ProcessManager.h"
 #include "simulation/LoadGenerator.h"
 #include "test/test_marshaler.h"
-#include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "transactions/test/mocks/MockApplication.h"
 #include "transactions/test/mocks/MockDatabase.h"
-#include "transactions/test/mocks/MockExternalSystemAccountIDHelper.h"
-#include "transactions/test/mocks/MockExternalSystemAccountIDPoolEntryHelper.h"
 #include "transactions/test/mocks/MockKeyValueHelper.h"
 #include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
@@ -32,86 +31,84 @@ using namespace testing;
 
 static int32 externalSystemType = 5;
 static uint256 sourceAccountPublicKey = hexToBin256(
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABB");
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABB");
 
-TEST_CASE("bind external system account_id - unit test",
-          "[tx][bind_external_system_account_id_unit_test]")
+TEST_CASE("payout - unit test", "[tx][pyout]")
 {
-    MockApplication appMock;
+    */
+/*MockApplication appMock;
     MockLedgerManager ledgerManagerMock;
     MockTransactionFrame transactionFrameMock;
     MockLedgerDelta ledgerDeltaMock;
     MockDatabase dbMock;
     MockStorageHelper storageHelperMock;
     MockKeyValueHelper keyValueHelperMock;
-    MockExternalSystemAccountIDHelper externalSystemAccountIDHelperMock;
-    MockExternalSystemAccountIDPoolEntryHelper
-        externalSystemAccountIDPoolEntryHelperMock;
     std::shared_ptr<MockSignatureValidator> signatureValidatorMock =
-        std::make_shared<MockSignatureValidator>();
+            std::make_shared<MockSignatureValidator>();
 
-    BindExternalSystemAccountIdOp op;
-    op.externalSystemType = externalSystemType;
+    PayoutOp op;
+    op.maxPayoutAmount = 10 * ONE;
+    op.minPayoutAmount = ONE;
+    op.asset = "LTC";
+    op.sourceBalanceID = BalanceID(CryptoKeyType::KEY_TYPE_ED25519);
+    op.sourceBalanceID.ed25519() = sourceAccountPublicKey;
     Operation operation;
-    operation.body = Operation::_body_t(
-        stellar::OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID);
-    operation.body.bindExternalSystemAccountIdOp() = op;
+    operation.body = Operation::_body_t(OperationType::PAYOUT);
+    operation.body.payoutOp() = op;
     operation.sourceAccount =
-        xdr::pointer<AccountID>(new AccountID(CryptoKeyType::KEY_TYPE_ED25519));
+            xdr::pointer<AccountID>(new AccountID(CryptoKeyType::KEY_TYPE_ED25519));
     operation.sourceAccount->ed25519() = sourceAccountPublicKey;
     OperationResult operationResult;
 
     AccountFrame::pointer accountFrameFake =
-        AccountFrame::makeAuthOnlyAccount(*operation.sourceAccount);
+            AccountFrame::makeAuthOnlyAccount(*operation.sourceAccount);
     LedgerHeader ledgerHeaderFake;
 
     ON_CALL(appMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
     ON_CALL(appMock, getLedgerManager())
-        .WillByDefault(ReturnRef(ledgerManagerMock));
+            .WillByDefault(ReturnRef(ledgerManagerMock));
     ON_CALL(ledgerManagerMock, getCurrentLedgerHeader())
-        .WillByDefault(ReturnRef(ledgerHeaderFake));
+            .WillByDefault(ReturnRef(ledgerHeaderFake));
     ON_CALL(storageHelperMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
     ON_CALL(storageHelperMock, getLedgerDelta())
-        .WillByDefault(ReturnRef(ledgerDeltaMock));
+            .WillByDefault(ReturnRef(ledgerDeltaMock));
     ON_CALL(transactionFrameMock, getSignatureValidator())
-        .WillByDefault(Return(signatureValidatorMock));
+            .WillByDefault(Return(signatureValidatorMock));
     ON_CALL(*signatureValidatorMock,
             check(Ref(appMock), Ref(dbMock), Ref(*accountFrameFake), _))
-        .WillByDefault(Return(SignatureValidator::Result::SUCCESS));
+            .WillByDefault(Return(SignatureValidator::Result::SUCCESS));
 
     ON_CALL(storageHelperMock, getKeyValueHelper())
-        .WillByDefault(ReturnRef(keyValueHelperMock));
-    ON_CALL(storageHelperMock, getExternalSystemAccountIDHelper())
-        .WillByDefault(ReturnRef(externalSystemAccountIDHelperMock));
-    ON_CALL(storageHelperMock, getExternalSystemAccountIDPoolEntryHelper())
-        .WillByDefault(ReturnRef(externalSystemAccountIDPoolEntryHelperMock));
+            .WillByDefault(ReturnRef(keyValueHelperMock));
 
-    BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
-                                               transactionFrameMock);
+    PayoutOpFrame opFrame(operation, operationResult, transactionFrameMock);
+
     SECTION("Check validity")
     {
         EXPECT_CALL(transactionFrameMock,
                     loadAccount(&ledgerDeltaMock, Ref(dbMock),
                                 *operation.sourceAccount))
-            .WillOnce(Return(accountFrameFake));
+                .WillOnce(Return(accountFrameFake));
         REQUIRE(opFrame.checkValid(appMock, &ledgerDeltaMock));
 
         SECTION("Apply, no pool entry to bind")
         {
-            EXPECT_CALL(externalSystemAccountIDPoolEntryHelperMock,
+            /*EXPECT_CALL(externalSystemAccountIDPoolEntryHelperMock,
                         load(op.externalSystemType, *operation.sourceAccount))
-                .WillOnce(Return(nullptr));
+                    .WillOnce(Return(nullptr));
             EXPECT_CALL(externalSystemAccountIDPoolEntryHelperMock,
                         loadAvailablePoolEntry(Ref(ledgerManagerMock),
                                                op.externalSystemType))
-                .WillOnce(Return(nullptr));
+                    .WillOnce(Return(nullptr));
             REQUIRE_FALSE(
-                opFrame.doApply(appMock, storageHelperMock, ledgerManagerMock));
+                    opFrame.doApply(appMock, storageHelperMock, ledgerManagerMock));
             REQUIRE(opFrame.getResult()
-                        .tr()
-                        .bindExternalSystemAccountIdResult()
-                        .code() ==
+                            .tr()
+                            .bindExternalSystemAccountIdResult()
+                            .code() ==
                     BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
         }
-    }
+    }*//*
+
 }
+*/

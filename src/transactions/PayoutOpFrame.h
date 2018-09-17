@@ -49,8 +49,8 @@ class PayoutOpFrame : public OperationFrame
 
     void
     fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
-                                std::map<AccountID, uint64_t> assetHoldersAmounts,
-                                Database& db, LedgerDelta& delta);
+                            std::map<AccountID, uint64_t> assetHoldersAmounts,
+                            AssetCode asset, Database& db, LedgerDelta& delta);
 
     bool
     processTransfers(BalanceFrame::pointer sourceBalance, uint64_t totalAmount,

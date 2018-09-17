@@ -1,4 +1,5 @@
 #include <ledger/BalanceHelper.h>
+#include <ledger/FeeHelper.h>
 #include "PayoutTestHelper.h"
 #include "transactions/PayoutOpFrame.h"
 #include "test/test_marshaler.h"
@@ -64,7 +65,17 @@ PayoutTestHelper::applyPayoutTx(Account &source, AssetCode asset,
     auto actualPayoutAmount = result.payoutSuccessResult().actualPayoutAmount;
     REQUIRE(actualPayoutAmount < maxPayoutAmount);
 
-    auto totalFee = fee.fixed + fee.percent;
+    uint64_t totalFee = 0;
+    if ((fee.fixed != 0) && (fee.percent != 0))
+    {
+        auto feeEntry = FeeHelper::Instance()->loadFee(FeeType::PAYOUT_FEE,
+                ownerBalanceBefore->getAsset(), nullptr, nullptr,
+                FeeFrame::SUBTYPE_ANY, 0, INT64_MAX, db);
+        REQUIRE(bigDivide(totalFee, actualPayoutAmount,
+                          feeEntry->getPercentFee(), 100*ONE, ROUND_UP));
+        totalFee += fee.fixed;
+    }
+
 
     auto ownerBalanceAfter = balanceHelper->loadBalance(sourceBalanceID, db);
     REQUIRE(ownerBalanceBefore->getAmount() ==

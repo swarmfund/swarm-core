@@ -205,8 +205,8 @@ PayoutOpFrame::addPayoutResponse(AccountID& accountID, uint64_t amount,
 
 void
 PayoutOpFrame::fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
-                                           std::map<AccountID, uint64_t> assetHoldersAmounts,
-                                           Database& db, LedgerDelta& delta)
+                            std::map<AccountID, uint64_t> assetHoldersAmounts,
+                            AssetCode asset, Database& db, LedgerDelta& delta)
 {
     for (auto accountID : accountIDs)
     {
@@ -214,8 +214,7 @@ PayoutOpFrame::fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
         // because we already check it existing
         auto balanceID = BalanceKeyUtils::forAccount(accountID,
                 delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
-        auto newBalance = BalanceFrame::createNew(balanceID, accountID,
-                mPayout.asset);
+        auto newBalance = BalanceFrame::createNew(balanceID, accountID, asset);
 
         if (!newBalance->tryFundAccount(assetHoldersAmounts[accountID]))
         {
@@ -279,7 +278,8 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
         balanceHelper->storeChange(delta, db, receiverBalance->mEntry);
     }
 
-    fundWithoutBalancesAccounts(accountIDs, assetHoldersAmounts, db, delta);
+    fundWithoutBalancesAccounts(accountIDs, assetHoldersAmounts,
+                                sourceBalance->getAsset(), db, delta);
 
     balanceHelper->storeChange(delta, db, sourceBalance->mEntry);
     innerResult().payoutSuccessResult().actualPayoutAmount = totalAmount;

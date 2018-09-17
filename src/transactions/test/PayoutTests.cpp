@@ -75,12 +75,12 @@ TEST_CASE("payout", "[tx][payout]") {
 
     auto ownerBalance = balanceHelper->loadBalance(ownerID, assetCode, db);
     REQUIRE(ownerBalance);
+    auto ownerBalanceID = ownerBalance->getBalanceID();
 
     uint32_t issuanceTasks = 0;
     std::string reference = SecretKey::random().getStrKeyPublic();
-    issuanceRequestHelper.applyCreateIssuanceRequest(owner, assetCode, assetOwnerAmount,
-                                                     ownerBalance->getBalanceID(),
-                                                     reference, &issuanceTasks);
+    issuanceRequestHelper.applyCreateIssuanceRequest(owner, assetCode,
+             assetOwnerAmount, ownerBalanceID, reference, &issuanceTasks);
     //create fee
     Fee zeroFee;
     zeroFee.fixed = 0;
@@ -132,7 +132,7 @@ TEST_CASE("payout", "[tx][payout]") {
                         "zero min asset holder amount")
                 {
                     auto result = payoutTestHelper.applyPayoutTx(owner,
-                            assetCode, ownerBalance->getBalanceID(),
+                            assetCode, ownerBalanceID,
                             maxPayoutAmount, 0, 0, zeroFee);
 
                     for (auto i = 0; i < holdersCount; i++)
@@ -292,108 +292,173 @@ TEST_CASE("payout", "[tx][payout]") {
                                  thirdPartyIssuerID, AccountType::SYNDICATE);
             AssetCode thirdPartyAssetCode = "USD";
             preIssuedAmount = 1000 * ONE;
-            issuanceRequestHelper.createAssetWithPreIssuedAmount(root,
+            auto payAssetAmount = preIssuedAmount / 2;
+            issuanceRequestHelper.createAssetWithPreIssuedAmount(thirdPartyIssuer,
                                  thirdPartyAssetCode, preIssuedAmount, root);
-            manageAssetTestHelper.updateAsset(root, thirdPartyAssetCode, root,
+            manageAssetTestHelper.updateAsset(thirdPartyIssuer,
+                              thirdPartyAssetCode, root,
                               static_cast<uint32_t>(AssetPolicy::TRANSFERABLE));
             auto thirdPartyIssuerBalance = balanceHelper->
-                    loadBalance(thirdPartyIssuerID, thirdPartyAssetCode, db);
+                    mustLoadBalance(thirdPartyIssuerID, thirdPartyAssetCode, db);
             reference = SecretKey::random().getStrKeyPublic();
-            issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer, thirdPartyAssetCode, 300 * ONE,
-                                                             thirdPartyIssuerBalance->getBalanceID(), reference, &issuanceTasks);
+            issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer,
+                 thirdPartyAssetCode, payAssetAmount,
+                 thirdPartyIssuerBalance->getBalanceID(), reference, &issuanceTasks);
 
             // create balance of third-party asset for owner
             manageBalanceTestHelper.createBalance(owner, ownerID, thirdPartyAssetCode);
-            auto issuerThirdPartyBalance = BalanceHelper::Instance()->loadBalance(ownerID, thirdPartyAssetCode,
-                                                                                  db, nullptr);
+            auto ownerThirdPartyBalance = balanceHelper->
+                    mustLoadBalance(ownerID, thirdPartyAssetCode, db);
+            auto ownerThirdPartyBalanceID = ownerThirdPartyBalance->getBalanceID();
             reference = SecretKey::random().getStrKeyPublic();
-            issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer, thirdPartyAssetCode, 200 * ONE,
-                                                             issuerThirdPartyBalance->getBalanceID(), reference, &issuanceTasks);
-            SECTION("Zero fee") {
-                payoutTestHelper.applyPayoutTx(owner, assetCode, issuerThirdPartyBalance->getBalanceID(), 100 * ONE,
-                                               0, 0, zeroFee);
+            issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer,
+                 thirdPartyAssetCode, payAssetAmount, ownerThirdPartyBalanceID,
+                 reference, &issuanceTasks);
 
-                issuerThirdPartyBalance = BalanceHelper::Instance()->loadBalance(ownerID, thirdPartyAssetCode, db,
-                                                                                 nullptr);
-                auto holder1ThirdPartyBalance = BalanceHelper::Instance()->loadBalance(holdersAmounts[3].account.key.getPublicKey(), thirdPartyAssetCode, db,
-                                                                                       nullptr);
-                auto holder2ThirdPartyBalance = BalanceHelper::Instance()->loadBalance(holdersAmounts[4].account.key.getPublicKey(), thirdPartyAssetCode, db,
-                                                                                       nullptr);
+            uint64_t maxPayoutAmount = payAssetAmount / 10;
 
-                REQUIRE(issuerThirdPartyBalance->getAmount() == 170 * ONE);
-                REQUIRE(holder1ThirdPartyBalance->getAmount() == 20 * ONE);
-                REQUIRE(holder2ThirdPartyBalance->getAmount() == 10 * ONE);
+            SECTION("Zero fee")
+            {
+                payoutTestHelper.applyPayoutTx(owner, assetCode,
+                  ownerThirdPartyBalanceID, maxPayoutAmount, ONE, ONE, zeroFee);
             }
 
-            SECTION("Non-zero fee") {
-                auto payoutFeeFrame = FeeFrame::create(FeeType::PAYOUT_FEE, 10 * ONE,
-                                                       int64_t(5 * ONE), thirdPartyAssetCode,
-                                                       &ownerID);
-                auto payoutFee = payoutFeeFrame->getFee();
-                applySetFees(app, root.key, root.salt, &payoutFee, false, nullptr);
+            SECTION("Non-zero fee")
+            {
+                auto feeEntry = setFeesTestHelper.createFeeEntry(
+                        FeeType::PAYOUT_FEE, thirdPartyAssetCode, 20*ONE, 1*ONE);
+                setFeesTestHelper.applySetFeesTx(root, &feeEntry, false);
 
                 Fee fee;
-                fee.fixed = 10 * ONE;
-                fee.percent = 5 * ONE;
+                fee.fixed = feeEntry.fixedFee;
+                REQUIRE(bigDivide(fee.percent, feeEntry.percentFee,
+                                  maxPayoutAmount, 100 * ONE, ROUND_UP));
 
-                payoutTestHelper.applyPayoutTx(owner, assetCode, issuerThirdPartyBalance->getBalanceID(), 100 * ONE,
-                                               0, 0, fee);
+                payoutTestHelper.applyPayoutTx(owner, assetCode,
+                   ownerThirdPartyBalanceID, maxPayoutAmount, ONE, ONE/10, fee);
 
-                issuerThirdPartyBalance = BalanceHelper::Instance()->loadBalance(ownerID, thirdPartyAssetCode, db,
-                                                                                 nullptr);
-                auto commissionBalance = BalanceHelper::Instance()->loadBalance(getCommissionKP().getPublicKey(),
-                                                                                thirdPartyAssetCode, db, nullptr);
-                REQUIRE(issuerThirdPartyBalance->getAmount() == 155 * ONE);
-                REQUIRE(commissionBalance->getAmount() == 15 * ONE);
+                SECTION("Underfunded")
+                {
+                    REQUIRE(bigDivide(fee.percent, feeEntry.percentFee,
+                                      payAssetAmount, 100 * ONE, ROUND_UP));
+                    payoutTestHelper.applyPayoutTx(owner, assetCode,
+                               ownerThirdPartyBalanceID, payAssetAmount,
+                               ONE, ONE/10, fee, PayoutResultCode::UNDERFUNDED);
+                }
+            }
+
+            SECTION("Min amount too much")
+            {
+                payoutTestHelper.applyPayoutTx(owner, assetCode,
+                       ownerThirdPartyBalanceID, maxPayoutAmount, 1000 * ONE,
+                       ONE, zeroFee, PayoutResultCode::MIN_AMOUNT_TOO_MUCH);
             }
         }
     }
 
-    SECTION("Invalid amount") {
-        payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalance->getBalanceID(), 0, 0, 0, zeroFee,
-                                       PayoutResultCode::INVALID_AMOUNT);
+    SECTION("Invalid amount")
+    {
+        payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalanceID, 0, 0,
+                               0, zeroFee, PayoutResultCode::INVALID_AMOUNT);
     }
 
     SECTION("Invalid asset code") {
-        payoutTestHelper.applyPayoutTx(owner, "", ownerBalance->getBalanceID(), 100 * ONE, 0, 0, zeroFee,
-                                       PayoutResultCode::INVALID_ASSET);
+        payoutTestHelper.applyPayoutTx(owner, "", ownerBalanceID, 100 * ONE, 0,
+                           0, zeroFee, PayoutResultCode::INVALID_ASSET);
     }
 
-    SECTION("Asset not found") {
-        payoutTestHelper.applyPayoutTx(owner, "USD", ownerBalance->getBalanceID(), 100 * ONE, 0, 0, zeroFee,
-                                       PayoutResultCode::ASSET_NOT_FOUND);
+    SECTION("Asset not found")
+    {
+        payoutTestHelper.applyPayoutTx(owner, "USD", ownerBalanceID, 100 * ONE,
+                           0, 0, zeroFee, PayoutResultCode::ASSET_NOT_FOUND);
+    }
+
+    SECTION("Asset not transferable")
+    {
+        AssetCode newAssetCode = "USD";
+        manageAssetTestHelper.createAsset(owner, owner.key, newAssetCode, root, 0);
+        payoutTestHelper.applyPayoutTx(owner, "USD", ownerBalanceID, 100 * ONE,
+                       0, 0, zeroFee, PayoutResultCode::ASSET_NOT_TRANSFERABLE);
     }
 
     SECTION("Balance not found")
     {
         auto account = SecretKey::random();
         payoutTestHelper.applyPayoutTx(owner, assetCode, account.getPublicKey(),
-                                       100 * ONE, 0, 0, zeroFee,
-                                       PayoutResultCode::BALANCE_NOT_FOUND);
+               100 * ONE, 0, 0, zeroFee, PayoutResultCode::BALANCE_NOT_FOUND);
     }
 
-    SECTION("Balance account mismatched") {
+    SECTION("Balance account mismatched")
+    {
         Account account = {SecretKey::random(), Salt(0)};
         auto accountID = account.key.getPublicKey();
-        createAccountTestHelper.applyCreateAccountTx(root, accountID, AccountType::SYNDICATE);
+        createAccountTestHelper.applyCreateAccountTx(root, accountID,
+                                                     AccountType::SYNDICATE);
         manageBalanceTestHelper.createBalance(account, accountID, assetCode);
-        auto accountBalance = BalanceHelper::Instance()->loadBalance(accountID, assetCode, db, nullptr);
-        payoutTestHelper.applyPayoutTx(owner, assetCode, accountBalance->getBalanceID(), 100 * ONE, 0, 0, zeroFee,
-                                       PayoutResultCode::BALANCE_NOT_FOUND);
+        auto accountBalance = balanceHelper->loadBalance(
+                accountID, assetCode, db);
+        payoutTestHelper.applyPayoutTx(owner, assetCode,
+                   accountBalance->getBalanceID(), 100 * ONE, 0, 0, zeroFee,
+                   PayoutResultCode::BALANCE_NOT_FOUND);
     }
 
-    /*SECTION("Fee mismatched") {
-        Fee giantFee;
-        giantFee.fixed = preIssuedAmount;
-        giantFee.percent = 0;
-        payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalance->getBalanceID(), 100 * ONE, 0,
-                                       giantFee, PayoutResultCode::FEE_MISMATCHED);
-    }*/
+    SECTION("Fee mismatched")
+    {
+        auto feeEntry = setFeesTestHelper.createFeeEntry(
+                FeeType::PAYOUT_FEE, assetCode, 2000*ONE, 1*ONE);
+        setFeesTestHelper.applySetFeesTx(root, &feeEntry, false);
 
-    SECTION("Holders not found") {
-        payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalance->getBalanceID(), 100 * ONE, 0, 0, zeroFee,
-                                       PayoutResultCode::HOLDERS_NOT_FOUND);
+        auto newAccount = Account{SecretKey::random(), Salt(0)};
+        auto newAccountID = newAccount.key.getPublicKey();
+        createAccountTestHelper.applyCreateAccountTx(root, newAccountID,
+                                                     AccountType::GENERAL);
+        manageBalanceTestHelper.createBalance(newAccount,
+                                              newAccountID, assetCode);
+        auto newBalance = balanceHelper->loadBalance(newAccountID,
+                                                     assetCode, db);
+        REQUIRE(newBalance != nullptr);
+        reference = SecretKey::random().getStrKeyPublic();
+        issuanceRequestHelper.applyCreateIssuanceRequest(owner, assetCode,
+           ONE, newBalance->getBalanceID(), reference, &issuanceTasks);
+
+        SECTION("INSUFFICIENT_FEE_AMOUNT")
+        {
+            payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalanceID,
+                                   100 * ONE, 0, 0, zeroFee,
+                                   PayoutResultCode::INSUFFICIENT_FEE_AMOUNT);
+        }
+
+        SECTION("FEE_EXCEEDS_ACTUAL_AMOUNT")
+        {
+            Fee fee;
+            fee.fixed = feeEntry.fixedFee;
+            fee.percent = feeEntry.percentFee;
+            payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalanceID,
+                               ONE, 0, 0, fee,
+                               PayoutResultCode::FEE_EXCEEDS_ACTUAL_AMOUNT);
+        }
+
+        SECTION("UNDERFUNDED")
+        {
+            Fee fee;
+            fee.fixed = feeEntry.fixedFee;
+            uint64_t payAmount = 9000*ONE;
+            REQUIRE(bigDivide(fee.percent, feeEntry.percentFee,
+                              payAmount, 100 * ONE, ROUND_UP));
+            payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalanceID,
+                                           payAmount, 0, 0, fee,
+                                           PayoutResultCode::UNDERFUNDED);
+        }
     }
 
+    SECTION("Holders not found")
+    {
+        payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalanceID,
+                100 * ONE, 0, 0, zeroFee, PayoutResultCode::HOLDERS_NOT_FOUND);
+    }
 
+    SECTION("Limit exceeded")
+    {
+
+    }
 }

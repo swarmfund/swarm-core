@@ -183,7 +183,8 @@ namespace stellar {
         bool canAutoApprove = ReviewUpdateKYCRequestOpFrame::canBeFulfilled(requestEntry);
 
         if (!ledgerManager.shouldUse(LedgerVersion::FIX_CREATE_KYC_REQUEST_AUTO_APPROVE))
-            canAutoApprove = mSourceAccount->getAccountType() == AccountType::MASTER;
+            canAutoApprove = canAutoApprove &&
+                             mSourceAccount->getAccountType() == AccountType::MASTER;
 
         if (canAutoApprove)
             tryAutoApprove(db, delta, app, requestFrame);

@@ -43,7 +43,7 @@ CancelSaleCreationRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     auto requestHelper = ReviewableRequestHelper::Instance();
 
     auto requestFrame = requestHelper->loadRequest(requestID, getSourceID(),
-                                                   db, &delta);
+            ReviewableRequestType::SALE, db, &delta);
     if (!requestFrame)
     {
         innerResult().code(CancelSaleCreationRequestResultCode::REQUEST_NOT_FOUND);

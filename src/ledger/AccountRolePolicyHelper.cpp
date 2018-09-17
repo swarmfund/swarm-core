@@ -31,10 +31,20 @@ AccountRolePolicyHelper::dropAll(Database& db)
            "AND effect <= 1),"
            "last_modified  INT                    NOT NULL,"
            "version        INT                    NOT NULL,"
-           "PRIMARY KEY(id, ownerid),"
-           "FOREGIN KEY(role) REFERENCES account_roles(id) ON DELETE CASCADE "
-           "ON UPDATE CASCADE"
+           "PRIMARY KEY(id, owner_id),"
+           "FOREIGN KEY(role) REFERENCES account_roles(role_id) "
+           "ON DELETE CASCADE ON UPDATE CASCADE"
            ");";
+}
+
+AccountRolePolicyHelper::AccountRolePolicyHelper(StorageHelper& storageHelper)
+    : mDb(storageHelper.getDatabase())
+    , mLedgerDelta(&storageHelper.getLedgerDelta())
+{
+}
+
+AccountRolePolicyHelper::AccountRolePolicyHelper(Database& db) : mDb(db)
+{
 }
 
 void
@@ -52,12 +62,10 @@ AccountRolePolicyHelper::storeChange(LedgerEntry const& entry)
 void
 AccountRolePolicyHelper::storeDelete(LedgerKey const& key)
 {
-    Database& db = mStorageHelper.getDatabase();
-
     flushCachedEntry(key);
 
-    auto timer = db.getDeleteTimer("account_role_policy");
-    auto prep = db.getPreparedStatement(
+    auto timer = mDb.getDeleteTimer("account_role_policy");
+    auto prep = mDb.getPreparedStatement(
         "DELETE FROM account_role_policies WHERE id=:id AND owner_id=:ow");
     auto& st = prep.statement();
 
@@ -68,7 +76,10 @@ AccountRolePolicyHelper::storeDelete(LedgerKey const& key)
     st.define_and_bind();
     st.execute(true);
 
-    mStorageHelper.getLedgerDelta().deleteEntry(key);
+    if (mLedgerDelta)
+    {
+        mLedgerDelta->deleteEntry(key);
+    }
 }
 
 void
@@ -78,9 +89,12 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
         make_shared<AccountRolePolicyFrame>(entry);
 
     accountRolePolicyFrame->ensureValid();
-    accountRolePolicyFrame->touch(mStorageHelper.getLedgerDelta());
+    if (mLedgerDelta)
+    {
+        accountRolePolicyFrame->touch(*mLedgerDelta);
+    }
 
-    LedgerKey const& key = accountRolePolicyFrame->getKey();
+    LedgerKey const& key = getLedgerKey(entry);
     flushCachedEntry(key);
 
     const uint64_t id = accountRolePolicyFrame->getID();
@@ -97,7 +111,7 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
 
     if (insert)
     {
-        sql = std::string("INSERT INTO identity_policies (id, owner_id, "
+        sql = std::string("INSERT INTO account_role_policies (id, owner_id, "
                           "role, resource, action, effect, last_modified, "
                           "version) "
                           "VALUES (:id, :ow, :r, :rs, :ac, :ef, :lm, :v)");
@@ -105,14 +119,13 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     else
     {
         sql =
-            std::string("UPDATE identity_policies "
+            std::string("UPDATE account_role_policies "
                         "SET    role=:r, resource=:rs, action=:ac, effect=:ef, "
                         "lastmodified=:lm, version=:v "
                         "WHERE  id=:id AND ownerid=:ow");
     }
 
-    Database& db = mStorageHelper.getDatabase();
-    auto prep = db.getPreparedStatement(sql);
+    auto prep = mDb.getPreparedStatement(sql);
 
     {
         soci::statement& st = prep.statement();
@@ -127,8 +140,8 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
 
         st.define_and_bind();
 
-        auto timer = insert ? db.getInsertTimer("account_role_policy")
-                            : db.getUpdateTimer("account_role_policy");
+        auto timer = insert ? mDb.getInsertTimer("account_role_policy")
+                            : mDb.getUpdateTimer("account_role_policy");
         st.execute(true);
 
         if (st.get_affected_rows() != 1)
@@ -136,13 +149,16 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
             throw std::runtime_error("Could not update Ledger");
         }
 
-        if (insert)
+        if (mLedgerDelta)
         {
-            mStorageHelper.getLedgerDelta().addEntry(*accountRolePolicyFrame);
-        }
-        else
-        {
-            mStorageHelper.getLedgerDelta().modEntry(*accountRolePolicyFrame);
+            if (insert)
+            {
+                mLedgerDelta->addEntry(*accountRolePolicyFrame);
+            }
+            else
+            {
+                mLedgerDelta->modEntry(*accountRolePolicyFrame);
+            }
         }
     }
 }
@@ -151,11 +167,10 @@ bool
 AccountRolePolicyHelper::exists(LedgerKey const& key)
 {
     int exists = 0;
-    auto timer = mStorageHelper.getDatabase().getSelectTimer(
-        "account_role_policy_exists");
-    auto prep = mStorageHelper.getDatabase().getPreparedStatement(
-        "SELECT EXISTS (SELECT NULL FROM identity_policies "
-        "WHERE id=:id AND ownerid =:ow)");
+    auto timer = mDb.getSelectTimer("account_role_policy_exists");
+    auto prep = mDb.getPreparedStatement(
+        "SELECT EXISTS (SELECT NULL FROM account_role_policies "
+        "WHERE id=:id AND owner_id =:ow)");
     auto& st = prep.statement();
 
     const std::string ownerIDStrKey =
@@ -180,8 +195,10 @@ AccountRolePolicyHelper::getLedgerKey(LedgerEntry const& from)
 
     LedgerKey ledgerKey;
     ledgerKey.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
-    ledgerKey.accountRole().accountRoleID =
-        from.data.accountRole().accountRoleID;
+    ledgerKey.accountRolePolicy().accountRolePolicyID =
+        from.data.accountRolePolicy().accountRolePolicyID;
+    ledgerKey.accountRolePolicy().ownerID =
+        from.data.accountRolePolicy().ownerID;
     return ledgerKey;
 }
 
@@ -219,7 +236,7 @@ AccountRolePolicyHelper::storeLoad(LedgerKey const& key)
     le.data.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
 
     std::string name;
-    auto prep = mStorageHelper.getDatabase().getPreparedStatement(
+    auto prep = mDb.getPreparedStatement(
         "SELECT role, resource, action, effect, version, lastmodified "
         "FROM identity_policies "
         "WHERE id =:id AND ownerid =:ow");
@@ -234,8 +251,7 @@ AccountRolePolicyHelper::storeLoad(LedgerKey const& key)
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.define_and_bind();
 
-    auto timer =
-        mStorageHelper.getDatabase().getSelectTimer("identity_policies");
+    auto timer = mDb.getSelectTimer("identity_policies");
     st.execute(true);
 
     if (!st.got_data())
@@ -262,5 +278,27 @@ AccountRolePolicyHelper::storeLoad(LedgerKey const& key)
     putCachedEntry(key, pEntry);
 
     return result;
+}
+
+uint64_t
+AccountRolePolicyHelper::countObjects()
+{
+    auto timer = mDb.getSelectTimer("account_role_policy_count");
+    auto prep =
+        mDb.getPreparedStatement("SELECT COUNT(*) FROM account_role_policies");
+    auto& st = prep.statement();
+
+    uint64_t count;
+    st.exchange(into(count));
+    st.define_and_bind();
+    st.execute(true);
+
+    return count;
+}
+
+Database&
+AccountRolePolicyHelper::getDatabase()
+{
+    return mDb;
 }
 } // namespace stellar

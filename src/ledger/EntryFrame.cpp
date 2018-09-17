@@ -34,14 +34,18 @@ namespace stellar {
 		: mKeyCalculated(false), mEntry(from) {
 	}
 
-	LedgerKey const &
-		EntryFrame::getKey() const {
+	LedgerKey const& EntryFrame::getKey() const {
 		if (!mKeyCalculated) {
-			mKey = LedgerEntryKey(mEntry);
+			mKey = createKey();
 			mKeyCalculated = true;
 		}
 		return mKey;
 	}
+
+	LedgerKey EntryFrame::createKey() const
+    {
+	    return LedgerEntryKey(mEntry);
+    }
 
     uint32
     EntryFrame::getLastModified() const {

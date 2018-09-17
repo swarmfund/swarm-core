@@ -14,9 +14,9 @@ namespace stellar {
     namespace txtest {
         class TestManager {
         protected:
-            Application &mApp;
-            Database &mDB;
-            LedgerManager &mLm;
+            Application& mApp;
+            Database& mDB;
+            LedgerManager& mLm;
 
             bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp, LedgerDelta &txDelta);
 

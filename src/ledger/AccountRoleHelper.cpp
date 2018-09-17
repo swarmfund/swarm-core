@@ -16,17 +16,22 @@ static const char* accountRolesColumnSelector =
 void
 AccountRoleHelper::dropAll(Database& db)
 {
-    db.getSession() << "DROP TABLE IF EXISTS account_roles;";
+    db.getSession() << "DROP TABLE IF EXISTS account_roles CASCADE;";
     db.getSession()
-        << "CREATE TABLE account_roles"
+        << "CREATE TABLE account_roles "
            "("
            "role_id                 BIGINT      NOT NULL CHECK (role_id >= 0), "
            "owner_id                VARCHAR(56) NOT NULL, "
            "role_name               TEXT        NOT NULL, "
            "last_modified           INT         NOT NULL, "
            "version                 INT         NOT NULL DEFAULT 0, "
-           "PRIMARY KEY (role_id),"
+           "PRIMARY KEY (role_id)"
            ");";
+}
+
+AccountRoleHelper::AccountRoleHelper(StorageHelper& storageHelper)
+    : mStorageHelper(storageHelper)
+{
 }
 
 void
@@ -64,6 +69,7 @@ AccountRoleHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     st.exchange(use(ownerID, "oid"));
     st.exchange(use(accountRoleFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     st.exchange(use(version, "v"));
+    st.exchange(use(accountRoleEntry.accountRoleName, "rn"));
     st.define_and_bind();
 
     auto timer =
@@ -199,10 +205,12 @@ AccountRoleHelper::fromXDR(LedgerEntry const& from)
     return make_shared<AccountRoleFrame>(from);
 }
 
-uint64_t AccountRoleHelper::countObjects()
+uint64_t
+AccountRoleHelper::countObjects()
 {
     uint64_t count = 0;
-    getDatabase().getSession() << "SELECT COUNT(*) FROM account_roles;", into(count);
+    getDatabase().getSession() << "SELECT COUNT(*) FROM account_roles;",
+        into(count);
 
     return count;
 }

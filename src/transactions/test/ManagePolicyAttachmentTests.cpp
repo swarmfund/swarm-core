@@ -1,4 +1,3 @@
-
 #include "TxTests.h"
 #include "crypto/SHA.h"
 #include "ledger/AccountHelper.h"
@@ -8,8 +7,8 @@
 #include "overlay/LoopbackPeer.h"
 #include "test/test_marshaler.h"
 #include "test_helper/CreateAccountTestHelper.h"
-#include "test_helper/ManagePolicyAttachmentTestHelper.h"
-#include "test_helper/SetIdentityPolicyTestHelper.h"
+#include "transactions/test/test_helper/SetAccountRoleTestHelper.h"
+#include "transactions/test/test_helper/SetAccountRolePolicyTestHelper.h"
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
 #include "transactions/SetAccountRolePolicyOpFrame.h"
 #include "util/make_unique.h"
@@ -20,7 +19,7 @@ using namespace stellar::txtest;
 typedef std::unique_ptr<Application> appPtr;
 
 TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]")
-{
+{/*
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
 
     VirtualClock clock;
@@ -40,8 +39,8 @@ TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]")
     auto master = Account{getRoot(), Salt(1)};
 
     CreateAccountTestHelper createAccountTestHelper(testManager);
-    ManagePolicyAttachmentTestHelper managePAHelper(testManager);
-    SetIdentityPolicyTestHelper setIdentityPolicyHelper(testManager);
+    SetAccountRoleTestHelper managePAHelper(testManager);
+    SetAccountRolePolicyTestHelper setIdentityPolicyHelper(testManager);
 
     // create account for further tests
     auto accountKey = SecretKey::random();
@@ -183,5 +182,5 @@ TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]")
             account, creationOpInput,
             ManagePolicyAttachmentResultCode::
                 POLICY_ATTACHMENTS_LIMIT_EXCEEDED);
-    }
+    }*/
 }

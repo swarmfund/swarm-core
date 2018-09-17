@@ -21,10 +21,11 @@ class AccountRoleFrame : public EntryFrame
     typedef std::shared_ptr<AccountRoleFrame> pointer;
 
     AccountRoleFrame();
-
     explicit AccountRoleFrame(LedgerEntry const& from);
 
     AccountRoleFrame& operator=(AccountRoleFrame const& other);
+
+    LedgerKey createKey() const override;
 
     EntryFrame::pointer
     copy() const override

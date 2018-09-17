@@ -53,7 +53,35 @@ namespace stellar
 
 	LedgerKey LedgerEntryKey(LedgerEntry const &e)
 	{
+	    // TODO: move this to helpers somehow
+	    if (e.data.type() == LedgerEntryType::ACCOUNT_ROLE || e.data.type() == LedgerEntryType::ACCOUNT_ROLE_POLICY)
+        {
+	        LedgerKey key;
+	        key.type(e.data.type());
+	        switch (e.data.type())
+            {
+                case LedgerEntryType::ACCOUNT_ROLE:
+                {
+                    key.accountRole().accountRoleID = e.data.accountRole().accountRoleID;
+                    break;
+                }
+                case LedgerEntryType::ACCOUNT_ROLE_POLICY:
+                {
+                    auto& sourceData = e.data.accountRolePolicy();
+                    key.accountRolePolicy().accountRolePolicyID = sourceData.accountRolePolicyID;
+                    key.accountRolePolicy().ownerID = sourceData.ownerID;
+                    break;
+                }
+                default:
+                    assert(false);
+            }
+            return key;
+        }
 		EntryHelperLegacy* helper = EntryHelperProvider::getHelper(e.data.type());
+		if (helper == nullptr)
+        {
+		    throw std::runtime_error("There\'s no such legacy helper for this entry.");
+        }
 		return helper->getLedgerKey(e);
 	}
 

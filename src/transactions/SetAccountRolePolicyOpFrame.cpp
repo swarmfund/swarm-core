@@ -92,8 +92,8 @@ SetAccountRolePolicyOpFrame::createOrUpdatePolicy(Application& app,
     le.data.accountRolePolicy().effect = mSetAccountRolePolicy.data->effect;
     le.data.accountRolePolicy().ownerID = getSourceID();
 
-    auto key = LedgerEntryKey(le);
-    if (!EntryHelperProvider::existsEntry(storageHelper.getDatabase(), key))
+    auto key = storageHelper.getAccountRolePolicyHelper().getLedgerKey(le);
+    if (!storageHelper.getAccountRolePolicyHelper().exists(key))
     {
         PolicyDetails details(mSetAccountRolePolicy.data->resource,
                               mSetAccountRolePolicy.data->action);
@@ -112,8 +112,15 @@ SetAccountRolePolicyOpFrame::createOrUpdatePolicy(Application& app,
     innerResult().success().accountRolePolicyID =
         le.data.accountRolePolicy().accountRolePolicyID;
 
-    EntryHelperProvider::storeAddOrChangeEntry(storageHelper.getLedgerDelta(),
-                                               storageHelper.getDatabase(), le);
+    auto& helper = storageHelper.getAccountRolePolicyHelper();
+    if (helper.exists(helper.getLedgerKey(le)))
+    {
+        helper.storeChange(le);
+    }
+    else
+    {
+        helper.storeAdd(le);
+    }
 
     return true;
 }

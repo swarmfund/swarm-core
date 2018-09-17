@@ -16,7 +16,8 @@ class LedgerManager;
 class AccountRolePolicyHelper : public EntryHelper
 {
   public:
-    AccountRolePolicyHelper(StorageHelper& storageHelper);
+    explicit AccountRolePolicyHelper(StorageHelper& storageHelper);
+    explicit AccountRolePolicyHelper(Database& db);
 
     static void dropAll(Database& db);
 
@@ -31,9 +32,10 @@ class AccountRolePolicyHelper : public EntryHelper
 
     Database& getDatabase() override;
 
-private:
+  private:
     void storeUpdate(LedgerEntry const& entry, bool insert);
-    StorageHelper& mStorageHelper;
+    Database& mDb;
+    LedgerDelta* mLedgerDelta{nullptr};
 };
 
 } // namespace stellar

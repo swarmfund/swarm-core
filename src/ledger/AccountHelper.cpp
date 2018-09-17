@@ -280,8 +280,9 @@ namespace stellar
 	}
 	void AccountHelper::addAccountRole(Database& db)
     {
-        db.getSession() << "ALTER TABLE accounts ADD role BIGINT "
-                           "REFERENCES account_roles(role_id)";
+        db.getSession() << "ALTER TABLE accounts ADD account_role BIGINT "
+                           "REFERENCES account_roles(role_id) ON DELETE CASCADE "
+						   "ON UPDATE CASCADE";
     }
 	void
 	AccountHelper::dropAll(Database& db)

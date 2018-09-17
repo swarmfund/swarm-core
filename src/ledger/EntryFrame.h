@@ -52,7 +52,8 @@ class EntryFrame : public NonMovableOrCopyable
 
     virtual EntryFrame::pointer copy() const = 0;
 
-    LedgerKey const& getKey() const;
+    virtual LedgerKey const& getKey() const;
+    virtual LedgerKey createKey() const;
 
 };
 

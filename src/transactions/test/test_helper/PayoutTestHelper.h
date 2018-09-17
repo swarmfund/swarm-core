@@ -11,13 +11,14 @@ namespace txtest {
 
         TransactionFramePtr
         createPayoutTx(Account &source, AssetCode asset, BalanceID sourceBalanceID,
-                                           uint64_t maxPayoutAmount, uint64_t minPayOutAmount, Fee &fee);
+                       uint64_t maxPayoutAmount, uint64_t minPayOutAmount,
+                       uint64_t minAssetHolderAmount, Fee &fee);
 
         PayoutResult
         applyPayoutTx(Account &source, AssetCode asset,
                       BalanceID sourceBalanceID, uint64_t maxPayoutAmount,
-                      uint64_t minPayOutAmount, Fee &fee,
-                      PayoutResultCode expectedResult = PayoutResultCode::SUCCESS);
+                      uint64_t minPayOutAmount, uint64_t minAssetHolderAmount,
+                      Fee &fee, PayoutResultCode expectedResult = PayoutResultCode::SUCCESS);
     };
 }
 }

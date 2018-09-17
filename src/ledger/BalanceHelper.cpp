@@ -366,17 +366,19 @@ namespace stellar
 
     std::vector<BalanceFrame::pointer>
     BalanceHelper::loadAssetHolders(AssetCode assetCode, AccountID ownerID,
-                                    Database &db)
+                                    uint64_t minTotalAmount, Database &db)
     {
         std::string ownerIdStr = PubKeyUtils::toStrKey(ownerID);
 
         std::string sql = balanceColumnSelector;
-        sql += " WHERE asset = :asset AND account_id != :owner";
+        sql += " WHERE asset = :asset AND account_id != :owner AND"
+			   " amount + locked >= :min_tot";
 
         auto prep = db.getPreparedStatement(sql);
         auto &st = prep.statement();
         st.exchange(use(assetCode, "asset"));
         st.exchange(use(ownerIdStr, "owner"));
+        st.exchange(use(minTotalAmount, "min_tot"));
 
         auto timer = db.getSelectTimer("balance");
 

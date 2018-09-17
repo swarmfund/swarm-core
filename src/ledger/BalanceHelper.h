@@ -85,9 +85,9 @@ namespace stellar
         std::vector<BalanceFrame::pointer> loadBalances(AccountID account,
                                                         AssetCode asset, Database& db);
 
-        std::vector<BalanceFrame::pointer> loadAssetHolders(AssetCode assetCode,
-                                                            AccountID ownerID,
-                                                            Database &db);
+        std::vector<BalanceFrame::pointer>
+		loadAssetHolders(AssetCode assetCode, AccountID ownerID,
+						 uint64_t minTotalAmount, Database &db);
 
         std::vector<BalanceFrame::pointer> loadBalances(
                                             std::vector<AccountID> accountIDs,

@@ -21,9 +21,16 @@ class PayoutOpFrame : public OperationFrame
                             CounterpartyDetails> counterpartiesDetails,
                             int32_t ledgerVersion) const override;
 
+    Fee
+    getActualFee(AssetCode const& asset, uint64_t amount, Database& db);
+
     bool
-    isFeeMatches(AccountManager &accountManager,
-                 BalanceFrame::pointer balance) const;
+    isFeeAppropriate(Fee const& actualFee) const;
+
+    bool
+    tryProcessTransferFee(AccountManager& accountManager,
+                          Database& db, uint64_t actualTotalAmount,
+                          BalanceFrame::pointer sourceBalance);
 
     uint64_t
     obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame, Database& db);
@@ -50,10 +57,6 @@ class PayoutOpFrame : public OperationFrame
                      std::map<AccountID, uint64_t> assetHoldersAmounts,
                      Database& db, LedgerDelta& delta);
 
-    bool
-    tryProcessTransferFee(AccountManager& accountManager,
-                          BalanceFrame::pointer sourceBalance);
-
     AssetFrame::pointer
     obtainAsset(Database& db);
 
@@ -62,7 +65,7 @@ class PayoutOpFrame : public OperationFrame
                                AssetFrame::pointer assetFrame, Database& db);
 
     bool
-    processStatistics(AccountManager accountManager,
+    processStatistics(StatisticsV2Processor statisticsV2Processor,
                       BalanceFrame::pointer sourceBalance, uint64_t amount);
 
 public:

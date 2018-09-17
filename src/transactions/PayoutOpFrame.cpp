@@ -5,6 +5,7 @@
 #include "ledger/BalanceHelper.h"
 #include "ledger/LedgerDelta.h"
 #include <ledger/LedgerHeaderFrame.h>
+#include <ledger/FeeHelper.h>
 #include "main/Application.h"
 
 namespace stellar {
@@ -33,17 +34,83 @@ PayoutOpFrame::getSourceAccountDetails(
                          static_cast<int32_t>(SignerType::ASSET_MANAGER));
 }
 
-bool
-PayoutOpFrame::isFeeMatches(AccountManager &accountManager,
-                            BalanceFrame::pointer balance) const
+Fee
+PayoutOpFrame::getActualFee(AssetCode const& asset, uint64_t amount,
+                            Database& db)
 {
-    return accountManager.isFeeMatches(mSourceAccount, mPayout.fee,
-                                       FeeType::PAYOUT_FEE,
-                                       FeeFrame::SUBTYPE_ANY,
-                                       balance->getAsset(),
-                                       mPayout.maxPayoutAmount);
+    Fee actualFee;
+    actualFee.fixed = 0;
+    actualFee.percent = 0;
+
+    auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::PAYOUT_FEE,
+            asset, FeeFrame::SUBTYPE_ANY, mSourceAccount, amount, db);
+    // if we do not have any fee frame - any fee is valid
+    if (!feeFrame) {
+        return actualFee;
+    }
+
+    if (!feeFrame->calculatePercentFee(amount, actualFee.percent, ROUND_UP))
+    {
+        CLOG(ERROR, Logging::OPERATION_LOGGER)
+                << "Actual calculated payout fee overflows, asset code: "
+                << feeFrame->getFeeAsset();
+        throw std::runtime_error("Actual calculated payout fee overflows");
+    }
+
+    actualFee.fixed = static_cast<uint64_t>(feeFrame->getFixedFee());
+    return actualFee;
 }
 
+bool
+PayoutOpFrame::isFeeAppropriate(Fee const& actualFee) const
+{
+    if (isSystemAccountType(mSourceAccount->getAccountType()))
+        return (actualFee.fixed == 0) && (actualFee.percent == 0);
+
+    return (mPayout.fee.fixed >= actualFee.fixed) &&
+           (mPayout.fee.percent >= actualFee.percent);
+}
+
+bool
+PayoutOpFrame::tryProcessTransferFee(AccountManager& accountManager,
+                                     Database& db, uint64_t actualTotalAmount,
+                                     BalanceFrame::pointer sourceBalance)
+{
+    auto actualFee = getActualFee(sourceBalance->getAsset(),
+                                  actualTotalAmount, db);
+
+    if (!isFeeAppropriate(actualFee))
+    {
+        innerResult().code(PayoutResultCode::INSUFFICIENT_FEE_AMOUNT);
+        return false;
+    }
+
+    uint64_t totalFee = 0;
+    if (!safeSum(actualFee.percent, actualFee.fixed, totalFee))
+    {
+        innerResult().code(PayoutResultCode::TOTAL_FEE_OVERFLOW);
+        return false;
+    }
+
+    if (totalFee == 0)
+        return true;
+
+    if (actualTotalAmount < totalFee)
+    {
+        innerResult().code(PayoutResultCode::FEE_EXCEEDS_ACTUAL_AMOUNT);
+        return false;
+    }
+
+    if (!sourceBalance->tryCharge(totalFee))
+    {
+        innerResult().code(PayoutResultCode::UNDERFUNDED);
+        return false;
+    }
+
+    accountManager.transferFee(sourceBalance->getAsset(), totalFee);
+
+    return true;
+}
 
 uint64_t
 PayoutOpFrame::obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame,
@@ -215,38 +282,7 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
     fundWithoutBalancesAccounts(accountIDs, assetHoldersAmounts, db, delta);
 
     balanceHelper->storeChange(delta, db, sourceBalance->mEntry);
-
-    return true;
-}
-
-bool
-PayoutOpFrame::tryProcessTransferFee(AccountManager& accountManager,
-                                     uint64_t actualTotalAmount,
-                                     BalanceFrame::pointer sourceBalance)
-{
-    if (!isFeeMatches(accountManager, sourceBalance))
-    {
-        innerResult().code(PayoutResultCode::FEE_MISMATCHED);
-        return false;
-    }
-
-    uint64_t totalFee = 0;
-    if (!safeSum(mPayout.fee.percent, mPayout.fee.fixed, totalFee))
-    {
-        innerResult().code(PayoutResultCode::TOTAL_FEE_OVERFLOW);
-        return false;
-    }
-
-    if (totalFee == 0)
-        return true;
-
-    if (!sourceBalance->tryCharge(totalFee))
-    {
-        innerResult().code(PayoutResultCode::UNDERFUNDED);
-        return false;
-    }
-
-    accountManager.transferFee(sourceBalance->getAsset(), totalFee);
+    innerResult().payoutSuccessResult().actualPayoutAmount = totalAmount;
 
     return true;
 }
@@ -283,15 +319,15 @@ PayoutOpFrame::obtainAssetHoldersBalances(uint64_t& assetHoldersAmount,
     }
 
     return BalanceHelper::Instance()->loadAssetHolders(mPayout.asset,
-                                                       getSourceID(), db);
+                       getSourceID(), mPayout.minAssetHolderAmount, db);
 }
 
 bool
 PayoutOpFrame::doApply(Application &app, LedgerDelta &delta,
                        LedgerManager &ledgerManager)
 {
-    Database &db = app.getDatabase();
     innerResult().code(PayoutResultCode::SUCCESS);
+    Database &db = app.getDatabase();
 
     auto assetFrame = obtainAsset(db);
     if (assetFrame == nullptr)
@@ -317,43 +353,43 @@ PayoutOpFrame::doApply(Application &app, LedgerDelta &delta,
     uint64_t actualTotalAmount;
     auto holdersAmountsMap = obtainHoldersAmountsMap(app, actualTotalAmount,
             assetHoldersBalances, assetHoldersAmount);
-
     if (actualTotalAmount == 0)
     {
-        innerResult().code(PayoutResultCode::MIN_PAYOUT_AMOUNT_TOO_MUCH);
+        innerResult().code(PayoutResultCode::MIN_AMOUNT_TOO_MUCH);
         return false;
     }
 
     AccountManager accountManager(app, db, delta, ledgerManager);
-    if (!tryProcessTransferFee(accountManager, sourceBalance))
+    if (!tryProcessTransferFee(accountManager, db, actualTotalAmount,
+                               sourceBalance))
         return false;
 
-    innerResult().payoutSuccessResult().actualPayoutAmount = actualTotalAmount;
-
-    if (!processTransfers(sourceBalance, actualTotalAmount, holdersAmountsMap, db, delta))
+    if (!processTransfers(sourceBalance, actualTotalAmount, holdersAmountsMap,
+                          db, delta))
         return false;
 
-    return processStatistics(accountManager, sourceBalance, actualTotalAmount);
+    StatisticsV2Processor statsProcessor(db, delta, ledgerManager);
+    return processStatistics(statsProcessor, sourceBalance, actualTotalAmount);
 }
 
 bool
-PayoutOpFrame::processStatistics(AccountManager accountManager,
+PayoutOpFrame::processStatistics(StatisticsV2Processor statisticsV2Processor,
                                  BalanceFrame::pointer sourceBalance,
                                  uint64_t amount)
 {
     uint64_t universalAmount;
-    // fixme, use statistics processor or fix account manager
-    auto statisticsResult = accountManager.processStatistics(mSourceAccount,
-            sourceBalance, amount, universalAmount);
+    auto statisticsResult = statisticsV2Processor.addStatsV2(
+            StatisticsV2Processor::PAYOUT, amount, universalAmount,
+            mSourceAccount, sourceBalance);
 
-    switch (statisticsResult.result)
+    switch (statisticsResult)
     {
-        case AccountManager::Result::SUCCESS:
+        case StatisticsV2Processor::Result::SUCCESS:
             return true;
-        case AccountManager::Result::STATS_OVERFLOW:
+        case StatisticsV2Processor::Result::STATS_V2_OVERFLOW:
             innerResult().code(PayoutResultCode::STATS_OVERFLOW);
             return false;
-        case AccountManager::Result::LIMITS_EXCEEDED:
+        case StatisticsV2Processor::Result::LIMITS_V2_EXCEEDED:
             innerResult().code(PayoutResultCode::LIMITS_EXCEEDED);
             return false;
         default:

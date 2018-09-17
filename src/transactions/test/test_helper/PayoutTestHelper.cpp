@@ -14,8 +14,8 @@ PayoutTestHelper::PayoutTestHelper(TestManager::pointer testManager)
 
 TransactionFramePtr
 PayoutTestHelper::createPayoutTx(Account &source, AssetCode asset,
-                 BalanceID sourceBalanceID, uint64_t maxPayoutAmount,
-                 uint64_t minPayOutAmount, Fee &fee)
+             BalanceID sourceBalanceID, uint64_t maxPayoutAmount,
+             uint64_t minPayOutAmount, uint64_t minAssetHolderAmount, Fee &fee)
 {
     Operation op;
     op.body.type(OperationType::PAYOUT);
@@ -25,6 +25,7 @@ PayoutTestHelper::createPayoutTx(Account &source, AssetCode asset,
     payoutOp.sourceBalanceID = sourceBalanceID;
     payoutOp.maxPayoutAmount = maxPayoutAmount;
     payoutOp.minPayoutAmount = minPayOutAmount;
+    payoutOp.minAssetHolderAmount = minAssetHolderAmount;
     payoutOp.fee = fee;
 
     return TxHelper::txFromOperation(source, op, nullptr);
@@ -33,17 +34,24 @@ PayoutTestHelper::createPayoutTx(Account &source, AssetCode asset,
 PayoutResult
 PayoutTestHelper::applyPayoutTx(Account &source, AssetCode asset,
             BalanceID sourceBalanceID, uint64_t maxPayoutAmount,
-            uint64_t minPayOutAmount, Fee &fee, PayoutResultCode expectedResult)
+            uint64_t minPayOutAmount, uint64_t minAssetHolderAmount, Fee &fee,
+            PayoutResultCode expectedResult)
 {
     Database& db = mTestManager->getDB();
     auto balanceHelper = BalanceHelper::Instance();
     auto ownerBalanceBefore = balanceHelper->loadBalance(sourceBalanceID, db);
+    BalanceFrame::pointer commissionBalanceBefore;
+    if (ownerBalanceBefore != nullptr)
+        commissionBalanceBefore = balanceHelper->
+            loadBalance(mTestManager->getApp().getCommissionID(),
+                        ownerBalanceBefore->getAsset(), db);
+
     auto assetHoldersBefore = balanceHelper->loadAssetHolders(asset,
-            source.key.getPublicKey(), db);
+            source.key.getPublicKey(), minAssetHolderAmount, db);
 
     TransactionFramePtr txFrame;
     txFrame = createPayoutTx(source, asset, sourceBalanceID,
-            maxPayoutAmount, minPayOutAmount, fee);
+            maxPayoutAmount, minPayOutAmount, minAssetHolderAmount, fee);
     mTestManager->applyCheck(txFrame);
 
     auto opResult = txFrame->getResult().result.results()[0];
@@ -63,7 +71,7 @@ PayoutTestHelper::applyPayoutTx(Account &source, AssetCode asset,
             ownerBalanceAfter->getAmount() + actualPayoutAmount + totalFee);
 
     auto assetHoldersAfter = balanceHelper->loadAssetHolders(asset,
-            source.key.getPublicKey(), db);
+            source.key.getPublicKey(), minAssetHolderAmount, db);
 
     for (auto response : result.payoutSuccessResult().payoutResponses)
     {
@@ -83,6 +91,22 @@ PayoutTestHelper::applyPayoutTx(Account &source, AssetCode asset,
                 break;
             }
     }
+
+    BalanceFrame::pointer commissionBalanceAfter;
+    if (ownerBalanceBefore != nullptr)
+        commissionBalanceAfter = balanceHelper->
+            loadBalance(mTestManager->getApp().getCommissionID(),
+                        ownerBalanceBefore->getAsset(), db);
+
+    uint64_t commissionAmountBefore = 0;
+    if (commissionBalanceBefore != nullptr)
+        commissionAmountBefore = commissionBalanceBefore->getAmount();
+
+    uint64_t commissionAmountAfter = 0;
+    if (commissionBalanceAfter != nullptr)
+        commissionAmountAfter = commissionBalanceAfter->getAmount();
+
+    REQUIRE(commissionAmountAfter == commissionAmountBefore + totalFee);
 
     return result;
 }

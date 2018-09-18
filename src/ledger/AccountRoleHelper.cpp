@@ -40,7 +40,10 @@ AccountRoleHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     auto accountRoleFrame = make_shared<AccountRoleFrame>(entry);
     auto accountRoleEntry = accountRoleFrame->getAccountRole();
 
-    accountRoleFrame->touch(mStorageHelper.getLedgerDelta());
+    if (mStorageHelper.getLedgerDelta())
+    {
+        accountRoleFrame->touch(*mStorageHelper.getLedgerDelta());
+    }
     accountRoleFrame->ensureValid();
 
     string sql;
@@ -80,10 +83,13 @@ AccountRoleHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     if (st.get_affected_rows() != 1)
         throw runtime_error("could not update SQL");
 
-    if (insert)
-        mStorageHelper.getLedgerDelta().addEntry(*accountRoleFrame);
-    else
-        mStorageHelper.getLedgerDelta().modEntry(*accountRoleFrame);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        if (insert)
+            mStorageHelper.getLedgerDelta()->addEntry(*accountRoleFrame);
+        else
+            mStorageHelper.getLedgerDelta()->modEntry(*accountRoleFrame);
+    }
 }
 
 void
@@ -112,7 +118,10 @@ AccountRoleHelper::storeDelete(LedgerKey const& key)
     st.define_and_bind();
     st.execute(true);
 
-    mStorageHelper.getLedgerDelta().deleteEntry(key);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->deleteEntry(key);
+    }
 }
 
 bool

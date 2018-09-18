@@ -139,12 +139,12 @@ OperationFrame::OperationFrame(Operation const& op, OperationResult& res,
 bool
 OperationFrame::apply(StorageHelper& storageHelper, Application& app)
 {
-    bool res;
-    res = checkValid(app, &storageHelper.getLedgerDelta());
-    if (!res)
-        return res;
+    if (!storageHelper.getLedgerDelta() || !checkValid(app, storageHelper.getLedgerDelta()))
+    {
+        return false;
+    }
     bool isApplied =
-        doApply(app, storageHelper.getLedgerDelta(), app.getLedgerManager());
+        doApply(app, *storageHelper.getLedgerDelta(), app.getLedgerManager());
 	app.getMetrics().NewMeter({ "operation", isApplied ? "applied" : "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
 	return isApplied;
 }
@@ -219,7 +219,7 @@ bool
 OperationFrame::doApply(Application& app, LedgerDelta& delta,
 	LedgerManager& ledgerManager)
 {
-    StorageHelperImpl storageHelper(app.getDatabase(), delta);
+    StorageHelperImpl storageHelper(app.getDatabase(), &delta);
     static_cast<StorageHelper&>(storageHelper).release();
     return doApply(app, storageHelper, ledgerManager);
 }
@@ -228,7 +228,12 @@ OperationFrame::doApply(Application& app, LedgerDelta& delta,
 bool OperationFrame::doApply(Application& app, StorageHelper& storageHelper,
                              LedgerManager& ledgerManager)
 {
-    return doApply(app, storageHelper.getLedgerDelta(), ledgerManager);
+    if (!storageHelper.getLedgerDelta())
+    {
+        throw std::runtime_error("Cannot apply operation frame without "
+                                 "LedgerDelta.");
+    }
+    return doApply(app, *storageHelper.getLedgerDelta(), ledgerManager);
 }
 
 AccountID const&
@@ -255,7 +260,7 @@ OperationFrame::createReferenceEntry(string reference, StorageHelper& storageHel
 
     entry.reference = reference;
     auto referenceFrame = std::make_shared<ReferenceFrame>(le);
-    EntryHelperProvider::storeAddEntry(storageHelper.getLedgerDelta(),
+    EntryHelperProvider::storeAddEntry(*storageHelper.getLedgerDelta(),
                                        storageHelper.getDatabase(),
                                        referenceFrame->mEntry);
 }

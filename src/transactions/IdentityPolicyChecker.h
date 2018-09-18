@@ -27,7 +27,7 @@ class IdentityPolicyChecker
                                 Database& db, LedgerDelta* delta = nullptr);
     static FindResult findPolicy(uint32 accountRole,
                                  const PolicyDetails& policyDetails,
-                                 Database& db, LedgerDelta* delta = nullptr);
+                                 Database& db);
 };
 
 } // namespace stellar

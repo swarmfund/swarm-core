@@ -56,9 +56,6 @@ BindExternalSystemAccountIdOpFrame::doApply(Application& app,
                                             StorageHelper& storageHelper,
                                             LedgerManager& ledgerManager)
 {
-    Database& db = storageHelper.getDatabase();
-    LedgerDelta& delta = storageHelper.getLedgerDelta();
-
     auto& externalSystemAccountIDHelper =
         storageHelper.getExternalSystemAccountIDHelper();
     auto& externalSystemAccountIDPoolEntryHelper =

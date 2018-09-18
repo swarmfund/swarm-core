@@ -76,8 +76,12 @@ bool
 SetAccountRolePolicyOpFrame::createOrUpdatePolicy(Application& app,
                                                   StorageHelper& storageHelper)
 {
+    if (!storageHelper.getLedgerDelta())
+    {
+        throw std::runtime_error("Unable to process policy without ledger.");
+    }
     LedgerHeaderFrame& headerFrame =
-        storageHelper.getLedgerDelta().getHeaderFrame();
+        storageHelper.getLedgerDelta()->getHeaderFrame();
 
     LedgerEntry le;
     le.data.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
@@ -99,7 +103,7 @@ SetAccountRolePolicyOpFrame::createOrUpdatePolicy(Application& app,
                               mSetAccountRolePolicy.data->action);
         if (IdentityPolicyChecker::findPolicy(
                 mSetAccountRolePolicy.data->roleID, details,
-                storageHelper.getDatabase(), &storageHelper.getLedgerDelta()) !=
+                storageHelper.getDatabase()) !=
             IdentityPolicyChecker::FindResult::NOT_FOUND)
         {
             innerResult().code(
@@ -140,7 +144,7 @@ SetAccountRolePolicyOpFrame::deleteAccountPolicy(Application& app,
         return false;
     }
 
-    EntryHelperProvider::storeDeleteEntry(storageHelper.getLedgerDelta(),
+    EntryHelperProvider::storeDeleteEntry(*storageHelper.getLedgerDelta(),
                                           storageHelper.getDatabase(),
                                           frame->getKey());
     innerResult().code(SetAccountRolePolicyResultCode::SUCCESS);

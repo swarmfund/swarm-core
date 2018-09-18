@@ -21,8 +21,8 @@ class StorageHelper
 
     virtual Database& getDatabase() = 0;
     virtual const Database& getDatabase() const = 0;
-    virtual LedgerDelta& getLedgerDelta() = 0;
-    virtual const LedgerDelta& getLedgerDelta() const = 0;
+    virtual LedgerDelta * getLedgerDelta() = 0;
+    virtual const LedgerDelta * getLedgerDelta() const = 0;
 
     virtual void commit() = 0;
     virtual void rollback() = 0;

@@ -17,7 +17,6 @@ class AccountRolePolicyHelper : public EntryHelper
 {
   public:
     explicit AccountRolePolicyHelper(StorageHelper& storageHelper);
-    explicit AccountRolePolicyHelper(Database& db);
 
     static void dropAll(Database& db);
 

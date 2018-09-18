@@ -29,7 +29,7 @@ ReviewRequestResult ReviewRequestHelper::tryApproveRequestWithResult(Transaction
     // shield outer scope of any side effects by using
     // a StorageHelper and LedgerDelta
     LedgerDeltaImpl reviewRequestDelta(delta);
-    StorageHelperImpl storageHelperImpl(ledgerManager.getDatabase(), reviewRequestDelta);
+    StorageHelperImpl storageHelperImpl(ledgerManager.getDatabase(), &reviewRequestDelta);
     StorageHelper& storageHelper = storageHelperImpl;
 
     auto helper = ReviewRequestHelper(app, ledgerManager, reviewRequestDelta, reviewableRequest);

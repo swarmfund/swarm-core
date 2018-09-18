@@ -1,5 +1,6 @@
 #include "SetAccountRolePolicyTestHelper.h"
 #include "ledger/AccountRolePolicyHelper.h"
+#include "ledger/StorageHelperImpl.h"
 #include "transactions/SetAccountRolePolicyOpFrame.h"
 #include <lib/catch.hpp>
 
@@ -63,7 +64,8 @@ SetAccountRolePolicyTestHelper::applySetIdentityPolicyTx(
     SetAccountRolePolicyResult result =
         txResult.result.results()[0].tr().setAccountRolePolicyResult();
 
-    AccountRolePolicyHelper rolePolicyHelper(mTestManager->getDB());
+    StorageHelperImpl storageHelperImpl(mTestManager->getDB(), nullptr);
+    AccountRolePolicyHelper rolePolicyHelper(static_cast<StorageHelper&>(storageHelperImpl));
     LedgerKey affectedPolicyKey;
     affectedPolicyKey.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
     affectedPolicyKey.accountRolePolicy().accountRolePolicyID =

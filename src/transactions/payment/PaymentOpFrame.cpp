@@ -321,7 +321,7 @@ PaymentOpFrame::doApply(Application& app, StorageHelper& storageHelper,
     innerResult().code(PaymentResultCode::SUCCESS);
     
     Database& db = ledgerManager.getDatabase();
-    LedgerDelta& delta = storageHelper.getLedgerDelta();
+    LedgerDelta& delta = *storageHelper.getLedgerDelta();
     
 	if (!tryLoadBalances(app, db, delta))
 	{

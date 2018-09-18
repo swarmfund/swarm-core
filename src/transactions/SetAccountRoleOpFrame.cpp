@@ -36,8 +36,8 @@ SetAccountRoleOpFrame::getSourceAccountDetails(
 }
 
 bool
-SetAccountRoleOpFrame::createAccountRole(Application &app,
-                                         StorageHelper &storageHelper)
+SetAccountRoleOpFrame::createAccountRole(Application& app,
+                                         StorageHelper& storageHelper)
 {
     LedgerKey ledgerKey;
     ledgerKey.type(LedgerEntryType::ACCOUNT_ROLE);
@@ -49,12 +49,17 @@ SetAccountRoleOpFrame::createAccountRole(Application &app,
         return false;
     }
 
+    if (!storageHelper.getLedgerDelta())
+    {
+        throw std::runtime_error(
+            "Unable to create account role without ledger");
+    }
+    LedgerDelta& delta = *storageHelper.getLedgerDelta();
+
     auto newAccountRoleID =
-        storageHelper.getLedgerDelta().getHeaderFrame().generateID(
-            LedgerEntryType::ACCOUNT_ROLE);
-    auto frame = AccountRoleFrame::createNew(
-        newAccountRoleID, getSourceID(), mSetAccountRole.data->name,
-        storageHelper.getLedgerDelta());
+        delta.getHeaderFrame().generateID(LedgerEntryType::ACCOUNT_ROLE);
+    auto frame = AccountRoleFrame::createNew(newAccountRoleID, getSourceID(),
+                                             mSetAccountRole.data->name, delta);
 
     storageHelper.getAccountRoleHelper().storeAdd(frame->mEntry);
 
@@ -64,8 +69,8 @@ SetAccountRoleOpFrame::createAccountRole(Application &app,
 }
 
 bool
-SetAccountRoleOpFrame::deleteAccountRole(Application &app,
-                                         StorageHelper &storageHelper)
+SetAccountRoleOpFrame::deleteAccountRole(Application& app,
+                                         StorageHelper& storageHelper)
 {
     LedgerKey ledgerKey;
     ledgerKey.type(LedgerEntryType::ACCOUNT_ROLE);

@@ -20,14 +20,14 @@ class ExternalSystemAccountIDPoolEntryHelper;
 class StorageHelperImpl : public StorageHelper
 {
   public:
-    StorageHelperImpl(Database& db, LedgerDelta& ledgerDelta);
+    StorageHelperImpl(Database& db, LedgerDelta* ledgerDelta);
     virtual ~StorageHelperImpl();
 
   private:
     virtual Database& getDatabase();
     virtual const Database& getDatabase() const;
-    virtual LedgerDelta& getLedgerDelta();
-    virtual const LedgerDelta& getLedgerDelta() const;
+    virtual LedgerDelta* getLedgerDelta();
+    virtual const LedgerDelta* getLedgerDelta() const;
 
     virtual void commit();
     virtual void rollback();
@@ -43,7 +43,7 @@ class StorageHelperImpl : public StorageHelper
     AccountRolePolicyHelper& getAccountRolePolicyHelper() override;
 
     Database& mDatabase;
-    LedgerDelta& mLedgerDelta;
+    LedgerDelta* mLedgerDelta;
     bool mIsReleased = false;
     std::unique_ptr<LedgerDelta> mNestedDelta;
     std::unique_ptr<soci::transaction> mTransaction;

@@ -39,11 +39,7 @@ AccountRolePolicyHelper::dropAll(Database& db)
 
 AccountRolePolicyHelper::AccountRolePolicyHelper(StorageHelper& storageHelper)
     : mDb(storageHelper.getDatabase())
-    , mLedgerDelta(&storageHelper.getLedgerDelta())
-{
-}
-
-AccountRolePolicyHelper::AccountRolePolicyHelper(Database& db) : mDb(db)
+    , mLedgerDelta(storageHelper.getLedgerDelta())
 {
 }
 

@@ -293,7 +293,7 @@ namespace stellar {
                             LedgerManager& ledgerManager)
     {
         Database& db = storageHelper.getDatabase();
-        LedgerDelta& delta = storageHelper.getLedgerDelta();
+        LedgerDelta& delta = *storageHelper.getLedgerDelta();
         auto sourceBalance = BalanceHelper::Instance()->loadBalance(
             getSourceID(), mPayment.sourceBalanceID, db, &delta);
         if (!sourceBalance)

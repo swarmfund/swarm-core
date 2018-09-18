@@ -80,7 +80,7 @@ DirectDebitOpFrame::doApply(Application& app, StorageHelper& storageHelper,
     
 	auto accountHelper = AccountHelper::Instance();
     auto fromAccount = accountHelper->loadAccount(
-        storageHelper.getLedgerDelta(), mDirectDebit.from, db);
+        mDirectDebit.from, db, storageHelper.getLedgerDelta());
     
     payment.setSourceAccountPtr(fromAccount);
 

@@ -35,8 +35,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::storeUpdateHelper(
             std::make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
         auto poolEntry = poolEntryFrame->getExternalSystemAccountIDPoolEntry();
 
-        poolEntryFrame->touch(mStorageHelper.getLedgerDelta());
-
+        if (mStorageHelper.getLedgerDelta())
+        {
+            poolEntryFrame->touch(*mStorageHelper.getLedgerDelta());
+        }
         poolEntryFrame->ensureValid();
 
         std::string sql;
@@ -97,13 +99,16 @@ ExternalSystemAccountIDPoolEntryHelperImpl::storeUpdateHelper(
             throw std::runtime_error("could not update SQL");
         }
 
-        if (insert)
+        if (mStorageHelper.getLedgerDelta())
         {
-            mStorageHelper.getLedgerDelta().addEntry(*poolEntryFrame);
-        }
-        else
-        {
-            mStorageHelper.getLedgerDelta().modEntry(*poolEntryFrame);
+            if (insert)
+            {
+                mStorageHelper.getLedgerDelta()->addEntry(*poolEntryFrame);
+            }
+            else
+            {
+                mStorageHelper.getLedgerDelta()->modEntry(*poolEntryFrame);
+            }
         }
     }
     catch (std::exception ex)
@@ -142,7 +147,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::storeDelete(LedgerKey const& key)
     st.define_and_bind();
     st.execute(true);
 
-    mStorageHelper.getLedgerDelta().deleteEntry(key);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->deleteEntry(key);
+    }
 }
 
 void
@@ -291,8 +299,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::load(uint64_t poolEntryID)
     {
         return nullptr;
     }
-
-    mStorageHelper.getLedgerDelta().recordEntry(*result);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*result);
+    }
 
     return result;
 }
@@ -319,9 +329,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::load(int32 type,
     {
         return nullptr;
     }
-
-    mStorageHelper.getLedgerDelta().recordEntry(*result);
-
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*result);
+    }
     return result;
 }
 
@@ -349,9 +360,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::load(int32 externalSystemType,
     {
         return nullptr;
     }
-
-    mStorageHelper.getLedgerDelta().recordEntry(*result);
-
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*result);
+    }
     return result;
 }
 

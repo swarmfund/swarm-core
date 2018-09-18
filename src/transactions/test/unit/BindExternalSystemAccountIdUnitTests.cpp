@@ -72,7 +72,7 @@ TEST_CASE("bind external system account_id - unit test",
         .WillByDefault(ReturnRef(ledgerHeaderFake));
     ON_CALL(storageHelperMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
     ON_CALL(storageHelperMock, getLedgerDelta())
-        .WillByDefault(ReturnRef(ledgerDeltaMock));
+        .WillByDefault(Return(&ledgerDeltaMock));
     ON_CALL(transactionFrameMock, getSignatureValidator())
         .WillByDefault(Return(signatureValidatorMock));
     ON_CALL(*signatureValidatorMock,

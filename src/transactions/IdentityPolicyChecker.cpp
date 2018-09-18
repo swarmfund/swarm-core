@@ -20,14 +20,13 @@ IdentityPolicyChecker::isPolicyAllowed(const AccountID& initiatorID,
         // accounts with no role assigned will fail policy check
         return false;
     }
-    return findPolicy(*sourceAccount->getAccountRole(), policyDetails, db,
-                      delta) == FindResult::ALLOW;
+    return findPolicy(*sourceAccount->getAccountRole(), policyDetails, db) == FindResult::ALLOW;
 }
 
 IdentityPolicyChecker::FindResult
 IdentityPolicyChecker::findPolicy(uint32 accountRole,
                                   const PolicyDetails& policyDetails,
-                                  Database& db, LedgerDelta* delta)
+                                  Database& db)
 {
     const std::string sql = "SELECT effect "
                             "FROM account_role_policies "

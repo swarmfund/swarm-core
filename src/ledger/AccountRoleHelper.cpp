@@ -185,9 +185,12 @@ AccountRoleHelper::storeLoad(LedgerKey const& key)
     st.exchange(into(le.data.accountRole().accountRoleName));
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.exchange(into(accountRoleVersion));
+    st.define_and_bind();
 
-    auto timer = mStorageHelper.getDatabase().getSelectTimer("account-role");
-    st.execute(true);
+    {
+        auto timer = mStorageHelper.getDatabase().getSelectTimer("account-role");
+        st.execute(true);
+    }
 
     if (!st.got_data())
     {

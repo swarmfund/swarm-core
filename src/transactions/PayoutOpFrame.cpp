@@ -1,10 +1,10 @@
 #include "util/asio.h"
 #include "transactions/PayoutOpFrame.h"
-#include "ledger/AccountHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/LedgerDelta.h"
 #include <ledger/LedgerHeaderFrame.h>
+#include "ledger/StorageHelper.h"
 #include <ledger/FeeHelper.h>
 #include "main/Application.h"
 
@@ -114,12 +114,12 @@ PayoutOpFrame::tryProcessTransferFee(AccountManager& accountManager,
 
 uint64_t
 PayoutOpFrame::obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame,
-                                             Database& db)
+                                             BalanceHelper& balanceHelper)
 {
     auto totalAmount = assetFrame->getIssued();
 
-    auto sourceBalances = BalanceHelper::Instance()->
-            loadBalances(getSourceID(), mPayout.asset, db);
+    auto sourceBalances = balanceHelper.loadBalances(getSourceID(),
+            mPayout.asset);
 
     for (auto balance : sourceBalances)
     {
@@ -206,14 +206,15 @@ PayoutOpFrame::addPayoutResponse(AccountID& accountID, uint64_t amount,
 void
 PayoutOpFrame::fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
                             std::map<AccountID, uint64_t> assetHoldersAmounts,
-                            AssetCode asset, Database& db, LedgerDelta& delta)
+                            AssetCode asset, StorageHelper& storageHelper)
 {
     for (auto accountID : accountIDs)
     {
         // we don't check if there is balance for such accountID and asset code
         // because we already check it existing
         auto balanceID = BalanceKeyUtils::forAccount(accountID,
-                delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));
+                storageHelper.getLedgerDelta().getHeaderFrame()
+                        .generateID(LedgerEntryType::BALANCE));
         auto newBalance = BalanceFrame::createNew(balanceID, accountID, asset);
 
         if (!newBalance->tryFundAccount(assetHoldersAmounts[accountID]))
@@ -224,14 +225,15 @@ PayoutOpFrame::fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
         addPayoutResponse(accountID, assetHoldersAmounts[accountID],
                           newBalance->getBalanceID());
 
-        EntryHelperProvider::storeAddEntry(delta, db, newBalance->mEntry);
+        auto& balanceHelper = storageHelper.getBalanceHelper();
+        balanceHelper.storeAdd(newBalance->mEntry);
     }
 }
 
 bool
 PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
         uint64_t totalAmount, std::map<AccountID, uint64_t> assetHoldersAmounts,
-        Database& db, LedgerDelta& delta)
+        StorageHelper& storageHelper)
 {
     if (!sourceBalance->tryCharge(totalAmount))
     {
@@ -241,9 +243,9 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
 
     auto accountIDs = getAccountIDs(assetHoldersAmounts);
 
-    auto balanceHelper = BalanceHelper::Instance();
-    auto receiverBalances = balanceHelper->loadBalances(accountIDs,
-            sourceBalance->getAsset(), db);
+    auto& balanceHelper = storageHelper.getBalanceHelper();
+    auto receiverBalances = balanceHelper.loadBalances(accountIDs,
+            sourceBalance->getAsset());
 
     for (auto receiverBalance : receiverBalances)
     {
@@ -275,23 +277,22 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
         addPayoutResponse(accountID, assetHoldersAmounts[accountID],
                           receiverBalance->getBalanceID());
 
-        balanceHelper->storeChange(delta, db, receiverBalance->mEntry);
+        balanceHelper.storeChange(receiverBalance->mEntry);
     }
 
     fundWithoutBalancesAccounts(accountIDs, assetHoldersAmounts,
-                                sourceBalance->getAsset(), db, delta);
+                                sourceBalance->getAsset(), storageHelper);
 
-    balanceHelper->storeChange(delta, db, sourceBalance->mEntry);
+    balanceHelper.storeChange(sourceBalance->mEntry);
     innerResult().payoutSuccessResult().actualPayoutAmount = totalAmount;
 
     return true;
 }
 
 AssetFrame::pointer
-PayoutOpFrame::obtainAsset(Database& db)
+PayoutOpFrame::obtainAsset(AssetHelper& assetHelper)
 {
-    auto assetFrame = AssetHelper::Instance()->loadAsset(mPayout.asset,
-                                                         getSourceID(), db);
+    auto assetFrame = assetHelper.loadAsset(mPayout.asset, getSourceID());
     if (assetFrame == nullptr)
     {
         innerResult().code(PayoutResultCode::ASSET_NOT_FOUND);
@@ -310,32 +311,34 @@ PayoutOpFrame::obtainAsset(Database& db)
 std::vector<BalanceFrame::pointer>
 PayoutOpFrame::obtainAssetHoldersBalances(uint64_t& assetHoldersAmount,
                                           AssetFrame::pointer assetFrame,
-                                          Database& db)
+                                          BalanceHelper& balanceHelper)
 {
-    assetHoldersAmount = obtainAssetHoldersTotalAmount(assetFrame, db);
+    assetHoldersAmount = obtainAssetHoldersTotalAmount(assetFrame,
+            balanceHelper);
     if (assetHoldersAmount == 0)
     {
         return std::vector<BalanceFrame::pointer>{};
     }
 
-    return BalanceHelper::Instance()->loadAssetHolders(mPayout.asset,
-                       getSourceID(), mPayout.minAssetHolderAmount, db);
+    return balanceHelper.loadAssetHolders(mPayout.asset,
+                       getSourceID(), mPayout.minAssetHolderAmount);
 }
 
 bool
-PayoutOpFrame::doApply(Application &app, LedgerDelta &delta,
+PayoutOpFrame::doApply(Application &app, StorageHelper &storageHelper,
                        LedgerManager &ledgerManager)
 {
     innerResult().code(PayoutResultCode::SUCCESS);
-    Database &db = app.getDatabase();
+    auto& balanceHelper = storageHelper.getBalanceHelper();
+    auto& assetHelper = storageHelper.getAssetHelper();
 
-    auto assetFrame = obtainAsset(db);
+    auto assetFrame = obtainAsset(assetHelper);
     if (assetFrame == nullptr)
         return false;
 
-    auto sourceBalance = BalanceHelper::Instance()->loadBalance(getSourceID(),
-            mPayout.sourceBalanceID, db, &delta);
-    if (!sourceBalance)
+    auto sourceBalance = balanceHelper.loadBalance(mPayout.sourceBalanceID,
+            getSourceID());
+    if (sourceBalance == nullptr)
     {
         innerResult().code(PayoutResultCode::BALANCE_NOT_FOUND);
         return false;
@@ -343,7 +346,7 @@ PayoutOpFrame::doApply(Application &app, LedgerDelta &delta,
 
     uint64_t assetHoldersAmount;
     auto assetHoldersBalances = obtainAssetHoldersBalances(assetHoldersAmount,
-            assetFrame, db);
+            assetFrame, balanceHelper);
     if (assetHoldersBalances.empty())
     {
         innerResult().code(PayoutResultCode::HOLDERS_NOT_FOUND);
@@ -359,13 +362,15 @@ PayoutOpFrame::doApply(Application &app, LedgerDelta &delta,
         return false;
     }
 
+    Database& db = storageHelper.getDatabase();
+    LedgerDelta& delta = storageHelper.getLedgerDelta();
     AccountManager accountManager(app, db, delta, ledgerManager);
     if (!tryProcessTransferFee(accountManager, db, actualTotalAmount,
                                sourceBalance))
         return false;
 
     if (!processTransfers(sourceBalance, actualTotalAmount, holdersAmountsMap,
-                          db, delta))
+                          storageHelper))
         return false;
 
     StatisticsV2Processor statsProcessor(db, delta, ledgerManager);

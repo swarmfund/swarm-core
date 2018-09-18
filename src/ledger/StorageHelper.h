@@ -7,6 +7,8 @@ namespace stellar
 class Database;
 class LedgerDelta;
 class KeyValueHelper;
+class BalanceHelper;
+class AssetHelper;
 class ExternalSystemAccountIDHelper;
 class ExternalSystemAccountIDPoolEntryHelper;
 
@@ -26,9 +28,11 @@ class StorageHelper
     virtual void rollback() = 0;
     virtual void release() = 0;
 
-    std::unique_ptr<StorageHelper> startNestedTransaction = 0;
+    virtual std::unique_ptr<StorageHelper> startNestedTransaction() = 0;
 
     virtual KeyValueHelper& getKeyValueHelper() = 0;
+    virtual BalanceHelper& getBalanceHelper() = 0;
+    virtual AssetHelper& getAssetHelper() = 0;
     virtual ExternalSystemAccountIDHelper&
     getExternalSystemAccountIDHelper() = 0;
     virtual ExternalSystemAccountIDPoolEntryHelper&

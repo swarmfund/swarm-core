@@ -5,8 +5,8 @@
 #include "PaymentOpFrame.h"
 #include "database/Database.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerHeaderFrame.h"
@@ -32,7 +32,7 @@ PaymentOpFrame::PaymentOpFrame(Operation const& op, OperationResult& res,
 
 bool PaymentOpFrame::tryLoadBalances(Application& app, Database& db, LedgerDelta& delta)
 {
-	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
 	mSourceBalance = balanceHelper->loadBalance(mPayment.sourceBalanceID, db, &delta);
 	if (!mSourceBalance)
 	{
@@ -73,7 +73,7 @@ bool PaymentOpFrame::tryLoadBalances(Application& app, Database& db, LedgerDelta
 
 std::unordered_map<AccountID, CounterpartyDetails> PaymentOpFrame::getCounterpartyDetails(Database & db, LedgerDelta * delta) const
 {
-	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
 	auto targetBalance = balanceHelper->loadBalance(mPayment.destinationBalanceID, db, delta);
 	// counterparty does not exists, error will be returned from do apply
 	if (!targetBalance)
@@ -255,7 +255,7 @@ bool PaymentOpFrame::processFees(Application& app, LedgerManager& lm, LedgerDelt
 bool PaymentOpFrame::processFees_v1(Application& app, LedgerDelta& delta,
     Database& db)
 {
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto commissionBalanceFrame = balanceHelper->loadBalance(app.getCommissionID(),
         mSourceBalance->getAsset(), app.getDatabase(), &delta);
     if (!commissionBalanceFrame)
@@ -329,7 +329,7 @@ PaymentOpFrame::doApply(Application& app, StorageHelper& storageHelper,
 		return false;
 	}
 
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
     auto assetFrame = assetHelper->loadAsset(mSourceBalance->getAsset(), db);
     assert(assetFrame);
     if (!isAllowedToTransfer(db, assetFrame) ||

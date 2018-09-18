@@ -14,7 +14,7 @@
 #include "test/test_marshaler.h"
 #include "ledger/SaleHelper.h"
 #include "test_helper/ManageAssetPairTestHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "test_helper/ManageBalanceTestHelper.h"
 #include "transactions/dex/OfferManager.h"
 #include "test_helper/ParticipateInSaleTestHelper.h"
@@ -74,7 +74,7 @@ TEST_CASE("Crowdfunding vs fixed price", "[tx][fixedprice][crowdfund]"){
     auto account = Account{ SecretKey::random(), 0 };
     auto accountID = account.key.getPublicKey();
     createAccountTestHelper.applyCreateAccountTx(root, account.key.getPublicKey(), AccountType::NOT_VERIFIED);
-    auto quoteBalance = BalanceHelper::Instance()->loadBalance(accountID, defaultQuoteAsset, db, nullptr);
+    auto quoteBalance = BalanceHelperLegacy::Instance()->loadBalance(accountID, defaultQuoteAsset, db, nullptr);
     issuanceHelper.applyCreateIssuanceRequest(root, defaultQuoteAsset, 100 * ONE, quoteBalance->getBalanceID(),
                                                      SecretKey::random().getStrKeyPublic(), &allTasks);
 
@@ -107,7 +107,7 @@ TEST_CASE("Crowdfunding vs fixed price", "[tx][fixedprice][crowdfund]"){
         testManager->advanceToTime(testManager->getLedgerManager().getCloseTime() + (endTime - currentTime));
 
         checkSaleStateHelper.applyCheckSaleStateTx(root, fixedPriceID);
-        REQUIRE(BalanceHelper::Instance()->loadBalance(balanceID, db, nullptr)->getAmount() == ONE);
+        REQUIRE(BalanceHelperLegacy::Instance()->loadBalance(balanceID, db, nullptr)->getAmount() == ONE);
 
     }
     SECTION("crowd"){
@@ -137,7 +137,7 @@ TEST_CASE("Crowdfunding vs fixed price", "[tx][fixedprice][crowdfund]"){
 
         checkSaleStateHelper.applyCheckSaleStateTx(root, crowdfundID);
 
-        REQUIRE(BalanceHelper::Instance()->loadBalance(balanceID, db, nullptr)->getAmount() == 100 * ONE);
+        REQUIRE(BalanceHelperLegacy::Instance()->loadBalance(balanceID, db, nullptr)->getAmount() == 100 * ONE);
     }
     SECTION("Hard Path")
     {
@@ -174,7 +174,7 @@ TEST_CASE("Crowdfunding vs fixed price", "[tx][fixedprice][crowdfund]"){
 
         manageSaleHelper.applyManageSaleTx(root, fixedPriceID, saleStateData);
         auto balanceCreationResult = balanceTestHelper.applyManageBalanceTx(account, accountID, QuoteAsset);
-        auto quoteBalance = BalanceHelper::Instance()->loadBalance(accountID, QuoteAsset, db, nullptr);
+        auto quoteBalance = BalanceHelperLegacy::Instance()->loadBalance(accountID, QuoteAsset, db, nullptr);
 
         issuanceHelper.authorizePreIssuedAmount(root, root.key, QuoteAsset, amountToInvest, root);
         issuanceHelper.applyCreateIssuanceRequest(root, QuoteAsset, amountToInvest, quoteBalance->getBalanceID(),
@@ -187,7 +187,7 @@ TEST_CASE("Crowdfunding vs fixed price", "[tx][fixedprice][crowdfund]"){
         testManager->advanceToTime(testManager->getLedgerManager().getCloseTime() + (endTime - currentTime));
 
         checkSaleStateHelper.applyCheckSaleStateTx(root, fixedPriceID);
-        REQUIRE(BalanceHelper::Instance()->loadBalance(balanceID, db, nullptr)->getAmount() == expectedBalanceInBase);
+        REQUIRE(BalanceHelperLegacy::Instance()->loadBalance(balanceID, db, nullptr)->getAmount() == expectedBalanceInBase);
     }
 }
 

@@ -1,7 +1,7 @@
 #include "TxTests.h"
 #include "crypto/SHA.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerDeltaImpl.h"
 #include "ledger/ReferenceFrame.h"
 #include "main/Application.h"
@@ -54,7 +54,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
     auto createAccountTestHelper = CreateAccountTestHelper(testManager);
     createAccountTestHelper.applyCreateAccountTx(root, aWM.getPublicKey(),
                                                  AccountType::GENERAL);
-    auto aWMBalance = BalanceHelper::Instance()->loadBalance(aWM.getPublicKey(),
+    auto aWMBalance = BalanceHelperLegacy::Instance()->loadBalance(aWM.getPublicKey(),
                                                              asset,
                                                              testManager->
                                                              getDB(), nullptr);
@@ -69,7 +69,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
 
     auto secondAsset = "AETH";
 
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
 
     SECTION("Non base asset tests")
     {
@@ -94,7 +94,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
         }
 
         // fund sender
-        auto senderBalance = BalanceHelper::Instance()->loadBalance(
+        auto senderBalance = BalanceHelperLegacy::Instance()->loadBalance(
             sender.getPublicKey(), assetCode, testManager->getDB(), nullptr);
         REQUIRE(!!senderBalance);
         issuanceHelper.applyCreateIssuanceRequest(root, assetCode, emissionAmount,
@@ -111,7 +111,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
 
         // perform transfer
 
-        auto receiverBalance = BalanceHelper::Instance()->loadBalance(
+        auto receiverBalance = BalanceHelperLegacy::Instance()->loadBalance(
             receiver.getPublicKey(), assetCode, testManager->getDB(), nullptr);
         auto paymentFee = getNoPaymentFee();
         paymentFee.sourceFee.fixedFee = fixedFee;
@@ -130,7 +130,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
         auto account = SecretKey::random();
         applyCreateAccountTx(app, root.key, account, rootSeq++,
                              AccountType::GENERAL);
-        auto accountBalance = BalanceHelper::Instance()->loadBalance(
+        auto accountBalance = BalanceHelperLegacy::Instance()->loadBalance(
             account.getPublicKey(), asset, testManager->getDB(), nullptr);
         REQUIRE(getBalance(accountBalance->getBalanceID(), app) == 0);
         REQUIRE(getBalance(aWMBalance->getBalanceID(), app) == emissionAmount);
@@ -189,7 +189,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
         auto account = SecretKey::random();
         applyCreateAccountTx(app, root.key, account, rootSeq++,
                              AccountType::GENERAL);
-        auto accountBalance = BalanceHelper::Instance()->loadBalance(
+        auto accountBalance = BalanceHelperLegacy::Instance()->loadBalance(
             account.getPublicKey(), asset, testManager->getDB(), nullptr);
         applyPaymentTx(app, aWM, aWMBalance->getBalanceID(),
                        accountBalance->getBalanceID(), rootSeq++,
@@ -247,7 +247,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
         paymentAmount = 6 * ONE;
         PaymentFeeData paymentFee = getGeneralPaymentFee(
             fixedFee, paymentAmount * (feeAmount / ONE) / 100);
-        auto accountBalance = BalanceHelper::Instance()->loadBalance(
+        auto accountBalance = BalanceHelperLegacy::Instance()->loadBalance(
             account.getPublicKey(), asset, testManager->getDB(), nullptr);
         REQUIRE(!!accountBalance);
         issuanceHelper.applyCreateIssuanceRequest(root, asset, balance,
@@ -258,7 +258,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
         auto dest = SecretKey::random();
         applyCreateAccountTx(app, root.key, dest, rootSeq++,
                              AccountType::GENERAL);
-        auto destBalance = BalanceHelper::Instance()->loadBalance(
+        auto destBalance = BalanceHelperLegacy::Instance()->loadBalance(
             dest.getPublicKey(), asset, testManager->getDB(), nullptr);
         ;
         REQUIRE(!!destBalance);
@@ -278,7 +278,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
                            PaymentResultCode::FEE_MISMATCHED);
         }
         auto commission = getCommissionKP();
-        auto comissionBalance = BalanceHelper::Instance()->loadBalance(
+        auto comissionBalance = BalanceHelperLegacy::Instance()->loadBalance(
             commission.getPublicKey(), asset, testManager->getDB(), nullptr);
         uint64 totalFee = 2 * (paymentFee.sourceFee.paymentFee +
                                paymentFee.sourceFee.fixedFee);
@@ -288,7 +288,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
             applyPaymentTx(app, account, accountBalance->getBalanceID(),
                            destBalance->getBalanceID(), accountSeq++,
                            paymentAmount, paymentFee, true);
-            accountBalance = BalanceHelper::Instance()->loadBalance(
+            accountBalance = BalanceHelperLegacy::Instance()->loadBalance(
                 account.getPublicKey(), asset, testManager->getDB(), nullptr);
             REQUIRE(getBalance(accountBalance->getBalanceID(), app) ==
                     balance - paymentAmount - totalFee);
@@ -303,7 +303,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
             applyPaymentTx(app, account, accountBalance->getBalanceID(),
                            destBalance->getBalanceID(), accountSeq++,
                            paymentAmount, paymentFee, false);
-            accountBalance = BalanceHelper::Instance()->loadBalance(
+            accountBalance = BalanceHelperLegacy::Instance()->loadBalance(
                 account.getPublicKey(), asset, testManager->getDB(), nullptr);
             REQUIRE(getBalance(accountBalance->getBalanceID(), app) ==
                     balance - paymentAmount - totalFee / 2);
@@ -346,7 +346,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
         PaymentFeeData paymentFee = getNoPaymentFee();
         paymentFee.sourcePaysForDest = true;
 
-        auto accountBalance = BalanceHelper::Instance()->loadBalance(
+        auto accountBalance = BalanceHelperLegacy::Instance()->loadBalance(
             account.getPublicKey(), asset, testManager->getDB(), nullptr);
         REQUIRE(!!accountBalance);
         issuanceHelper.applyCreateIssuanceRequest(root, asset, balance,
@@ -358,7 +358,7 @@ TEST_CASE("payment", "[dep_tx][payment]")
         auto dest = SecretKey::random();
         applyCreateAccountTx(app, root.key, dest, rootSeq++,
                              AccountType::GENERAL);
-        auto destBalance = BalanceHelper::Instance()->loadBalance(
+        auto destBalance = BalanceHelperLegacy::Instance()->loadBalance(
             dest.getPublicKey(), asset, testManager->getDB(), nullptr);
         ;
         REQUIRE(!!destBalance);

@@ -1,8 +1,4 @@
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-
-#include "AssetHelper.h"
+#include "AssetHelperLegacy.h"
 #include "LedgerDelta.h"
 #include "xdrpp/printer.h"
 
@@ -17,7 +13,7 @@ static const char* assetColumnSelector =
     "SELECT code, owner, preissued_asset_signer, details, max_issuance_amount, available_for_issueance,"
     " issued, pending_issuance, policies, lastmodified, version FROM asset";
 
-void AssetHelper::dropAll(Database& db)
+void AssetHelperLegacy::dropAll(Database& db)
 {
     db.getSession() << "DROP TABLE IF EXISTS asset;";
     db.getSession() << "CREATE TABLE asset"
@@ -37,7 +33,7 @@ void AssetHelper::dropAll(Database& db)
         ");";
 }
 
-void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
+void AssetHelperLegacy::storeUpdateHelper(LedgerDelta& delta, Database& db,
                                     const bool insert, LedgerEntry const& entry)
 {
     auto assetFrame = make_shared<AssetFrame>(entry);
@@ -110,19 +106,19 @@ void AssetHelper::storeUpdateHelper(LedgerDelta& delta, Database& db,
     }
 }
 
-void AssetHelper::storeAdd(LedgerDelta& delta, Database& db,
+void AssetHelperLegacy::storeAdd(LedgerDelta& delta, Database& db,
                            LedgerEntry const& entry)
 {
     storeUpdateHelper(delta, db, true, entry);
 }
 
-void AssetHelper::storeChange(LedgerDelta& delta, Database& db,
+void AssetHelperLegacy::storeChange(LedgerDelta& delta, Database& db,
                               LedgerEntry const& entry)
 {
     storeUpdateHelper(delta, db, false, entry);
 }
 
-void AssetHelper::storeDelete(LedgerDelta& delta, Database& db,
+void AssetHelperLegacy::storeDelete(LedgerDelta& delta, Database& db,
                               LedgerKey const& key)
 {
     flushCachedEntry(key, db);
@@ -136,12 +132,12 @@ void AssetHelper::storeDelete(LedgerDelta& delta, Database& db,
     delta.deleteEntry(key);
 }
 
-bool AssetHelper::exists(Database& db, LedgerKey const& key)
+bool AssetHelperLegacy::exists(Database& db, LedgerKey const& key)
 {
-    return AssetHelper::exists(db, key.asset().code);
+    return AssetHelperLegacy::exists(db, key.asset().code);
 }
 
-bool AssetHelper::exists(Database& db, const AssetCode code)
+bool AssetHelperLegacy::exists(Database& db, const AssetCode code)
 {
     int exists = 0;
     auto timer = db.getSelectTimer("asset-exists");
@@ -158,7 +154,7 @@ bool AssetHelper::exists(Database& db, const AssetCode code)
     return exists != 0;
 }
 
-LedgerKey AssetHelper::getLedgerKey(LedgerEntry const& from)
+LedgerKey AssetHelperLegacy::getLedgerKey(LedgerEntry const& from)
 {
     LedgerKey ledgerKey;
     ledgerKey.type(from.data.type());
@@ -166,17 +162,17 @@ LedgerKey AssetHelper::getLedgerKey(LedgerEntry const& from)
     return ledgerKey;
 }
 
-EntryFrame::pointer AssetHelper::storeLoad(LedgerKey const& key, Database& db)
+EntryFrame::pointer AssetHelperLegacy::storeLoad(LedgerKey const& key, Database& db)
 {
     return loadAsset(key.asset().code, db);
 }
 
-EntryFrame::pointer AssetHelper::fromXDR(LedgerEntry const& from)
+EntryFrame::pointer AssetHelperLegacy::fromXDR(LedgerEntry const& from)
 {
     return std::make_shared<AssetFrame>(from);
 }
 
-uint64_t AssetHelper::countObjects(soci::session& sess)
+uint64_t AssetHelperLegacy::countObjects(soci::session& sess)
 {
     uint64_t count = 0;
     sess << "SELECT COUNT(*) FROM asset;", into(count);
@@ -184,7 +180,7 @@ uint64_t AssetHelper::countObjects(soci::session& sess)
 }
 
 AssetFrame::pointer
-AssetHelper::loadAsset(AssetCode code, Database& db,
+AssetHelperLegacy::loadAsset(AssetCode code, Database& db,
                        LedgerDelta* delta)
 {
     LedgerKey key;
@@ -192,6 +188,7 @@ AssetHelper::loadAsset(AssetCode code, Database& db,
     key.asset().code = code;
     if (cachedEntryExists(key, db))
     {
+        // TODO: ask Dima about it
         auto p = getCachedEntry(key, db);
         auto assetFrame = p ? std::make_shared<AssetFrame>(*p) : nullptr;
         if (!!delta && !!assetFrame)
@@ -230,7 +227,7 @@ AssetHelper::loadAsset(AssetCode code, Database& db,
     return retAsset;
 }
 
-AssetFrame::pointer AssetHelper::mustLoadAsset(AssetCode code, Database& db,
+AssetFrame::pointer AssetHelperLegacy::mustLoadAsset(AssetCode code, Database& db,
     LedgerDelta* delta)
 {
     auto result = loadAsset(code, db, delta);
@@ -243,7 +240,7 @@ AssetFrame::pointer AssetHelper::mustLoadAsset(AssetCode code, Database& db,
     throw runtime_error("Expected asset to exist");
 }
 
-AssetFrame::pointer AssetHelper::loadAsset(AssetCode code,
+AssetFrame::pointer AssetHelperLegacy::loadAsset(AssetCode code,
                                            AccountID const& owner, Database& db,
                                            LedgerDelta* delta)
 {
@@ -259,7 +256,7 @@ AssetFrame::pointer AssetHelper::loadAsset(AssetCode code,
     return nullptr;
 }
 
-AssetFrame::pointer AssetHelper::loadStatsAsset(Database& db)
+AssetFrame::pointer AssetHelperLegacy::loadStatsAsset(Database& db)
 {
     uint32 statsAssetPolicy = static_cast<uint32>(AssetPolicy::STATS_QUOTE_ASSET
     );
@@ -279,7 +276,7 @@ AssetFrame::pointer AssetHelper::loadStatsAsset(Database& db)
     return retAsset;
 }
 
-void AssetHelper::loadAssets(std::vector<AssetFrame::pointer>& retAssets,
+void AssetHelperLegacy::loadAssets(std::vector<AssetFrame::pointer>& retAssets,
                              Database& db)
 {
     std::string sql = assetColumnSelector;
@@ -292,7 +289,7 @@ void AssetHelper::loadAssets(std::vector<AssetFrame::pointer>& retAssets,
     });
 }
 
-void AssetHelper::loadBaseAssets(std::vector<AssetFrame::pointer>& retAssets,
+void AssetHelperLegacy::loadBaseAssets(std::vector<AssetFrame::pointer>& retAssets,
                                  Database& db)
 {
     std::string sql = assetColumnSelector;
@@ -309,7 +306,7 @@ void AssetHelper::loadBaseAssets(std::vector<AssetFrame::pointer>& retAssets,
     });
 }
 
-void AssetHelper::loadAssets(StatementContext& prep,
+void AssetHelperLegacy::loadAssets(StatementContext& prep,
                              std::function<void(LedgerEntry const&)>
                              assetProcessor)
 {

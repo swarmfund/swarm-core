@@ -16,7 +16,7 @@
 #include "test/test_marshaler.h"
 #include "ledger/SaleHelper.h"
 #include "test_helper/ManageAssetPairTestHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "test_helper/ManageBalanceTestHelper.h"
 #include "transactions/dex/OfferManager.h"
 #include "test_helper/ParticipateInSaleTestHelper.h"
@@ -104,7 +104,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
         auto manageBalanceRes = ManageBalanceTestHelper(testManager).applyManageBalanceTx(participant, participantID, baseAsset);
         BalanceID baseBalance = manageBalanceRes.success().balanceID;
         Database& db = testManager->getDB();
-        BalanceID quoteBalance = BalanceHelper::Instance()->loadBalance(participantID, quoteAsset, db,
+        BalanceID quoteBalance = BalanceHelperLegacy::Instance()->loadBalance(participantID, quoteAsset, db,
             nullptr)->getBalanceID();
 
         // pre-issue quote amount
@@ -138,7 +138,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
             auto saleStateData = saleTestHelper.setSaleState(SaleState::NONE);
             saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
             // able to invest 10^-6 when price for quote and default quote is 1
-            auto quoteBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
+            auto quoteBalanceBeforeTx = BalanceHelperLegacy::Instance()->loadBalance(quoteBalance, db);
             quoteDefaultQuotePrice = 1000 * ONE;
             assetPairHelper.applyManageAssetPairTx(root, quoteAsset, defaultQuoteAsset, quoteDefaultQuotePrice, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
             auto manageOffer = OfferManager::buildManageOfferOp(baseBalance, quoteBalance, true, 1,
@@ -154,13 +154,13 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
                 ONE, 0, 0, saleID);
             ParticipateInSaleTestHelper(testManager).applyManageOffer(participant, manageOffer);
             // now we should have two rders
-            auto quoteBalanceAfterTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
+            auto quoteBalanceAfterTx = BalanceHelperLegacy::Instance()->loadBalance(quoteBalance, db);
             REQUIRE(quoteBalanceAfterTx->getAmount() == quoteBalanceBeforeTx->getAmount() - hardCapInQuoteAsset - 1);
             // Check state and make sure first order was canceled
             CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
             // we had two offers one with amount so small that base amount is 0, so it should have been canceled
             // so quote balance should be charged with only second order
-            quoteBalanceAfterTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
+            quoteBalanceAfterTx = BalanceHelperLegacy::Instance()->loadBalance(quoteBalance, db);
             REQUIRE(quoteBalanceAfterTx->getAmount() == quoteBalanceBeforeTx->getAmount() - hardCapInQuoteAsset);
             // close the sale
             CheckSaleStateHelper(testManager).applyCheckSaleStateTx(root, saleID);
@@ -172,7 +172,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
             saleTestHelper.applyManageSaleTx(root, saleID, saleStateData);
 
             // able to invest 10^-6 when price for quote and default quote is 1
-            auto quoteBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
+            auto quoteBalanceBeforeTx = BalanceHelperLegacy::Instance()->loadBalance(quoteBalance, db);
             quoteDefaultQuotePrice = 1000 * ONE;
             assetPairHelper.applyManageAssetPairTx(root, quoteAsset, defaultQuoteAsset, quoteDefaultQuotePrice, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
             auto manageOffer = OfferManager::buildManageOfferOp(baseBalance, quoteBalance, true, 1,
@@ -194,7 +194,7 @@ TEST_CASE("Crowdfunding", "[tx][crowdfunding]")
         SECTION("Not able to invest into sale in promotion state")
         {
             // able to invest 10^-6 when price for quote and default quote is 1
-            auto quoteBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(quoteBalance, db);
+            auto quoteBalanceBeforeTx = BalanceHelperLegacy::Instance()->loadBalance(quoteBalance, db);
             quoteDefaultQuotePrice = 1000 * ONE;
             assetPairHelper.applyManageAssetPairTx(root, quoteAsset, defaultQuoteAsset, quoteDefaultQuotePrice, 0, 0, 0, ManageAssetPairAction::UPDATE_PRICE);
             auto manageOffer = OfferManager::buildManageOfferOp(baseBalance, quoteBalance, true, 1,

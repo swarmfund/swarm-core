@@ -5,7 +5,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "transactions/OperationFrame.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 
 namespace stellar
 {

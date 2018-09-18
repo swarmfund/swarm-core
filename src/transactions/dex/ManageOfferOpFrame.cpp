@@ -9,7 +9,7 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetPairHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "main/Application.h"
 #include "util/Logging.h"
 #include "util/types.h"

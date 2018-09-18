@@ -1,4 +1,4 @@
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <ledger/FeeHelper.h>
 #include <transactions/payment/PaymentOpV2Frame.h>
 #include <iterator>
@@ -68,7 +68,7 @@ namespace stellar {
                                                               std::string reference, PaymentV2Delta *paymentDelta,
                                                               PaymentV2ResultCode expectedResultCode) {
             auto &db = mTestManager->getDB();
-            auto balanceHelper = BalanceHelper::Instance();
+            auto balanceHelper = BalanceHelperLegacy::Instance();
 
             auto sourceBalanceBeforeTx = balanceHelper->loadBalance(sourceBalanceID, db);
 

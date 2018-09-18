@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ledger/StorageHelper.h"
+#include "BalanceHelperLegacy.h"
 #include <memory>
 
 namespace soci
@@ -12,6 +13,8 @@ namespace stellar
 {
 
 class KeyValueHelper;
+class BalanceHelper;
+class AssetHelper;
 class ExternalSystemAccountIDHelper;
 class ExternalSystemAccountIDPoolEntryHelper;
 
@@ -34,6 +37,8 @@ class StorageHelperImpl : public StorageHelper
     virtual std::unique_ptr<StorageHelper> startNestedTransaction();
 
     virtual KeyValueHelper& getKeyValueHelper();
+    virtual BalanceHelper& getBalanceHelper();
+    virtual AssetHelper& getAssetHelper();
     virtual ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper();
     virtual ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper();
@@ -45,6 +50,8 @@ class StorageHelperImpl : public StorageHelper
     std::unique_ptr<soci::transaction> mTransaction;
 
     std::unique_ptr<KeyValueHelper> mKeyValueHelper;
+    std::unique_ptr<BalanceHelper> mBalanceHelper;
+    std::unique_ptr<AssetHelper> mAssetHelper;
     std::unique_ptr<ExternalSystemAccountIDHelper>
         mExternalSystemAccountIDHelper;
     std::unique_ptr<ExternalSystemAccountIDPoolEntryHelper>

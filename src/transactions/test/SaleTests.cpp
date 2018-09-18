@@ -8,7 +8,7 @@
 #include <ledger/SaleAnteHelper.h>
 #include <transactions/test/test_helper/ReviewUpdateSaleEndTimeRequestHelper.h>
 #include "main/Application.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/LedgerDeltaImpl.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "main/test.h"
@@ -17,7 +17,7 @@
 #include "test_helper/TestManager.h"
 #include "test_helper/Account.h"
 #include "test_helper/ManageAssetTestHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/SaleRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
@@ -324,7 +324,7 @@ TEST_CASE("Sale", "[tx][sale]")
         const auto saleID = sales[0]->getID();
 
 
-        auto ownBalance = BalanceHelper::Instance()->loadBalance(syndicatePubKey, baseAsset, testManager->getDB(),
+        auto ownBalance = BalanceHelperLegacy::Instance()->loadBalance(syndicatePubKey, baseAsset, testManager->getDB(),
                                                                  nullptr);
         IssuanceRequestHelper(testManager).applyCreateIssuanceRequest(syndicate, baseAsset, 10*ONE, ownBalance->getBalanceID(),
                                                                       syndicate.key.getStrKeyPublic(), &issuanceTasks,
@@ -451,7 +451,7 @@ TEST_CASE("Sale", "[tx][sale]")
 
         checkStateHelper.applyCheckSaleStateTx(root, saleID);
 
-        auto commissionBalance = BalanceHelper::Instance()->loadBalance(app.getCommissionID(),  quoteAsset, db, nullptr);
+        auto commissionBalance = BalanceHelperLegacy::Instance()->loadBalance(app.getCommissionID(),  quoteAsset, db, nullptr);
         REQUIRE(!!commissionBalance);
         REQUIRE(commissionBalance->getAmount() == 2 * feeToPay + feeToPayBySyndicate);
     }
@@ -924,7 +924,7 @@ TEST_CASE("Sale", "[tx][sale]")
         // create base balance for participant:
         auto manageBalanceRes = ManageBalanceTestHelper(testManager).applyManageBalanceTx(participant, participantID, baseAsset);
         BalanceID baseBalance = manageBalanceRes.success().balanceID;
-        BalanceID quoteBalance = BalanceHelper::Instance()->loadBalance(participantID, quoteAsset, db,
+        BalanceID quoteBalance = BalanceHelperLegacy::Instance()->loadBalance(participantID, quoteAsset, db,
                                                                         nullptr)->getBalanceID();
 
         // pre-issue quote amount
@@ -1045,7 +1045,7 @@ TEST_CASE("Sale", "[tx][sale]")
             SECTION("try to participate in own sale")
             {
                 // load balances for owner
-                auto quoteBalanceID = BalanceHelper::Instance()->loadBalance(owner.key.getPublicKey(), quoteAsset, db,
+                auto quoteBalanceID = BalanceHelperLegacy::Instance()->loadBalance(owner.key.getPublicKey(), quoteAsset, db,
                                                                              nullptr)->getBalanceID();
                 AccountID ownerID = owner.key.getPublicKey();
                 auto baseBalanceID = ManageBalanceTestHelper(testManager).applyManageBalanceTx(owner, ownerID, baseAsset)
@@ -1078,7 +1078,7 @@ TEST_CASE("Sale", "[tx][sale]")
                                                                                                baseAsset).success().balanceID;
 
                 // fund with quote asset
-                auto quoteBalanceID = BalanceHelper::Instance()->loadBalance(notVerifiedID, quoteAsset, db, nullptr)->getBalanceID();
+                auto quoteBalanceID = BalanceHelperLegacy::Instance()->loadBalance(notVerifiedID, quoteAsset, db, nullptr)->getBalanceID();
                 issuanceHelper.applyCreateIssuanceRequest(root, quoteAsset, quoteBalanceAmount, quoteBalanceID,
                                                           SecretKey::random().getStrKeyPublic(), &issuanceTasks);
 

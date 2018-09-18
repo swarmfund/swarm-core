@@ -3,8 +3,8 @@
 #include <ledger/ReviewableRequestHelper.h>
 #include <ledger/PendingStatisticsHelper.h>
 #include "ledger/LedgerDeltaImpl.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
 #include "ReviewRequestHelper.h"
@@ -25,7 +25,7 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV1(Application &app, Led
 	Database& db = ledgerManager.getDatabase();
 	createReference(delta, db, request->getRequestor(), request->getReference());
 
-	auto asset = AssetHelper::Instance()->mustLoadAsset(issuanceRequest.asset, db, &delta);
+	auto asset = AssetHelperLegacy::Instance()->mustLoadAsset(issuanceRequest.asset, db, &delta);
 
 	if (asset->willExceedMaxIssuanceAmount(issuanceRequest.amount)) {
 		innerResult().code(ReviewRequestResultCode::MAX_ISSUANCE_AMOUNT_EXCEEDED);
@@ -45,7 +45,7 @@ bool ReviewIssuanceCreationRequestOpFrame::handleApproveV1(Application &app, Led
 
 	EntryHelperProvider::storeChangeEntry(delta, db, asset->mEntry);
 
-	auto receiver = BalanceHelper::Instance()->mustLoadBalance(issuanceRequest.receiver, db, &delta);
+	auto receiver = BalanceHelperLegacy::Instance()->mustLoadBalance(issuanceRequest.receiver, db, &delta);
 
 	uint64_t totalFee = 0;
 	if (!safeSum(issuanceRequest.fee.fixed, issuanceRequest.fee.percent, totalFee)) {
@@ -93,7 +93,7 @@ handleApproveV2(Application &app, LedgerDelta &delta,
 	auto& issuanceRequest = request->getRequestEntry().body.issuanceRequest();
 	Database& db = ledgerManager.getDatabase();
 
-	auto asset = AssetHelper::Instance()->mustLoadAsset(issuanceRequest.asset, db, &delta);
+	auto asset = AssetHelperLegacy::Instance()->mustLoadAsset(issuanceRequest.asset, db, &delta);
 	if (asset->willExceedMaxIssuanceAmount(issuanceRequest.amount))
 	{
 		innerResult().code(ReviewRequestResultCode::MAX_ISSUANCE_AMOUNT_EXCEEDED);
@@ -141,7 +141,7 @@ handleApproveV2(Application &app, LedgerDelta &delta,
 
 	EntryHelperProvider::storeChangeEntry(delta, db, asset->mEntry);
 
-	auto receiver = BalanceHelper::Instance()->mustLoadBalance(issuanceRequest.receiver, db, &delta);
+	auto receiver = BalanceHelperLegacy::Instance()->mustLoadBalance(issuanceRequest.receiver, db, &delta);
 
 	uint64_t totalFee = 0;
 	if (!safeSum(issuanceRequest.fee.fixed, issuanceRequest.fee.percent, totalFee))
@@ -317,7 +317,7 @@ uint32_t ReviewIssuanceCreationRequestOpFrame::getSystemTasksToAdd( Application 
 		request->checkRequestType(ReviewableRequestType::ISSUANCE_CREATE);
 		auto& requestEntry = request->getRequestEntry();
         auto& issuanceRequest = request->getRequestEntry().body.issuanceRequest();
-		auto asset = AssetHelper::Instance()->mustLoadAsset(issuanceRequest.asset, db, &localDelta);
+		auto asset = AssetHelperLegacy::Instance()->mustLoadAsset(issuanceRequest.asset, db, &localDelta);
 
 		uint32_t allTasks = 0;
 

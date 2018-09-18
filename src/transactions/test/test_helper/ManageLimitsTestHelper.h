@@ -18,6 +18,13 @@ namespace txtest
 
             TransactionFramePtr createManageLimitsTx(Account& source, ManageLimitsOp& manageLimitsOp);
 
+            ManageLimitsOp
+            createManageLimitsOp(AssetCode asset, StatsOpType type,
+                                 bool isConvertNeeded, uint64_t daily,
+                                 uint64_t weekly, uint64_t monthly, uint64_t annual,
+                                 xdr::pointer<AccountID> accountID = nullptr,
+                                 xdr::pointer<AccountType> accountType = nullptr);
+
             void applyManageLimitsTx(Account &source, ManageLimitsOp& manageLimitsOp,
                                      ManageLimitsResultCode expectedResult = ManageLimitsResultCode::SUCCESS);
     };

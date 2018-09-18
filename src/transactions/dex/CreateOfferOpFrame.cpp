@@ -2,7 +2,7 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include <ledger/AssetHelper.h>
+#include <ledger/AssetHelperLegacy.h>
 #include "util/asio.h"
 #include "CreateOfferOpFrame.h"
 #include "OfferExchange.h"
@@ -11,7 +11,7 @@
 #include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetPairHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/OfferFrame.h"
 #include "main/Application.h"
 #include "util/Logging.h"
@@ -35,7 +35,7 @@ BalanceFrame::pointer CreateOfferOpFrame::loadBalanceValidForTrading(
     BalanceID const& balanceID, Database& db,
     LedgerDelta& delta)
 {
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto balance = balanceHelper->loadBalance(balanceID, db, &delta);
     if (!balance || !(balance->getAccountID() == getSourceID()))
     {

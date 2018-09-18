@@ -8,7 +8,7 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include "CreateAssetOpFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 
 namespace stellar
@@ -66,7 +66,7 @@ bool CreateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
         return false;
     }
 
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
 
     auto isAssetExist = assetHelper->exists(db, mAssetCreationRequest.code);
     if (isAssetExist) {

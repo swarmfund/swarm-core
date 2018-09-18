@@ -31,7 +31,7 @@
 #include <set>
 #include <iomanip>
 #include <cmath>
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 
 namespace stellar
 {
@@ -631,7 +631,7 @@ LoadGenerator::TxInfo::toTransactionFrames(
 	timeBounds.maxTime = app.getLedgerManager().getCloseTime() + 60*60;
 
         std::vector<AssetFrame::pointer> baseAssets;
-        AssetHelper::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
+        AssetHelperLegacy::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
         if (baseAssets.empty())
         {
             throw std::runtime_error("Expected base assets to exist in db");

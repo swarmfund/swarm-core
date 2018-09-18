@@ -1,8 +1,8 @@
 #include "CheckSaleStateTestHelper.h"
 #include <transactions/FeesManager.h>
-#include <ledger/AssetHelper.h>
+#include <ledger/AssetHelperLegacy.h>
 #include <ledger/AccountHelper.h>
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <ledger/OfferHelper.h>
 #include <ledger/SaleAnteHelper.h>
 #include "test/test_marshaler.h"
@@ -19,7 +19,7 @@ void CheckSaleStateHelper::ensureCancel(uint64_t saleID, StateBeforeTxHelper& st
     // asset unlocked
     const auto sale = stateBeforeTx.getSale(saleID);
     auto baseAssetBeforeTx = stateBeforeTx.getAssetEntry(sale->getBaseAsset());
-    auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
+    auto baseAssetAfterTx = AssetHelperLegacy::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
 
     // TODO: at current stage we do not allow to issue tokens before the sale. Must be fixed
     auto hardCapBaseAssetAmount = sale->getSaleEntry().maxAmountToBeSold;
@@ -35,7 +35,7 @@ void CheckSaleStateHelper::ensureCancel(uint64_t saleID, StateBeforeTxHelper& st
     {
         auto balanceBefore = stateBeforeTx.getBalance(offer.quoteBalance);
         REQUIRE(balanceBefore);
-        auto balanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer.quoteBalance, mTestManager->getDB());
+        auto balanceAfter = BalanceHelperLegacy::Instance()->mustLoadBalance(offer.quoteBalance, mTestManager->getDB());
 
         auto saleAnte = saleAntesBeforeTx[offer.quoteBalance];
         if (!!saleAnte) {
@@ -64,7 +64,7 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
 {
     auto sale = stateBeforeTx.getSale(result.saleID);
     auto baseAssetBeforeTx = stateBeforeTx.getAssetEntry(sale->getBaseAsset());
-    auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
+    auto baseAssetAfterTx = AssetHelperLegacy::Instance()->loadAsset(sale->getBaseAsset(), mTestManager->getDB());
 
     // always unlock hard cap
     if (sale->getSaleType() != SaleType::FIXED_PRICE)
@@ -88,7 +88,7 @@ void CheckSaleStateHelper::ensureClose(const CheckSaleStateSuccess result,
     }
 
     auto baseBalanceBeforeTx = stateBeforeTx.getBalance(sale->getBaseBalanceID());
-    auto baseBalanceAfterTx = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), mTestManager->getDB());
+    auto baseBalanceAfterTx = BalanceHelperLegacy::Instance()->loadBalance(sale->getBaseBalanceID(), mTestManager->getDB());
     REQUIRE(baseBalanceBeforeTx->mEntry.data.balance() == baseBalanceAfterTx->mEntry.data.balance());
 }
 
@@ -138,7 +138,7 @@ void CheckSaleStateHelper::checkBalancesAfterApproval(StateBeforeTxHelper& state
 {
     auto ownerQuoteBalanceBefore = stateBeforeTx.getBalance(saleQuoteAsset.quoteBalance);
     REQUIRE(ownerQuoteBalanceBefore);
-    auto ownerQuoteBalanceAfter = BalanceHelper::Instance()->mustLoadBalance(saleQuoteAsset.quoteBalance, mTestManager->getDB());
+    auto ownerQuoteBalanceAfter = BalanceHelperLegacy::Instance()->mustLoadBalance(saleQuoteAsset.quoteBalance, mTestManager->getDB());
     auto ownerFrame = AccountHelper::Instance()->mustLoadAccount(sale->getOwnerID(), mTestManager->getDB());
     auto totalSellerFee = FeeManager::calculateCapitalDeploymentFeeForAccount(ownerFrame, saleQuoteAsset.quoteAsset, saleQuoteAsset.currentCap, mTestManager->getDB())
         .calculatedPercentFee;
@@ -154,13 +154,13 @@ void CheckSaleStateHelper::checkBalancesAfterApproval(StateBeforeTxHelper& state
         // participant got his base asset
         auto baseBalanceBefore = stateBeforeTx.getBalance(takenOffer.baseBalance);
         REQUIRE(baseBalanceBefore);
-        auto baseBalanceAfter = BalanceHelper::Instance()->mustLoadBalance(takenOffer.baseBalance, mTestManager->getDB());
+        auto baseBalanceAfter = BalanceHelperLegacy::Instance()->mustLoadBalance(takenOffer.baseBalance, mTestManager->getDB());
         REQUIRE(baseBalanceAfter->getAmount() == baseBalanceBefore->getAmount() + takenOffer.baseAmount);
 
         // participant spent quote
         auto quoteBalanceBefore = stateBeforeTx.getBalance(takenOffer.quoteBalance);
         REQUIRE(quoteBalanceBefore);
-        auto quoteBalanceAfter = BalanceHelper::Instance()->mustLoadBalance(takenOffer.quoteBalance, mTestManager->getDB());
+        auto quoteBalanceAfter = BalanceHelperLegacy::Instance()->mustLoadBalance(takenOffer.quoteBalance, mTestManager->getDB());
 
         auto saleAnte = saleAntesBeforeTx[takenOffer.quoteBalance];
 
@@ -182,7 +182,7 @@ void CheckSaleStateHelper::checkBalancesAfterApproval(StateBeforeTxHelper& state
     }
 
     // commission balance change
-    auto commissionAfter = BalanceHelper::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
+    auto commissionAfter = BalanceHelperLegacy::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
         saleQuoteAsset.quoteAsset, mTestManager->getDB(),
         nullptr);
     REQUIRE(commissionAfter);

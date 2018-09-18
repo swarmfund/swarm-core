@@ -1,9 +1,4 @@
-//
-// Created by dmytriiev on 04.04.18.
-//
-
-#ifndef STELLAR_KEYENTRYHELPER_H
-#define STELLAR_KEYENTRYHELPER_H
+#pragma once
 
 #include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
@@ -65,4 +60,3 @@ namespace stellar
     };
 
 }
-#endif //STELLAR_KEYENTRYHELPER_H

@@ -1,4 +1,4 @@
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <ledger/FeeHelper.h>
 #include "PayoutTestHelper.h"
 #include "transactions/PayoutOpFrame.h"
@@ -39,7 +39,7 @@ PayoutTestHelper::applyPayoutTx(Account &source, AssetCode asset,
             PayoutResultCode expectedResult)
 {
     Database& db = mTestManager->getDB();
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto ownerBalanceBefore = balanceHelper->loadBalance(sourceBalanceID, db);
     BalanceFrame::pointer commissionBalanceBefore;
     if (ownerBalanceBefore != nullptr)

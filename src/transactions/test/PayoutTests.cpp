@@ -1,4 +1,8 @@
 #include <transactions/test/test_helper/SetFeesTestHelper.h>
+#include <transactions/test/test_helper/ManageLimitsTestHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
+#include <ledger/LedgerDeltaImpl.h>
+#include <ledger/StorageHelperImpl.h>
 #include "main/Application.h"
 #include "main/Config.h"
 #include "util/Timer.h"
@@ -46,10 +50,14 @@ TEST_CASE("payout", "[tx][payout]") {
     ReviewAssetRequestHelper reviewAssetRequestHelper(testManager);
     ReviewIssuanceRequestHelper reviewIssuanceRequestHelper(testManager);
     SetFeesTestHelper setFeesTestHelper(testManager);
+    ManageLimitsTestHelper manageLimitsTestHelper(testManager);
 
-    // database
+    // storage
     Database &db = testManager->getDB();
-    auto balanceHelper = BalanceHelper::Instance();
+    LedgerDelta delta;
+    delta = LedgerDeltaImpl(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
+    StorageHelper storageHelper = StorageHelperImpl(db, delta);
+    auto balanceHelper = storageHelper.getBalanceHelper();
 
     auto root = Account{getRoot(), Salt(0)};
 
@@ -73,7 +81,7 @@ TEST_CASE("payout", "[tx][payout]") {
     reviewAssetRequestHelper.applyReviewRequestTx(root, manageAssetResult.success().requestID,
                                                   ReviewRequestOpAction::APPROVE, "");
 
-    auto ownerBalance = balanceHelper->loadBalance(ownerID, assetCode, db);
+    auto ownerBalance = balanceHelper.loadBalance(ownerID, assetCode);
     REQUIRE(ownerBalance);
     auto ownerBalanceID = ownerBalance->getBalanceID();
 
@@ -101,8 +109,8 @@ TEST_CASE("payout", "[tx][payout]") {
                                                          AccountType::GENERAL);
             manageBalanceTestHelper.createBalance(newAccount,
                                                   newAccountID, assetCode);
-            auto newBalance = balanceHelper->loadBalance(newAccountID,
-                    assetCode, db);
+            auto newBalance = balanceHelper.loadBalance(newAccountID,
+                    assetCode);
             REQUIRE(newBalance != nullptr);
             reference = SecretKey::random().getStrKeyPublic();
             issuanceRequestHelper.applyCreateIssuanceRequest(owner, assetCode,
@@ -119,9 +127,9 @@ TEST_CASE("payout", "[tx][payout]") {
             BalanceFrame::pointer holdersBalancesBefore[holdersCount];
             for (auto i = 0; i < holdersCount; i++)
             {
-                holdersBalancesBefore[i] = balanceHelper->loadBalance(
+                holdersBalancesBefore[i] = balanceHelper.loadBalance(
                         holdersAmounts[i].account.key.getPublicKey(),
-                        assetCode, db);
+                        assetCode);
             }
 
             auto receiversCount = 0;
@@ -137,9 +145,9 @@ TEST_CASE("payout", "[tx][payout]") {
 
                     for (auto i = 0; i < holdersCount; i++)
                     {
-                        auto holderBalanceAfter = balanceHelper->loadBalance(
+                        auto holderBalanceAfter = balanceHelper.loadBalance(
                                 holdersAmounts[i].account.key.getPublicKey(),
-                                assetCode, db);
+                                assetCode);
                         uint64_t receivedAmount = 0;
                         REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                           holdersAmounts[i].amount,
@@ -163,9 +171,9 @@ TEST_CASE("payout", "[tx][payout]") {
 
                     for (auto i = 0; i < holdersCount; i++)
                     {
-                        auto holderBalanceAfter = balanceHelper->loadBalance(
+                        auto holderBalanceAfter = balanceHelper.loadBalance(
                                 holdersAmounts[i].account.key.getPublicKey(),
-                                assetCode, db);
+                                assetCode);
                         uint64_t receivedAmount = 0;
                         REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                           holdersAmounts[i].amount,
@@ -197,9 +205,9 @@ TEST_CASE("payout", "[tx][payout]") {
                             minAssetHolderAmount)
                             continue;
 
-                        auto holderBalanceAfter = balanceHelper->loadBalance(
+                        auto holderBalanceAfter = balanceHelper.loadBalance(
                                 holdersAmounts[i].account.key.getPublicKey(),
-                                assetCode, db);
+                                assetCode);
                         uint64_t receivedAmount = 0;
                         REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                           holdersAmounts[i].amount,
@@ -228,9 +236,9 @@ TEST_CASE("payout", "[tx][payout]") {
                             minAssetHolderAmount)
                             continue;
 
-                        auto holderBalanceAfter = balanceHelper->loadBalance(
+                        auto holderBalanceAfter = balanceHelper.loadBalance(
                                 holdersAmounts[i].account.key.getPublicKey(),
-                                assetCode, db);
+                                assetCode);
                         uint64_t receivedAmount = 0;
                         REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                           holdersAmounts[i].amount,
@@ -265,9 +273,9 @@ TEST_CASE("payout", "[tx][payout]") {
 
                 for (auto i = 0; i < holdersCount; i++)
                 {
-                    auto holderBalanceAfter = balanceHelper->loadBalance(
+                    auto holderBalanceAfter = balanceHelper.loadBalance(
                             holdersAmounts[i].account.key.getPublicKey(),
-                            assetCode, db);
+                            assetCode);
                     uint64_t receivedAmount = 0;
                     REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                       holdersAmounts[i].amount,
@@ -298,8 +306,9 @@ TEST_CASE("payout", "[tx][payout]") {
             manageAssetTestHelper.updateAsset(thirdPartyIssuer,
                               thirdPartyAssetCode, root,
                               static_cast<uint32_t>(AssetPolicy::TRANSFERABLE));
-            auto thirdPartyIssuerBalance = balanceHelper->
-                    mustLoadBalance(thirdPartyIssuerID, thirdPartyAssetCode, db);
+            auto thirdPartyIssuerBalance = balanceHelper.
+                    loadBalance(thirdPartyIssuerID, thirdPartyAssetCode);
+            REQUIRE(thirdPartyIssuerBalance != nullptr)
             reference = SecretKey::random().getStrKeyPublic();
             issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer,
                  thirdPartyAssetCode, payAssetAmount,
@@ -307,8 +316,9 @@ TEST_CASE("payout", "[tx][payout]") {
 
             // create balance of third-party asset for owner
             manageBalanceTestHelper.createBalance(owner, ownerID, thirdPartyAssetCode);
-            auto ownerThirdPartyBalance = balanceHelper->
-                    mustLoadBalance(ownerID, thirdPartyAssetCode, db);
+            auto ownerThirdPartyBalance = balanceHelper.
+                    loadBalance(ownerID, thirdPartyAssetCode);
+            REQUIRE(ownerThirdPartyBalance != nullptr)
             auto ownerThirdPartyBalanceID = ownerThirdPartyBalance->getBalanceID();
             reference = SecretKey::random().getStrKeyPublic();
             issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer,
@@ -344,6 +354,18 @@ TEST_CASE("payout", "[tx][payout]") {
                     payoutTestHelper.applyPayoutTx(owner, assetCode,
                                ownerThirdPartyBalanceID, payAssetAmount,
                                ONE, ONE/10, fee, PayoutResultCode::UNDERFUNDED);
+                }
+
+                SECTION("Limit exceeded")
+                {
+                    auto limitsOp = manageLimitsTestHelper.createManageLimitsOp(
+                            thirdPartyAssetCode, StatsOpType::PAYOUT, true,
+                            ONE, ONE, ONE, ONE);
+                    manageLimitsTestHelper.applyManageLimitsTx(root, limitsOp);
+
+                    payoutTestHelper.applyPayoutTx(owner, assetCode,
+                           ownerThirdPartyBalanceID, maxPayoutAmount,
+                           ONE, ONE/10, fee, PayoutResultCode::LIMITS_EXCEEDED);
                 }
             }
 
@@ -395,8 +417,7 @@ TEST_CASE("payout", "[tx][payout]") {
         createAccountTestHelper.applyCreateAccountTx(root, accountID,
                                                      AccountType::SYNDICATE);
         manageBalanceTestHelper.createBalance(account, accountID, assetCode);
-        auto accountBalance = balanceHelper->loadBalance(
-                accountID, assetCode, db);
+        auto accountBalance = balanceHelper.loadBalance(accountID, assetCode);
         payoutTestHelper.applyPayoutTx(owner, assetCode,
                    accountBalance->getBalanceID(), 100 * ONE, 0, 0, zeroFee,
                    PayoutResultCode::BALANCE_NOT_FOUND);
@@ -414,8 +435,7 @@ TEST_CASE("payout", "[tx][payout]") {
                                                      AccountType::GENERAL);
         manageBalanceTestHelper.createBalance(newAccount,
                                               newAccountID, assetCode);
-        auto newBalance = balanceHelper->loadBalance(newAccountID,
-                                                     assetCode, db);
+        auto newBalance = balanceHelper.loadBalance(newAccountID, assetCode);
         REQUIRE(newBalance != nullptr);
         reference = SecretKey::random().getStrKeyPublic();
         issuanceRequestHelper.applyCreateIssuanceRequest(owner, assetCode,
@@ -455,10 +475,5 @@ TEST_CASE("payout", "[tx][payout]") {
     {
         payoutTestHelper.applyPayoutTx(owner, assetCode, ownerBalanceID,
                 100 * ONE, 0, 0, zeroFee, PayoutResultCode::HOLDERS_NOT_FOUND);
-    }
-
-    SECTION("Limit exceeded")
-    {
-
     }
 }

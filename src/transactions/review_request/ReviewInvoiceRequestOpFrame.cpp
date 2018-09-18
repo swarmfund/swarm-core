@@ -9,9 +9,9 @@
 #include "ReviewInvoiceRequestOpFrame.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/ContractHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "main/Application.h"
 
 namespace stellar
@@ -54,7 +54,7 @@ ReviewInvoiceRequestOpFrame::handleApprove(Application& app, LedgerDelta& delta,
 
     Database& db = ledgerManager.getDatabase();
 
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto senderBalance = balanceHelper->mustLoadBalance(invoiceRequest.senderBalance, db, &delta);
     auto receiverBalance = balanceHelper->mustLoadBalance(invoiceRequest.receiverBalance, db, &delta);
 

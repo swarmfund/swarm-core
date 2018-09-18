@@ -4,7 +4,7 @@
 
 #include "ReviewPreIssuanceRequestHelper.h"
 #include "ledger/AssetFrame.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "test/test_marshaler.h"
 
@@ -24,13 +24,13 @@ ReviewPreIssuanceChecker::ReviewPreIssuanceChecker(
         return;
     }
     preIssuanceRequest = std::make_shared<PreIssuanceRequest>(request->getRequestEntry().body.preIssuanceRequest());
-    assetFrameBeforeTx = AssetHelper::Instance()->loadAsset(preIssuanceRequest->asset, mTestManager->getDB());
+    assetFrameBeforeTx = AssetHelperLegacy::Instance()->loadAsset(preIssuanceRequest->asset, mTestManager->getDB());
 }
 
 void ReviewPreIssuanceChecker::checkApprove(ReviewableRequestFrame::pointer requestBeforeTx)
 {
     REQUIRE(!!assetFrameBeforeTx);
-    auto assetHelper = AssetHelper::Instance();
+    auto assetHelper = AssetHelperLegacy::Instance();
     auto assetFrameAfterTx = assetHelper->loadAsset(preIssuanceRequest->asset, mTestManager->getDB());
     REQUIRE(assetFrameAfterTx->getAvailableForIssuance() == assetFrameBeforeTx->getAvailableForIssuance() + preIssuanceRequest->amount);
 }
@@ -39,7 +39,7 @@ ReviewPreIssuanceChecker::ReviewPreIssuanceChecker(const TestManager::pointer &t
                                                    std::shared_ptr<PreIssuanceRequest> request) : ReviewChecker(testManager)
 {
     preIssuanceRequest = request;
-    assetFrameBeforeTx = AssetHelper::Instance()->loadAsset(preIssuanceRequest->asset, mTestManager->getDB());
+    assetFrameBeforeTx = AssetHelperLegacy::Instance()->loadAsset(preIssuanceRequest->asset, mTestManager->getDB());
 }
 
 ReviewPreIssuanceRequestHelper::ReviewPreIssuanceRequestHelper(TestManager::pointer testManager) : ReviewRequestHelper(testManager)

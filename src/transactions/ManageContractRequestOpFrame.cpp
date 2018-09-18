@@ -9,7 +9,7 @@
 #include <ledger/ContractHelper.h>
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ManageContractOpFrame.h"
 #include "ManageKeyValueOpFrame.h"
 

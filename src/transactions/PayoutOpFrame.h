@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ledger/AssetHelper.h>
+#include <ledger/BalanceHelper.h>
 #include "transactions/OperationFrame.h"
 
 namespace stellar
@@ -33,7 +35,8 @@ class PayoutOpFrame : public OperationFrame
                           BalanceFrame::pointer sourceBalance);
 
     uint64_t
-    obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame, Database& db);
+    obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame,
+                                  BalanceHelper& balanceHelper);
 
     std::vector<AccountID>
     getAccountIDs(std::map<AccountID, uint64_t> assetHoldersAmounts);
@@ -50,19 +53,19 @@ class PayoutOpFrame : public OperationFrame
     void
     fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
                             std::map<AccountID, uint64_t> assetHoldersAmounts,
-                            AssetCode asset, Database& db, LedgerDelta& delta);
+                            AssetCode asset, StorageHelper& storageHelper);
 
     bool
     processTransfers(BalanceFrame::pointer sourceBalance, uint64_t totalAmount,
                      std::map<AccountID, uint64_t> assetHoldersAmounts,
-                     Database& db, LedgerDelta& delta);
+                     StorageHelper& storageHelper);
 
     AssetFrame::pointer
-    obtainAsset(Database& db);
+    obtainAsset(AssetHelper& assetHelper);
 
     std::vector<BalanceFrame::pointer>
     obtainAssetHoldersBalances(uint64_t& assetHoldersAmount,
-                               AssetFrame::pointer assetFrame, Database& db);
+                  AssetFrame::pointer assetFrame, BalanceHelper& balanceHelper);
 
     bool
     processStatistics(StatisticsV2Processor statisticsV2Processor,
@@ -73,7 +76,7 @@ public:
     PayoutOpFrame(Operation const &op, OperationResult &res,
                   TransactionFrame &parentTx);
 
-    bool doApply(Application &app, LedgerDelta &delta,
+    bool doApply(Application &app, StorageHelper &storageHelper,
                  LedgerManager &ledgerManager) override;
 
     bool doCheckValid(Application &app) override;

@@ -4,7 +4,7 @@
 
 #include "crypto/SHA.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerDeltaImpl.h"
 #include "main/Application.h"
 #include "main/test.h"
@@ -44,7 +44,7 @@ TEST_CASE("txenvelope", "[tx][envelope]")
     auto txHelper = TxHelper(testManager);
 
     // db helpers
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
 
     SECTION("Transaction fee")
     {

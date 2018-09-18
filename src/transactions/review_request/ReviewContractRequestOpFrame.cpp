@@ -9,9 +9,9 @@
 #include "ReviewContractRequestOpFrame.h"
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/ContractHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerHeaderFrame.h"
 #include "main/Application.h"
 

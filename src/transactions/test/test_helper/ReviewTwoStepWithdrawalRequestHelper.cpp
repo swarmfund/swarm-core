@@ -6,9 +6,9 @@
 #include <ledger/StatisticsV2Helper.h>
 #include "ReviewTwoStepWithdrawalRequestHelper.h"
 #include "ledger/AssetFrame.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/BalanceFrame.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "test/test_marshaler.h"
 
@@ -37,12 +37,12 @@ TwoStepWithdrawReviewChecker::TwoStepWithdrawReviewChecker(TestManager::pointer 
         return;
     }
 
-    balanceBeforeTx = BalanceHelper::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
+    balanceBeforeTx = BalanceHelperLegacy::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
     if (balanceBeforeTx)
     {
-        commissionBalanceBeforeTx = BalanceHelper::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
+        commissionBalanceBeforeTx = BalanceHelperLegacy::Instance()->loadBalance(mTestManager->getApp().getCommissionID(),
             balanceBeforeTx->getAsset(), mTestManager->getDB(), nullptr);
-        assetBeforeTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
+        assetBeforeTx = AssetHelperLegacy::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
     }
 }
 
@@ -56,7 +56,7 @@ void TwoStepWithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer 
     REQUIRE(requestAfterTx->getRequestEntry().body.withdrawalRequest().preConfirmationDetails == ReviewTwoStepWithdrawRequestHelper::externalDetails);
     // check balance
     REQUIRE(!!balanceBeforeTx);
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto balanceAfterTx = balanceHelper->loadBalance(withdrawalRequest->balance,
         mTestManager->getDB());
     REQUIRE(!!balanceAfterTx);
@@ -70,7 +70,7 @@ void TwoStepWithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer 
 
     // check asset
     REQUIRE(!!assetBeforeTx);
-    auto assetAfterTx = AssetHelper::Instance()->loadAsset(balanceAfterTx->getAsset(), mTestManager->getDB());
+    auto assetAfterTx = AssetHelperLegacy::Instance()->loadAsset(balanceAfterTx->getAsset(), mTestManager->getDB());
     REQUIRE(!!assetAfterTx);
     REQUIRE(assetBeforeTx->mEntry == assetAfterTx->mEntry);
 }
@@ -78,11 +78,11 @@ void TwoStepWithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer 
 void TwoStepWithdrawReviewChecker::checkPermanentReject(
     ReviewableRequestFrame::pointer request)
 {
-    auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
+    auto balanceAfterTx = BalanceHelperLegacy::Instance()->loadBalance(withdrawalRequest->balance, mTestManager->getDB());
     REQUIRE(balanceAfterTx->getAmount() == balanceBeforeTx->getAmount() + withdrawalRequest->amount + withdrawalRequest->fee.fixed + withdrawalRequest->fee.percent);
     REQUIRE(balanceBeforeTx->getLocked() == balanceAfterTx->getLocked() + withdrawalRequest->amount + withdrawalRequest->fee.fixed + withdrawalRequest->fee.percent);
     
-    auto assetAfterTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
+    auto assetAfterTx = AssetHelperLegacy::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
     REQUIRE(assetAfterTx->getIssued() == assetBeforeTx->getIssued());
     //TODO check for stats
 }

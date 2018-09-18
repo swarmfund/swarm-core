@@ -8,7 +8,7 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include "ChangeAssetMaxIssuanceOpFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 
 namespace stellar
 {
@@ -37,7 +37,7 @@ bool ChangeAssetMaxIssuanceOpFrame::doApply(Application& app, LedgerDelta& delta
                                           LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-    auto assetFrame = AssetHelper::Instance()->
+    auto assetFrame = AssetHelperLegacy::Instance()->
         loadAsset(mUpdateMaxIssuance.assetCode, db, &delta);
     if (!assetFrame)
     {
@@ -54,7 +54,7 @@ bool ChangeAssetMaxIssuanceOpFrame::doApply(Application& app, LedgerDelta& delta
         innerResult().code(ManageAssetResultCode::INVALID_MAX_ISSUANCE_AMOUNT);
         return false;
     }
-    AssetHelper::Instance()->storeChange(delta, db, assetFrame->mEntry);
+    AssetHelperLegacy::Instance()->storeChange(delta, db, assetFrame->mEntry);
     innerResult().code(ManageAssetResultCode::SUCCESS);
     innerResult().success().requestID = 0;
     innerResult().success().fulfilled = true;

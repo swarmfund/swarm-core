@@ -1,5 +1,3 @@
-/*
-#include <transactions/PayoutOpFrame.h>
 #include "bucket/BucketManager.h"
 #include "herder/Herder.h"
 #include "invariant/Invariants.h"
@@ -20,7 +18,10 @@
 #include "transactions/test/mocks/MockLedgerManager.h"
 #include "transactions/test/mocks/MockSignatureValidator.h"
 #include "transactions/test/mocks/MockStorageHelper.h"
+#include "transactions/test/mocks/MockExternalSystemAccountIDHelper.h"
+#include "transactions/test/mocks/MockExternalSystemAccountIDPoolEntryHelper.h"
 #include "transactions/test/mocks/MockTransactionFrame.h"
+#include "transactions/PayoutOpFrame.h"
 #include "util/StatusManager.h"
 #include "util/Timer.h"
 #include "util/TmpDir.h"
@@ -33,16 +34,19 @@ static int32 externalSystemType = 5;
 static uint256 sourceAccountPublicKey = hexToBin256(
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABB");
 
-TEST_CASE("payout - unit test", "[tx][pyout]")
+TEST_CASE("payout - unit test", "[tx][payout]")
 {
-    */
-/*MockApplication appMock;
+
+    MockApplication appMock;
     MockLedgerManager ledgerManagerMock;
     MockTransactionFrame transactionFrameMock;
     MockLedgerDelta ledgerDeltaMock;
     MockDatabase dbMock;
     MockStorageHelper storageHelperMock;
     MockKeyValueHelper keyValueHelperMock;
+    MockExternalSystemAccountIDHelper externalSystemAccountIDHelperMock;
+    MockExternalSystemAccountIDPoolEntryHelper
+            externalSystemAccountIDPoolEntryHelperMock;
     std::shared_ptr<MockSignatureValidator> signatureValidatorMock =
             std::make_shared<MockSignatureValidator>();
 
@@ -50,8 +54,8 @@ TEST_CASE("payout - unit test", "[tx][pyout]")
     op.maxPayoutAmount = 10 * ONE;
     op.minPayoutAmount = ONE;
     op.asset = "LTC";
-    op.sourceBalanceID = BalanceID(CryptoKeyType::KEY_TYPE_ED25519);
-    op.sourceBalanceID.ed25519() = sourceAccountPublicKey;
+    auto balance = SecretKey::random();
+    op.sourceBalanceID = balance.getPublicKey();
     Operation operation;
     operation.body = Operation::_body_t(OperationType::PAYOUT);
     operation.body.payoutOp() = op;
@@ -74,12 +78,12 @@ TEST_CASE("payout - unit test", "[tx][pyout]")
             .WillByDefault(ReturnRef(ledgerDeltaMock));
     ON_CALL(transactionFrameMock, getSignatureValidator())
             .WillByDefault(Return(signatureValidatorMock));
-    ON_CALL(*signatureValidatorMock,
-            check(Ref(appMock), Ref(dbMock), Ref(*accountFrameFake), _))
-            .WillByDefault(Return(SignatureValidator::Result::SUCCESS));
-
     ON_CALL(storageHelperMock, getKeyValueHelper())
             .WillByDefault(ReturnRef(keyValueHelperMock));
+    ON_CALL(storageHelperMock, getExternalSystemAccountIDHelper())
+            .WillByDefault(ReturnRef(externalSystemAccountIDHelperMock));
+    ON_CALL(storageHelperMock, getExternalSystemAccountIDPoolEntryHelper())
+            .WillByDefault(ReturnRef(externalSystemAccountIDPoolEntryHelperMock));
 
     PayoutOpFrame opFrame(operation, operationResult, transactionFrameMock);
 
@@ -93,22 +97,11 @@ TEST_CASE("payout - unit test", "[tx][pyout]")
 
         SECTION("Apply, no pool entry to bind")
         {
-            /*EXPECT_CALL(externalSystemAccountIDPoolEntryHelperMock,
-                        load(op.externalSystemType, *operation.sourceAccount))
-                    .WillOnce(Return(nullptr));
-            EXPECT_CALL(externalSystemAccountIDPoolEntryHelperMock,
-                        loadAvailablePoolEntry(Ref(ledgerManagerMock),
-                                               op.externalSystemType))
-                    .WillOnce(Return(nullptr));
             REQUIRE_FALSE(
-                    opFrame.doApply(appMock, storageHelperMock, ledgerManagerMock));
-            REQUIRE(opFrame.getResult()
-                            .tr()
-                            .bindExternalSystemAccountIdResult()
-                            .code() ==
-                    BindExternalSystemAccountIdResultCode::NO_AVAILABLE_ID);
+                    opFrame.doApply(appMock, ledgerDeltaMock, ledgerManagerMock));
+            REQUIRE(opFrame.getResult().tr().payoutResult().code() ==
+                    PayoutResultCode::BALANCE_NOT_FOUND);
         }
-    }*//*
+    }
 
 }
-*/

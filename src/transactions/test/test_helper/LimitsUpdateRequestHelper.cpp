@@ -6,8 +6,8 @@
 #include <ledger/AssetPairHelper.h>
 #include <transactions/CreateManageLimitsRequestOpFrame.h>
 #include "LimitsUpdateRequestHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/AccountLimitsHelper.h"
 #include "transactions/SetOptionsOpFrame.h"

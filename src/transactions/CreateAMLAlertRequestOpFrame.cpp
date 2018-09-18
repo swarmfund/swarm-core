@@ -4,7 +4,7 @@
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerHeaderFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "xdrpp/printer.h"
@@ -21,7 +21,7 @@ std::unordered_map<AccountID, CounterpartyDetails>
 CreateAMLAlertRequestOpFrame::getCounterpartyDetails(
     Database& db, LedgerDelta* delta) const
 {
-    BalanceFrame::pointer balanceFrame = BalanceHelper::Instance()->
+    BalanceFrame::pointer balanceFrame = BalanceHelperLegacy::Instance()->
         loadBalance(mCreateAMLAlertRequest.amlAlertRequest.balanceID, db,
                     delta);
     if (!balanceFrame)
@@ -67,7 +67,7 @@ CreateAMLAlertRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
 {
     auto& db = ledgerManager.getDatabase();
     const auto amlAlertRequest = mCreateAMLAlertRequest.amlAlertRequest;
-    auto balanceFrame = BalanceHelper::Instance()->
+    auto balanceFrame = BalanceHelperLegacy::Instance()->
         loadBalance(amlAlertRequest.balanceID, db,
                     &delta);
     if (!balanceFrame)
@@ -103,7 +103,7 @@ CreateAMLAlertRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     requestEntry.body.type(ReviewableRequestType::AML_ALERT);
     requestEntry.body.amlAlertRequest() = amlAlertRequest;
     requestFrame->recalculateHashRejectReason();
-    BalanceHelper::Instance()->storeChange(delta, db, balanceFrame->mEntry);
+    BalanceHelperLegacy::Instance()->storeChange(delta, db, balanceFrame->mEntry);
     ReviewableRequestHelper::Instance()->storeAdd(delta, db,
                                                   requestFrame->mEntry);
     innerResult().code(CreateAMLAlertRequestResultCode::SUCCESS);

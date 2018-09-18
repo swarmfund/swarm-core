@@ -10,7 +10,7 @@
 #include "database/Database.h"
 #include "herder/TxSetFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/KeyValueHelperLegacy.h"
 #include "ledger/LedgerDeltaImpl.h"
@@ -147,7 +147,7 @@ TransactionFrameImpl::processTxFee(Application& app, LedgerDelta* delta)
         return false;
     }
 
-    auto sourceBalance = BalanceHelper::Instance()->mustLoadBalance(
+    auto sourceBalance = BalanceHelperLegacy::Instance()->mustLoadBalance(
         getSourceID(), txFeeAssetCode, db, delta);
 
     auto commissionBalance = AccountManager::loadOrCreateBalanceFrameForAsset(

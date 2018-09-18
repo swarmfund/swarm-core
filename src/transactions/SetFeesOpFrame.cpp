@@ -7,7 +7,7 @@
 #include "ledger/LedgerDeltaImpl.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/AssetPairHelper.h"
 #include "medida/meter.h"
 #include "main/Application.h"
@@ -60,7 +60,7 @@ namespace stellar {
         }
 
         // create
-        auto assetHelper = AssetHelper::Instance();
+        auto assetHelper = AssetHelperLegacy::Instance();
         if (!assetHelper->exists(db, mSetFees.fee->asset)) {
             innerResult().code(SetFeesResultCode::ASSET_NOT_FOUND);
             metrics.NewMeter({"op-set-fees", "invalid", "asset-not-found"}, "operation").Mark();
@@ -82,7 +82,7 @@ namespace stellar {
     }
 
     bool SetFeesOpFrame::doCheckForfeitFee(medida::MetricsRegistry &metrics, Database &db, LedgerDelta &delta) {
-        auto asset = AssetHelper::Instance()->loadAsset(mSetFees.fee->asset, db);
+        auto asset = AssetHelperLegacy::Instance()->loadAsset(mSetFees.fee->asset, db);
         if (!asset) {
             innerResult().code(SetFeesResultCode::ASSET_NOT_FOUND);
             metrics.NewMeter({"op-set-fees", "invalid", "asset-not-exist"}, "operation").Mark();
@@ -93,7 +93,7 @@ namespace stellar {
     }
 
     bool SetFeesOpFrame::doCheckPaymentFee(stellar::Database &db, stellar::LedgerDelta &delta) {
-        if (!AssetHelper::Instance()->exists(db, mSetFees.fee->asset)) {
+        if (!AssetHelperLegacy::Instance()->exists(db, mSetFees.fee->asset)) {
             innerResult().code(SetFeesResultCode::ASSET_NOT_FOUND);
             return false;
         }
@@ -103,7 +103,7 @@ namespace stellar {
             return true;
         }
 
-        if (!AssetHelper::Instance()->exists(db, mSetFees.fee->ext.feeAsset())) {
+        if (!AssetHelperLegacy::Instance()->exists(db, mSetFees.fee->ext.feeAsset())) {
             innerResult().code(SetFeesResultCode::FEE_ASSET_NOT_FOUND);
             return false;
         }
@@ -167,7 +167,7 @@ namespace stellar {
 
     bool SetFeesOpFrame::mustBaseAsset(FeeEntry const &fee, Application &app) {
         vector<AssetFrame::pointer> baseAssets;
-        auto assetHelper = AssetHelper::Instance();
+        auto assetHelper = AssetHelperLegacy::Instance();
         assetHelper->loadBaseAssets(baseAssets, app.getDatabase());
         if (baseAssets.empty())
             throw std::runtime_error("Unable to create referral fee - there is no base assets in the system");

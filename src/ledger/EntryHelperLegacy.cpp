@@ -2,10 +2,12 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
+#include "ledger/EntryHelper.h"
 #include "ledger/EntryHelperLegacy.h"
 #include "LedgerManager.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AccountHelper.h"
+#include "ledger/AccountRoleHelper.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/ReferenceHelper.h"
 #include "ledger/StatisticsFrame.h"
@@ -25,6 +27,7 @@
 #include "ledger/FeeHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
+#include "ledger/StorageHelperImpl.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
 #include "ledger/OfferFrame.h"
@@ -51,14 +54,27 @@ namespace stellar
 {
 	using xdr::operator==;
 
-	LedgerKey LedgerEntryKey(LedgerEntry const &e)
-	{
-	    // TODO: move this to helpers somehow
-	    if (e.data.type() == LedgerEntryType::ACCOUNT_ROLE || e.data.type() == LedgerEntryType::ACCOUNT_ROLE_POLICY)
+    static std::shared_ptr<EntryHelper> createHelper(LedgerEntryType entryType, StorageHelper& storageHelper)
+    {
+        switch (entryType)
         {
-	        LedgerKey key;
-	        key.type(e.data.type());
-	        switch (e.data.type())
+            case LedgerEntryType::ACCOUNT_ROLE:
+                return std::make_shared<AccountRoleHelper>(storageHelper);
+            case LedgerEntryType::ACCOUNT_ROLE_POLICY:
+                return std::make_shared<AccountRolePolicyHelper>(storageHelper);
+            default:
+                return nullptr;
+        }
+    }
+
+    LedgerKey LedgerEntryKey(LedgerEntry const &e)
+    {
+        // TODO: move this to helpers somehow
+        if (e.data.type() == LedgerEntryType::ACCOUNT_ROLE || e.data.type() == LedgerEntryType::ACCOUNT_ROLE_POLICY)
+        {
+            LedgerKey key;
+            key.type(e.data.type());
+            switch (e.data.type())
             {
                 case LedgerEntryType::ACCOUNT_ROLE:
                 {
@@ -77,10 +93,10 @@ namespace stellar
             }
             return key;
         }
-		EntryHelperLegacy* helper = EntryHelperProvider::getHelper(e.data.type());
-		if (helper == nullptr)
+        EntryHelperLegacy* helper = EntryHelperProvider::getHelper(e.data.type());
+        if (helper == nullptr)
         {
-		    throw std::runtime_error("There\'s no such legacy helper for this entry.");
+            throw std::runtime_error("There\'s no legacy helper for this entry.");
         }
 		return helper->getLedgerKey(e);
 	}
@@ -111,21 +127,38 @@ namespace stellar
 		db.getEntryCache().put(s, p);
 	}
 
-	void
-	EntryHelperProvider::checkAgainstDatabase(LedgerEntry const& entry, Database& db)
-	{
-		auto key = LedgerEntryKey(entry);
-		auto helper = getHelper(entry.data.type());
-		helper->flushCachedEntry(key, db);
-		auto const &fromDb = helper->storeLoad(key, db);
-		if (!fromDb || !(fromDb->mEntry == entry)) {
-			std::string s;
-			s = "Inconsistent state between objects: ";
-			s += !!fromDb ? xdr::xdr_to_string(fromDb->mEntry, "db") : "db: nullptr\n";
-			s += xdr::xdr_to_string(entry, "live");
-			throw std::runtime_error(s);
-		}
-	}
+    void
+    EntryHelperProvider::checkAgainstDatabase(LedgerEntry const& entry, Database& db)
+    {
+        auto key = LedgerEntryKey(entry);
+        EntryFrame::pointer fromDb;
+        auto helper = getHelper(entry.data.type());
+        if (!helper)
+        {
+            StorageHelperImpl storageHelper(db, nullptr);
+            auto helper = createHelper(entry.data.type(), storageHelper);
+            if (!helper)
+            {
+                throw std::runtime_error("There\'s no legacy helper for this entry, "
+                                         "and no helper can be created.");
+            }
+            helper->flushCachedEntry(key);
+            fromDb = helper->storeLoad(key);
+        }
+        else
+        {
+            helper->flushCachedEntry(key, db);
+            fromDb = helper->storeLoad(key, db);
+        }
+        if (!fromDb || !(fromDb->mEntry == entry))
+        {
+            std::string s;
+            s = "Inconsistent state between objects: ";
+            s += !!fromDb ? xdr::xdr_to_string(fromDb->mEntry, "db") : "db: nullptr\n";
+            s += xdr::xdr_to_string(entry, "live");
+            throw std::runtime_error(s);
+        }
+    }
 
 	void
 	EntryHelperProvider::storeAddEntry(LedgerDelta& delta, Database& db, LedgerEntry const& entry)

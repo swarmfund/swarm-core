@@ -38,7 +38,7 @@ set(NOT_COMMON_SOURCE_FILES
         process/ProcessManager.h
         transactions/SourceDetails.h
         transactions/CounterpartyDetails.h
-        transactions/test/test_helper/Account.h transactions/test/mocks/MockBalanceHelper.h transactions/test/mocks/MockAssetHelper.h)
+        transactions/test/test_helper/Account.h)
 
 #find source files
 file(GLOB STELLAR_CORE_SOURCE_FILES **/*.cpp **/**/*.cpp **/**/**/*.cpp)

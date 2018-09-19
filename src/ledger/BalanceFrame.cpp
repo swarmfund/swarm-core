@@ -60,7 +60,7 @@ namespace stellar
     }
 
     bool
-    BalanceFrame::isValid(BalanceEntry const &oe)
+    BalanceFrame::isValid(BalanceEntry const& oe)
     {
         return AssetFrame::isAssetCodeValid(oe.asset) && oe.locked >= 0 && oe.amount >= 0;
     }

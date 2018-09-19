@@ -226,7 +226,7 @@ AssetHelperImpl::loadAsset(AssetCode assetCode)
         retAsset = make_shared<AssetFrame>(entry);
     });
 
-    if (retAsset == nullptr)
+    if (!retAsset)
     {
         putCachedEntry(key, nullptr);
         return nullptr;
@@ -242,7 +242,7 @@ AssetFrame::pointer
 AssetHelperImpl::loadAsset(AssetCode assetCode, AccountID owner)
 {
     auto assetFrame = loadAsset(assetCode);
-    if (assetFrame == nullptr)
+    if (!assetFrame)
     {
         return nullptr;
     }

@@ -54,7 +54,7 @@ TEST_CASE("payout", "[tx][payout]") {
     ManageLimitsTestHelper manageLimitsTestHelper(testManager);
 
     // storage
-    Database &db = testManager->getDB();
+    Database& db = testManager->getDB();
     LedgerDeltaImpl deltaImpl(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
     LedgerDelta& delta = deltaImpl;
     StorageHelperImpl storageHelperImpl(db, delta);

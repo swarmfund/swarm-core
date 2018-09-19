@@ -114,7 +114,7 @@ BalanceHelperImpl::storeUpdateHelper(bool insert, LedgerEntry const& entry)
     std::string balanceID =
             BalanceKeyUtils::toStrKey(balanceFrame->getBalanceID());
     std::string asset = balanceFrame->getAsset();
-    auto version = static_cast<int32_t>(balanceEntry.ext.v());
+    int32_t version = static_cast<int32_t>(balanceEntry.ext.v());
 
     string sql;
 
@@ -221,7 +221,7 @@ BalanceHelperImpl::loadBalance(BalanceID balanceID)
         retBalance = make_shared<BalanceFrame>(entry);
     });
 
-    if (retBalance == nullptr)
+    if (!retBalance)
     {
         putCachedEntry(key, nullptr);
         return nullptr;
@@ -237,7 +237,7 @@ BalanceFrame::pointer
 BalanceHelperImpl::loadBalance(BalanceID balanceID, AccountID accountID)
 {
     auto balanceFrame = loadBalance(balanceID);
-    if (balanceFrame == nullptr)
+    if (!balanceFrame)
     {
         return nullptr;
     }
@@ -273,7 +273,7 @@ BalanceHelperImpl::loadBalance(AccountID accountID, AssetCode assetCode)
         retBalance = make_shared<BalanceFrame>(entry);
     });
 
-    if (retBalance == nullptr)
+    if (!retBalance)
     {
         return nullptr;
     }

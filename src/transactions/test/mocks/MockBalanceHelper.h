@@ -1,6 +1,5 @@
 #pragma once
 
-#include <lib/gtest/googlemock/include/gmock/gmock-generated-function-mockers.h>
 #include "ledger/BalanceHelper.h"
 
 namespace stellar

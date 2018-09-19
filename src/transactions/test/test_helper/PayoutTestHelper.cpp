@@ -42,7 +42,7 @@ PayoutTestHelper::applyPayoutTx(Account &source, AssetCode asset,
     auto balanceHelper = BalanceHelperLegacy::Instance();
     auto ownerBalanceBefore = balanceHelper->loadBalance(sourceBalanceID, db);
     BalanceFrame::pointer commissionBalanceBefore;
-    if (ownerBalanceBefore != nullptr)
+    if (ownerBalanceBefore)
         commissionBalanceBefore = balanceHelper->
             loadBalance(mTestManager->getApp().getCommissionID(),
                         ownerBalanceBefore->getAsset(), db);

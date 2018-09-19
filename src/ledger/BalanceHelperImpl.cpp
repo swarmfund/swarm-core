@@ -200,8 +200,8 @@ BalanceHelperImpl::loadBalance(BalanceID balanceID)
     key.balance().balanceID = balanceID;
     if (cachedEntryExists(key))
     {
-        auto p = getCachedEntry(key);
-        return p ? std::make_shared<BalanceFrame>(*p) : nullptr;
+        auto entry = getCachedEntry(key);
+        return entry ? std::make_shared<BalanceFrame>(*entry) : nullptr;
     }
 
     Database& db = getDatabase();

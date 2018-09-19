@@ -207,8 +207,8 @@ AssetHelperImpl::loadAsset(AssetCode assetCode)
     key.asset().code = assetCode;
     if (cachedEntryExists(key))
     {
-        auto p = getCachedEntry(key);
-        return p ? std::make_shared<AssetFrame>(*p) : nullptr; // ensure ok
+        auto entry = getCachedEntry(key);
+        return entry ? std::make_shared<AssetFrame>(*entry) : nullptr;
     }
 
     Database& db = getDatabase();

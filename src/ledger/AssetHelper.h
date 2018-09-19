@@ -6,7 +6,7 @@
 
 namespace soci
 {
-	class session;
+class session;
 }
 
 namespace stellar

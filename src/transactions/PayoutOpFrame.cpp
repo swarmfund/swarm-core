@@ -44,8 +44,8 @@ PayoutOpFrame::getActualFee(AssetCode const& asset, uint64_t amount,
 
     auto feeFrame = FeeHelper::Instance()->loadForAccount(FeeType::PAYOUT_FEE,
             asset, FeeFrame::SUBTYPE_ANY, mSourceAccount, amount, db);
-    // if we do not have any fee frame - any fee is valid
-    if (!feeFrame) {
+    if (!feeFrame)
+    {
         return actualFee;
     }
 

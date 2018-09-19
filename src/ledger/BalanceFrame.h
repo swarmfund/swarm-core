@@ -77,7 +77,7 @@ class BalanceFrame : public EntryFrame
 
     uint64_t getTotal() const;
         
-    static bool isValid(BalanceEntry const &oe);
+    static bool isValid(BalanceEntry const& oe);
     bool isValid() const;
 	[[deprecated]]
 	bool addBalance(int64_t delta);

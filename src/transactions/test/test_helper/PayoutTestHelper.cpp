@@ -62,7 +62,7 @@ PayoutTestHelper::applyPayoutTx(Account &source, AssetCode asset,
     if (result.code() != PayoutResultCode::SUCCESS)
         return PayoutResult{};
 
-    auto actualPayoutAmount = result.payoutSuccessResult().actualPayoutAmount;
+    auto actualPayoutAmount = result.success().actualPayoutAmount;
     REQUIRE(actualPayoutAmount < maxPayoutAmount);
 
     uint64_t totalFee = 0;
@@ -84,7 +84,7 @@ PayoutTestHelper::applyPayoutTx(Account &source, AssetCode asset,
     auto assetHoldersAfter = balanceHelper->loadAssetHolders(asset,
             source.key.getPublicKey(), minAssetHolderAmount, db);
 
-    for (auto response : result.payoutSuccessResult().payoutResponses)
+    for (auto response : result.success().payoutResponses)
     {
         uint64_t amountBefore = 0;
         for (auto balance : assetHoldersBefore)

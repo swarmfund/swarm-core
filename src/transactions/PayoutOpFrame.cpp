@@ -29,9 +29,9 @@ PayoutOpFrame::getSourceAccountDetails(
         std::unordered_map<AccountID, CounterpartyDetails>
         counterpartiesDetails, int32_t ledgerVersion) const
 {
-    return SourceDetails({AccountType::SYNDICATE},
-                         mSourceAccount->getMediumThreshold(),
-                         static_cast<int32_t>(SignerType::ASSET_MANAGER));
+    return SourceDetails(getAllAccountTypes(),
+                         mSourceAccount->getHighThreshold(),
+                         static_cast<int32_t>(SignerType::BALANCE_MANAGER));
 }
 
 Fee
@@ -108,33 +108,9 @@ PayoutOpFrame::tryProcessTransferFee(AccountManager& accountManager,
     }
 
     accountManager.transferFee(sourceBalance->getAsset(), totalFee);
+    innerResult().success().actualFee = actualFee;
 
     return true;
-}
-
-uint64_t
-PayoutOpFrame::obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame,
-                                             BalanceHelper& balanceHelper)
-{
-    auto totalAmount = assetFrame->getIssued();
-
-    auto sourceBalances = balanceHelper.loadBalances(getSourceID(),
-            mPayout.asset);
-
-    for (auto balance : sourceBalances)
-    {
-        if (balance->getAmount() > totalAmount)
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected total amount:"
-                       << " Expected to be more than " << balance->getAmount()
-                       << " Actual: " << totalAmount;
-            throw std::runtime_error("Unexpected total amount");
-        }
-
-        totalAmount -= balance->getAmount();
-    }
-
-    return totalAmount;
 }
 
 std::vector<AccountID>
@@ -200,7 +176,7 @@ PayoutOpFrame::addPayoutResponse(AccountID& accountID, uint64_t amount,
     response.receivedAmount = amount;
     response.receiverBalanceID = balanceID;
     response.receiverID = accountID;
-    innerResult().payoutSuccessResult().payoutResponses.emplace_back(response);
+    innerResult().success().payoutResponses.emplace_back(response);
 }
 
 void
@@ -284,7 +260,7 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
                                 sourceBalance->getAsset(), storageHelper);
 
     balanceHelper.storeChange(sourceBalance->mEntry);
-    innerResult().payoutSuccessResult().actualPayoutAmount = totalAmount;
+    innerResult().success().actualPayoutAmount = totalAmount;
 
     return true;
 }
@@ -309,13 +285,12 @@ PayoutOpFrame::obtainAsset(AssetHelper& assetHelper)
 }
 
 std::vector<BalanceFrame::pointer>
-PayoutOpFrame::obtainAssetHoldersBalances(uint64_t& assetHoldersAmount,
+PayoutOpFrame::obtainAssetHoldersBalances(uint64_t& issuedAmount,
                                           AssetFrame::pointer assetFrame,
                                           BalanceHelper& balanceHelper)
 {
-    assetHoldersAmount = obtainAssetHoldersTotalAmount(assetFrame,
-            balanceHelper);
-    if (assetHoldersAmount == 0)
+    issuedAmount = assetFrame->getIssued();
+    if (issuedAmount == 0)
     {
         return std::vector<BalanceFrame::pointer>{};
     }

@@ -17,7 +17,6 @@ namespace stellar {
             Application &mApp;
             Database &mDB;
             LedgerManager &mLm;
-            LedgerDelta &mLD;
 
             bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp, LedgerDelta &txDelta);
 

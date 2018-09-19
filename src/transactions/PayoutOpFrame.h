@@ -34,10 +34,6 @@ class PayoutOpFrame : public OperationFrame
                           Database& db, uint64_t actualTotalAmount,
                           BalanceFrame::pointer sourceBalance);
 
-    uint64_t
-    obtainAssetHoldersTotalAmount(AssetFrame::pointer assetFrame,
-                                  BalanceHelper& balanceHelper);
-
     std::vector<AccountID>
     getAccountIDs(std::map<AccountID, uint64_t> assetHoldersAmounts);
 
@@ -64,7 +60,7 @@ class PayoutOpFrame : public OperationFrame
     obtainAsset(AssetHelper& assetHelper);
 
     std::vector<BalanceFrame::pointer>
-    obtainAssetHoldersBalances(uint64_t& assetHoldersAmount,
+    obtainAssetHoldersBalances(uint64_t& issuedAmount,
                   AssetFrame::pointer assetFrame, BalanceHelper& balanceHelper);
 
     bool

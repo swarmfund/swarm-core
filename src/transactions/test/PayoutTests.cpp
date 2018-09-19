@@ -11,6 +11,7 @@
 #include "main/test.h"
 #include "TxTests.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelper.h"
 #include "test/test_marshaler.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
@@ -54,10 +55,12 @@ TEST_CASE("payout", "[tx][payout]") {
 
     // storage
     Database &db = testManager->getDB();
-    LedgerDelta delta;
-    delta = LedgerDeltaImpl(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
-    StorageHelper storageHelper = StorageHelperImpl(db, delta);
-    auto balanceHelper = storageHelper.getBalanceHelper();
+    LedgerDeltaImpl deltaImpl(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
+    LedgerDelta& delta = deltaImpl;
+    StorageHelperImpl storageHelperImpl(db, delta);
+    StorageHelper& storageHelper = storageHelperImpl;
+    auto& balanceHelper = storageHelper.getBalanceHelper();
+    auto& assetHelper = storageHelper.getAssetHelper();
 
     auto root = Account{getRoot(), Salt(0)};
 
@@ -99,7 +102,6 @@ TEST_CASE("payout", "[tx][payout]") {
         // create holders and give them some amount of asset
         auto holdersCount = 5;
         HolderAmount holdersAmounts[holdersCount];
-        uint64_t assetHoldersAmount = 0;
         for (auto i = 0; i < holdersCount; i++)
         {
             auto newAccount = Account{SecretKey::random(), Salt(0)};
@@ -117,8 +119,11 @@ TEST_CASE("payout", "[tx][payout]") {
                                        holderAmount, newBalance->getBalanceID(),
                                        reference, &issuanceTasks);
             holdersAmounts[i] = {newAccount, holderAmount};
-            assetHoldersAmount += holderAmount;
         }
+
+        auto assetFrame = assetHelper.loadAsset(assetCode);
+        REQUIRE(assetFrame != nullptr);
+        REQUIRE(assetFrame->getIssued() != 0);
 
         SECTION("Pay with own asset")
         {
@@ -151,14 +156,15 @@ TEST_CASE("payout", "[tx][payout]") {
                         uint64_t receivedAmount = 0;
                         REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                           holdersAmounts[i].amount,
-                                          assetHoldersAmount, ROUND_DOWN));
+                                          assetFrame->getIssued(), ROUND_DOWN));
                         REQUIRE(holderBalanceAfter->getAmount() ==
                                 holdersBalancesBefore[i]->getAmount() +
                                 receivedAmount);
                         receiversCount++;
                     }
 
-                    REQUIRE(receiversCount == 5);
+                    REQUIRE(receiversCount ==
+                            result.success().payoutResponses.size());
                 }
 
                 SECTION("Payout with non-zero min payout amount and "
@@ -177,7 +183,7 @@ TEST_CASE("payout", "[tx][payout]") {
                         uint64_t receivedAmount = 0;
                         REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                           holdersAmounts[i].amount,
-                                          assetHoldersAmount, ROUND_DOWN));
+                                          assetFrame->getIssued(), ROUND_DOWN));
 
                         if (receivedAmount < minPayoutAmount)
                             continue;
@@ -188,7 +194,8 @@ TEST_CASE("payout", "[tx][payout]") {
                         receiversCount++;
                     }
 
-                    REQUIRE(receiversCount == 2);
+                    REQUIRE(receiversCount ==
+                            result.success().payoutResponses.size());
                 }
 
                 SECTION("Payout with zero min payout amount and "
@@ -211,14 +218,15 @@ TEST_CASE("payout", "[tx][payout]") {
                         uint64_t receivedAmount = 0;
                         REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                           holdersAmounts[i].amount,
-                                          assetHoldersAmount, ROUND_DOWN));
+                                          assetFrame->getIssued(), ROUND_DOWN));
                         REQUIRE(holderBalanceAfter->getAmount() ==
                                 holdersBalancesBefore[i]->getAmount() +
                                 receivedAmount);
                         receiversCount++;
                     }
 
-                    REQUIRE(receiversCount == 3);
+                    REQUIRE(receiversCount ==
+                            result.success().payoutResponses.size());
                 }
 
                 SECTION("Payout with non-zero min payout amount and "
@@ -226,9 +234,10 @@ TEST_CASE("payout", "[tx][payout]") {
                 {
                     uint64_t minPayoutAmount = ONE;
                     uint64_t minAssetHolderAmount = 20 * ONE;
-                    payoutTestHelper.applyPayoutTx(owner, assetCode,
-                            ownerBalance->getBalanceID(), maxPayoutAmount,
-                            minPayoutAmount, minAssetHolderAmount, zeroFee);
+                    auto result = payoutTestHelper.applyPayoutTx(owner,
+                            assetCode, ownerBalance->getBalanceID(),
+                            maxPayoutAmount, minPayoutAmount,
+                            minAssetHolderAmount, zeroFee);
 
                     for (auto i = 0; i < holdersCount; i++)
                     {
@@ -242,7 +251,7 @@ TEST_CASE("payout", "[tx][payout]") {
                         uint64_t receivedAmount = 0;
                         REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                           holdersAmounts[i].amount,
-                                          assetHoldersAmount, ROUND_DOWN));
+                                          assetFrame->getIssued(), ROUND_DOWN));
 
                         if (receivedAmount < minPayoutAmount)
                             continue;
@@ -253,14 +262,15 @@ TEST_CASE("payout", "[tx][payout]") {
                         receiversCount++;
                     }
 
-                    REQUIRE(receiversCount == 1);
+                    REQUIRE(receiversCount ==
+                            result.success().payoutResponses.size());
                 }
             }
 
             SECTION("Non-zero fee")
             {
                 auto feeEntry = setFeesTestHelper.createFeeEntry(
-                        FeeType::PAYOUT_FEE, assetCode, 20 * ONE, 1 * ONE);
+                        FeeType::PAYOUT_FEE, assetCode, ONE, ONE);
                 setFeesTestHelper.applySetFeesTx(root, &feeEntry, false);
 
                 Fee fee;
@@ -268,7 +278,7 @@ TEST_CASE("payout", "[tx][payout]") {
                 REQUIRE(bigDivide(fee.percent, feeEntry.percentFee,
                                   maxPayoutAmount, 100 * ONE, ROUND_UP));
 
-                payoutTestHelper.applyPayoutTx(owner, assetCode,
+                auto result = payoutTestHelper.applyPayoutTx(owner, assetCode,
                       ownerBalance->getBalanceID(), maxPayoutAmount, 0, 0, fee);
 
                 for (auto i = 0; i < holdersCount; i++)
@@ -279,7 +289,7 @@ TEST_CASE("payout", "[tx][payout]") {
                     uint64_t receivedAmount = 0;
                     REQUIRE(bigDivide(receivedAmount, maxPayoutAmount,
                                       holdersAmounts[i].amount,
-                                      assetHoldersAmount, ROUND_DOWN));
+                                      assetFrame->getIssued(), ROUND_DOWN));
 
                     REQUIRE(holderBalanceAfter->getAmount() ==
                             holdersBalancesBefore[i]->getAmount() +
@@ -287,7 +297,8 @@ TEST_CASE("payout", "[tx][payout]") {
                     receiversCount++;
                 }
 
-                REQUIRE(receiversCount == 5);
+                REQUIRE(receiversCount ==
+                        result.success().payoutResponses.size());
             }
         }
 
@@ -308,7 +319,7 @@ TEST_CASE("payout", "[tx][payout]") {
                               static_cast<uint32_t>(AssetPolicy::TRANSFERABLE));
             auto thirdPartyIssuerBalance = balanceHelper.
                     loadBalance(thirdPartyIssuerID, thirdPartyAssetCode);
-            REQUIRE(thirdPartyIssuerBalance != nullptr)
+            REQUIRE(thirdPartyIssuerBalance != nullptr);
             reference = SecretKey::random().getStrKeyPublic();
             issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer,
                  thirdPartyAssetCode, payAssetAmount,
@@ -318,7 +329,7 @@ TEST_CASE("payout", "[tx][payout]") {
             manageBalanceTestHelper.createBalance(owner, ownerID, thirdPartyAssetCode);
             auto ownerThirdPartyBalance = balanceHelper.
                     loadBalance(ownerID, thirdPartyAssetCode);
-            REQUIRE(ownerThirdPartyBalance != nullptr)
+            REQUIRE(ownerThirdPartyBalance != nullptr);
             auto ownerThirdPartyBalanceID = ownerThirdPartyBalance->getBalanceID();
             reference = SecretKey::random().getStrKeyPublic();
             issuanceRequestHelper.applyCreateIssuanceRequest(thirdPartyIssuer,
@@ -336,7 +347,7 @@ TEST_CASE("payout", "[tx][payout]") {
             SECTION("Non-zero fee")
             {
                 auto feeEntry = setFeesTestHelper.createFeeEntry(
-                        FeeType::PAYOUT_FEE, thirdPartyAssetCode, 20*ONE, 1*ONE);
+                        FeeType::PAYOUT_FEE, thirdPartyAssetCode, ONE, ONE);
                 setFeesTestHelper.applySetFeesTx(root, &feeEntry, false);
 
                 Fee fee;
@@ -349,6 +360,7 @@ TEST_CASE("payout", "[tx][payout]") {
 
                 SECTION("Underfunded")
                 {
+                    payAssetAmount *= 100;
                     REQUIRE(bigDivide(fee.percent, feeEntry.percentFee,
                                       payAssetAmount, 100 * ONE, ROUND_UP));
                     payoutTestHelper.applyPayoutTx(owner, assetCode,
@@ -426,7 +438,7 @@ TEST_CASE("payout", "[tx][payout]") {
     SECTION("Fee mismatched")
     {
         auto feeEntry = setFeesTestHelper.createFeeEntry(
-                FeeType::PAYOUT_FEE, assetCode, 2000*ONE, 1*ONE);
+                FeeType::PAYOUT_FEE, assetCode, 2*ONE, ONE);
         setFeesTestHelper.applySetFeesTx(root, &feeEntry, false);
 
         auto newAccount = Account{SecretKey::random(), Salt(0)};
@@ -439,7 +451,7 @@ TEST_CASE("payout", "[tx][payout]") {
         REQUIRE(newBalance != nullptr);
         reference = SecretKey::random().getStrKeyPublic();
         issuanceRequestHelper.applyCreateIssuanceRequest(owner, assetCode,
-           ONE, newBalance->getBalanceID(), reference, &issuanceTasks);
+           100*ONE, newBalance->getBalanceID(), reference, &issuanceTasks);
 
         SECTION("INSUFFICIENT_FEE_AMOUNT")
         {

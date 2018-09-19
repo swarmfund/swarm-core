@@ -17,6 +17,8 @@
 #include "transactions/test/mocks/MockExternalSystemAccountIDHelper.h"
 #include "transactions/test/mocks/MockExternalSystemAccountIDPoolEntryHelper.h"
 #include "transactions/test/mocks/MockKeyValueHelper.h"
+#include "transactions/test/mocks/MockBalanceHelper.h"
+#include "transactions/test/mocks/MockAssetHelper.h"
 #include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
 #include "transactions/test/mocks/MockSignatureValidator.h"
@@ -44,6 +46,8 @@ TEST_CASE("bind external system account_id - unit test",
     MockDatabase dbMock;
     MockStorageHelper storageHelperMock;
     MockKeyValueHelper keyValueHelperMock;
+    MockBalanceHelper balanceHelperMock;
+    MockAssetHelper assetHelperMock;
     MockExternalSystemAccountIDHelper externalSystemAccountIDHelperMock;
     MockExternalSystemAccountIDPoolEntryHelper
         externalSystemAccountIDPoolEntryHelperMock;
@@ -81,6 +85,10 @@ TEST_CASE("bind external system account_id - unit test",
 
     ON_CALL(storageHelperMock, getKeyValueHelper())
         .WillByDefault(ReturnRef(keyValueHelperMock));
+    ON_CALL(storageHelperMock, getBalanceHelper())
+            .WillByDefault(ReturnRef(balanceHelperMock));
+    ON_CALL(storageHelperMock, getAssetHelper())
+            .WillByDefault(ReturnRef(assetHelperMock));
     ON_CALL(storageHelperMock, getExternalSystemAccountIDHelper())
         .WillByDefault(ReturnRef(externalSystemAccountIDHelperMock));
     ON_CALL(storageHelperMock, getExternalSystemAccountIDPoolEntryHelper())

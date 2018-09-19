@@ -27,6 +27,7 @@ SetAccountRoleTestHelper::createDeletionOpInput(uint64_t accountRoleID)
 {
     SetAccountRoleOp opData;
     opData.id = accountRoleID;
+    return opData;
 }
 
 TransactionFramePtr

@@ -48,12 +48,17 @@ TEST_CASE("Account role tests", "[tx][set_account_roles]")
     auto accountKey = SecretKey::random();
     auto account = Account{accountKey, Salt(1)};
 
+    // TODO: repalce deprecated call
     createAccountTestHelper.applyCreateAccountTx(
         master, accountKey.getPublicKey(), AccountType::GENERAL);
 
     SECTION("Create account role")
     {
-        managePAHelper.applySetAccountRole(account, managePAHelper.createCreationOpInput(kRoleName));
+        SetAccountRoleResult result = managePAHelper.applySetAccountRole(account, managePAHelper.createCreationOpInput(kRoleName));
+        SECTION("Delete account role")
+        {
+            managePAHelper.applySetAccountRole(account, managePAHelper.createDeletionOpInput(result.success().accountRoleID));
+        }
     }
 
     /*

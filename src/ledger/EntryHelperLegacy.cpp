@@ -200,8 +200,19 @@ namespace stellar
 	EntryHelperProvider::existsEntry(Database& db, LedgerKey const& key)
 	{
 		EntryHelperLegacy* helper = getHelper(key.type());
-		return helper->exists(db, key);
-	}
+		if (helper)
+        {
+            return helper->exists(db, key);
+        }
+        StorageHelperImpl storageHelper(db, nullptr);
+        auto createdHelper = createHelper(key.type(), storageHelper);
+        if (!createdHelper)
+        {
+            throw std::runtime_error("There\'s no legacy helper for this entry, "
+                                     "and no helper can be created.");
+        }
+        return createdHelper->exists(key);
+    }
 
 	EntryFrame::pointer
 	EntryHelperProvider::storeLoadEntry(LedgerKey const& key, Database& db)

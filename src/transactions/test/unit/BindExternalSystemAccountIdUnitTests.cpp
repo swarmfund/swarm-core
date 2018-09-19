@@ -46,8 +46,6 @@ TEST_CASE("bind external system account_id - unit test",
     MockDatabase dbMock;
     MockStorageHelper storageHelperMock;
     MockKeyValueHelper keyValueHelperMock;
-    MockBalanceHelper balanceHelperMock;
-    MockAssetHelper assetHelperMock;
     MockExternalSystemAccountIDHelper externalSystemAccountIDHelperMock;
     MockExternalSystemAccountIDPoolEntryHelper
         externalSystemAccountIDPoolEntryHelperMock;
@@ -85,10 +83,6 @@ TEST_CASE("bind external system account_id - unit test",
 
     ON_CALL(storageHelperMock, getKeyValueHelper())
         .WillByDefault(ReturnRef(keyValueHelperMock));
-    ON_CALL(storageHelperMock, getBalanceHelper())
-            .WillByDefault(ReturnRef(balanceHelperMock));
-    ON_CALL(storageHelperMock, getAssetHelper())
-            .WillByDefault(ReturnRef(assetHelperMock));
     ON_CALL(storageHelperMock, getExternalSystemAccountIDHelper())
         .WillByDefault(ReturnRef(externalSystemAccountIDHelperMock));
     ON_CALL(storageHelperMock, getExternalSystemAccountIDPoolEntryHelper())

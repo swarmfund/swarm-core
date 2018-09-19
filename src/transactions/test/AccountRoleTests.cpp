@@ -1,7 +1,7 @@
 #include "TxTests.h"
 #include "crypto/SHA.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "main/Application.h"
 #include "main/test.h"
 #include "overlay/LoopbackPeer.h"
@@ -18,8 +18,10 @@ using namespace stellar::txtest;
 
 typedef std::unique_ptr<Application> appPtr;
 
-TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]")
-{/*
+static const std::string kRoleName = "some role";
+
+TEST_CASE("Account role tests", "[tx][set_account_roles]")
+{
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
 
     VirtualClock clock;
@@ -32,8 +34,8 @@ TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]")
 
     auto testManager = TestManager::make(app);
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
 
     // set up world
     auto master = Account{getRoot(), Salt(1)};
@@ -49,6 +51,12 @@ TEST_CASE("Manage policy attachment", "[tx][manage_policy_attachment]")
     createAccountTestHelper.applyCreateAccountTx(
         master, accountKey.getPublicKey(), AccountType::GENERAL);
 
+    SECTION("Create account role")
+    {
+        managePAHelper.applySetAccountRole(account, managePAHelper.createCreationOpInput(kRoleName));
+    }
+
+    /*
     // create policy
     auto data = SetIdentityPolicyData(
         PRIORITY_USER_MIN, "resource_type:::", "SomeAction", Effect::DENY,

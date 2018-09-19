@@ -19,6 +19,7 @@ using namespace stellar::txtest;
 typedef std::unique_ptr<Application> appPtr;
 
 static const std::string kRoleName = "some role";
+static const std::string kAnotherRoleName = "another role";
 
 TEST_CASE("Account role tests", "[tx][set_account_roles]")
 {
@@ -55,6 +56,14 @@ TEST_CASE("Account role tests", "[tx][set_account_roles]")
     SECTION("Create account role")
     {
         SetAccountRoleResult result = managePAHelper.applySetAccountRole(account, managePAHelper.createCreationOpInput(kRoleName));
+        SECTION("Create another role")
+        {
+            managePAHelper.applySetAccountRole(account, managePAHelper.createCreationOpInput(kAnotherRoleName));
+        }
+        SECTION("Create another role with duplicate name")
+        {
+            managePAHelper.applySetAccountRole(account, managePAHelper.createCreationOpInput(kRoleName));
+        }
         SECTION("Delete account role")
         {
             managePAHelper.applySetAccountRole(account, managePAHelper.createDeletionOpInput(result.success().accountRoleID));

@@ -188,7 +188,6 @@ namespace stellar
 		}
 	}
 
-
 	void
 	EntryHelperProvider::storeDeleteEntry(LedgerDelta& delta, Database& db, LedgerKey const& key)
 	{

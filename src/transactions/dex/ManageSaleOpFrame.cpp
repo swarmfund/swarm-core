@@ -447,7 +447,7 @@ namespace stellar {
     }
 
     void ManageSaleOpFrame::trySetFulfilled(LedgerManager &lm, bool fulfilled) {
-        if (!lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION)) {
+        if (!lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_SEND_TO_SELF)) {
             return;
         }
 

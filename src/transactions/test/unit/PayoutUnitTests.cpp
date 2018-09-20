@@ -77,6 +77,8 @@ TEST_CASE("payout - unit test", "[tx][payout]")
     request.policies = static_cast<uint32_t>(AssetPolicy ::TRANSFERABLE);
     request.details =  "";
     AssetFrame::pointer assetFrameFake = AssetFrame::create(request, sourceID);
+    BalanceFrame::pointer balanceFrameFake = BalanceFrame::createNew(
+            balance.getPublicKey(), sourceID, op.asset);
 
     ON_CALL(appMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
     ON_CALL(appMock, getLedgerManager())
@@ -154,5 +156,19 @@ TEST_CASE("payout - unit test", "[tx][payout]")
                 OperationResultCode::opINNER);
         REQUIRE(opFrame.getResult().tr().payoutResult().code() ==
                 PayoutResultCode::BALANCE_NOT_FOUND);
+    }
+
+    SECTION("Apply, no asset holders")
+    {
+        EXPECT_CALL(assetHelperMock, loadAsset(op.asset, sourceID))
+                .WillOnce(Return(assetFrameFake));
+        EXPECT_CALL(balanceHelperMock, loadBalance(balance.getPublicKey(), sourceID))
+                .WillOnce(Return(balanceFrameFake));
+        REQUIRE_FALSE(
+                opFrame.doApply(appMock, storageHelperMock, ledgerManagerMock));
+        REQUIRE(opFrame.getResult().code() ==
+                OperationResultCode::opINNER);
+        REQUIRE(opFrame.getResult().tr().payoutResult().code() ==
+                PayoutResultCode::HOLDERS_NOT_FOUND);
     }
 }

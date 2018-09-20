@@ -13,7 +13,14 @@ namespace stellar {
 
     namespace txtest {
         TestManager::TestManager(Application &app, Database &db, LedgerManager &lm) :
-                mApp(app), mDB(db), mLm(lm) {
+                mApp(app), mDB(db), mLm(lm)
+        {
+            mApp.stopCheckingPolicies();
+        }
+
+        TestManager::~TestManager()
+        {
+            mApp.resumeCheckingPolicies();
         }
 
         TestManager::pointer TestManager::make(Application &app) {

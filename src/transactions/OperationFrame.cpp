@@ -317,7 +317,8 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
         return false;
     }
 
-    if (!xdr::operator==(mSourceAccount->getID(), app.getMasterID()))
+    if (app.isCheckingPolicies() &&
+        !xdr::operator==(mSourceAccount->getID(), app.getMasterID()))
     {
         const auto &policyDetails = getPolicyDetails(db, delta);
         if (!policyDetails.empty() &&

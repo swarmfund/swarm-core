@@ -160,6 +160,10 @@ namespace stellar {
 
         virtual int32 getKYCSuperAdminMask() const override;
 
+        bool isCheckingPolicies() const override;
+        void stopCheckingPolicies() override;
+        void resumeCheckingPolicies() override;
+
     private:
         VirtualClock &mVirtualClock;
         Config mConfig;
@@ -214,6 +218,8 @@ namespace stellar {
         AccountID commissionID;
 
         std::unordered_set<ExternalSystemIDGeneratorType> mAvailableExternalSystemIDGenerators;
+
+        bool mIsCheckingPolicies{ true };
 
         void shutdownMainIOService();
 

@@ -99,5 +99,9 @@ class MockApplication : public Application
 
     MOCK_CONST_METHOD0(getBTCAddressRoot, const std::string());
     MOCK_CONST_METHOD0(getETHAddressRoot, const std::string());
+
+    MOCK_CONST_METHOD0(isCheckingPolicies, bool());
+    MOCK_METHOD0(stopCheckingPolicies, void());
+    MOCK_METHOD0(resumeCheckingPolicies, void());
 };
 } // namespace stellar

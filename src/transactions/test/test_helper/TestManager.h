@@ -30,6 +30,7 @@ namespace stellar {
             typedef std::shared_ptr<TestManager> pointer;
 
             TestManager(Application &app, Database &db, LedgerManager &lm);
+            virtual ~TestManager();
 
             static pointer make(Application &app);
 

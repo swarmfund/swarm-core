@@ -269,6 +269,21 @@ namespace stellar {
         return mConfig.KYC_SUPER_ADMIN_MASK;
     }
 
+    bool ApplicationImpl::isCheckingPolicies() const
+    {
+        return mIsCheckingPolicies;
+    }
+
+    void ApplicationImpl::stopCheckingPolicies()
+    {
+        mIsCheckingPolicies = false;
+    }
+
+    void ApplicationImpl::resumeCheckingPolicies()
+    {
+        mIsCheckingPolicies = true;
+    }
+
     ApplicationImpl::~ApplicationImpl() {
         LOG(INFO) << "Application destructing";
         if (mNtpSynchronizationChecker) {

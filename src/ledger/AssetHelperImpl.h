@@ -50,6 +50,9 @@ private:
     loadAsset(AssetCode assetCode) override;
 
     AssetFrame::pointer
+    mustLoadAsset(AssetCode assetCode) override;
+
+    AssetFrame::pointer
     loadAsset(AssetCode assetCode, AccountID owner) override;
 
     void

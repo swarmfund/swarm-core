@@ -21,6 +21,9 @@ public:
 	loadAsset(AssetCode assetCode) = 0;
 
 	virtual AssetFrame::pointer
+	mustLoadAsset(AssetCode assetCode) = 0;
+
+	virtual AssetFrame::pointer
 	loadAsset(AssetCode assetCode, AccountID owner) = 0;
 
 private:

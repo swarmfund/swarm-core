@@ -385,7 +385,7 @@ TEST_CASE("payout", "[tx][payout]") {
             {
                 payoutTestHelper.applyPayoutTx(owner, assetCode,
                        ownerThirdPartyBalanceID, maxPayoutAmount, 1000 * ONE,
-                       ONE, zeroFee, PayoutResultCode::MIN_AMOUNT_TOO_MUCH);
+                       ONE, zeroFee, PayoutResultCode::MIN_AMOUNT_TOO_BIG);
             }
         }
     }
@@ -411,8 +411,12 @@ TEST_CASE("payout", "[tx][payout]") {
     {
         AssetCode newAssetCode = "USD";
         manageAssetTestHelper.createAsset(owner, owner.key, newAssetCode, root, 0);
-        payoutTestHelper.applyPayoutTx(owner, "USD", ownerBalanceID, 100 * ONE,
-                       0, 0, zeroFee, PayoutResultCode::ASSET_NOT_TRANSFERABLE);
+        manageBalanceTestHelper.createBalance(owner, ownerID, newAssetCode);
+        auto newBalance = balanceHelper.loadBalance(ownerID, newAssetCode);
+        REQUIRE(newBalance);
+        payoutTestHelper.applyPayoutTx(owner, newAssetCode,
+                           newBalance->getBalanceID(), 100 * ONE, 0, 0, zeroFee,
+                           PayoutResultCode::ASSET_NOT_TRANSFERABLE);
     }
 
     SECTION("Balance not found")

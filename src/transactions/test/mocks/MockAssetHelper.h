@@ -24,12 +24,14 @@ public:
     MOCK_METHOD1(flushCachedEntry, void(LedgerKey const& key));
     MOCK_METHOD1(cachedEntryExists, bool(LedgerKey const& key));
     MOCK_METHOD1(loadAsset,
-            AssetFrame::pointer(AssetCode assetCode));
+                 AssetFrame::pointer(AssetCode assetCode));
+    MOCK_METHOD1(mustLoadAsset,
+                 AssetFrame::pointer(AssetCode assetCode));
     MOCK_METHOD2(loadAsset,
-            AssetFrame::pointer(AssetCode assetCode, AccountID owner));
-    MOCK_METHOD2(loadAssets,
-        void(StatementContext& prep,
+                 AssetFrame::pointer(AssetCode assetCode, AccountID owner));
+    MOCK_METHOD2(loadAssets, void(StatementContext& prep,
             std::function<void(LedgerEntry const&)> assetProcessor));
+
 };
 
 }  // namespace stellar

@@ -156,7 +156,7 @@ PayoutOpFrame::obtainHoldersAmountsMap(Application& app, uint64_t& totalAmount,
                                      "overflows UINT64_MAX");
         }
 
-        if ((mPayout.minPayoutAmount != 0) &&
+        if ((calculatedAmount == 0) ||
             (calculatedAmount < mPayout.minPayoutAmount))
             continue;
 
@@ -265,38 +265,40 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
     return true;
 }
 
-AssetFrame::pointer
-PayoutOpFrame::obtainAsset(AssetHelper& assetHelper)
+BalanceFrame::pointer
+PayoutOpFrame::obtainSourceBalance(BalanceHelper& balanceHelper,
+                                   AssetHelper& assetHelper)
 {
-    auto assetFrame = assetHelper.loadAsset(mPayout.asset, getSourceID());
-    if (assetFrame == nullptr)
+    auto sourceBalance = balanceHelper.loadBalance(mPayout.sourceBalanceID,
+                                                   getSourceID());
+    if (!sourceBalance)
     {
-        innerResult().code(PayoutResultCode::ASSET_NOT_FOUND);
+        innerResult().code(PayoutResultCode::BALANCE_NOT_FOUND);
         return nullptr;
     }
 
-    if (!assetFrame->isPolicySet(AssetPolicy::TRANSFERABLE))
+    auto asset = assetHelper.mustLoadAsset(sourceBalance->getAsset());
+
+    if (!asset->isPolicySet(AssetPolicy::TRANSFERABLE))
     {
         innerResult().code(PayoutResultCode::ASSET_NOT_TRANSFERABLE);
         return nullptr;
     }
 
-    return assetFrame;
+    return sourceBalance;
 }
 
 std::vector<BalanceFrame::pointer>
-PayoutOpFrame::obtainAssetHoldersBalances(uint64_t& issuedAmount,
-                                          AssetFrame::pointer assetFrame,
+PayoutOpFrame::obtainAssetHoldersBalances(AssetFrame::pointer assetFrame,
                                           BalanceHelper& balanceHelper)
 {
-    issuedAmount = assetFrame->getIssued();
-    if (issuedAmount == 0)
+    if (assetFrame->getIssued() == 0)
     {
         return std::vector<BalanceFrame::pointer>{};
     }
 
-    return balanceHelper.loadAssetHolders(mPayout.asset,
-                       getSourceID(), mPayout.minAssetHolderAmount);
+    return balanceHelper.loadAssetHolders(mPayout.asset, getSourceID(),
+                                          mPayout.minAssetHolderAmount);
 }
 
 bool
@@ -307,21 +309,21 @@ PayoutOpFrame::doApply(Application &app, StorageHelper &storageHelper,
     auto& balanceHelper = storageHelper.getBalanceHelper();
     auto& assetHelper = storageHelper.getAssetHelper();
 
-    auto assetFrame = obtainAsset(assetHelper);
-    if (assetFrame == nullptr)
-        return false;
-
-    auto sourceBalance = balanceHelper.loadBalance(mPayout.sourceBalanceID,
-            getSourceID());
-    if (sourceBalance == nullptr)
+    auto assetFrame = assetHelper.loadAsset(mPayout.asset, getSourceID());
+    if (!assetFrame)
     {
-        innerResult().code(PayoutResultCode::BALANCE_NOT_FOUND);
+        innerResult().code(PayoutResultCode::ASSET_NOT_FOUND);
         return false;
     }
 
-    uint64_t assetHoldersAmount;
-    auto assetHoldersBalances = obtainAssetHoldersBalances(assetHoldersAmount,
-            assetFrame, balanceHelper);
+    auto sourceBalance = obtainSourceBalance(balanceHelper, assetHelper);
+    if (!sourceBalance)
+    {
+        return false;
+    }
+
+    auto assetHoldersBalances = obtainAssetHoldersBalances(assetFrame,
+            balanceHelper);
     if (assetHoldersBalances.empty())
     {
         innerResult().code(PayoutResultCode::HOLDERS_NOT_FOUND);
@@ -330,10 +332,10 @@ PayoutOpFrame::doApply(Application &app, StorageHelper &storageHelper,
 
     uint64_t actualTotalAmount;
     auto holdersAmountsMap = obtainHoldersAmountsMap(app, actualTotalAmount,
-            assetHoldersBalances, assetHoldersAmount);
+            assetHoldersBalances, assetFrame->getIssued());
     if (actualTotalAmount == 0)
     {
-        innerResult().code(PayoutResultCode::MIN_AMOUNT_TOO_MUCH);
+        innerResult().code(PayoutResultCode::MIN_AMOUNT_TOO_BIG);
         return false;
     }
 

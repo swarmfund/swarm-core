@@ -239,6 +239,22 @@ AssetHelperImpl::loadAsset(AssetCode assetCode)
 }
 
 AssetFrame::pointer
+AssetHelperImpl::mustLoadAsset(AssetCode assetCode)
+{
+    auto assetFrame = loadAsset(assetCode);
+
+    if (!assetFrame)
+    {
+        CLOG(ERROR, Logging::ENTRY_LOGGER) << "Unexpected state, "
+                       << "expected asset to exists, asset code: "
+                       << assetCode;
+        throw runtime_error("Unexpected state, expected asset to exists");
+    }
+
+    return assetFrame;
+}
+
+AssetFrame::pointer
 AssetHelperImpl::loadAsset(AssetCode assetCode, AccountID owner)
 {
     auto assetFrame = loadAsset(assetCode);

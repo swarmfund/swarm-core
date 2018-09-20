@@ -56,12 +56,12 @@ class PayoutOpFrame : public OperationFrame
                      std::map<AccountID, uint64_t> assetHoldersAmounts,
                      StorageHelper& storageHelper);
 
-    AssetFrame::pointer
-    obtainAsset(AssetHelper& assetHelper);
+    BalanceFrame::pointer
+    obtainSourceBalance(BalanceHelper& balanceHelper, AssetHelper& assetHelper);
 
     std::vector<BalanceFrame::pointer>
-    obtainAssetHoldersBalances(uint64_t& issuedAmount,
-                  AssetFrame::pointer assetFrame, BalanceHelper& balanceHelper);
+    obtainAssetHoldersBalances(AssetFrame::pointer assetFrame,
+                               BalanceHelper& balanceHelper);
 
     bool
     processStatistics(StatisticsV2Processor statisticsV2Processor,

@@ -9,18 +9,16 @@ namespace stellar
 {
 
 bool
-IdentityPolicyChecker::isPolicyAllowed(const AccountID& initiatorID,
+IdentityPolicyChecker::isPolicyAllowed(const AccountFrame::pointer initiatorAccountFrame,
                                        const PolicyDetails& policyDetails,
                                        Database& db, LedgerDelta* delta)
 {
-    const auto sourceAccount =
-        AccountHelper::Instance()->loadAccount(initiatorID, db, delta);
-    if (!sourceAccount->getAccountRole())
+    if (!initiatorAccountFrame->getAccountRole())
     {
         // accounts with no role assigned will fail policy check
         return false;
     }
-    return findPolicy(*sourceAccount->getAccountRole(), policyDetails, db) == FindResult::ALLOW;
+    return findPolicy(*initiatorAccountFrame->getAccountRole(), policyDetails, db) == FindResult::ALLOW;
 }
 
 IdentityPolicyChecker::FindResult

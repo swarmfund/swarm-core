@@ -320,15 +320,11 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
     if (!xdr::operator==(mSourceAccount->getID(), app.getMasterID()))
     {
         const auto &policyDetails = getPolicyDetails(db, delta);
-        if (!policyDetails.empty())
+        if (!policyDetails.empty() &&
+            !IdentityPolicyChecker::isPolicyAllowed(mSourceAccount, policyDetails, db,
+                                                   delta))
         {
-            const bool isAllow = IdentityPolicyChecker::isPolicyAllowed(mSourceAccount->getID(), policyDetails, db,
-                                                                        delta);
-            if (!isAllow)
-            {
-                app.getMetrics().NewMeter({"operation", "rejected", "due-to-policy"}, "operation").Mark();
-                return false;
-            }
+            return false;
         }
     }
 

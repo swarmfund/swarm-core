@@ -22,7 +22,7 @@ class IdentityPolicyChecker
     };
     IdentityPolicyChecker() = delete;
 
-    static bool isPolicyAllowed(const AccountID& masterID,
+    static bool isPolicyAllowed(const AccountFrame::pointer initiatorAccountFrame,
                                 const PolicyDetails& policyDetails,
                                 Database& db, LedgerDelta* delta = nullptr);
     static FindResult findPolicy(uint32 accountRole,

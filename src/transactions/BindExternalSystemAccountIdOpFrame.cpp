@@ -46,8 +46,8 @@ BindExternalSystemAccountIdOpFrame::BindExternalSystemAccountIdOpFrame(
 {
 }
 
-PolicyDetails BindExternalSystemAccountIdOpFrame::getPolicyDetails(Database &db, LedgerDelta *delta) const {
-    const AccountID accountID = mSourceAccount->getAccount().accountID;
+PolicyDetails BindExternalSystemAccountIdOpFrame::getPolicyDetails(Database &db, LedgerDelta *delta) const
+{
     return PolicyDetails{"bind-external", "create"};
 }
 

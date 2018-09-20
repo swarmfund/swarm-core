@@ -144,9 +144,7 @@ SetAccountRolePolicyOpFrame::deleteAccountPolicy(Application& app,
         return false;
     }
 
-    EntryHelperProvider::storeDeleteEntry(*storageHelper.getLedgerDelta(),
-                                          storageHelper.getDatabase(),
-                                          frame->getKey());
+    storageHelper.getAccountRolePolicyHelper().storeDelete(frame->getKey());
     innerResult().code(SetAccountRolePolicyResultCode::SUCCESS);
     innerResult().success().accountRolePolicyID = mSetAccountRolePolicy.id;
     return true;

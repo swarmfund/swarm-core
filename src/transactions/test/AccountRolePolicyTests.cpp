@@ -24,7 +24,7 @@ typedef std::unique_ptr<Application> appPtr;
 static const std::string kResourceID = "some resource type";
 static const std::string kActionID = "some action";
 
-TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
+TEST_CASE("Set role policy", "[tx][set_account_role_policies]")
 {
     Config const& cfg = getTestConfig(0, Config::TESTDB_POSTGRESQL);
 
@@ -56,8 +56,8 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
         master, accountKey.getPublicKey(), AccountType::GENERAL);
 
     // create account role
-    setAccountRoleTestHelper.applySetAccountRole(
-        master, setAccountRoleTestHelper.createCreationOpInput("regular"));
+    auto accountRoleID = setAccountRoleTestHelper.applySetAccountRole(
+        master, setAccountRoleTestHelper.createCreationOpInput("regular")).success().accountRoleID;
 
     auto data = PolicyDetails{kResourceID, kActionID};
 
@@ -65,7 +65,7 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
     {
         auto policyEntry =
             setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
-                0, accountKey.getPublicKey(), &data);
+                accountRoleID, accountKey.getPublicKey(), &data);
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
             account, policyEntry, false,
             SetAccountRolePolicyResultCode::SUCCESS);
@@ -74,7 +74,7 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
     {
         auto policyEntry =
             setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
-                0, accountKey.getPublicKey(), &data);
+                accountRoleID, accountKey.getPublicKey(), &data);
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
             account, policyEntry, false,
             SetAccountRolePolicyResultCode::SUCCESS);
@@ -88,13 +88,8 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
     {
         auto policyEntryResourceAndAction =
             setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
-                0, accountKey.getPublicKey(), &data);
+                accountRoleID, accountKey.getPublicKey(), &data);
         policyEntryResourceAndAction.resource = "";
-        policyEntryResourceAndAction.action = kActionID;
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntryResourceAndAction, false,
-            SetAccountRolePolicyResultCode::MALFORMED);
-        policyEntryResourceAndAction.resource = kResourceID + "_invalid";
         policyEntryResourceAndAction.action = kActionID;
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
             account, policyEntryResourceAndAction, false,
@@ -104,14 +99,9 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
     {
         auto policyEntryResourceAndAction =
             setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
-                0, accountKey.getPublicKey(), &data);
+                accountRoleID, accountKey.getPublicKey(), &data);
         policyEntryResourceAndAction.resource = kResourceID;
         policyEntryResourceAndAction.action = "";
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntryResourceAndAction, false,
-            SetAccountRolePolicyResultCode::MALFORMED);
-        policyEntryResourceAndAction.resource = kResourceID;
-        policyEntryResourceAndAction.action = kActionID + "_invalid";
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
             account, policyEntryResourceAndAction, false,
             SetAccountRolePolicyResultCode::MALFORMED);
@@ -120,7 +110,7 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
     {
         auto policyEntry =
             setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
-                0, accountKey.getPublicKey(), &data);
+                accountRoleID, accountKey.getPublicKey(), &data);
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
             account, policyEntry, true,
             SetAccountRolePolicyResultCode::NOT_FOUND);
@@ -129,7 +119,7 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
     {
         auto policyEntry =
             setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
-                0, accountKey.getPublicKey(), &data);
+                accountRoleID, accountKey.getPublicKey(), &data);
         // create
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
             account, policyEntry, false,
@@ -145,7 +135,7 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policy]")
     {
         auto policyEntry =
             setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
-                0, accountKey.getPublicKey(), &data);
+                accountRoleID, accountKey.getPublicKey(), &data);
         // create
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
             account, policyEntry, false,

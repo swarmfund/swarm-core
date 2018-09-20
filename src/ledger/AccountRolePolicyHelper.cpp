@@ -117,7 +117,7 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
         sql =
             std::string("UPDATE account_role_policies "
                         "SET    role=:r, resource=:rs, action=:ac, effect=:ef, "
-                        "lastmodified=:lm, version=:v "
+                        "last_modified=:lm, version=:v "
                         "WHERE  id=:id AND ownerid=:ow");
     }
 
@@ -233,9 +233,9 @@ AccountRolePolicyHelper::storeLoad(LedgerKey const& key)
 
     std::string name;
     auto prep = mDb.getPreparedStatement(
-        "SELECT role, resource, action, effect, version, lastmodified "
-        "FROM identity_policies "
-        "WHERE id =:id AND ownerid =:ow");
+        "SELECT role, resource, action, effect, version, last_modified "
+        "FROM account_role_policies "
+        "WHERE id =:id AND owner_id =:ow");
     auto& st = prep.statement();
     st.exchange(use(key.accountRolePolicy().accountRolePolicyID));
     st.exchange(use(ownerIDStrKey));
@@ -247,7 +247,7 @@ AccountRolePolicyHelper::storeLoad(LedgerKey const& key)
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.define_and_bind();
 
-    auto timer = mDb.getSelectTimer("identity_policies");
+    auto timer = mDb.getSelectTimer("account_role_policies");
     st.execute(true);
 
     if (!st.got_data())

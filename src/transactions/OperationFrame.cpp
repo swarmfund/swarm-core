@@ -7,6 +7,7 @@
 #include "main/Application.h"
 #include "xdrpp/marshal.h"
 #include <string>
+#include <transactions/sale/CancelSaleCreationRequestOpFrame.h>
 #include "util/Logging.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
@@ -32,7 +33,7 @@
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceRequestOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
-#include "transactions/CreateSaleCreationRequestOpFrame.h"
+#include "transactions/sale/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
@@ -119,6 +120,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageContractRequestOpFrame(op, res, tx));
     case OperationType::MANAGE_CONTRACT:
         return shared_ptr<OperationFrame>(new ManageContractOpFrame(op, res, tx));
+    case OperationType::CANCEL_SALE_REQUEST:
+        return shared_ptr<OperationFrame>(new CancelSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::SET_ACCOUNT_ROLE:
         return shared_ptr<OperationFrame>(new SetAccountRoleOpFrame(op, res, tx));
     case OperationType::SET_ACCOUNT_ROLE_POLICY:

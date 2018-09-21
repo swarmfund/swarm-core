@@ -169,8 +169,8 @@ PayoutOpFrame::obtainHoldersAmountsMap(Application& app, uint64_t& totalAmount,
 }
 
 void
-PayoutOpFrame::addPayoutResponse(AccountID& accountID, uint64_t amount,
-                                 BalanceID balanceID)
+PayoutOpFrame::addPayoutResponse(AccountID const& accountID, uint64_t amount,
+                                 BalanceID const& balanceID)
 {
     PayoutResponse response;
     response.receivedAmount = amount;
@@ -179,31 +179,41 @@ PayoutOpFrame::addPayoutResponse(AccountID& accountID, uint64_t amount,
     innerResult().success().payoutResponses.emplace_back(response);
 }
 
-void
-PayoutOpFrame::fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
-                            std::map<AccountID, uint64_t> assetHoldersAmounts,
-                            AssetCode asset, StorageHelper& storageHelper)
+std::map<AccountID, BalanceFrame::pointer>
+PayoutOpFrame::obtainAccountIDBalanceMap(
+        std::vector<BalanceFrame::pointer> balances)
 {
-    for (auto accountID : accountIDs)
+    std::map<AccountID, BalanceFrame::pointer> result;
+
+    for (auto balance : balances)
     {
-        // we don't check if there is balance for such accountID and asset code
-        // because we already check it existing
-        auto balanceID = BalanceKeyUtils::forAccount(accountID,
-                storageHelper.getLedgerDelta().getHeaderFrame()
-                        .generateID(LedgerEntryType::BALANCE));
-        auto newBalance = BalanceFrame::createNew(balanceID, accountID, asset);
-
-        if (!newBalance->tryFundAccount(assetHoldersAmounts[accountID]))
-        {
-            throw std::runtime_error("Unexpected state: can't fund new balance");
-        }
-
-        addPayoutResponse(accountID, assetHoldersAmounts[accountID],
-                          newBalance->getBalanceID());
-
-        auto& balanceHelper = storageHelper.getBalanceHelper();
-        balanceHelper.storeAdd(newBalance->mEntry);
+        result.emplace(balance->getAccountID(), balance);
     }
+
+    return result;
+}
+
+void
+PayoutOpFrame::fundWithoutBalanceAccount(AccountID const& accountID,
+                                         uint64_t amount, AssetCode asset,
+                                         StorageHelper& storageHelper)
+{
+    // we don't check if there is balance for such accountID and asset code
+    // because we already check it existing
+    auto balanceID = BalanceKeyUtils::forAccount(accountID,
+            storageHelper.getLedgerDelta().getHeaderFrame()
+                    .generateID(LedgerEntryType::BALANCE));
+    auto newBalance = BalanceFrame::createNew(balanceID, accountID, asset);
+
+    if (!newBalance->tryFundAccount(amount))
+    {
+        throw std::runtime_error("Unexpected state: can't fund new balance");
+    }
+
+    addPayoutResponse(accountID, amount, newBalance->getBalanceID());
+
+    auto& balanceHelper = storageHelper.getBalanceHelper();
+    balanceHelper.storeAdd(newBalance->mEntry);
 }
 
 bool
@@ -222,27 +232,20 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
     auto& balanceHelper = storageHelper.getBalanceHelper();
     auto receiverBalances = balanceHelper.loadBalances(accountIDs,
             sourceBalance->getAsset());
+    auto accountIDBalanceMap = obtainAccountIDBalanceMap(receiverBalances);
 
-    for (auto receiverBalance : receiverBalances)
+    for (auto const& accountID : accountIDs)
     {
-        auto accountID = receiverBalance->getAccountID();
-        auto accountIDPos = std::find(accountIDs.begin(), accountIDs.end(),
-                        accountID);
-        if (accountIDPos == accountIDs.end())
-        {
-            CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: "
-                       << "Expected accountID to be in vector. "
-                       << "accountID: " + PubKeyUtils::toStrKey(accountID)
-                       << "balanceID: " + BalanceKeyUtils::toStrKey(
-                               receiverBalance->getBalanceID());
-            throw std::runtime_error("Unexpected state. "
-                                     "Expected accountID to be in vector.");
-        }
-
-        accountIDs.erase(accountIDPos);
-
         if (assetHoldersAmounts[accountID] == 0)
             continue;
+
+        auto receiverBalance = accountIDBalanceMap[accountID];
+        if (!receiverBalance)
+        {
+            fundWithoutBalanceAccount(accountID, assetHoldersAmounts[accountID],
+                                      sourceBalance->getAsset(), storageHelper);
+            continue;
+        }
 
         if (!receiverBalance->tryFundAccount(assetHoldersAmounts[accountID]))
         {
@@ -255,9 +258,6 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
 
         balanceHelper.storeChange(receiverBalance->mEntry);
     }
-
-    fundWithoutBalancesAccounts(accountIDs, assetHoldersAmounts,
-                                sourceBalance->getAsset(), storageHelper);
 
     balanceHelper.storeChange(sourceBalance->mEntry);
     innerResult().success().actualPayoutAmount = totalAmount;

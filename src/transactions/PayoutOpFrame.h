@@ -43,13 +43,16 @@ class PayoutOpFrame : public OperationFrame
                             uint64_t assetHoldersAmount);
 
     void
-    addPayoutResponse(AccountID& accountID, uint64_t amount,
-                      BalanceID balanceID);
+    addPayoutResponse(AccountID const& accountID, uint64_t amount,
+                      BalanceID const& balanceID);
+
+    std::map<AccountID, BalanceFrame::pointer>
+    obtainAccountIDBalanceMap(std::vector<BalanceFrame::pointer> balances);
 
     void
-    fundWithoutBalancesAccounts(std::vector<AccountID> accountIDs,
-                            std::map<AccountID, uint64_t> assetHoldersAmounts,
-                            AssetCode asset, StorageHelper& storageHelper);
+    fundWithoutBalanceAccount(AccountID const& accountID,
+                              uint64_t amount, AssetCode asset,
+                              StorageHelper& storageHelper);
 
     bool
     processTransfers(BalanceFrame::pointer sourceBalance, uint64_t totalAmount,

@@ -35,10 +35,10 @@ class PayoutOpFrame : public OperationFrame
                           BalanceFrame::pointer sourceBalance);
 
     std::vector<AccountID>
-    getAccountIDs(std::map<AccountID, uint64_t> assetHoldersAmounts);
+    getAccountIDs(std::map<AccountID, uint64_t>& assetHoldersAmounts);
 
     std::map<AccountID, uint64_t>
-    obtainHoldersAmountsMap(Application& app, uint64_t& totalAmount,
+    obtainHoldersPayoutAmountsMap(Application& app, uint64_t& totalAmount,
                             std::vector<BalanceFrame::pointer> holders,
                             uint64_t assetHoldersAmount);
 
@@ -47,12 +47,9 @@ class PayoutOpFrame : public OperationFrame
                       BalanceID const& balanceID);
 
     std::map<AccountID, BalanceFrame::pointer>
-    obtainAccountIDBalanceMap(std::vector<BalanceFrame::pointer> balances);
-
-    void
-    fundWithoutBalanceAccount(AccountID const& accountID,
-                              uint64_t amount, AssetCode asset,
-                              StorageHelper& storageHelper);
+    obtainAccountIDBalanceMap(
+            std::map<AccountID, uint64_t>& assetHoldersAmounts,
+            AssetCode assetCode, BalanceHelper& balanceHelper);
 
     bool
     processTransfers(BalanceFrame::pointer sourceBalance, uint64_t totalAmount,

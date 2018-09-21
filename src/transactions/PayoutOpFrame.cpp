@@ -29,7 +29,7 @@ PayoutOpFrame::getSourceAccountDetails(
         std::unordered_map<AccountID, CounterpartyDetails>
         counterpartiesDetails, int32_t ledgerVersion) const
 {
-    return SourceDetails(getAllAccountTypes(),
+    return SourceDetails({AccountType::MASTER, AccountType::SYNDICATE},
                          mSourceAccount->getHighThreshold(),
                          static_cast<int32_t>(SignerType::BALANCE_MANAGER));
 }
@@ -64,9 +64,6 @@ PayoutOpFrame::getActualFee(AssetCode const& asset, uint64_t amount,
 bool
 PayoutOpFrame::isFeeAppropriate(Fee const& actualFee) const
 {
-    if (isSystemAccountType(mSourceAccount->getAccountType()))
-        return (actualFee.fixed == 0) && (actualFee.percent == 0);
-
     return (mPayout.fee.fixed >= actualFee.fixed) &&
            (mPayout.fee.percent >= actualFee.percent);
 }
@@ -114,7 +111,7 @@ PayoutOpFrame::tryProcessTransferFee(AccountManager& accountManager,
 }
 
 std::vector<AccountID>
-PayoutOpFrame::getAccountIDs(std::map<AccountID, uint64_t> assetHoldersAmounts)
+PayoutOpFrame::getAccountIDs(std::map<AccountID, uint64_t>& assetHoldersAmounts)
 {
     std::vector<AccountID> result;
 
@@ -130,14 +127,14 @@ PayoutOpFrame::getAccountIDs(std::map<AccountID, uint64_t> assetHoldersAmounts)
 }
 
 std::map<AccountID, uint64_t>
-PayoutOpFrame::obtainHoldersAmountsMap(Application& app, uint64_t& totalAmount,
+PayoutOpFrame::obtainHoldersPayoutAmountsMap(Application& app, uint64_t& totalAmount,
         std::vector<BalanceFrame::pointer> holders, uint64_t assetHoldersAmount)
 {
     std::map<AccountID, uint64_t> result;
     totalAmount = 0;
     auto systemAccounts = app.getSystemAccounts();
 
-    for (auto holder : holders)
+    for (auto const& holder : holders)
     {
         auto systemAccountIter = std::find(systemAccounts.begin(),
                 systemAccounts.end(), holder->getAccountID());
@@ -161,8 +158,20 @@ PayoutOpFrame::obtainHoldersAmountsMap(Application& app, uint64_t& totalAmount,
             continue;
 
         auto& amountToSend = result[holder->getAccountID()];
-        amountToSend += calculatedAmount;
-        totalAmount += calculatedAmount;
+        if (!safeSum(amountToSend, calculatedAmount, amountToSend))
+        {
+            throw std::runtime_error("Unexpected state, amount to send overflows");
+        }
+
+        if (!safeSum(totalAmount, calculatedAmount, totalAmount))
+        {
+            throw std::runtime_error("Unexpected state, amount to send overflows");
+        }
+    }
+
+    if (totalAmount > mPayout.maxPayoutAmount)
+    {
+        throw std::runtime_error("Unexpected total amount to be more than maxPayoutAmount");
     }
 
     return result;
@@ -181,39 +190,20 @@ PayoutOpFrame::addPayoutResponse(AccountID const& accountID, uint64_t amount,
 
 std::map<AccountID, BalanceFrame::pointer>
 PayoutOpFrame::obtainAccountIDBalanceMap(
-        std::vector<BalanceFrame::pointer> balances)
+                            std::map<AccountID, uint64_t>& assetHoldersAmounts,
+                            AssetCode assetCode, BalanceHelper& balanceHelper)
 {
-    std::map<AccountID, BalanceFrame::pointer> result;
+    auto accountIDs = getAccountIDs(assetHoldersAmounts);
 
-    for (auto balance : balances)
+    auto receiverBalances = balanceHelper.loadBalances(accountIDs, assetCode);
+
+    std::map<AccountID, BalanceFrame::pointer> result;
+    for (auto balance : receiverBalances)
     {
         result.emplace(balance->getAccountID(), balance);
     }
 
     return result;
-}
-
-void
-PayoutOpFrame::fundWithoutBalanceAccount(AccountID const& accountID,
-                                         uint64_t amount, AssetCode asset,
-                                         StorageHelper& storageHelper)
-{
-    // we don't check if there is balance for such accountID and asset code
-    // because we already check it existing
-    auto balanceID = BalanceKeyUtils::forAccount(accountID,
-            storageHelper.getLedgerDelta().getHeaderFrame()
-                    .generateID(LedgerEntryType::BALANCE));
-    auto newBalance = BalanceFrame::createNew(balanceID, accountID, asset);
-
-    if (!newBalance->tryFundAccount(amount))
-    {
-        throw std::runtime_error("Unexpected state: can't fund new balance");
-    }
-
-    addPayoutResponse(accountID, amount, newBalance->getBalanceID());
-
-    auto& balanceHelper = storageHelper.getBalanceHelper();
-    balanceHelper.storeAdd(newBalance->mEntry);
 }
 
 bool
@@ -227,39 +217,46 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
         return false;
     }
 
-    auto accountIDs = getAccountIDs(assetHoldersAmounts);
-
     auto& balanceHelper = storageHelper.getBalanceHelper();
-    auto receiverBalances = balanceHelper.loadBalances(accountIDs,
-            sourceBalance->getAsset());
-    auto accountIDBalanceMap = obtainAccountIDBalanceMap(receiverBalances);
+    auto accountIDBalanceMap = obtainAccountIDBalanceMap(assetHoldersAmounts,
+            sourceBalance->getAsset(), balanceHelper);
 
-    for (auto const& accountID : accountIDs)
+    for (auto const& holdersAmount : assetHoldersAmounts)
     {
-        if (assetHoldersAmounts[accountID] == 0)
+        if (holdersAmount.second == 0)
             continue;
 
-        auto receiverBalance = accountIDBalanceMap[accountID];
+        bool isNewBalance = false;
+        auto receiverBalance = accountIDBalanceMap[holdersAmount.first];
         if (!receiverBalance)
         {
-            fundWithoutBalanceAccount(accountID, assetHoldersAmounts[accountID],
-                                      sourceBalance->getAsset(), storageHelper);
-            continue;
+            auto balanceID = BalanceKeyUtils::forAccount(
+                    holdersAmount.first, storageHelper.getLedgerDelta()
+                        .getHeaderFrame().generateID(LedgerEntryType::BALANCE));
+            receiverBalance = BalanceFrame::createNew(balanceID,
+                    holdersAmount.first, sourceBalance->getAsset());
+
+            isNewBalance = true;
         }
 
-        if (!receiverBalance->tryFundAccount(assetHoldersAmounts[accountID]))
+        if (!receiverBalance->tryFundAccount(holdersAmount.second))
         {
             innerResult().code(PayoutResultCode::LINE_FULL);
             return false;
         }
 
-        addPayoutResponse(accountID, assetHoldersAmounts[accountID],
+        addPayoutResponse(holdersAmount.first, holdersAmount.second,
                           receiverBalance->getBalanceID());
+
+        if (isNewBalance)
+        {
+            balanceHelper.storeAdd(receiverBalance->mEntry);
+            continue;
+        }
 
         balanceHelper.storeChange(receiverBalance->mEntry);
     }
 
-    balanceHelper.storeChange(sourceBalance->mEntry);
     innerResult().success().actualPayoutAmount = totalAmount;
 
     return true;
@@ -318,9 +315,7 @@ PayoutOpFrame::doApply(Application &app, StorageHelper &storageHelper,
 
     auto sourceBalance = obtainSourceBalance(balanceHelper, assetHelper);
     if (!sourceBalance)
-    {
         return false;
-    }
 
     auto assetHoldersBalances = obtainAssetHoldersBalances(assetFrame,
             balanceHelper);
@@ -331,7 +326,7 @@ PayoutOpFrame::doApply(Application &app, StorageHelper &storageHelper,
     }
 
     uint64_t actualTotalAmount;
-    auto holdersAmountsMap = obtainHoldersAmountsMap(app, actualTotalAmount,
+    auto holdersAmountsMap = obtainHoldersPayoutAmountsMap(app, actualTotalAmount,
             assetHoldersBalances, assetFrame->getIssued());
     if (actualTotalAmount == 0)
     {
@@ -350,6 +345,8 @@ PayoutOpFrame::doApply(Application &app, StorageHelper &storageHelper,
                           storageHelper))
         return false;
 
+    balanceHelper.storeChange(sourceBalance->mEntry);
+
     StatisticsV2Processor statsProcessor(db, delta, ledgerManager);
     return processStatistics(statsProcessor, sourceBalance, actualTotalAmount);
 }
@@ -361,7 +358,7 @@ PayoutOpFrame::processStatistics(StatisticsV2Processor statisticsV2Processor,
 {
     uint64_t universalAmount;
     auto statisticsResult = statisticsV2Processor.addStatsV2(
-            StatisticsV2Processor::PAYOUT, amount, universalAmount,
+            StatisticsV2Processor::PAYMENT, amount, universalAmount,
             mSourceAccount, sourceBalance);
 
     switch (statisticsResult)

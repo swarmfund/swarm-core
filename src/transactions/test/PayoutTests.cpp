@@ -371,7 +371,7 @@ TEST_CASE("payout", "[tx][payout]") {
                 SECTION("Limit exceeded")
                 {
                     auto limitsOp = manageLimitsTestHelper.createManageLimitsOp(
-                            thirdPartyAssetCode, StatsOpType::PAYOUT, true,
+                            thirdPartyAssetCode, StatsOpType::PAYMENT_OUT, true,
                             ONE, ONE, ONE, ONE);
                     manageLimitsTestHelper.applyManageLimitsTx(root, limitsOp);
 

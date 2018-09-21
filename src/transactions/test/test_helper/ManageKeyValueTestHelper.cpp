@@ -1,6 +1,7 @@
 #include <transactions/test/TxTests.h>
 #include "ManageKeyValueTestHelper.h"
-#include "ledger/KeyValueHelper.h"
+#include "ledger/KeyValueHelperLegacy.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "test/test_marshaler.h"
 
 namespace stellar {
@@ -21,7 +22,7 @@ namespace stellar {
             return this;
         }
 
-        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(uint32 value) {
+        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setUi32Value(uint32 value) {
             this->value.type(KeyValueEntryType::UINT32);
             this->value.ui32Value() = value;
             return this;
@@ -30,6 +31,11 @@ namespace stellar {
         txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setValue(std::string value) {
             this->value.type(KeyValueEntryType::STRING);
             this->value.stringValue() = value;
+            return this;
+        }
+        txtest::ManageKeyValueTestHelper *ManageKeyValueTestHelper::setUi64Value(uint64 value) {
+            this->value.type(KeyValueEntryType::UINT64);
+            this->value.ui64Value() = value;
             return this;
         }
 
@@ -42,7 +48,7 @@ namespace stellar {
         void ManageKeyValueTestHelper::doApply(Application &app, ManageKVAction action, bool require,
                                                KeyValueEntryType type)
         {
-            LedgerDelta delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(), mTestManager->getDB());
+            LedgerDeltaImpl delta(mTestManager->getLedgerManager().getCurrentLedgerHeader(), mTestManager->getDB());
 
             ManageKeyValueTestBuilder builder(key, mTestManager, action, value, type);
 
@@ -52,7 +58,7 @@ namespace stellar {
             REQUIRE((isApplied && isValid) == require);
             REQUIRE(builder.kvManager->getInnerCode(builder.kvManager->getResult()) == expectedResult);
 
-            auto actualKeyValue = KeyValueHelper::Instance()->loadKeyValue(key, app.getDatabase());
+            auto actualKeyValue = KeyValueHelperLegacy::Instance()->loadKeyValue(key, app.getDatabase());
             switch (action) {
                 case ManageKVAction::PUT:
                 {

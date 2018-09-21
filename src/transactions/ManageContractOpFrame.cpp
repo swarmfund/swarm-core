@@ -1,5 +1,5 @@
 #include <ledger/ContractHelper.h>
-#include <ledger/KeyValueHelper.h>
+#include <ledger/KeyValueHelperLegacy.h>
 #include "transactions/review_request/ReviewRequestHelper.h"
 #include "transactions/ManageContractOpFrame.h"
 #include "ledger/TrustFrame.h"
@@ -126,7 +126,7 @@ uint64_t
 ManageContractOpFrame::obtainMaxContractDetailLength(Application& app, Database& db, LedgerDelta& delta)
 {
     auto maxContractDetailLengthKey = ManageKeyValueOpFrame::makeMaxContractDetailLengthKey();
-    auto maxContractDetailLengthKeyValue = KeyValueHelper::Instance()->
+    auto maxContractDetailLengthKeyValue = KeyValueHelperLegacy::Instance()->
             loadKeyValue(maxContractDetailLengthKey, db, &delta);
 
     if (!maxContractDetailLengthKeyValue)

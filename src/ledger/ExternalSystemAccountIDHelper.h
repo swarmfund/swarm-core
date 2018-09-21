@@ -1,59 +1,28 @@
 #pragma once
 
-// Copyright 2014 Stellar Development Foundation and contributors. Licensed
-// under the Apache License, Version 2.0. See the COPYING file at the root
-// of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
-
 #include "ledger/EntryHelper.h"
 #include "ledger/ExternalSystemAccountID.h"
 
 namespace soci
 {
-	class session;
+class session;
 }
 
 namespace stellar
 {
-	class StatementContext;
+class StorageHelper;
 
-	class ExternalSystemAccountIDHelper : public EntryHelper {
-	public:
+class ExternalSystemAccountIDHelper : public EntryHelper
+{
+  public:
+    virtual bool exists(AccountID accountID, int32 externalSystemType) = 0;
 
-		static ExternalSystemAccountIDHelper *Instance() {
-			static ExternalSystemAccountIDHelper singleton;
-			return&singleton;
-		}
+    virtual std::vector<ExternalSystemAccountIDFrame::pointer> loadAll() = 0;
 
-		void dropAll(Database& db) override;
-		void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
-		void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
-		void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key) override;
-		bool exists(Database& db, LedgerKey const& key) override;
-		LedgerKey getLedgerKey(LedgerEntry const& from) override;
-		EntryFrame::pointer storeLoad(LedgerKey const& key, Database& db) override;
-		EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
-		uint64_t countObjects(soci::session& sess) override;
+    // loads external system account ID by accountID and externalSystemType. If
+    // not found returns nullptr.
+    virtual ExternalSystemAccountIDFrame::pointer
+    load(const AccountID accountID, const int32 externalSystemType) = 0;
+};
 
-		bool exists(Database& db, AccountID accountID, int32 externalSystemType);
-
-        std::vector<ExternalSystemAccountIDFrame::pointer> loadAll(Database& db);
-
-		// load - loads external system account ID by accountID and externalSystemType. If not found returns nullptr.
-		ExternalSystemAccountIDFrame::pointer
-			load(const AccountID accountID, const int32 externalSystemType, Database& db, LedgerDelta* delta = nullptr);
-
-	private:
-		ExternalSystemAccountIDHelper() { ; }
-		~ExternalSystemAccountIDHelper() { ; }
-
-		ExternalSystemAccountIDHelper(ExternalSystemAccountIDHelper const&) = delete;
-		ExternalSystemAccountIDHelper& operator=(ExternalSystemAccountIDHelper const&) = delete;
-
-		static const char* select;
-
-		void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
-		void load(StatementContext& prep, std::function<void(LedgerEntry const&)> processor);
-
-	};
-
-}
+} // namespace stellar

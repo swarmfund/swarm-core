@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EntryHelper.h"
+#include "EntryHelperLegacy.h"
 #include "ContractFrame.h"
 #include <functional>
 #include <unordered_map>
@@ -14,7 +14,7 @@ namespace stellar
 {
 class StatementContext;
 
-class ContractHelper : public EntryHelper
+class ContractHelper : public EntryHelperLegacy
 {
 public:
     static ContractHelper *Instance()

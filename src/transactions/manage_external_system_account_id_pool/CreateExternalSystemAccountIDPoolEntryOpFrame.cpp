@@ -4,7 +4,8 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include "CreateExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
+#include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
+#include "ledger/LedgerHeaderFrame.h"
 
 namespace stellar
 {
@@ -25,7 +26,7 @@ CreateExternalSystemAccountIDPoolEntryOpFrame::doApply(Application &app, LedgerD
 {
     Database& db = ledgerManager.getDatabase();
 
-    auto poolEntryFrame = ExternalSystemAccountIDPoolEntryHelper::Instance()->load(mInput.externalSystemType,
+    auto poolEntryFrame = ExternalSystemAccountIDPoolEntryHelperLegacy::Instance()->load(mInput.externalSystemType,
                                                                                    mInput.data, db, nullptr);
 
     if (!!poolEntryFrame)
@@ -38,7 +39,7 @@ CreateExternalSystemAccountIDPoolEntryOpFrame::doApply(Application &app, LedgerD
     poolEntryFrame = ExternalSystemAccountIDPoolEntryFrame::createNew(newPoolEntryID, mInput.externalSystemType,
                                                                       mInput.data, mInput.parent);
 
-    ExternalSystemAccountIDPoolEntryHelper::Instance()->storeAdd(delta, db, poolEntryFrame->mEntry);
+    ExternalSystemAccountIDPoolEntryHelperLegacy::Instance()->storeAdd(delta, db, poolEntryFrame->mEntry);
     innerResult().code(ManageExternalSystemAccountIdPoolEntryResultCode::SUCCESS);
     innerResult().success().poolEntryID = newPoolEntryID;
     return true;

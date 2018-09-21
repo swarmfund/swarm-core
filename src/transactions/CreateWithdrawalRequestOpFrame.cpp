@@ -2,19 +2,20 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include <ledger/StatisticsHelper.h>
-#include "transactions/CreateWithdrawalRequestOpFrame.h"
-#include "database/Database.h"
-#include "main/Application.h"
-#include "medida/metrics_registry.h"
+#include "ledger/StatisticsHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/BalanceHelper.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
-#include "xdrpp/printer.h"
+#include "ledger/KeyValueHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
+#include "transactions/CreateWithdrawalRequestOpFrame.h"
+#include "database/Database.h"
+#include "main/Application.h"
+#include "medida/metrics_registry.h"
+#include "xdrpp/printer.h"
 #include "StatisticsV2Processor.h"
 
 namespace stellar
@@ -229,6 +230,13 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
+    auto code = assetFrame->getAsset().code;
+    if (!exceedsLowerBound(db, code))
+    {
+        innerResult().code(CreateWithdrawalRequestResultCode::LOWER_BOUND_NOT_EXCEEDED);
+        return false;
+    }
+
     AccountManager accountManager(app, db, delta, ledgerManager);
     if (!isFeeMatches(accountManager, balanceFrame))
     {
@@ -240,6 +248,7 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     {
         return false;
     }
+
 
     if (!tryLockBalance(balanceFrame))
     {
@@ -348,6 +357,27 @@ bool CreateWithdrawalRequestOpFrame::tryAddStatsV2(StatisticsV2Processor& statis
             throw std::runtime_error("Unexpected state from statisticsV2Processor when updating statsV2");
     }
 
+}
+
+bool CreateWithdrawalRequestOpFrame::exceedsLowerBound(Database& db, AssetCode& code)
+{
+    xdr::xstring<256> key = "WithdrawLowerBound:" + code;
+    auto lowerBound = KeyValueHelperLegacy::Instance()->loadKeyValue(key, db);
+    if (!lowerBound) {
+        return true;
+    }
+
+    if (lowerBound.get()->getKeyValue().value.type() != KeyValueEntryType::UINT64) {
+        CLOG(WARNING, "WithdrawLowerBound")
+            << "AssetCode:" << code
+            << "KeyValueEntryType: "
+            << std::to_string(
+                static_cast<int32>(lowerBound.get()->getKeyValue().value.type()));
+        return true;
+    }
+
+    auto &request = mCreateWithdrawalRequest.request;
+    return lowerBound.get()->getKeyValue().value.ui64Value() <= request.amount;
 }
 
 }

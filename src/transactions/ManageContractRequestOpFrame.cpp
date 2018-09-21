@@ -5,7 +5,7 @@
 #include "medida/meter.h"
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>
-#include <ledger/KeyValueHelper.h>
+#include <ledger/KeyValueHelperLegacy.h>
 #include <ledger/ContractHelper.h>
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
@@ -144,7 +144,7 @@ uint64_t
 ManageContractRequestOpFrame::obtainMaxContractsForContractor(Application& app, Database& db, LedgerDelta& delta)
 {
     auto maxContractsCountKey = ManageKeyValueOpFrame::makeMaxContractsCountKey();
-    auto maxContractsCountKeyValue = KeyValueHelper::Instance()->
+    auto maxContractsCountKeyValue = KeyValueHelperLegacy::Instance()->
             loadKeyValue(maxContractsCountKey, db, &delta);
 
     if (!maxContractsCountKeyValue)
@@ -181,7 +181,7 @@ uint64_t
 ManageContractRequestOpFrame::obtainMaxContractInitialDetailLength(Application& app, Database& db, LedgerDelta& delta)
 {
     auto maxContractInitialDetailLengthKey = ManageKeyValueOpFrame::makeMaxContractInitialDetailLengthKey();
-    auto maxContractInitialDetailLengthKeyValue = KeyValueHelper::Instance()->
+    auto maxContractInitialDetailLengthKeyValue = KeyValueHelperLegacy::Instance()->
             loadKeyValue(maxContractInitialDetailLengthKey, db, &delta);
 
     if (!maxContractInitialDetailLengthKeyValue)

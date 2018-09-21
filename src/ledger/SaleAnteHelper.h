@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EntryHelper.h"
+#include "EntryHelperLegacy.h"
 #include "SaleAnteFrame.h"
 
 namespace soci {
@@ -10,7 +10,7 @@ namespace soci {
 namespace stellar {
     class StatementContext;
 
-    class SaleAnteHelper : public EntryHelper {
+    class SaleAnteHelper : public EntryHelperLegacy {
         SaleAnteHelper() { ; }
 
         ~SaleAnteHelper() { ; }

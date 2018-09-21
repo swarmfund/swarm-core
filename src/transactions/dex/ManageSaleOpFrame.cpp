@@ -1,6 +1,6 @@
 #include "ManageSaleOpFrame.h"
 #include "OfferManager.h"
-#include "transactions/CreateSaleCreationRequestOpFrame.h"
+#include "transactions/sale/CreateSaleCreationRequestOpFrame.h"
 #include <ledger/BalanceHelper.h>
 #include <ledger/OfferHelper.h>
 #include <ledger/ReviewableRequestHelper.h>
@@ -447,7 +447,7 @@ namespace stellar {
     }
 
     void ManageSaleOpFrame::trySetFulfilled(LedgerManager &lm, bool fulfilled) {
-        if (!lm.shouldUse(LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION)) {
+        if (!lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_SEND_TO_SELF)) {
             return;
         }
 

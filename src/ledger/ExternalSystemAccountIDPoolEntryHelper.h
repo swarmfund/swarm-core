@@ -5,59 +5,37 @@
 
 namespace soci
 {
-    class session;
+class session;
 }
 
 namespace stellar
 {
-    class StatementContext;
+class StatementContext;
+class LedgerManager;
 
-    class ExternalSystemAccountIDPoolEntryHelper : public EntryHelper {
-    public:
-        ExternalSystemAccountIDPoolEntryHelper(ExternalSystemAccountIDPoolEntryHelper const&) = delete;
-        ExternalSystemAccountIDPoolEntryHelper& operator=(ExternalSystemAccountIDPoolEntryHelper const&) = delete;
+class ExternalSystemAccountIDPoolEntryHelper : public EntryHelper
+{
+  public:
+    virtual void fixTypes() = 0;
+    virtual void parentToNumeric() = 0;
 
-        static ExternalSystemAccountIDPoolEntryHelper * Instance() {
-            static ExternalSystemAccountIDPoolEntryHelper singleton;
-            return &singleton;
-        }
+    virtual bool exists(uint64_t poolEntryID) = 0;
+    virtual bool existsForAccount(int32 externalSystemType,
+                          AccountID accountID) = 0;
 
-        void dropAll(Database& db) override;
-        void fixTypes(Database& db);
-        void parentToNumeric(Database& db);
-        void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
-        void storeChange(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;
-        void storeDelete(LedgerDelta& delta, Database& db, LedgerKey const& key) override;
-        bool exists(Database& db, LedgerKey const& key) override;
-        LedgerKey getLedgerKey(LedgerEntry const& from) override;
-        EntryFrame::pointer storeLoad(LedgerKey const& key, Database& db) override;
-        EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
-        uint64_t countObjects(soci::session& sess) override;
+    virtual ExternalSystemAccountIDPoolEntryFrame::pointer
+    load(uint64_t poolEntryID) = 0;
 
-        bool exists(Database& db, uint64_t poolEntryID);
-        bool existsForAccount(Database& db, int32 externalSystemType, AccountID accountID);
+    virtual ExternalSystemAccountIDPoolEntryFrame::pointer
+    load(int32 type, std::string data) = 0;
+    virtual ExternalSystemAccountIDPoolEntryFrame::pointer
+    load(int32 externalSystemType, AccountID accountID) = 0;
 
-        ExternalSystemAccountIDPoolEntryFrame::pointer load(uint64_t poolEntryID, Database& db,
-                                                           LedgerDelta* delta = nullptr);
+    virtual ExternalSystemAccountIDPoolEntryFrame::pointer
+    loadAvailablePoolEntry(LedgerManager& ledgerManager,
+                           int32 externalSystemType) = 0;
 
-        ExternalSystemAccountIDPoolEntryFrame::pointer load(int32 type, std::string data,
-                                                           Database& db, LedgerDelta* delta = nullptr);
-        ExternalSystemAccountIDPoolEntryFrame::pointer load(int32 externalSystemType, AccountID accountID,
-                                                            Database& db, LedgerDelta* delta = nullptr);
-
-        ExternalSystemAccountIDPoolEntryFrame::pointer loadAvailablePoolEntry(Database &db,
-                                                                              LedgerManager &ledgerManager,
-                                                                              int32 externalSystemType);
-
-        std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer> loadPool(Database& db);
-
-    private:
-        ExternalSystemAccountIDPoolEntryHelper() { ; }
-        ~ExternalSystemAccountIDPoolEntryHelper() { ; }
-
-        static const char* select;
-
-        void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert, LedgerEntry const& entry);
-        void load(StatementContext& prep, std::function<void(LedgerEntry const&)> processor);
-    };
+    virtual std::vector<ExternalSystemAccountIDPoolEntryFrame::pointer>
+    loadPool() = 0;
+};
 }

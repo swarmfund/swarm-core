@@ -7,12 +7,15 @@
 #include "main/Application.h"
 #include "xdrpp/marshal.h"
 #include <string>
+#include <transactions/sale/CancelSaleCreationRequestOpFrame.h>
 #include "util/Logging.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/ReferenceFrame.h"
 #include "ledger/AccountHelper.h"
+#include "ledger/StorageHelper.h"
+#include "ledger/StorageHelperImpl.h"
 #include "transactions/TransactionFrame.h"
 #include "transactions/CreateAccountOpFrame.h"
 #include "transactions/payment/PaymentOpFrame.h"
@@ -30,7 +33,7 @@
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceRequestOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
-#include "transactions/CreateSaleCreationRequestOpFrame.h"
+#include "transactions/sale/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
@@ -52,7 +55,7 @@ namespace stellar
 
 using namespace std;
 
-    
+
 shared_ptr<OperationFrame>
 OperationFrame::makeHelper(Operation const& op, OperationResult& res,
                            TransactionFrame& tx)
@@ -115,6 +118,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageContractRequestOpFrame(op, res, tx));
     case OperationType::MANAGE_CONTRACT:
         return shared_ptr<OperationFrame>(new ManageContractOpFrame(op, res, tx));
+    case OperationType::CANCEL_SALE_REQUEST:
+        return shared_ptr<OperationFrame>(new CancelSaleCreationRequestOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());
@@ -129,13 +134,14 @@ OperationFrame::OperationFrame(Operation const& op, OperationResult& res,
 }
 
 bool
-OperationFrame::apply(LedgerDelta& delta, Application& app)
+OperationFrame::apply(StorageHelper& storageHelper, Application& app)
 {
     bool res;
-    res = checkValid(app, &delta);
+    res = checkValid(app, &storageHelper.getLedgerDelta());
     if (!res)
         return res;
-    bool isApplied = doApply(app, delta, app.getLedgerManager());
+    bool isApplied =
+        doApply(app, storageHelper.getLedgerDelta(), app.getLedgerManager());
 	app.getMetrics().NewMeter({ "operation", isApplied ? "applied" : "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
 	return isApplied;
 }
@@ -167,7 +173,7 @@ int64_t OperationFrame::getPaidFee() const {
 	// default fee for all operations is 0, finantial operations must override this function
     return 0;
 }
-    
+
 bool
 OperationFrame::doCheckSignature(Application& app, Database& db, SourceDetails& sourceDetails)
 {
@@ -201,6 +207,23 @@ OperationFrame::doCheckSignature(Application& app, Database& db, SourceDetails& 
 	throw runtime_error("Unexpected error code from signatureValidator for operation");
 }
 
+// TMP
+bool
+OperationFrame::doApply(Application& app, LedgerDelta& delta,
+	LedgerManager& ledgerManager)
+{
+    StorageHelperImpl storageHelper(app.getDatabase(), delta);
+    static_cast<StorageHelper&>(storageHelper).release();
+    return doApply(app, storageHelper, ledgerManager);
+}
+
+// TMP
+bool OperationFrame::doApply(Application& app, StorageHelper& storageHelper,
+                             LedgerManager& ledgerManager)
+{
+    return doApply(app, storageHelper.getLedgerDelta(), ledgerManager);
+}
+
 AccountID const&
 OperationFrame::getSourceID() const
 {
@@ -218,7 +241,7 @@ OperationFrame::loadAccount(LedgerDelta* delta, Database& db)
 
 [[deprecated]]
 void
-OperationFrame::createReferenceEntry(string reference, LedgerDelta* delta, Database& db)
+OperationFrame::createReferenceEntry(string reference, StorageHelper& storageHelper)
 {
     LedgerEntry le;
     le.data.type(LedgerEntryType::REFERENCE_ENTRY);
@@ -226,7 +249,9 @@ OperationFrame::createReferenceEntry(string reference, LedgerDelta* delta, Datab
 
     entry.reference = reference;
     auto referenceFrame = std::make_shared<ReferenceFrame>(le);
-	EntryHelperProvider::storeAddEntry(*delta, db, referenceFrame->mEntry);
+    EntryHelperProvider::storeAddEntry(storageHelper.getLedgerDelta(),
+                                       storageHelper.getDatabase(),
+                                       referenceFrame->mEntry);
 }
 
 
@@ -292,7 +317,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 
     mResult.code(OperationResultCode::opINNER);
     mResult.tr().type(mOperation.body.type());
-    
+
     bool isValid = doCheckValid(app);
 	if (!isValid) {
 		app.getMetrics().NewMeter({ "operation", "rejected", getInnerResultCodeAsStr() }, "operation").Mark();
@@ -306,7 +331,7 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
 {
 
 	auto& db = app.getDatabase();
-    
+
     for (auto& counterpartyPair : counterparties)
     {
 		auto accountHelper = AccountHelper::Instance();
@@ -329,7 +354,7 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
             mResult.code(OperationResultCode::opCOUNTERPARTY_BLOCKED);
             return false;
         }
-        
+
 		auto& allowedTypes = counterpartyPair.second.mAllowedAccountTypes;
         if(std::find(allowedTypes.begin(), allowedTypes.end(), counterpartyPair.second.mAccount->getAccountType()) == allowedTypes.end())
         {

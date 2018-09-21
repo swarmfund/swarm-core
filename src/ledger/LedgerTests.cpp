@@ -6,9 +6,9 @@
 #include "main/Application.h"
 #include "main/test.h"
 #include "database/Database.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/LedgerManager.h"
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AccountHelper.h"
 #include <xdrpp/autocheck.h>
@@ -23,8 +23,8 @@ TEST_CASE("Ledger entry db lifecycle", "[ledger]")
     VirtualClock clock;
     Application::pointer app = Application::create(clock, cfg);
     app->start();
-    LedgerDelta delta(app->getLedgerManager().getCurrentLedgerHeader(),
-                      app->getDatabase());
+    LedgerDeltaImpl delta(app->getLedgerManager().getCurrentLedgerHeader(),
+                          app->getDatabase());
     auto& db = app->getDatabase();
     for (size_t i = 0; i < 1000; ++i)
     {
@@ -53,8 +53,8 @@ TEST_CASE("single ledger entry insert SQL", "[singlesql][entrysql]")
         Application::create(clock, getTestConfig(0, mode));
     app->start();
 
-    LedgerDelta delta(app->getLedgerManager().getCurrentLedgerHeader(),
-                      app->getDatabase());
+    LedgerDeltaImpl delta(app->getLedgerManager().getCurrentLedgerHeader(),
+                          app->getDatabase());
     auto& db = app->getDatabase();
     auto le = EntryHelperProvider::fromXDREntry(LedgerTestUtils::generateValidLedgerEntry(3));
     auto ctx = db.captureAndLogSQL("ledger-insert");
@@ -86,8 +86,8 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
     auto key = le->getKey();
 
     {
-        LedgerDelta delta(app->getLedgerManager().getCurrentLedgerHeader(),
-                          app->getDatabase());
+        LedgerDeltaImpl delta(app->getLedgerManager().getCurrentLedgerHeader(),
+                              app->getDatabase());
         soci::transaction sqltx(session);
         EntryHelperProvider::storeAddOrChangeEntry(delta, db, le->mEntry);
         sqltx.commit();
@@ -101,8 +101,8 @@ TEST_CASE("DB cache interaction with transactions", "[ledger][dbcache]")
 
     {
         soci::transaction sqltx(session);
-        LedgerDelta delta(app->getLedgerManager().getCurrentLedgerHeader(),
-                          app->getDatabase());
+        LedgerDeltaImpl delta(app->getLedgerManager().getCurrentLedgerHeader(),
+                              app->getDatabase());
 
         auto acc = accountHelper->loadAccount(key.account().accountID, db);
         REQUIRE(accountHelper->cachedEntryExists(key, db));

@@ -7,7 +7,7 @@
 #include "main/test.h"
 #include "TxTests.h"
 #include "ledger/BalanceHelper.h"
-#include "ledger/LedgerDelta.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "test_helper/TestManager.h"
 #include "transactions/test/test_helper/ManageExternalSystemAccountIDPoolEntryTestHelper.h"
 #include "test/test_marshaler.h"
@@ -28,8 +28,8 @@ TEST_CASE("manage external system account id pool entry", "[tx][manage_external_
     app.start();
     auto testManager = TestManager::make(app);
 
-    LedgerDelta delta(app.getLedgerManager().getCurrentLedgerHeader(),
-                      app.getDatabase());
+    LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
+                          app.getDatabase());
 
     auto root = Account{ getRoot(), Salt(0) };
 

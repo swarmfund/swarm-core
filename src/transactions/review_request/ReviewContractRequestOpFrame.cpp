@@ -12,6 +12,7 @@
 #include "ledger/AssetHelper.h"
 #include "ledger/ContractHelper.h"
 #include "ledger/BalanceHelper.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "main/Application.h"
 
 namespace stellar

@@ -9,6 +9,7 @@
 #include <transactions/test/test_helper/ReviewUpdateSaleEndTimeRequestHelper.h>
 #include "main/Application.h"
 #include "ledger/AssetHelper.h"
+#include "ledger/LedgerDeltaImpl.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "main/test.h"
 #include "TxTests.h"
@@ -262,11 +263,52 @@ TEST_CASE("Sale", "[tx][sale]")
                                                             &requiredBaseAssetForHardCap);
 
     uint32_t issuanceTasks = 0;
+    SECTION("Create sale request")
+    {
+        auto result = saleRequestHelper.applyCreateSaleRequest(syndicate, 0,
+                                                               saleRequest);
+        auto requestID = result.success().requestID;
+
+        SECTION("Success cancel sale request")
+        {
+            saleRequestHelper.applyCancelSaleRequest(syndicate, requestID);
+
+            SECTION("Already canceled")
+            {
+                saleRequestHelper.applyCancelSaleRequest(syndicate, requestID,
+                      CancelSaleCreationRequestResultCode::REQUEST_NOT_FOUND);
+            }
+        }
+
+        auto newSyndicate = Account{ SecretKey::random(), 0 };
+        auto newSyndicatePubKey = newSyndicate.key.getPublicKey();
+
+        auto createAccountTestBuilder = CreateAccountTestBuilder()
+                .setSource(root)
+                .setToPublicKey(newSyndicatePubKey)
+                .setType(AccountType::SYNDICATE)
+                .setRecovery(SecretKey::random().getPublicKey());
+
+        auto createAccountHelper = CreateAccountTestHelper(testManager);
+        createAccountHelper.applyTx(createAccountTestBuilder);
+
+        SECTION("Other user cannot cancel request")
+        {
+            saleRequestHelper.applyCancelSaleRequest(newSyndicate, requestID,
+                CancelSaleCreationRequestResultCode::REQUEST_NOT_FOUND);
+        }
+
+        SECTION("Request id cannot be zero")
+        {
+            saleRequestHelper.applyCancelSaleRequest(newSyndicate, 0,
+                CancelSaleCreationRequestResultCode::REQUEST_ID_INVALID);
+        }
+    }
 
     SECTION("Non zero balance on sale close"){
         auto sellerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(2 * ONE), quoteAsset, &syndicatePubKey);
         auto participantsFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(1 * ONE), quoteAsset, nullptr);
-        LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
+        LedgerDeltaImpl delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
         EntryHelperProvider::storeAddEntry(delta, db, sellerFeeFrame->mEntry);
         EntryHelperProvider::storeAddEntry(delta, db, participantsFeeFrame->mEntry);
 
@@ -420,7 +462,7 @@ TEST_CASE("Sale", "[tx][sale]")
         // TODO: use set fees
         auto sellerFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(2 * ONE), quoteAsset, &syndicatePubKey);
         auto participantsFeeFrame = FeeFrame::create(FeeType::OFFER_FEE, 0, int64_t(1 * ONE), quoteAsset, nullptr);
-        LedgerDelta delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
+        LedgerDeltaImpl delta(testManager->getLedgerManager().getCurrentLedgerHeader(), db);
         EntryHelperProvider::storeAddEntry(delta, db, sellerFeeFrame->mEntry);
         EntryHelperProvider::storeAddEntry(delta, db, participantsFeeFrame->mEntry);
         auto fee = setFeesTestHelper.createFeeEntry(FeeType::CAPITAL_DEPLOYMENT_FEE, quoteAsset, 0, 1 * ONE);

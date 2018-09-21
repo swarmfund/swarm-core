@@ -1,5 +1,5 @@
 #pragma once
-#include "ledger/EntryHelper.h"
+#include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerManager.h"
 #include <functional>
 #include <unordered_map>
@@ -14,7 +14,7 @@ namespace stellar
 {
     class StatementContext;
 
-    class StatisticsV2Helper : public EntryHelper {
+    class StatisticsV2Helper : public EntryHelperLegacy {
     public:
         StatisticsV2Helper(StatisticsV2Helper const&) = delete;
         StatisticsV2Helper& operator= (StatisticsV2Helper const&) = delete;

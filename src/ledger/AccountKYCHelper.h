@@ -5,14 +5,14 @@
 #ifndef STELLAR_ACCOUNTKYCHELPER_H
 #define STELLAR_ACCOUNTKYCHELPER_H
 
-#include "EntryHelper.h"
+#include "EntryHelperLegacy.h"
 #include "AccountKYCFrame.h"
 #include "LedgerDelta.h"
 
 namespace stellar
 {
 
-class AccountKYCHelper : public EntryHelper
+class AccountKYCHelper : public EntryHelperLegacy
 {
 private:
     AccountKYCHelper() { ; }

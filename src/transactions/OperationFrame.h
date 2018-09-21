@@ -26,6 +26,7 @@ namespace stellar
 class Application;
 class LedgerManager;
 class LedgerDelta;
+class StorageHelper;
 
 class TransactionFrame;
 
@@ -47,7 +48,9 @@ class OperationFrame
 
     virtual bool doCheckValid(Application& app) = 0;
     virtual bool doApply(Application& app, LedgerDelta& delta,
-                         LedgerManager& ledgerManager) = 0;
+                         LedgerManager& ledgerManager);
+    virtual bool doApply(Application& app, StorageHelper& storageHelper,
+                         LedgerManager& ledgerManager);
 
   public:
     virtual ~OperationFrame() = default;
@@ -97,7 +100,7 @@ class OperationFrame
     bool loadAccount(LedgerDelta* delta, Database& db);
 
     void
-    createReferenceEntry(std::string reference, LedgerDelta* delta, Database& db);
+    createReferenceEntry(std::string reference, StorageHelper& storageHelper);
 
     OperationResult&
     getResult() const
@@ -108,7 +111,7 @@ class OperationFrame
 
     bool checkValid(Application& app, LedgerDelta* delta = nullptr);
 
-    bool apply(LedgerDelta& delta, Application& app);
+    bool apply(StorageHelper& storageHelper, Application& app);
 
     Operation const&
     getOperation() const

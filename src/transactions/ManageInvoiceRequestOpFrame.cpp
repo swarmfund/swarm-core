@@ -6,7 +6,7 @@
 #include <crypto/SHA.h>
 #include <ledger/ReviewableRequestHelper.h>
 #include <ledger/ContractHelper.h>
-#include <ledger/KeyValueHelper.h>
+#include <ledger/KeyValueHelperLegacy.h>
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/BalanceHelper.h"
@@ -226,7 +226,7 @@ int64_t
 ManageInvoiceRequestOpFrame::obtainMaxInvoicesCount(Application& app, Database& db, LedgerDelta& delta)
 {
     auto maxInvoicesCountKey = ManageKeyValueOpFrame::makeMaxInvoicesCountKey();
-    auto maxInvoicesCountKeyValue = KeyValueHelper::Instance()->loadKeyValue(maxInvoicesCountKey, db, &delta);
+    auto maxInvoicesCountKeyValue = KeyValueHelperLegacy::Instance()->loadKeyValue(maxInvoicesCountKey, db, &delta);
 
     if (!maxInvoicesCountKeyValue)
     {
@@ -248,7 +248,7 @@ uint64_t
 ManageInvoiceRequestOpFrame::obtainMaxInvoiceDetailsLength(Application& app, Database& db, LedgerDelta& delta)
 {
     auto maxInvoicesDetailsLengthKey = ManageKeyValueOpFrame::makeMaxInvoiceDetailLengthKey();
-    auto maxInvoicesDetailsLengthKeyValue = KeyValueHelper::Instance()->
+    auto maxInvoicesDetailsLengthKeyValue = KeyValueHelperLegacy::Instance()->
             loadKeyValue(maxInvoicesDetailsLengthKey, db, &delta);
 
     if (!maxInvoicesDetailsLengthKeyValue)

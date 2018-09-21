@@ -13,6 +13,7 @@
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 
 namespace stellar
 {

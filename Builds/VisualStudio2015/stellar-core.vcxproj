@@ -57,7 +57,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../lib/coincore/src;$(OPENSSL_ROOT)\inc32;src;../../src;../../lib;../../lib/libmedida/src;../../lib/soci/src/core;../../lib/autocheck/include;../../lib/cereal/include;../../lib/asio/include;../../lib/xdrpp;../../lib/libsodium/src/libsodium/include;../..;src/generated;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../lib/coincore/src;$(OPENSSL_ROOT)\include;src;../../src;../../lib;../../lib/libmedida/src;../../lib/soci/src/core;../../lib/autocheck/include;../../lib/cereal/include;../../lib/asio/include;../../lib/xdrpp;../../lib/libsodium/src/libsodium/include;../..;src/generated;../../lib/gtest/googletest/include;../../lib/gtest/googlemock/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NOMINMAX;ASIO_STANDALONE;USE_POSTGRES;_WINSOCK_DEPRECATED_NO_WARNINGS;SODIUM_STATIC;ASIO_SEPARATE_COMPILATION;ASIO_ERROR_CATEGORY_NOEXCEPT=noexcept;_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0501;WIN32;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -114,7 +114,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>src;../../src;../../lib;../../lib/libmedida/src;../../lib/soci/src/core;../../lib/autocheck/include;../../lib/cereal/include;../../lib/asio/include;../../lib/xdrpp;../../lib/libsodium/src/libsodium/include;../..;src/generated;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../lib/coincore/src;$(OPENSSL_ROOT)\include;src;../../src;../../lib;../../lib/libmedida/src;../../lib/soci/src/core;../../lib/autocheck/include;../../lib/cereal/include;../../lib/asio/include;../../lib/xdrpp;../../lib/libsodium/src/libsodium/include;../..;src/generated;../../lib/gtest/googletest/include;../../lib/gtest/googlemock/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NOMINMAX;ASIO_STANDALONE;USE_POSTGRES;_WINSOCK_DEPRECATED_NO_WARNINGS;SODIUM_STATIC;ASIO_SEPARATE_COMPILATION;ASIO_ERROR_CATEGORY_NOEXCEPT=noexcept;_CRT_SECURE_NO_WARNINGS;_WIN32_WINNT=0x0501;WIN32;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation>false</BrowseInformation>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -215,16 +215,16 @@
     <ClCompile Include="..\..\src\ledger\BalanceFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountID.cpp" />
     <ClCompile Include="..\..\src\ledger\BalanceHelper.cpp" />
-    <ClCompile Include="..\..\src\ledger\EntryHelper.cpp" />
-    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\EntryHelperLegacy.cpp" />
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDHelperLegacy.cpp" />
     <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.cpp" />
-    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelperLegacy.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\FeeHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\InvoiceFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\InvoiceHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\KeyValueEntryFrame.cpp" />
-    <ClCompile Include="..\..\src\ledger\KeyValueHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\KeyValueHelperLegacy.cpp" />
     <ClCompile Include="..\..\src\ledger\LedgerDelta.cpp" />
     <ClCompile Include="..\..\src\ledger\EntryFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\LedgerDeltaTests.cpp" />
@@ -304,6 +304,7 @@
     <ClCompile Include="..\..\src\ledger\StatisticsTests.cpp" />
     <ClCompile Include="..\..\src\ledger\StatisticsV2Frame.cpp" />
     <ClCompile Include="..\..\src\ledger\StatisticsV2Helper.cpp" />
+    <ClCompile Include="..\..\src\ledger\StorageHelperImpl.cpp" />
     <ClCompile Include="..\..\src\ledger\TrustFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\TrustHelper.cpp" />
     <ClCompile Include="..\..\src\main\Application.cpp" />
@@ -438,6 +439,7 @@
     <ClCompile Include="..\..\src\transactions\test\test_helper\SetOptionsTestHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\StateBeforeTxHelper.cpp" />
     <ClCompile Include="..\..\src\transactions\test\test_helper\WithdrawRequestHelper.cpp" />
+    <ClCompile Include="..\..\src\transactions\test\unit\BindExternalSystemAccountIdUnitTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\WithdrawalTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\ManageInvoiceTests.cpp" />
     <ClCompile Include="..\..\src\transactions\test\OfferTests.cpp" />
@@ -462,6 +464,7 @@
     <ClCompile Include="..\..\src\transactions\SetOptionsOpFrame.cpp" />
     <ClCompile Include="..\..\src\transactions\SignatureValidator.cpp" />
     <ClCompile Include="..\..\lib\util\crc16.cpp" />
+    <ClCompile Include="..\..\src\transactions\TransactionFrameImpl.cpp" />
     <ClCompile Include="..\..\src\util\BitsetEnumerator.cpp" />
     <ClCompile Include="..\..\src\util\BitsetEnumeratorTests.cpp" />
     <ClCompile Include="..\..\src\util\Fs.cpp" />
@@ -561,16 +564,16 @@
     <ClInclude Include="..\..\src\ledger\BalanceFrame.h" />
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountID.h" />
     <ClInclude Include="..\..\src\ledger\BalanceHelper.h" />
-    <ClInclude Include="..\..\src\ledger\EntryHelper.h" />
-    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelper.h" />
+    <ClInclude Include="..\..\src\ledger\EntryHelperLegacy.h" />
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDHelperLegacy.h" />
     <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntry.h" />
-    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelper.h" />
+    <ClInclude Include="..\..\src\ledger\ExternalSystemAccountIDPoolEntryHelperLegacy.h" />
     <ClInclude Include="..\..\src\ledger\FeeFrame.h" />
     <ClInclude Include="..\..\src\ledger\FeeHelper.h" />
     <ClInclude Include="..\..\src\ledger\InvoiceFrame.h" />
     <ClInclude Include="..\..\src\ledger\InvoiceHelper.h" />
     <ClInclude Include="..\..\src\ledger\KeyValueEntryFrame.h" />
-    <ClInclude Include="..\..\src\ledger\KeyValueHelper.h" />
+    <ClInclude Include="..\..\src\ledger\KeyValueHelperLegacy.h" />
     <ClInclude Include="..\..\src\ledger\LedgerTestUtils.h" />
     <ClInclude Include="..\..\src\ledger\LimitsV2Frame.h" />
     <ClInclude Include="..\..\src\ledger\LimitsV2Helper.h" />
@@ -593,6 +596,8 @@
     <ClInclude Include="..\..\src\ledger\StatisticsHelper.h" />
     <ClInclude Include="..\..\src\ledger\StatisticsV2Frame.h" />
     <ClInclude Include="..\..\src\ledger\StatisticsV2Helper.h" />
+    <ClInclude Include="..\..\src\ledger\StorageHelper.h" />
+    <ClInclude Include="..\..\src\ledger\StorageHelperImpl.h" />
     <ClInclude Include="..\..\src\ledger\TrustFrame.h" />
     <ClInclude Include="..\..\src\ledger\TrustHelper.h" />
     <ClInclude Include="..\..\src\main\ExternalQueue.h" />
@@ -716,6 +721,10 @@
     <ClInclude Include="..\..\src\transactions\review_request\ReviewUpdateSaleEndTimeRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\review_request\ReviewWithdrawalRequestOpFrame.h" />
     <ClInclude Include="..\..\src\transactions\StatisticsV2Processor.h" />
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockApplication.h" />
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockDatabase.h" />
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockLedgerManager.h" />
+    <ClInclude Include="..\..\src\transactions\test\mocks\MockTransactionFrame.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\Account.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\BindExternalSystemAccountIdTestHelper.h" />
     <ClInclude Include="..\..\src\transactions\test\test_helper\CheckSaleStateTestHelper.h" />
@@ -765,6 +774,7 @@
     <ClInclude Include="..\..\src\transactions\SignatureValidator.h" />
     <ClInclude Include="..\..\src\transactions\SourceDetails.h" />
     <ClInclude Include="..\..\src\transactions\TransactionFrame.h" />
+    <ClInclude Include="..\..\src\transactions\TransactionFrameImpl.h" />
     <ClInclude Include="..\..\src\util\asio.h" />
     <ClInclude Include="..\..\lib\util\basen.h" />
     <ClInclude Include="..\..\lib\util\crc16.h" />
@@ -1295,6 +1305,9 @@
     <None Include="libmedida\libmedida.vcxproj" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\lib\gtest\googlemock\msvc\2015\gmock.vcxproj">
+      <Project>{34681f0d-ce45-415d-b5f2-5c662dfe3bd5}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\lib\libsodium\builds\msvc\vs2013\libsodium\libsodium.vcxproj">
       <Project>{a185b162-6cb6-4502-b03f-b56f7699a8d9}</Project>
     </ProjectReference>

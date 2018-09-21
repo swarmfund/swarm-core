@@ -5,7 +5,7 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include <ledger/FeeHelper.h>
 #include <transactions/ManageKeyValueOpFrame.h>
-#include <ledger/KeyValueHelper.h>
+#include <ledger/KeyValueHelperLegacy.h>
 #include "util/asio.h"
 #include "CreateIssuanceRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
@@ -20,6 +20,7 @@
 #include "ledger/LedgerDelta.h"
 #include "main/Application.h"
 #include "crypto/SHA.h"
+#include "xdrpp/marshal.h"
 #include "xdrpp/printer.h"
 
 namespace stellar
@@ -399,7 +400,7 @@ bool CreateIssuanceRequestOpFrame::loadIssuanceTasks(Database &db, uint32_t &all
     }
 
     auto key = ManageKeyValueOpFrame::makeIssuanceTasksKey(mCreateIssuanceRequest.request.asset);
-    auto keyValueFrame = KeyValueHelper::Instance()->loadKeyValue(key, db);
+    auto keyValueFrame = KeyValueHelperLegacy::Instance()->loadKeyValue(key, db);
     if (!keyValueFrame)
     {
         return false;

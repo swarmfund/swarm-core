@@ -43,7 +43,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 
     ManageKeyValueTestHelper manageKeyValueHelper(testManager);
     longstring key = ManageKeyValueOpFrame::makeIssuanceTasksKey(assetToBeIssued);
-    manageKeyValueHelper.setKey(key)->setValue(0);
+    manageKeyValueHelper.setKey(key)->setUi32Value(0);
     manageKeyValueHelper.doApply(testManager->getApp(), ManageKVAction::PUT, true);
 
     uint32_t issuanceTasks = 0;
@@ -161,7 +161,7 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
 
     ManageKeyValueTestHelper manageKeyValueHelper(testManager);
     longstring key = ManageKeyValueOpFrame::makeIssuanceTasksKey(assetCode);
-    manageKeyValueHelper.setKey(key)->setValue(0);
+    manageKeyValueHelper.setKey(key)->setUi32Value(0);
     manageKeyValueHelper.doApply(testManager->getApp(), ManageKVAction::PUT, true);
 
     SECTION("asset code malformed")
@@ -320,7 +320,7 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
 
     ManageKeyValueTestHelper manageKeyValueHelper(testManager);
     longstring key = ManageKeyValueOpFrame::makeIssuanceTasksKey(assetCode);
-    manageKeyValueHelper.setKey(key)->setValue(0);
+    manageKeyValueHelper.setKey(key)->setUi32Value(0);
     manageKeyValueHelper.doApply(testManager->getApp(), ManageKVAction::PUT, true);
 
 

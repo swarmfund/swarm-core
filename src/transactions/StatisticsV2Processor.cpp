@@ -6,6 +6,7 @@
 #include <ledger/ReviewableRequestHelper.h>
 #include "StatisticsV2Processor.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/LedgerHeaderFrame.h"
 
 
 namespace stellar

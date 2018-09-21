@@ -2,18 +2,19 @@
 // under the Apache License, Version 2.0. See the COPYING file at the root
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
-#include "util/asio.h"
-#include "transactions/DirectDebitOpFrame.h"
 #include "database/Database.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/LedgerDelta.h"
+#include "ledger/StorageHelper.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
 #include "main/Application.h"
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
+#include "transactions/DirectDebitOpFrame.h"
 #include "transactions/payment/PaymentOpFrame.h"
 #include "util/Logging.h"
+#include "util/asio.h"
 #include <algorithm>
 
 namespace stellar
@@ -52,7 +53,7 @@ DirectDebitOpFrame::DirectDebitOpFrame(Operation const& op, OperationResult& res
 }
 
 bool
-DirectDebitOpFrame::doApply(Application& app, LedgerDelta& delta,
+DirectDebitOpFrame::doApply(Application& app, StorageHelper& storageHelper,
                         LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
@@ -78,12 +79,13 @@ DirectDebitOpFrame::doApply(Application& app, LedgerDelta& delta,
     PaymentOpFrame payment(op, opRes, mParentTx);
     
 	auto accountHelper = AccountHelper::Instance();
-    auto fromAccount = accountHelper->loadAccount(delta, mDirectDebit.from, db);
+    auto fromAccount = accountHelper->loadAccount(
+        storageHelper.getLedgerDelta(), mDirectDebit.from, db);
     
     payment.setSourceAccountPtr(fromAccount);
 
     if (!payment.doCheckValid(app) ||
-        !payment.doApply(app, delta, ledgerManager))
+        !payment.doApply(app, storageHelper, ledgerManager))
     {
         if (payment.getResultCode() != OperationResultCode::opINNER)
         {

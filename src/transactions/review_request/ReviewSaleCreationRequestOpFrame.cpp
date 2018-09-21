@@ -4,12 +4,13 @@
 
 #include "ReviewSaleCreationRequestOpFrame.h"
 #include "database/Database.h"
+#include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/SaleHelper.h"
 #include "main/Application.h"
-#include "transactions/CreateSaleCreationRequestOpFrame.h"
+#include "transactions/sale/CreateSaleCreationRequestOpFrame.h"
 #include "xdrpp/printer.h"
 #include <ledger/AccountHelper.h>
 #include <transactions/ManageAssetPairOpFrame.h>

@@ -65,7 +65,7 @@ SetAccountRolePolicyTestHelper::applySetIdentityPolicyTx(
         txResult.result.results()[0].tr().setAccountRolePolicyResult();
 
     StorageHelperImpl storageHelperImpl(mTestManager->getDB(), nullptr);
-    AccountRolePolicyHelper rolePolicyHelper(static_cast<StorageHelper&>(storageHelperImpl));
+    AccountRolePolicyHelper rolePolicyHelper(storageHelperImpl);
     LedgerKey affectedPolicyKey;
     affectedPolicyKey.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
     affectedPolicyKey.accountRolePolicy().accountRolePolicyID =

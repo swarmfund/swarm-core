@@ -44,21 +44,21 @@ namespace stellar
 		uint32 kycLevel = accountFrame->getKYCLevel();
 		std::string sql;
 
-		if (insert)
-		{
-			sql = std::string(
-				"INSERT INTO accounts (accountid, recoveryid, thresholds, lastmodified, account_type, block_reasons,"
-				"referrer, policies, kyc_level, version) "
-				"VALUES (:id, :rid, :th, :lm, :type, :br, :ref, :p, :kyc, :v)");
-		}
-		else
-		{
-			sql = std::string(
-				"UPDATE accounts "
-				"SET    recoveryid=:rid, thresholds=:th, lastmodified=:lm, account_type=:type, block_reasons=:br, "
-				"       referrer=:ref, policies=:p, kyc_level=:kyc, version=:v "
-				"WHERE  accountid=:id");
-		}
+        if (insert)
+        {
+            sql = std::string(
+                "INSERT INTO accounts (accountid, recoveryid, thresholds, lastmodified, account_type, account_role,"
+                "block_reasons, referrer, policies, kyc_level, version) "
+                "VALUES (:id, :rid, :th, :lm, :type, :ar, :br, :ref, :p, :kyc, :v)");
+        }
+        else
+        {
+            sql = std::string(
+                "UPDATE accounts "
+                "SET    recoveryid=:rid, thresholds=:th, lastmodified=:lm, account_type=:type, account_role=:ar, "
+                "       block_reasons=:br, referrer=:ref, policies=:p, kyc_level=:kyc, version=:v "
+                "WHERE  accountid=:id");
+        }
 
 		auto prep = db.getPreparedStatement(sql);
 
@@ -78,6 +78,15 @@ namespace stellar
 			st.exchange(use(newAccountPolicies, "p"));
 			st.exchange(use(kycLevel, "kyc"));
 			st.exchange(use(newAccountVersion, "v"));
+
+            indicator roleIndicator = indicator::i_null;
+            uint32 roleValue = 0;
+            if (accountFrame->getAccountRole())
+            {
+                roleIndicator = indicator::i_ok;
+                roleValue = *accountFrame->getAccountRole();
+            }
+            st.exchange(use(roleValue, roleIndicator, "ar"));
 
 			st.define_and_bind();
 			{

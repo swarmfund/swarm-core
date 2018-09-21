@@ -125,7 +125,6 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policies]")
             account, policyEntry, false,
             SetAccountRolePolicyResultCode::SUCCESS);
         // delete
-        // assign 1 due to ids increases linear from 1 to uint64_max
         policyEntry.accountRolePolicyID = 1;
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
             account, policyEntry, true,

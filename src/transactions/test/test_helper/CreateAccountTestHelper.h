@@ -30,13 +30,17 @@ namespace stellar {
 
             CreateAccountTestBuilder setPolicies(AccountPolicies policies);
 
+            CreateAccountTestBuilder setRoleID(uint64_t roleID);
+
             CreateAccountTestBuilder setResultCode(CreateAccountResultCode expectedResult);
 
             PublicKey to;
             PublicKey recovery;
-            AccountType accountType;
+            AccountType accountType = AccountType::GENERAL;
             AccountID *referrer = nullptr;
             int32 policies = -1;
+            uint64_t roleID = 0;
+            bool isRoleIDSpecified = false;
             CreateAccountResultCode expectedResult = CreateAccountResultCode::SUCCESS;
         };
 
@@ -93,7 +97,7 @@ namespace stellar {
             Account from;
             PublicKey to;
             PublicKey recovery;
-            AccountType accountType;
+            AccountType accountType = AccountType::GENERAL;
             Account *signer = nullptr;
             AccountID *referrer = nullptr;
             int32 policies = -1;

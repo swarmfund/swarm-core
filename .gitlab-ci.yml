@@ -23,7 +23,6 @@ build:
   stage: build
   only:
    - master
-   - fix/kyc_history
   script:
     # login to docker registry
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com

@@ -130,6 +130,21 @@ TEST_CASE("txenvelope", "[tx][envelope]")
                     TransactionResultCode::txINSUFFICIENT_FEE);
         }
 
+        SECTION("Source doesn't have balance in tx fee asset")
+        {
+            manageKeyValueTestHelper.setKey(ManageKeyValueOpFrame::transactionFeeAssetKey);
+            manageKeyValueTestHelper.setValue("VLT");
+            manageKeyValueTestHelper.setResult(ManageKeyValueResultCode::SUCCESS);
+            manageKeyValueTestHelper.doApply(app, ManageKVAction::PUT, true,
+                                             KeyValueEntryType::STRING);
+            uint64_t maxTotalFee = 20 * ONE;
+            TransactionFramePtr txFrame = txHelper.txFromOperations(txFeePayer, ops, &maxTotalFee);
+            txFrame->addSignature(operationSource.key);
+            testManager->applyCheck(txFrame);
+            auto txResult = txFrame->getResult();
+            REQUIRE(txResult.result.code() == TransactionResultCode::txSOURCE_UNDERFUNDED);
+        }
+
         SECTION("Source underfunded")
         {
             manageAssetFee.fixedFee = preIssuedAmount;

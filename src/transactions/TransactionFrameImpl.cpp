@@ -88,6 +88,11 @@ TransactionFrameImpl::processTxFee(Application& app, LedgerDelta* delta)
         return true;
     }
 
+    if (getSourceAccount().getAccountType() == AccountType::MASTER)
+    {
+        return true;
+    }
+
     uint64_t maxTotalFee = UINT64_MAX;
 
     if (mEnvelope.tx.ext.v() == LedgerVersion::ADD_TRANSACTION_FEE)
@@ -147,8 +152,13 @@ TransactionFrameImpl::processTxFee(Application& app, LedgerDelta* delta)
         return false;
     }
 
-    auto sourceBalance = BalanceHelperLegacy::Instance()->mustLoadBalance(
-        getSourceID(), txFeeAssetCode, db, delta);
+    auto sourceBalance = BalanceHelperLegacy::Instance()->loadBalance(getSourceID(),
+            txFeeAssetCode, db, delta);
+    if (!sourceBalance)
+    {
+        getResult().result.code(TransactionResultCode::txSOURCE_UNDERFUNDED);
+        return false;
+    }
 
     auto commissionBalance = AccountManager::loadOrCreateBalanceFrameForAsset(
         app.getCommissionID(), txFeeAssetCode, db, *delta);

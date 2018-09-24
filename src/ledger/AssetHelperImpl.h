@@ -57,7 +57,7 @@ private:
 
     void
     loadAssets(StatementContext& prep,
-               std::function<void(LedgerEntry const&)> assetProcessor);
+               std::function<void(LedgerEntry const&)> assetProcessor) override;
 
     void
     storeUpdateHelper(bool insert, LedgerEntry const& entry);

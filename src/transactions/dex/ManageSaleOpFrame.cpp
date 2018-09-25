@@ -447,7 +447,7 @@ namespace stellar {
     }
 
     void ManageSaleOpFrame::trySetFulfilled(LedgerManager &lm, bool fulfilled) {
-        if (!lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_SEND_TO_SELF)) {
+        if (!lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_DEST_ACCOUNT_NOT_FOUND)) {
             return;
         }
 

@@ -6,7 +6,7 @@
 #include <ledger/FeeHelper.h>
 #include <transactions/test/test_helper/ManageLimitsTestHelper.h>
 #include "ledger/AccountLimitsHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "main/test.h"
 #include "TxTests.h"
 #include "crypto/SHA.h"

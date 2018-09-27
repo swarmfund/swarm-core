@@ -1,5 +1,5 @@
 #include <ledger/ReviewableRequestHelper.h>
-#include <ledger/AssetHelper.h>
+#include <ledger/AssetHelperLegacy.h>
 #include <ledger/SaleHelper.h>
 #include <transactions/review_request/ReviewSaleCreationRequestOpFrame.h>
 #include <ledger/AssetPairHelper.h>
@@ -20,7 +20,7 @@ namespace stellar {
 
             promotionUpdateRequest = std::make_shared<PromotionUpdateRequest>(
                     request->getRequestEntry().body.promotionUpdateRequest());
-            baseAssetBeforeTx = AssetHelper::Instance()->loadAsset(promotionUpdateRequest->newPromotionData.baseAsset,
+            baseAssetBeforeTx = AssetHelperLegacy::Instance()->loadAsset(promotionUpdateRequest->newPromotionData.baseAsset,
                                                                    db);
             saleBeforeTx = SaleHelper::Instance()->loadSale(promotionUpdateRequest->promotionID, db);
         }
@@ -32,7 +32,7 @@ namespace stellar {
             REQUIRE(!!baseAssetBeforeTx);
             REQUIRE(!!saleBeforeTx);
 
-            auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(
+            auto baseAssetAfterTx = AssetHelperLegacy::Instance()->loadAsset(
                     promotionUpdateRequest->newPromotionData.baseAsset, db);
             REQUIRE(!!baseAssetAfterTx);
 

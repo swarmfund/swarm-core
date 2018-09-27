@@ -10,7 +10,7 @@
 #include "main/test.h"
 #include "TxTests.h"
 #include "ledger/LedgerDeltaImpl.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "test/test_marshaler.h"
 
 using namespace stellar;
@@ -59,7 +59,7 @@ TEST_CASE("account_manager", "[dep_tx][account_manager]")
     AccountManager accountManager(app, app.getDatabase(), delta, app.getLedgerManager());
     auto now = app.getLedgerManager().getCloseTime();
 
-	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
 
 	auto balance = balanceHelper->loadBalance(a.getPublicKey(), app.getDatabase());
 

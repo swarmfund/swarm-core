@@ -4,7 +4,7 @@
 #include "transactions/ManageContractOpFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "crypto/SHA.h"
 #include "database/Database.h"
@@ -195,7 +195,7 @@ ManageContractOpFrame::tryCompleted(ContractFrame::pointer contractFrame,
     for (ReviewableRequestFrame::pointer invoiceRequest : invoiceRequests)
     {
         auto invoice = invoiceRequest->getRequestEntry().body.invoiceRequest();
-        auto balanceHelper = BalanceHelper::Instance();
+        auto balanceHelper = BalanceHelperLegacy::Instance();
         auto balanceFrame = balanceHelper->mustLoadBalance(invoice.receiverBalance, db, &delta);
 
         if (!balanceFrame->unlock(invoice.amount))
@@ -283,7 +283,7 @@ bool
 ManageContractOpFrame::revertInvoicesAmounts(ContractFrame::pointer contractFrame,
                                              Database& db, LedgerDelta& delta)
 {
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto requestHelper = ReviewableRequestHelper::Instance();
     auto invoiceRequests = requestHelper->loadRequests(contractFrame->getInvoiceRequestIDs(), db);
 
@@ -322,7 +322,7 @@ void
 ManageContractOpFrame::unlockApprovedInvoicesAmounts(ContractFrame::pointer contractFrame,
                                                      Database& db, LedgerDelta & delta)
 {
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto requestHelper = ReviewableRequestHelper::Instance();
     auto invoiceRequests = requestHelper->loadRequests(contractFrame->getInvoiceRequestIDs(), db);
 

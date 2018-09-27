@@ -8,8 +8,8 @@
 
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "main/Application.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "xdrpp/printer.h"
@@ -32,23 +32,23 @@ bool ReviewAMLAlertRequestOpFrame::handleApprove(Application& app,
     const auto amlAlert = getAmlAlert(request);
     auto& db = app.getDatabase();
     createReference(delta, db, request->getRequestor(), request->getReference());
-    auto balanceFrame = BalanceHelper::Instance()->mustLoadBalance(amlAlert.balanceID, db, &delta);
+    auto balanceFrame = BalanceHelperLegacy::Instance()->mustLoadBalance(amlAlert.balanceID, db, &delta);
     if (!balanceFrame->tryChargeFromLocked(amlAlert.amount)) {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to charge from unlock specified amount in request: request"
             << xdr::xdr_to_string(amlAlert) << "; balance: " << xdr::xdr_to_string(balanceFrame->getBalance());
         throw runtime_error("Unexpected state: failed to charge from unlock specified amount in aml request");
     }
-    
-    BalanceHelper::Instance()->storeChange(delta, db, balanceFrame->mEntry);
 
-    auto assetFrame = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db, &delta);
+    BalanceHelperLegacy::Instance()->storeChange(delta, db, balanceFrame->mEntry);
+
+    auto assetFrame = AssetHelperLegacy::Instance()->mustLoadAsset(balanceFrame->getAsset(), db, &delta);
     if (!assetFrame->tryWithdraw(amlAlert.amount))
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to withdraw from asset for aml alert request: " << request->getRequestID();
         throw runtime_error("Failed to withdraw from asset for aml alert");
     }
 
-    AssetHelper::Instance()->storeChange(delta, db, assetFrame->mEntry);
+    AssetHelperLegacy::Instance()->storeChange(delta, db, assetFrame->mEntry);
     ReviewableRequestHelper::Instance()->storeDelete(delta, db, request->getKey());
     innerResult().code(ReviewRequestResultCode::SUCCESS);
     return true;
@@ -85,14 +85,14 @@ bool ReviewAMLAlertRequestOpFrame::handlePermanentReject(Application &app, Ledge
         // create reference to make sure that same alert will not be triggered again
         createReference(delta, db, request->getRequestor(), request->getReference());
         const auto amlAlert = getAmlAlert(request);
-        auto balanceFrame = BalanceHelper::Instance()->mustLoadBalance(amlAlert.balanceID,db,&delta);
+        auto balanceFrame = BalanceHelperLegacy::Instance()->mustLoadBalance(amlAlert.balanceID,db,&delta);
         if(!balanceFrame->unlock(amlAlert.amount)){
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to unlock specified amount in request: request" 
             << xdr::xdr_to_string(amlAlert) << "; balance: " << xdr::xdr_to_string(balanceFrame->getBalance());
             throw runtime_error("Unexpected state: failed to unlock specified amount in aml request");
         }
 
-        BalanceHelper::Instance()->storeChange(delta,db,balanceFrame->mEntry);
+    BalanceHelperLegacy::Instance()->storeChange(delta,db,balanceFrame->mEntry);
         ReviewableRequestHelper::Instance()->storeDelete(delta,db,request->getKey());
         innerResult().code(ReviewRequestResultCode::SUCCESS);
         return true;

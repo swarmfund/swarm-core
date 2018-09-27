@@ -5,9 +5,9 @@
 #include <ledger/StatisticsHelper.h>
 #include "ReviewWithdrawalRequestHelper.h"
 #include "ledger/AssetFrame.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/BalanceFrame.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "test/test_marshaler.h"
 
@@ -24,7 +24,7 @@ void WithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
     REQUIRE(!!withdrawalRequest);
     // check balance
     REQUIRE(!!balanceBeforeTx);
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto balanceAfterTx = balanceHelper->loadBalance(withdrawalRequest->balance,
         mTestManager->getDB());
     REQUIRE(!!balanceAfterTx);
@@ -41,7 +41,7 @@ void WithdrawReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
 
     // check asset
     REQUIRE(!!assetBeforeTx);
-    auto assetAfterTx = AssetHelper::Instance()->loadAsset(balanceAfterTx->getAsset(), mTestManager->getDB());
+    auto assetAfterTx = AssetHelperLegacy::Instance()->loadAsset(balanceAfterTx->getAsset(), mTestManager->getDB());
     REQUIRE(!!assetAfterTx);
     REQUIRE(assetBeforeTx->getIssued() == assetAfterTx->getIssued() + withdrawalRequest->amount);
     REQUIRE(assetBeforeTx->getAvailableForIssuance() == assetAfterTx->getAvailableForIssuance());

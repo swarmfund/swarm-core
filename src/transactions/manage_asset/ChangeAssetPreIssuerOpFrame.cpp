@@ -8,7 +8,7 @@
 #include <transactions/review_request/ReviewRequestHelper.h>
 #include "ChangeAssetPreIssuerOpFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 
 namespace stellar
 {
@@ -36,7 +36,7 @@ SourceDetails ChangeAssetPreIssuerOpFrame::getSourceAccountDetails(
     unordered_map<AccountID, CounterpartyDetails> counterpartiesDetails,
     const int32_t ledgerVersion, Database& db) const
 {
-    const auto assetFrame = AssetHelper::Instance()->
+    const auto assetFrame = AssetHelperLegacy::Instance()->
         loadAsset(mAssetChangePreissuedSigner.code, db);
     vector<PublicKey> signers;
     if (!!assetFrame)
@@ -56,7 +56,7 @@ bool ChangeAssetPreIssuerOpFrame::doApply(Application& app, LedgerDelta& delta,
                                           LedgerManager& ledgerManager)
 {
     Database& db = ledgerManager.getDatabase();
-    auto assetFrame = AssetHelper::Instance()->
+    auto assetFrame = AssetHelperLegacy::Instance()->
         loadAsset(mAssetChangePreissuedSigner.code, db, &delta);
     if (!assetFrame)
     {
@@ -69,7 +69,7 @@ bool ChangeAssetPreIssuerOpFrame::doApply(Application& app, LedgerDelta& delta,
 
     auto& assetEntry = assetFrame->getAsset();
     assetEntry.preissuedAssetSigner = mAssetChangePreissuedSigner.accountID;
-    AssetHelper::Instance()->storeChange(delta, db, assetFrame->mEntry);
+    AssetHelperLegacy::Instance()->storeChange(delta, db, assetFrame->mEntry);
     innerResult().code(ManageAssetResultCode::SUCCESS);
     innerResult().success().requestID = 0;
     innerResult().success().fulfilled = true;

@@ -33,13 +33,13 @@
 #include "transactions/DirectDebitOpFrame.h"
 #include "transactions/ManageInvoiceRequestOpFrame.h"
 #include "transactions/review_request/ReviewRequestOpFrame.h"
+#include "transactions/PayoutOpFrame.h"
 #include "transactions/sale/CreateSaleCreationRequestOpFrame.h"
 #include "transactions/manage_external_system_account_id_pool/ManageExternalSystemAccountIDPoolEntryOpFrame.h"
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 #include "transactions/dex/ManageSaleOpFrame.h"
 #include "database/Database.h"
-
 #include "medida/meter.h"
 #include "medida/metrics_registry.h"
 #include "dex/ManageOfferOpFrame.h"
@@ -98,6 +98,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CreateSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::CHECK_SALE_STATE:
         return shared_ptr<OperationFrame>(new CheckSaleStateOpFrame(op, res, tx));
+    case OperationType::PAYOUT:
+        return shared_ptr<OperationFrame>(new PayoutOpFrame(op, res, tx));
     case OperationType::MANAGE_EXTERNAL_SYSTEM_ACCOUNT_ID_POOL_ENTRY:
         return shared_ptr<OperationFrame>(ManageExternalSystemAccountIdPoolEntryOpFrame::makeHelper(op, res, tx));
     case OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID:

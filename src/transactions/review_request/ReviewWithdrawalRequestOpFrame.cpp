@@ -9,8 +9,8 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/PendingStatisticsHelper.h"
 #include "transactions/CreateWithdrawalRequestOpFrame.h"
 #include "main/Application.h"
@@ -50,7 +50,7 @@ bool ReviewWithdrawalRequestOpFrame::handleApprove(
     }
     EntryHelperProvider::storeDeleteEntry(delta, db, request->getKey());
  
-    auto balance = BalanceHelper::Instance()->mustLoadBalance(withdrawRequest.balance, db, &delta);
+    auto balance = BalanceHelperLegacy::Instance()->mustLoadBalance(withdrawRequest.balance, db, &delta);
     const auto totalAmountToCharge = getTotalAmountToCharge(request->getRequestID(), withdrawRequest);
     if (!balance->tryChargeFromLocked(totalAmountToCharge))
     {
@@ -63,7 +63,7 @@ bool ReviewWithdrawalRequestOpFrame::handleApprove(
     AccountManager accountManager(app, db, delta, ledgerManager);
     accountManager.transferFee(balance->getAsset(), totalFee);
 
-    auto assetFrame = AssetHelper::Instance()->loadAsset(balance->getAsset(), db, &delta);
+    auto assetFrame = AssetHelperLegacy::Instance()->loadAsset(balance->getAsset(), db, &delta);
     if (!assetFrame)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to load asset for withdrawal request" << request->getRequestID();
@@ -76,7 +76,7 @@ bool ReviewWithdrawalRequestOpFrame::handleApprove(
         throw runtime_error("Failed to withdraw from asset");
     }
 
-    AssetHelper::Instance()->storeChange(delta, db, assetFrame->mEntry);
+    AssetHelperLegacy::Instance()->storeChange(delta, db, assetFrame->mEntry);
 
     innerResult().code(ReviewRequestResultCode::SUCCESS);
     return true;

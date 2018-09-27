@@ -11,7 +11,7 @@
 #include "OfferManager.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AssetPairHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/SaleAnteFrame.h"
 #include "ledger/SaleAnteHelper.h"
@@ -254,7 +254,7 @@ bool CreateSaleParticipationOpFrame::doApply(Application& app,
         throw runtime_error("Unexpected state: quote amount overflows");
     }
 
-    auto quoteBalance = BalanceHelper::Instance()->mustLoadBalance(mManageOffer.quoteBalance, db);
+    auto quoteBalance = BalanceHelperLegacy::Instance()->mustLoadBalance(mManageOffer.quoteBalance, db);
     if (!tryAddSaleCap(db, quoteAmount, quoteBalance->getAsset(), sale))
     {
         innerResult().code(ManageOfferResultCode::ORDER_VIOLATES_HARD_CAP);

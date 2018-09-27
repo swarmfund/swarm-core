@@ -6,7 +6,7 @@
 #include "database/Database.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerManager.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/OfferHelper.h"
 #include "util/Logging.h"
 #include "xdrpp/printer.h"
@@ -185,7 +185,7 @@ void OfferExchange::unlockBalancesForTakenOffer(OfferFrame& offer,
 BalanceFrame::pointer OfferExchange::loadBalance(
     BalanceID& balanceID, Database& db)
 {
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     BalanceFrame::pointer balance = balanceHelper->loadBalance(balanceID, db,
                                                                &mDelta);
     if (!balance)

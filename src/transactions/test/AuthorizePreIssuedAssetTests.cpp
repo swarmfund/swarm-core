@@ -10,7 +10,7 @@
 #include "test_helper/ReviewAssetRequestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ReviewPreIssuanceRequestHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "test/test_marshaler.h"
 
 using namespace stellar;
@@ -25,7 +25,7 @@ void testAuthPreissuedAssetHappyPath(TestManager::pointer testManager, Account& 
     manageAssetHelper.createAsset(account, preissuedSigner, assetCode, root, 0);
 	auto issuanceRequestHelper = IssuanceRequestHelper(testManager);
 	auto reviewPreIssuanceRequestHelper = ReviewPreIssuanceRequestHelper(testManager);
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
 	auto asset = assetHelper->loadAsset(assetCode, testManager->getDB());
 	const uint64_t amountToIssue = 10000;
 	const int issueTimes = 3;

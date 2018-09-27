@@ -14,11 +14,11 @@
 #include "FeesManager.h"
 #include "ledger/AccountHelper.h"
 #include "xdrpp/printer.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "issuance/CreateIssuanceRequestOpFrame.h"
 #include "dex/CreateOfferOpFrame.h"
 #include "dex/CreateSaleParticipationOpFrame.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/SaleAnteHelper.h"
 #include "dex/DeleteSaleParticipationOpFrame.h"
@@ -120,7 +120,7 @@ void CheckSaleStateOpFrame::chargeSaleAntes(uint64_t saleID, AccountID const &co
 {
     auto saleAntes = SaleAnteHelper::Instance()->loadSaleAntesForSale(saleID, db);
     for (auto &saleAnte : saleAntes) {
-        auto participantBalanceFrame = BalanceHelper::Instance()->mustLoadBalance(saleAnte->getParticipantBalanceID(),
+        auto participantBalanceFrame = BalanceHelperLegacy::Instance()->mustLoadBalance(saleAnte->getParticipantBalanceID(),
                                                                                   db, &delta);
         auto commissionBalance = AccountManager::loadOrCreateBalanceFrameForAsset(commissionID,
                                                                                   participantBalanceFrame->getAsset(),
@@ -154,7 +154,7 @@ void CheckSaleStateOpFrame::chargeSaleAntes(uint64_t saleID, AccountID const &co
 
 
 void CheckSaleStateOpFrame::cleanupIssuerBalance(SaleFrame::pointer sale, LedgerManager& lm, Database& db, LedgerDelta& delta, BalanceFrame::pointer balanceBefore){
-    auto balanceAfter = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
+    auto balanceAfter = BalanceHelperLegacy::Instance()->loadBalance(sale->getBaseBalanceID(), db);
     if(!lm.shouldUse(LedgerVersion::ALLOW_CLOSE_SALE_WITH_NON_ZERO_BALANCE)) {
         
         if (balanceAfter->getAmount() > ONE)
@@ -184,17 +184,17 @@ void CheckSaleStateOpFrame::cleanupIssuerBalance(SaleFrame::pointer sale, Ledger
         throw std::runtime_error("Unexpected state: failed to clean up sale manager balance after sale been performed");
     }
 
-    BalanceHelper::Instance()->storeChange(delta, db, balanceAfter->mEntry);
+    BalanceHelperLegacy::Instance()->storeChange(delta, db, balanceAfter->mEntry);
 
     // return base asset
-    auto asset = AssetHelper::Instance()->mustLoadAsset(balanceAfter->getAsset(), db, &delta);
+    auto asset = AssetHelperLegacy::Instance()->mustLoadAsset(balanceAfter->getAsset(), db, &delta);
     if (!asset->tryUnIssue(balanceDelta)) {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected state: failed to unissue redundant amount after sale been performed: "
             << sale->getID();
         throw std::runtime_error("Unexpected state: failed to unissue redundant amount after sale been performed");
     }
 
-    AssetHelper::Instance()->storeChange(delta, db, asset->mEntry);
+    AssetHelperLegacy::Instance()->storeChange(delta, db, asset->mEntry);
 
     return;
 }
@@ -211,7 +211,7 @@ bool CheckSaleStateOpFrame::handleClose(SaleFrame::pointer sale, Application& ap
         throw runtime_error("Unexpected db state: expected sale owner to exist");
     }
 
-    auto balanceBefore = BalanceHelper::Instance()->loadBalance(sale->getBaseBalanceID(), db);
+    auto balanceBefore = BalanceHelperLegacy::Instance()->loadBalance(sale->getBaseBalanceID(), db);
 
     issueBaseTokens(sale, saleOwnerAccount, app, delta, db, lm);
 
@@ -249,7 +249,7 @@ CreateIssuanceRequestResult CheckSaleStateOpFrame::applyCreateIssuanceRequest(
     Application& app, LedgerDelta& delta, LedgerManager& lm) const
 {
     Database& db = app.getDatabase();
-    const auto asset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db);
+    const auto asset = AssetHelperLegacy::Instance()->loadAsset(sale->getBaseAsset(), db);
     //TODO Must be refactored
     uint64_t amountToIssue = std::min(sale->getBaseAmountForCurrentCap(), asset->getMaxIssuanceAmount());
 
@@ -291,7 +291,7 @@ void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
         return;
     }
 
-    auto baseAsset = AssetHelper::Instance()->loadAsset(sale->getBaseAsset(), db, &delta);
+    auto baseAsset = AssetHelperLegacy::Instance()->loadAsset(sale->getBaseAsset(), db, &delta);
 
     uint64_t updatedMaxIssuance = 0;
 
@@ -312,13 +312,13 @@ void CheckSaleStateOpFrame::updateMaxIssuance(const SaleFrame::pointer sale,
     }
 
     baseAsset->setMaxIssuance(updatedMaxIssuance);
-    AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
+    AssetHelperLegacy::Instance()->storeChange(delta, db, baseAsset->mEntry);
 }
 
 void CheckSaleStateOpFrame::updateAvailableForIssuance(const SaleFrame::pointer sale, LedgerDelta &delta,
                                                        Database &db)
 {
-    auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db);
+    auto baseAsset = AssetHelperLegacy::Instance()->mustLoadAsset(sale->getBaseAsset(), db);
 
     // destroy remaining assets (difference between hardCap and currentCap)
     baseAsset->setAvailableForIssuance(0);
@@ -344,7 +344,7 @@ ManageOfferSuccessResult CheckSaleStateOpFrame::applySaleOffer(
     LedgerManager& lm, LedgerDelta& delta) const
 {
     auto& db = app.getDatabase();
-    auto baseBalance = BalanceHelper::Instance()->mustLoadBalance(sale->getBaseBalanceID(), db);
+    auto baseBalance = BalanceHelperLegacy::Instance()->mustLoadBalance(sale->getBaseBalanceID(), db);
 
     uint64_t baseAmount = min(sale->getBaseAmountForCurrentCap(saleQuoteAsset.quoteAsset), static_cast<uint64_t>(baseBalance->getAmount()));
     int64_t quoteAmount = OfferManager::calculateQuoteAmount(baseAmount, saleQuoteAsset.price);

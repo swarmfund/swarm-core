@@ -17,8 +17,8 @@
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
 #include <transactions/test/test_helper/IssuanceRequestHelper.h>
-#include <ledger/AssetHelper.h>
-#include <ledger/BalanceHelper.h>
+#include <ledger/AssetHelperLegacy.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <transactions/manage_asset/ManageAssetOpFrame.h>
 #include <transactions/CreateAccountOpFrame.h>
 #include "test/test_marshaler.h"
@@ -298,7 +298,7 @@ HistoryTests::generateRandomLedger()
 
     for (const auto& accountID : mRandomAccounts)
     {
-        auto balanceFrame = BalanceHelper::Instance()->loadBalance(accountID, mBaseAsset, app.getDatabase(),
+        auto balanceFrame = BalanceHelperLegacy::Instance()->loadBalance(accountID, mBaseAsset, app.getDatabase(),
                                                                    nullptr);
         REQUIRE(balanceFrame);
         mRandAccountBalances[accountID].push_back(balanceFrame->getAmount());
@@ -529,7 +529,7 @@ HistoryTests::catchupApplication(uint32_t initLedger,
     for (auto accountID : mRandomAccounts)
     {
         auto wantBalance = mRandAccountBalances[accountID].at(i);
-        auto haveBalanceFrame = BalanceHelper::Instance()->loadBalance(accountID, mBaseAsset, app2->getDatabase(),
+        auto haveBalanceFrame = BalanceHelperLegacy::Instance()->loadBalance(accountID, mBaseAsset, app2->getDatabase(),
                                                                   nullptr);
         REQUIRE(haveBalanceFrame);
         CHECK(wantBalance == haveBalanceFrame->getAmount());
@@ -563,7 +563,7 @@ void HistoryTests::fundAccounts(TxSetFramePtr txSet)
     {
         // pick random account and fund it
         auto accountID = mRandomAccounts[rand() % numberOfAccounts];
-        auto balanceFrame = BalanceHelper::Instance()->loadBalance(accountID, mBaseAsset, app.getDatabase(),
+        auto balanceFrame = BalanceHelperLegacy::Instance()->loadBalance(accountID, mBaseAsset, app.getDatabase(),
                                                                    nullptr);
         REQUIRE(balanceFrame);
 

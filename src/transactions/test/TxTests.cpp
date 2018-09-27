@@ -24,8 +24,8 @@
 #include "transactions/ManageLimitsOpFrame.h"
 #include "transactions/ManageInvoiceRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/FeeHelper.h"
 #include "ledger/StatisticsHelper.h"
 #include "crypto/SHA.h"
@@ -42,8 +42,8 @@ using xdr::operator==;
 namespace txtest
 {
 	auto accountHelper = AccountHelper::Instance();
-	auto assetHelper = AssetHelper::Instance();
-	auto balanceHelper = BalanceHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
 	auto feeHelper = FeeHelper::Instance();
 	auto statisticsHelper = StatisticsHelper::Instance();
 

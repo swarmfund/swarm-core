@@ -15,11 +15,9 @@
 #include "ledger/AccountLimitsFrame.h"
 #include "ledger/AccountLimitsHelper.h"
 #include "ledger/AssetFrame.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/AssetPairFrame.h"
 #include "ledger/AssetPairHelper.h"
-#include "ledger/BalanceFrame.h"
-#include "ledger/BalanceHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/FeeFrame.h"
 #include "ledger/FeeHelper.h"
@@ -46,6 +44,7 @@
 #include "PendingStatisticsHelper.h"
 #include "SaleAnteHelper.h"
 #include "ContractHelper.h"
+#include "BalanceHelperLegacy.h"
 
 namespace stellar
 {
@@ -174,9 +173,9 @@ namespace stellar
 		{ LedgerEntryType::ACCOUNT, AccountHelper::Instance() },
 		{ LedgerEntryType::ACCOUNT_LIMITS, AccountLimitsHelper::Instance() },
 		{ LedgerEntryType::ACCOUNT_TYPE_LIMITS, AccountTypeLimitsHelper::Instance() },
-		{ LedgerEntryType::ASSET, AssetHelper::Instance() },
+		{ LedgerEntryType::ASSET, AssetHelperLegacy::Instance() },
 		{ LedgerEntryType::ASSET_PAIR, AssetPairHelper::Instance() },
-		{ LedgerEntryType::BALANCE, BalanceHelper::Instance() },
+		{ LedgerEntryType::BALANCE, BalanceHelperLegacy::Instance() },
 		{ LedgerEntryType::EXTERNAL_SYSTEM_ACCOUNT_ID, ExternalSystemAccountIDHelperLegacy::Instance() },
 		{ LedgerEntryType::FEE, FeeHelper::Instance() },
 		{ LedgerEntryType::OFFER_ENTRY, OfferHelper::Instance() },

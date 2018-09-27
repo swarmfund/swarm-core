@@ -6,7 +6,7 @@
 #include "util/asio.h"
 #include "CreatePreIssuanceRequestOpFrame.h"
 #include "transactions/SignatureValidatorImpl.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/ReferenceFrame.h"
@@ -43,7 +43,7 @@ CreatePreIssuanceRequestOpFrame::doApply(Application& app,
 		return false;
 	}
 
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
 	auto asset = assetHelper->loadAsset(mCreatePreIssuanceRequest.request.asset, db);
 	if (!asset) {
 		innerResult().code(CreatePreIssuanceRequestResultCode::ASSET_NOT_FOUND);

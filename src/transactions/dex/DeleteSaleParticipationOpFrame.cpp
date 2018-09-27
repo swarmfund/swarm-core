@@ -9,7 +9,7 @@
 #include "main/Application.h"
 #include "ledger/OfferHelper.h"
 #include "CreateSaleParticipationOpFrame.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/AccountHelper.h"
 
 namespace stellar
@@ -65,7 +65,7 @@ bool DeleteSaleParticipationOpFrame::doApply(Application& app,
     }
 
     auto quoteBalanceID = getQuoteBalanceID(offer, ledgerManager);
-    auto balance = BalanceHelper::Instance()->mustLoadBalance(quoteBalanceID, db);
+    auto balance = BalanceHelperLegacy::Instance()->mustLoadBalance(quoteBalanceID, db);
     sale->subCurrentCap(balance->getAsset(), offer->getOffer().quoteAmount);
     sale->unlockBaseAsset(offer->getOffer().baseAmount);
     SaleHelper::Instance()->storeChange(delta, db, sale->mEntry);

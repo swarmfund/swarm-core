@@ -6,7 +6,7 @@
 #include "test_helper/ManageAMLAlertTestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ReviewAMLAlertRequestHelper.h"
 
@@ -57,7 +57,7 @@ TEST_CASE("Aml alert", "[tx][aml_alert]")
 
         auto account = SecretKey::random();
         CreateAccountTestHelper(testManager).applyCreateAccountTx(root, account.getPublicKey(), AccountType::GENERAL);
-        auto balance = BalanceHelper::Instance()->loadBalance(account.getPublicKey(), asset, testManager->getDB(), nullptr);
+        auto balance = BalanceHelperLegacy::Instance()->loadBalance(account.getPublicKey(), asset, testManager->getDB(), nullptr);
         REQUIRE(!!balance);
         uint32_t allTasks = 0;
         issuanceHelper.applyCreateIssuanceRequest(root, asset, preIssuedAmount, balance->getBalanceID(),

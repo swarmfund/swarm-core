@@ -3,7 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include <ledger/AssetFrame.h>
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <ledger/BalanceFrame.h>
 #include <ledger/AccountHelper.h>
 #include "transactions/AccountManager.h"
@@ -15,7 +15,7 @@
 #include "ledger/AccountTypeLimitsFrame.h"
 #include "ledger/AccountTypeLimitsHelper.h"
 #include "ledger/AssetPairHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/EntryHelperLegacy.h"
 #include "ledger/LedgerHeaderFrame.h"
 #include "ledger/StatisticsHelper.h"
@@ -55,7 +55,7 @@ namespace stellar {
                 return UNDERFUNDED;
         }
 
-        auto statsAssetFrame = AssetHelper::Instance()->loadStatsAsset(mDb);
+        auto statsAssetFrame = AssetHelperLegacy::Instance()->loadStatsAsset(mDb);
         if (!statsAssetFrame)
             return SUCCESS;
 
@@ -88,7 +88,7 @@ namespace stellar {
     bool AccountManager::calculateUniversalAmount(AssetCode transferAsset, uint64_t amount, uint64_t &universalAmount) {
         universalAmount = 0;
 
-        auto statsAssetFrame = AssetHelper::Instance()->loadStatsAsset(mDb);
+        auto statsAssetFrame = AssetHelperLegacy::Instance()->loadStatsAsset(mDb);
         if (!statsAssetFrame) {
             return true;
         }
@@ -282,7 +282,7 @@ namespace stellar {
                                                     BalanceFrame::pointer balance,
                                                     uint64_t amountToAdd, uint64_t &universalAmount) {
         universalAmount = 0;
-        auto statsAssetFrame = AssetHelper::Instance()->loadStatsAsset(mDb);
+        auto statsAssetFrame = AssetHelperLegacy::Instance()->loadStatsAsset(mDb);
         if (!statsAssetFrame)
             return SUCCESS;
 
@@ -357,12 +357,12 @@ namespace stellar {
     BalanceFrame::pointer AccountManager::loadOrCreateBalanceFrameForAsset(
             AccountID const &account, AssetCode const &asset, Database &db,
             LedgerDelta &delta) {
-        auto balance = BalanceHelper::Instance()->loadBalance(account, asset, db, &delta);
+        auto balance = BalanceHelperLegacy::Instance()->loadBalance(account, asset, db, &delta);
         if (!!balance) {
             return balance;
         }
 
-        if (!AssetHelper::Instance()->exists(db, asset)) {
+        if (!AssetHelperLegacy::Instance()->exists(db, asset)) {
             CLOG(ERROR, Logging::OPERATION_LOGGER) << "Unexpected db state: expected asset to exist: " << asset;
             throw runtime_error("Unexpected db state: expected asset to exist");
         }
@@ -375,7 +375,7 @@ namespace stellar {
     }
 
     AccountManager::Result AccountManager::isAllowedToReceive(BalanceID balanceID, Database& db){
-        auto balanceFrame = BalanceHelper::Instance()->loadBalance(balanceID, db);
+        auto balanceFrame = BalanceHelperLegacy::Instance()->loadBalance(balanceID, db);
         if (!balanceFrame)
             return AccountManager::Result::BALANCE_NOT_FOUND;
 
@@ -388,7 +388,7 @@ namespace stellar {
         return isAllowedToReceive(accountFrame, balanceFrame, db);
     }
     AccountManager::Result  AccountManager::isAllowedToReceive(AccountFrame::pointer account, BalanceFrame::pointer balance, Database& db){
-        auto asset = AssetHelper::Instance()->mustLoadAsset(balance->getAsset(), db);
+        auto asset = AssetHelperLegacy::Instance()->mustLoadAsset(balance->getAsset(), db);
 
         if (asset->isRequireVerification() && account->getAccountType() == AccountType::NOT_VERIFIED)
             return AccountManager::Result::REQUIRED_VERIFICATION;
@@ -404,10 +404,10 @@ namespace stellar {
 
     void AccountManager::unlockPendingIssuanceForSale(SaleFrame::pointer const sale, LedgerDelta &delta, Database &db,
                                                       LedgerManager &lm) {
-        auto baseAsset = AssetHelper::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
+        auto baseAsset = AssetHelperLegacy::Instance()->mustLoadAsset(sale->getBaseAsset(), db, &delta);
         const auto baseAmount = lm.shouldUse(LedgerVersion::ALLOW_TO_SPECIFY_REQUIRED_BASE_ASSET_AMOUNT_FOR_HARD_CAP)
                                 ? sale->getSaleEntry().maxAmountToBeSold : baseAsset->getPendingIssuance();
         baseAsset->mustUnlockIssuedAmount(baseAmount);
-        AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
+        AssetHelperLegacy::Instance()->storeChange(delta, db, baseAsset->mEntry);
     }
 }

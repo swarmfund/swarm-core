@@ -1,8 +1,8 @@
 #include "ReviewAMLAlertRequestHelper.h"
 #include "ledger/AssetFrame.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "test/test_marshaler.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 
 
 namespace stellar
@@ -14,13 +14,13 @@ void AmlReviewChecker::checkApproval(AMLAlertRequest const& request,
 {
     auto balanceBeforeTx = mStateBeforeTxHelper.getBalance(request.balanceID);
     REQUIRE(!!balanceBeforeTx);
-    auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(request.balanceID, mTestManager->getDB());
+    auto balanceAfterTx = BalanceHelperLegacy::Instance()->loadBalance(request.balanceID, mTestManager->getDB());
     REQUIRE(!!balanceAfterTx);
     REQUIRE(balanceBeforeTx->getAmount() == balanceAfterTx->getAmount());
     REQUIRE(balanceBeforeTx->getLocked() - request.amount == balanceAfterTx->getLocked());
 
     auto assetBeforeTx = mStateBeforeTxHelper.getAssetEntry(balanceBeforeTx->getAsset());
-    auto assetFrameAfterTx = AssetHelper::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
+    auto assetFrameAfterTx = AssetHelperLegacy::Instance()->loadAsset(balanceBeforeTx->getAsset(), mTestManager->getDB());
     auto assetAfterTx = assetFrameAfterTx->getAsset();
     REQUIRE(assetBeforeTx.availableForIssueance == assetAfterTx.availableForIssueance);
     REQUIRE(assetBeforeTx.maxIssuanceAmount == assetAfterTx.maxIssuanceAmount);
@@ -32,7 +32,7 @@ void AmlReviewChecker::checkPermanentReject(AMLAlertRequest const& request,
 {
     auto balanceBeforeTx = mStateBeforeTxHelper.getBalance(request.balanceID);
     REQUIRE(!!balanceBeforeTx);
-    auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(request.balanceID, mTestManager->getDB());
+    auto balanceAfterTx = BalanceHelperLegacy::Instance()->loadBalance(request.balanceID, mTestManager->getDB());
     REQUIRE(!!balanceAfterTx);
     REQUIRE(balanceBeforeTx->getAmount() + request.amount == balanceAfterTx->getAmount());
     REQUIRE(balanceBeforeTx->getLocked() - request.amount == balanceAfterTx->getLocked());

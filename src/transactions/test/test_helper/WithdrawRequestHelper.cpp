@@ -7,8 +7,8 @@
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/StatisticsV2Helper.h>
 #include "WithdrawRequestHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "transactions/CreateWithdrawalRequestOpFrame.h"
 #include "test/test_marshaler.h"
@@ -29,7 +29,7 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     Database& db = mTestManager->getDB();
     auto reviewableRequestHelper = ReviewableRequestHelper::Instance();
     auto reviewableRequestCountBeforeTx = reviewableRequestHelper->countObjects(db.getSession());
-    auto balanceBeforeRequest = BalanceHelper::Instance()->loadBalance(request.balance, db);
+    auto balanceBeforeRequest = BalanceHelperLegacy::Instance()->loadBalance(request.balance, db);
 
     xdr::pointer<AccountID> accountID = nullptr;
     accountID.activate() = source.key.getPublicKey();
@@ -71,7 +71,7 @@ CreateWithdrawalRequestResult WithdrawRequestHelper::applyCreateWithdrawRequest(
     REQUIRE(!!balanceBeforeRequest);
     REQUIRE(reviewableRequestCountBeforeTx + 1 == reviewableRequestCountAfterTx);
 
-    auto balanceAfterRequest = BalanceHelper::Instance()->loadBalance(request.balance, db);
+    auto balanceAfterRequest = BalanceHelperLegacy::Instance()->loadBalance(request.balance, db);
     REQUIRE(!!balanceAfterRequest);
     REQUIRE(balanceBeforeRequest->getAmount() == balanceAfterRequest->getAmount() + request.amount + request.fee.fixed + request.fee.percent);
     REQUIRE(balanceAfterRequest->getLocked() == balanceBeforeRequest->getLocked() + request.amount + request.fee.fixed + request.fee.percent);
@@ -158,7 +158,7 @@ void WithdrawRequestHelper::validateStatsChange(StatisticsV2Frame::pointer stats
 
 bool WithdrawRequestHelper::canCalculateStats(AssetCode baseAsset)
 {
-    auto statsAsset = AssetHelper::Instance()->loadStatsAsset(mTestManager->getDB());
+    auto statsAsset = AssetHelperLegacy::Instance()->loadStatsAsset(mTestManager->getDB());
     if (!statsAsset)
         return false;
 

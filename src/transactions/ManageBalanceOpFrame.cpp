@@ -6,8 +6,8 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "database/Database.h"
 #include "main/Application.h"
 #include "medida/meter.h"
@@ -75,7 +75,7 @@ ManageBalanceOpFrame::doApply(Application& app,
             return false;
         }
 
-        const auto balance = BalanceHelper::Instance()->loadBalance(mManageBalance.destination, mManageBalance.asset, db, nullptr);
+        const auto balance = BalanceHelperLegacy::Instance()->loadBalance(mManageBalance.destination, mManageBalance.asset, db, nullptr);
         if (!!balance)
         {
             innerResult().code(ManageBalanceResultCode::BALANCE_ALREADY_EXISTS);
@@ -92,12 +92,12 @@ ManageBalanceOpFrame::doApply(Application& app,
         return false;
     }
 
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto balanceFrame = balanceHelper->loadBalance(mManageBalance.destination,
                                                    mManageBalance.asset, db,
                                                    &delta);
 
-    auto assetHelper = AssetHelper::Instance();
+    auto assetHelper = AssetHelperLegacy::Instance();
     const auto assetFrame = assetHelper->loadAsset(mManageBalance.asset, db);
     if (!assetFrame)
     {

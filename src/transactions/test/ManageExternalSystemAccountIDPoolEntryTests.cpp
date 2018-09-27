@@ -6,7 +6,7 @@
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerDeltaImpl.h"
 #include "test_helper/TestManager.h"
 #include "transactions/test/test_helper/ManageExternalSystemAccountIDPoolEntryTestHelper.h"

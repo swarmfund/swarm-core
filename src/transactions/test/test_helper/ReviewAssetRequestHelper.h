@@ -33,7 +33,7 @@ class ReviewAssetRequestHelper : public ReviewRequestHelper
 protected:
     void checkApproval(ReviewableRequestFrame::pointer requestBeforeTx);
 public:
-    ReviewAssetRequestHelper(TestManager::pointer testManager);
+    explicit ReviewAssetRequestHelper(TestManager::pointer testManager);
 
     using ReviewRequestHelper::applyReviewRequestTx;
     ReviewRequestResult applyReviewRequestTx(Account& source,

@@ -16,6 +16,7 @@ variables:
 
 stages:
   - build
+  - publish-gh
 
 # build and publish docker image to the registry
 build:
@@ -28,3 +29,17 @@ build:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - docker build --pull --build-arg RSA_KEY="$SSH_PRIVATE_KEY" -t $IMAGE_BUILD_NAME -f $BUILD_DOCKERFILE .
     - docker push $IMAGE_BUILD_NAME
+
+publish-gh:
+  image: ubuntu
+  stage: publish-gh
+  only:
+    - master
+  script:
+    - apt update
+    - apt install -y --no-install-recommends git openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$GH_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+    - GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa" git push -f git@github.com:swarmfund/swarm-core.git master

@@ -52,14 +52,13 @@ AccountRoleFrame::ensureValid() const
 }
 
 AccountRoleFrame::pointer
-AccountRoleFrame::createNew(uint64_t id, AccountID const& ownerID,
-                            std::string const& name, LedgerDelta& delta)
+AccountRoleFrame::createNew(uint64_t id, std::string const& name,
+                            LedgerDelta& delta)
 {
     LedgerEntry entry;
     entry.data.type(LedgerEntryType::ACCOUNT_ROLE);
     auto& accountRole = entry.data.accountRole();
     accountRole.accountRoleID = id;
-    accountRole.ownerID = ownerID;
     accountRole.accountRoleName = name;
 
     return make_shared<AccountRoleFrame>(entry);

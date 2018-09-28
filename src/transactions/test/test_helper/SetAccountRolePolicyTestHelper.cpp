@@ -89,7 +89,6 @@ SetAccountRolePolicyTestHelper::applySetIdentityPolicyTx(
     affectedPolicyKey.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
     affectedPolicyKey.accountRolePolicy().accountRolePolicyID =
         result.success().accountRolePolicyID;
-    affectedPolicyKey.accountRolePolicy().ownerID = source.key.getPublicKey();
 
     EntryFrame::pointer affectedPolicy =
         rolePolicyHelper.storeLoad(affectedPolicyKey);
@@ -119,7 +118,6 @@ SetAccountRolePolicyTestHelper::createAccountRolePolicyEntry(
     auto policyEntry = le.data.accountRolePolicy();
 
     policyEntry.accountRoleID = id;
-    policyEntry.ownerID = owner;
     policyEntry.effect = effect;
     if (details != nullptr)
     {

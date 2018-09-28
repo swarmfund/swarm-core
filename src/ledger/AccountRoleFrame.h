@@ -49,18 +49,11 @@ class AccountRoleFrame : public EntryFrame
         return mAccountRole.accountRoleName;
     }
 
-    AccountID const&
-    getOwnerID() const
-    {
-        return mAccountRole.ownerID;
-    }
-
     static void ensureValid(const LedgerEntry& entry);
 
     void ensureValid() const;
 
     static pointer createNew(uint64_t id,
-                             AccountID const& ownerID,
                              std::string const& name,
                              LedgerDelta& delta);
 };

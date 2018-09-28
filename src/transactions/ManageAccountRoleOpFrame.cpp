@@ -51,7 +51,7 @@ ManageAccountRoleOpFrame::createAccountRole(Application& app,
 
     auto newAccountRoleID =
         delta.getHeaderFrame().generateID(LedgerEntryType::ACCOUNT_ROLE);
-    auto frame = AccountRoleFrame::createNew(newAccountRoleID, getSourceID(),
+    auto frame = AccountRoleFrame::createNew(newAccountRoleID,
                                              data.name, delta);
 
     storageHelper.getAccountRoleHelper().storeAdd(frame->mEntry);
@@ -103,7 +103,7 @@ ManageAccountRoleOpFrame::doApply(Application& app,
     case ManageAccountRoleOpAction::REMOVE:
         return deleteAccountRole(app, storageHelper);
     default:
-        assert(false);
+        throw std::runtime_error("Unknown action.");
     }
 }
 

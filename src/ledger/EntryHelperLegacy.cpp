@@ -85,7 +85,6 @@ namespace stellar
                 {
                     auto& sourceData = e.data.accountRolePolicy();
                     key.accountRolePolicy().accountRolePolicyID = sourceData.accountRolePolicyID;
-                    key.accountRolePolicy().ownerID = sourceData.ownerID;
                     break;
                 }
                 default:

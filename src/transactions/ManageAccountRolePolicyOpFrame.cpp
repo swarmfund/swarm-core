@@ -33,7 +33,7 @@ ManageAccountRolePolicyOpFrame::doApply(Application& app,
     case ManageAccountRolePolicyOpAction::REMOVE:
         return deleteAccountPolicy(app, storageHelper);
     default:
-        assert(false);
+        throw std::runtime_error("Unknown action.");
     }
 }
 
@@ -71,7 +71,7 @@ ManageAccountRolePolicyOpFrame::doCheckValid(Application& app)
     case ManageAccountRolePolicyOpAction::REMOVE:
         return true;
     default:
-        assert(false);
+        throw std::runtime_error("Unknown action.");
     }
     return true;
 }
@@ -110,7 +110,6 @@ ManageAccountRolePolicyOpFrame::createOrUpdatePolicy(
     le.data.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
 
     auto& lePolicy = le.data.accountRolePolicy();
-    lePolicy.ownerID = getSourceID();
     switch (mManageAccountRolePolicy.data.action())
     {
     case ManageAccountRolePolicyOpAction::CREATE:
@@ -185,7 +184,6 @@ ManageAccountRolePolicyOpFrame::deleteAccountPolicy(
     key.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
     key.accountRolePolicy().accountRolePolicyID =
         mManageAccountRolePolicy.data.removeData().policyID;
-    key.accountRolePolicy().ownerID = getSourceID();
 
     auto frame = storageHelper.getAccountRolePolicyHelper().storeLoad(key);
     if (!frame)

@@ -18,12 +18,11 @@ using xdr::operator<;
 void
 AccountRolePolicyHelper::dropAll(Database& db)
 {
-    db.getSession() << "DROP TABLE IF EXISTS account_role_policies;";
+    db.getSession() << "DROP TABLE IF EXISTS account_role_policies CASCADE;";
     db.getSession()
         << "CREATE TABLE account_role_policies"
            "("
            "id             BIGINT                 NOT NULL CHECK (id > 0),"
-           "owner_id       VARCHAR(56)            NOT NULL,"
            "role           BIGINT                 NOT NULL CHECK (role >= 0),"
            "resource       TEXT                   NOT NULL,"
            "action         TEXT                   NOT NULL,"
@@ -31,9 +30,8 @@ AccountRolePolicyHelper::dropAll(Database& db)
            "AND effect <= 1),"
            "last_modified  INT                    NOT NULL,"
            "version        INT                    NOT NULL,"
-           "PRIMARY KEY(id, owner_id),"
-           "FOREIGN KEY(role) REFERENCES account_roles(role_id) "
-           "ON DELETE CASCADE ON UPDATE CASCADE"
+           "PRIMARY KEY(id),"
+           "FOREIGN KEY(role) REFERENCES account_roles(role_id) ON DELETE RESTRICT ON UPDATE CASCADE"
            ");";
 }
 
@@ -62,13 +60,10 @@ AccountRolePolicyHelper::storeDelete(LedgerKey const& key)
 
     auto timer = mDb.getDeleteTimer("account_role_policy");
     auto prep = mDb.getPreparedStatement(
-        "DELETE FROM account_role_policies WHERE id=:id AND owner_id=:ow");
+        "DELETE FROM account_role_policies WHERE id=:id");
     auto& st = prep.statement();
 
-    const std::string ownerID =
-        PubKeyUtils::toStrKey(key.accountRolePolicy().ownerID);
     st.exchange(use(key.accountRolePolicy().accountRolePolicyID));
-    st.exchange(use(ownerID));
     st.define_and_bind();
     st.execute(true);
 
@@ -97,8 +92,6 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     const uint64_t roleID = accountRolePolicyFrame->getRoleID();
     const std::string resource = accountRolePolicyFrame->getResource();
     const std::string action = accountRolePolicyFrame->getAction();
-    const std::string ownerIDStrKey =
-        PubKeyUtils::toStrKey(accountRolePolicyFrame->getOwnerID());
     const auto effect =
         static_cast<int32_t>(accountRolePolicyFrame->getEffect());
     const auto version = static_cast<int32_t>(entry.ext.v());
@@ -107,10 +100,10 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
 
     if (insert)
     {
-        sql = std::string("INSERT INTO account_role_policies (id, owner_id, "
+        sql = std::string("INSERT INTO account_role_policies (id, "
                           "role, resource, action, effect, last_modified, "
                           "version) "
-                          "VALUES (:id, :ow, :r, :rs, :ac, :ef, :lm, :v)");
+                          "VALUES (:id, :r, :rs, :ac, :ef, :lm, :v)");
     }
     else
     {
@@ -118,7 +111,7 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
             std::string("UPDATE account_role_policies "
                         "SET    role=:r, resource=:rs, action=:ac, effect=:ef, "
                         "last_modified=:lm, version=:v "
-                        "WHERE  id=:id AND owner_id=:ow");
+                        "WHERE  id=:id");
     }
 
     auto prep = mDb.getPreparedStatement(sql);
@@ -126,7 +119,6 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     {
         soci::statement& st = prep.statement();
         st.exchange(use(id, "id"));
-        st.exchange(use(ownerIDStrKey, "ow"));
         st.exchange(use(roleID, "r"));
         st.exchange(use(resource, "rs"));
         st.exchange(use(action, "ac"));
@@ -166,13 +158,10 @@ AccountRolePolicyHelper::exists(LedgerKey const& key)
     auto timer = mDb.getSelectTimer("account_role_policy_exists");
     auto prep = mDb.getPreparedStatement(
         "SELECT EXISTS (SELECT NULL FROM account_role_policies "
-        "WHERE id=:id AND owner_id =:ow)");
+        "WHERE id=:id)");
     auto& st = prep.statement();
 
-    const std::string ownerIDStrKey =
-        PubKeyUtils::toStrKey(key.accountRolePolicy().ownerID);
     st.exchange(use(key.accountRolePolicy().accountRolePolicyID));
-    st.exchange(use(ownerIDStrKey));
     st.exchange(into(exists));
 
     st.define_and_bind();
@@ -193,8 +182,6 @@ AccountRolePolicyHelper::getLedgerKey(LedgerEntry const& from)
     ledgerKey.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
     ledgerKey.accountRolePolicy().accountRolePolicyID =
         from.data.accountRolePolicy().accountRolePolicyID;
-    ledgerKey.accountRolePolicy().ownerID =
-        from.data.accountRolePolicy().ownerID;
     return ledgerKey;
 }
 
@@ -225,9 +212,6 @@ AccountRolePolicyHelper::storeLoad(LedgerKey const& key)
     int32_t effect;
     int32_t version;
 
-    const std::string ownerIDStrKey =
-        PubKeyUtils::toStrKey(key.accountRolePolicy().ownerID);
-
     LedgerEntry le;
     le.data.type(LedgerEntryType::ACCOUNT_ROLE_POLICY);
 
@@ -235,10 +219,9 @@ AccountRolePolicyHelper::storeLoad(LedgerKey const& key)
     auto prep = mDb.getPreparedStatement(
         "SELECT role, resource, action, effect, version, last_modified "
         "FROM account_role_policies "
-        "WHERE id =:id AND owner_id =:ow");
+        "WHERE id =:id");
     auto& st = prep.statement();
     st.exchange(use(key.accountRolePolicy().accountRolePolicyID));
-    st.exchange(use(ownerIDStrKey));
     st.exchange(into(roleID));
     st.exchange(into(resource));
     st.exchange(into(action));
@@ -261,7 +244,6 @@ AccountRolePolicyHelper::storeLoad(LedgerKey const& key)
 
     policyEntry.accountRolePolicyID =
         key.accountRolePolicy().accountRolePolicyID;
-    policyEntry.ownerID = key.accountRolePolicy().ownerID;
     policyEntry.accountRoleID = roleID;
     policyEntry.resource = resource;
     policyEntry.action = action;

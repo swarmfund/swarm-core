@@ -57,12 +57,6 @@ class AccountRolePolicyFrame : public EntryFrame
         return mAccountRolePolicyEntry.effect;
     }
 
-    AccountID
-    getOwnerID() const
-    {
-        return mAccountRolePolicyEntry.ownerID;
-    }
-
     EntryFrame::pointer copy() const override;
 
     static bool isEffectValid(AccountRolePolicyEffect const effect);

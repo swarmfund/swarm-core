@@ -9,8 +9,7 @@ namespace stellar
 using xdr::operator<;
 
 static const char* accountRolesColumnSelector =
-    "SELECT role_id, owner_id, "
-    "role_name, last_modified, version "
+    "SELECT role_id, role_name, last_modified, version "
     "FROM account_roles";
 
 void
@@ -21,7 +20,6 @@ AccountRoleHelper::dropAll(Database& db)
         << "CREATE TABLE account_roles "
            "("
            "role_id                 BIGINT      NOT NULL CHECK (role_id >= 0), "
-           "owner_id                VARCHAR(56) NOT NULL, "
            "role_name               TEXT        NOT NULL, "
            "last_modified           INT         NOT NULL, "
            "version                 INT         NOT NULL DEFAULT 0, "
@@ -49,14 +47,14 @@ AccountRoleHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     string sql;
     if (insert)
     {
-        sql = "INSERT INTO account_roles (role_id, owner_id, "
-              "role_name, last_modified, version) VALUES (:id, :oid, :rn,"
+        sql = "INSERT INTO account_roles (role_id, role_name, "
+              "last_modified, version) VALUES (:id, :rn,"
               ":lm, :v)";
     }
     else
     {
         sql = "UPDATE account_roles "
-              "SET role_id = :id, owner_id = :oid, role_name = :rn,"
+              "SET role_id = :id, role_name = :rn,"
               "last_modified = :lm, version = :v "
               "WHERE role_id = :id";
     }
@@ -65,11 +63,9 @@ AccountRoleHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     auto& st = prep.statement();
 
     uint64_t accountRoleID = accountRoleFrame->getID();
-    string ownerID = PubKeyUtils::toStrKey(accountRoleFrame->getOwnerID());
     auto version = static_cast<int32_t>(accountRoleEntry.ext.v());
 
     st.exchange(use(accountRoleID, "id"));
-    st.exchange(use(ownerID, "oid"));
     st.exchange(use(accountRoleFrame->mEntry.lastModifiedLedgerSeq, "lm"));
     st.exchange(use(version, "v"));
     st.exchange(use(accountRoleEntry.accountRoleName, "rn"));
@@ -178,10 +174,8 @@ AccountRoleHelper::storeLoad(LedgerKey const& key)
     le.data.type(LedgerEntryType::ACCOUNT_ROLE);
 
     int32_t accountRoleVersion = 0;
-    std::string ownerStrKey;
     st.exchange(use(accountRoleID, "id"));
     st.exchange(into(le.data.accountRole().accountRoleID));
-    st.exchange(into(ownerStrKey));
     st.exchange(into(le.data.accountRole().accountRoleName));
     st.exchange(into(le.lastModifiedLedgerSeq));
     st.exchange(into(accountRoleVersion));
@@ -198,8 +192,7 @@ AccountRoleHelper::storeLoad(LedgerKey const& key)
         return EntryFrame::pointer();
     }
 
-    le.data.accountRole().ownerID = PubKeyUtils::fromStrKey(ownerStrKey);
-    le.data.accountRole().ext.v((LedgerVersion)accountRoleVersion);
+    le.data.accountRole().ext.v(LedgerVersion::EMPTY_VERSION);
     AccountRoleFrame::ensureValid(le);
 
     return make_shared<AccountRoleFrame>(le);

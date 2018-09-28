@@ -97,11 +97,10 @@ enum databaseSchemaVersion : unsigned long {
     REVIEWABLE_REQUEST_FIX_DEFAULT_VALUE = 19,
     REVIEWABLE_REQUEST_FIX_EXTERNAL_DETAILS = 20,
     ADD_CUSTOMER_DETAILS_TO_CONTRACT = 21,
-    ADD_ACCOUNT_ROLES = 22,
-    ADD_ACCOUNT_ROLE_POLICIES = 23
+    ADD_ACCOUNT_ROLES_AND_POLICIES = 22
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ACCOUNT_ROLE_POLICIES;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ACCOUNT_ROLES_AND_POLICIES;
 
 static void
 setSerializable(soci::session& sess)
@@ -218,11 +217,9 @@ DatabaseImpl::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT:
             ContractHelper::Instance()->addCustomerDetails(*this);
             break;
-        case databaseSchemaVersion::ADD_ACCOUNT_ROLES:
+        case databaseSchemaVersion::ADD_ACCOUNT_ROLES_AND_POLICIES:
             AccountRoleHelper::dropAll(*this);
             AccountHelper::Instance()->addAccountRole(*this);
-            break;
-        case databaseSchemaVersion::ADD_ACCOUNT_ROLE_POLICIES:
             AccountRolePolicyHelper::dropAll(*this);
             break;
         default:

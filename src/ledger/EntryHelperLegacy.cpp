@@ -89,14 +89,14 @@ namespace stellar
                     break;
                 }
                 default:
-                    assert(false);
+                    throw std::runtime_error("Unknown key type");
             }
             return key;
         }
         EntryHelperLegacy* helper = EntryHelperProvider::getHelper(e.data.type());
         if (helper == nullptr)
         {
-            throw std::runtime_error("There\'s no legacy helper for this entry.");
+            throw std::runtime_error("There's no legacy helper for this entry.");
         }
 		return helper->getLedgerKey(e);
 	}
@@ -139,7 +139,7 @@ namespace stellar
             auto helper = createHelper(entry.data.type(), storageHelper);
             if (!helper)
             {
-                throw std::runtime_error("There\'s no legacy helper for this entry, "
+                throw std::runtime_error("There's no legacy helper for this entry, "
                                          "and no helper can be created.");
             }
             helper->flushCachedEntry(key);
@@ -207,7 +207,7 @@ namespace stellar
         auto createdHelper = createHelper(key.type(), storageHelper);
         if (!createdHelper)
         {
-            throw std::runtime_error("There\'s no legacy helper for this entry, "
+            throw std::runtime_error("There's no legacy helper for this entry, "
                                      "and no helper can be created.");
         }
         return createdHelper->exists(key);

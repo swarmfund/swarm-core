@@ -157,9 +157,6 @@ TEST_CASE("create account", "[tx][create_account]") {
 
     SECTION("Non root account can't create") {
         for (auto accountType : xdr::xdr_traits<AccountType>::enum_values()) {
-            if (accountType == static_cast<int32_t >(AccountType::ANY))
-                continue;
-
             // can be created only once
             if (isSystemAccountType(AccountType(accountType)) ||
                 accountType == static_cast<int32_t >(AccountType::ACCREDITED_INVESTOR) ||

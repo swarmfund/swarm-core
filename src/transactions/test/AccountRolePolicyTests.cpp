@@ -11,7 +11,7 @@
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ManageAssetPairTestHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"
-#include "transactions/SetAccountRolePolicyOpFrame.h"
+#include "transactions/ManageAccountRolePolicyOpFrame.h"
 #include "transactions/test/test_helper/SetAccountRolePolicyTestHelper.h"
 #include "util/make_unique.h"
 #include <transactions/test/test_helper/SetAccountRoleTestHelper.h>
@@ -46,7 +46,7 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policies]")
 
     CreateAccountTestHelper createAccountTestHelper(testManager);
     SetAccountRoleTestHelper setAccountRoleTestHelper(testManager);
-    SetAccountRolePolicyTestHelper setAccountRolePolicyTestHelper(testManager);
+    SetAccountRolePolicyTestHelper manageAccountRolePolicyTestHelper(testManager);
 
     // create account for further tests
     auto accountKey = SecretKey::random();
@@ -64,85 +64,85 @@ TEST_CASE("Set role policy", "[tx][set_account_role_policies]")
     SECTION("Successful creation")
     {
         auto policyEntry =
-            setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
+            manageAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
                 accountRoleID, accountKey.getPublicKey(), &data);
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntry, false,
-            SetAccountRolePolicyResultCode::SUCCESS);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntry, ManageAccountRolePolicyOpAction::CREATE,
+            ManageAccountRolePolicyResultCode::SUCCESS);
     }
     SECTION("Successful updating")
     {
         auto policyEntry =
-            setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
+            manageAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
                 accountRoleID, accountKey.getPublicKey(), &data);
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntry, false,
-            SetAccountRolePolicyResultCode::SUCCESS);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntry, ManageAccountRolePolicyOpAction::CREATE,
+            ManageAccountRolePolicyResultCode::SUCCESS);
         // update entry
         policyEntry.action = "NewAction";
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntry, false,
-            SetAccountRolePolicyResultCode::SUCCESS);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntry, ManageAccountRolePolicyOpAction::UPDATE,
+            ManageAccountRolePolicyResultCode::SUCCESS);
     }
     SECTION("Invalid resource")
     {
         auto policyEntryResourceAndAction =
-            setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
+            manageAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
                 accountRoleID, accountKey.getPublicKey(), &data);
         policyEntryResourceAndAction.resource = "";
         policyEntryResourceAndAction.action = kActionID;
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntryResourceAndAction, false,
-            SetAccountRolePolicyResultCode::MALFORMED);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntryResourceAndAction, ManageAccountRolePolicyOpAction::CREATE,
+            ManageAccountRolePolicyResultCode::EMPTY_RESOURCE);
     }
     SECTION("Invalid action")
     {
         auto policyEntryResourceAndAction =
-            setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
+            manageAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
                 accountRoleID, accountKey.getPublicKey(), &data);
         policyEntryResourceAndAction.resource = kResourceID;
         policyEntryResourceAndAction.action = "";
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntryResourceAndAction, false,
-            SetAccountRolePolicyResultCode::MALFORMED);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntryResourceAndAction, ManageAccountRolePolicyOpAction::CREATE,
+            ManageAccountRolePolicyResultCode::EMPTY_ACTION);
     }
     SECTION("Identity policy not found when try to delete it")
     {
         auto policyEntry =
-            setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
+            manageAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
                 accountRoleID, accountKey.getPublicKey(), &data);
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntry, true,
-            SetAccountRolePolicyResultCode::NOT_FOUND);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntry, ManageAccountRolePolicyOpAction::REMOVE,
+            ManageAccountRolePolicyResultCode::NOT_FOUND);
     }
     SECTION("Successful deletion")
     {
         auto policyEntry =
-            setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
+            manageAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
                 accountRoleID, accountKey.getPublicKey(), &data);
         // create
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntry, false,
-            SetAccountRolePolicyResultCode::SUCCESS);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntry, ManageAccountRolePolicyOpAction::CREATE,
+            ManageAccountRolePolicyResultCode::SUCCESS);
         // delete
         policyEntry.accountRolePolicyID = 1;
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntry, true,
-            SetAccountRolePolicyResultCode::SUCCESS);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntry, ManageAccountRolePolicyOpAction::REMOVE,
+            ManageAccountRolePolicyResultCode::SUCCESS);
     }
     SECTION("Create without data")
     {
         auto policyEntry =
-            setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
+            manageAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
                 accountRoleID, accountKey.getPublicKey(), &data);
         // create
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntry, false,
-            SetAccountRolePolicyResultCode::SUCCESS);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntry, ManageAccountRolePolicyOpAction::CREATE,
+            ManageAccountRolePolicyResultCode::SUCCESS);
         // delete
         policyEntry.accountRolePolicyID = 1;
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-            account, policyEntry, true,
-            SetAccountRolePolicyResultCode::SUCCESS);
+        manageAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
+            account, policyEntry, ManageAccountRolePolicyOpAction::REMOVE,
+            ManageAccountRolePolicyResultCode::SUCCESS);
     }
 }

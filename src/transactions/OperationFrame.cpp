@@ -38,8 +38,8 @@
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 #include "transactions/dex/ManageSaleOpFrame.h"
-#include "transactions/SetAccountRolePolicyOpFrame.h"
-#include "transactions/SetAccountRoleOpFrame.h"
+#include "transactions/ManageAccountRolePolicyOpFrame.h"
+#include "transactions/ManageAccountRoleOpFrame.h"
 #include "database/Database.h"
 
 #include "medida/meter.h"
@@ -122,10 +122,10 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new ManageContractOpFrame(op, res, tx));
     case OperationType::CANCEL_SALE_REQUEST:
         return shared_ptr<OperationFrame>(new CancelSaleCreationRequestOpFrame(op, res, tx));
-    case OperationType::SET_ACCOUNT_ROLE:
-        return shared_ptr<OperationFrame>(new SetAccountRoleOpFrame(op, res, tx));
-    case OperationType::SET_ACCOUNT_ROLE_POLICY:
-        return shared_ptr<OperationFrame>(new SetAccountRolePolicyOpFrame(op, res, tx));
+    case OperationType::MANAGE_ACCOUNT_ROLE:
+        return shared_ptr<OperationFrame>(new ManageAccountRoleOpFrame(op, res, tx));
+    case OperationType::MANAGE_ACCOUNT_ROLE_POLICY:
+        return shared_ptr<OperationFrame>(new ManageAccountRolePolicyOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());

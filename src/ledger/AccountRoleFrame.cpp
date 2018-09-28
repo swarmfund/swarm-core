@@ -36,15 +36,6 @@ AccountRoleFrame::operator=(const AccountRoleFrame& other)
     return *this;
 }
 
-LedgerKey AccountRoleFrame::createKey() const
-{
-    LedgerKey key;
-    key.type(LedgerEntryType::ACCOUNT_ROLE);
-    key.accountRole().accountRoleID = mEntry.data.accountRole().accountRoleID;
-
-    return key;
-}
-
 void
 AccountRoleFrame::ensureValid(const LedgerEntry& entry)
 {

@@ -11,17 +11,17 @@ class SetAccountRoleTestHelper : TxHelper
   public:
     explicit SetAccountRoleTestHelper(TestManager::pointer testManager);
 
-    SetAccountRoleOp createCreationOpInput(const std::string& name);
+    ManageAccountRoleOp createCreationOpInput(const std::string& name);
 
-    SetAccountRoleOp createDeletionOpInput(uint64_t accountRoleID);
+    ManageAccountRoleOp createDeletionOpInput(uint64_t accountRoleID);
 
     TransactionFramePtr createAccountRoleTx(Account& source,
-                                            const SetAccountRoleOp& op);
+                                            const ManageAccountRoleOp& op);
 
-    SetAccountRoleResult
-    applySetAccountRole(Account& source, const SetAccountRoleOp& op,
-                        SetAccountRoleResultCode expectedResultCode =
-                            SetAccountRoleResultCode::SUCCESS);
+    ManageAccountRoleResult
+    applySetAccountRole(Account& source, const ManageAccountRoleOp& op,
+                        ManageAccountRoleResultCode expectedResultCode =
+                            ManageAccountRoleResultCode::SUCCESS);
 };
 } // namespace txtest
 } // namespace stellar

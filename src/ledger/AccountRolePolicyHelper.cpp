@@ -118,7 +118,7 @@ AccountRolePolicyHelper::storeUpdate(LedgerEntry const& entry, bool insert)
             std::string("UPDATE account_role_policies "
                         "SET    role=:r, resource=:rs, action=:ac, effect=:ef, "
                         "last_modified=:lm, version=:v "
-                        "WHERE  id=:id AND ownerid=:ow");
+                        "WHERE  id=:id AND owner_id=:ow");
     }
 
     auto prep = mDb.getPreparedStatement(sql);

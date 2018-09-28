@@ -26,8 +26,7 @@ namespace stellar {
             if (isRoleIDSpecified)
             {
                 createAccountOp.ext.v(LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES);
-                createAccountOp.ext.ext_0().roleID.activate();
-                *createAccountOp.ext.ext_0().roleID = roleID;
+                createAccountOp.ext.opExt().roleID.activate() = roleID;
             }
             return op;
         }

@@ -8,7 +8,7 @@
 #include "test/test_marshaler.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
-#include "transactions/SetAccountRolePolicyOpFrame.h"
+#include "transactions/ManageAccountRolePolicyOpFrame.h"
 #include "transactions/test/test_helper/SetAccountRolePolicyTestHelper.h"
 #include "transactions/test/test_helper/SetAccountRoleTestHelper.h"
 #include "util/make_unique.h"
@@ -43,7 +43,7 @@ TEST_CASE("Account role tests", "[tx][set_account_roles]")
     auto master = Account{getRoot(), Salt(1)};
 
     CreateAccountTestHelper createAccountTestHelper(testManager);
-    SetAccountRoleTestHelper setAccountRoleHelper(testManager);
+    SetAccountRoleTestHelper manageAccountRoleHelper(testManager);
     SetAccountRolePolicyTestHelper setIdentityPolicyHelper(testManager);
 
     // create account for further tests
@@ -58,45 +58,36 @@ TEST_CASE("Account role tests", "[tx][set_account_roles]")
 
     SECTION("Create account role")
     {
-        SetAccountRoleResult result = setAccountRoleHelper.applySetAccountRole(
-            account, setAccountRoleHelper.createCreationOpInput(kRoleName));
+        ManageAccountRoleResult result = manageAccountRoleHelper.applySetAccountRole(
+            account, manageAccountRoleHelper.createCreationOpInput(kRoleName));
         SECTION("Create another role")
         {
-            setAccountRoleHelper.applySetAccountRole(
+            manageAccountRoleHelper.applySetAccountRole(
                 account,
-                setAccountRoleHelper.createCreationOpInput(kAnotherRoleName));
+                manageAccountRoleHelper.createCreationOpInput(kAnotherRoleName));
         }
         SECTION("Create another role with duplicate ID")
         {
-            setAccountRoleHelper.applySetAccountRole(
-                account, setAccountRoleHelper.createCreationOpInput(kRoleName));
+            manageAccountRoleHelper.applySetAccountRole(
+                account, manageAccountRoleHelper.createCreationOpInput(kRoleName));
         }
         SECTION("Create another role with duplicate name")
         {
-            setAccountRoleHelper.applySetAccountRole(
-                account, setAccountRoleHelper.createCreationOpInput(kRoleName));
+            manageAccountRoleHelper.applySetAccountRole(
+                account, manageAccountRoleHelper.createCreationOpInput(kRoleName));
         }
         SECTION("Delete account role")
         {
-            setAccountRoleHelper.applySetAccountRole(
-                account, setAccountRoleHelper.createDeletionOpInput(
+            manageAccountRoleHelper.applySetAccountRole(
+                account, manageAccountRoleHelper.createDeletionOpInput(
                              result.success().accountRoleID));
         }
         SECTION("Delete non-existing account role")
         {
-            setAccountRoleHelper.applySetAccountRole(
+            manageAccountRoleHelper.applySetAccountRole(
                 account,
-                setAccountRoleHelper.createDeletionOpInput(kInvalidRoleID),
-                SetAccountRoleResultCode::NOT_FOUND);
-        }
-        SECTION("Try to create role with old ID")
-        {
-            SetAccountRoleOp op;
-            op.data.activate();
-            op.id = result.success().accountRoleID;
-            op.data->name = kAnotherRoleName;
-            setAccountRoleHelper.applySetAccountRole(
-                account, op, SetAccountRoleResultCode::MALFORMED);
+                manageAccountRoleHelper.createDeletionOpInput(kInvalidRoleID),
+                ManageAccountRoleResultCode::NOT_FOUND);
         }
     }
 }

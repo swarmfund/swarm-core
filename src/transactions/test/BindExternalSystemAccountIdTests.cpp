@@ -145,8 +145,8 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
                         accountRoleID, binder.key.getPublicKey(), &policyDetails);
         // write this entry to DB
         setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-                binder, policyEntry, false,
-                SetAccountRolePolicyResultCode::SUCCESS);
+                binder, policyEntry, ManageAccountRolePolicyOpAction::CREATE,
+                ManageAccountRolePolicyResultCode::SUCCESS);
 
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
                                                                                                 ERC20_TokenExternalSystemType,

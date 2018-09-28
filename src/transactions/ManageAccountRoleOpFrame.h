@@ -4,45 +4,45 @@
 
 namespace stellar
 {
-class SetAccountRoleOpFrame : public OperationFrame
+class ManageAccountRoleOpFrame : public OperationFrame
 {
   public:
-    SetAccountRoleOpFrame(Operation const& op, OperationResult& res,
-                          TransactionFrame& parentTx);
+    ManageAccountRoleOpFrame(Operation const& op, OperationResult& res,
+                             TransactionFrame& parentTx);
 
     bool doApply(Application& app, StorageHelper& storageHelper,
                  LedgerManager& ledgerManager) override;
 
     bool doCheckValid(Application& app) override;
 
-    static SetAccountRoleResultCode
+    static ManageAccountRoleResultCode
     getInnerCode(OperationResult const& res)
     {
-        return res.tr().setAccountRoleResult().code();
+        return res.tr().manageAccountRoleResult().code();
     }
 
     std::string
     getInnerResultCodeAsStr() override
     {
-        return xdr::xdr_traits<SetAccountRoleResultCode>::enum_name(
+        return xdr::xdr_traits<ManageAccountRoleResultCode>::enum_name(
             innerResult().code());
     }
 
   private:
-    SetAccountRoleResult&
+    ManageAccountRoleResult&
     innerResult()
     {
-        return mResult.tr().setAccountRoleResult();
+        return mResult.tr().manageAccountRoleResult();
     }
 
-    SetAccountRoleOp const& mSetAccountRole;
+    ManageAccountRoleOp const& mManageAccountRole;
 
     std::unordered_map<AccountID, CounterpartyDetails>
     getCounterpartyDetails(Database& db, LedgerDelta* delta) const override;
 
     SourceDetails
     getSourceAccountDetails(std::unordered_map<AccountID, CounterpartyDetails>
-                            counterpartiesDetails,
+                                counterpartiesDetails,
                             int32_t ledgerVersion) const override;
 
     bool createAccountRole(Application& app, StorageHelper& storageHelper);

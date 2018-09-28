@@ -10,11 +10,11 @@
 namespace stellar
 {
 
-class SetAccountRolePolicyOpFrame : public OperationFrame
+class ManageAccountRolePolicyOpFrame : public OperationFrame
 {
   public:
-    SetAccountRolePolicyOpFrame(Operation const& op, OperationResult& res,
-                                TransactionFrame& parentTx);
+    ManageAccountRolePolicyOpFrame(Operation const& op, OperationResult& res,
+                                   TransactionFrame& parentTx);
 
     bool doApply(Application& app, StorageHelper& storageHelper,
                  LedgerManager& ledgerManager) override;
@@ -27,32 +27,30 @@ class SetAccountRolePolicyOpFrame : public OperationFrame
                                 counterpartiesDetails,
                             int32_t ledgerVersion) const override;
 
-    static SetAccountRolePolicyResultCode
+    static ManageAccountRolePolicyResultCode
     getInnerCode(OperationResult const& res)
     {
-        return res.tr().setAccountRolePolicyResult().code();
+        return res.tr().manageAccountRolePolicyResult().code();
     }
 
     std::string
     getInnerResultCodeAsStr() override
     {
-        return xdr::xdr_traits<SetAccountRolePolicyResultCode>::enum_name(
+        return xdr::xdr_traits<ManageAccountRolePolicyResultCode>::enum_name(
             innerResult().code());
     }
 
   private:
-    SetAccountRolePolicyOp const& mSetAccountRolePolicy;
+    ManageAccountRolePolicyOp const& mManageAccountRolePolicy;
 
-    SetAccountRolePolicyResult&
+    ManageAccountRolePolicyResult&
     innerResult()
     {
-        return mResult.tr().setAccountRolePolicyResult();
+        return mResult.tr().manageAccountRolePolicyResult();
     }
 
-    bool createOrUpdatePolicy(Application &app, StorageHelper &storageHelper);
-    bool deleteAccountPolicy(Application &app, StorageHelper &storageHelper);
-
-    static bool isDeleteOp(const SetAccountRolePolicyOp& accountRolePolicyOp);
+    bool createOrUpdatePolicy(Application& app, StorageHelper& storageHelper);
+    bool deleteAccountPolicy(Application& app, StorageHelper& storageHelper);
 };
 
 } // namespace stellar

@@ -1,6 +1,6 @@
 #include "SetAccountRoleTestHelper.h"
 #include "test/test_marshaler.h"
-#include "transactions/SetAccountRoleOpFrame.h"
+#include "transactions/ManageAccountRoleOpFrame.h"
 
 namespace stellar
 {
@@ -13,37 +13,38 @@ SetAccountRoleTestHelper::SetAccountRoleTestHelper(
 {
 }
 
-SetAccountRoleOp
+ManageAccountRoleOp
 SetAccountRoleTestHelper::createCreationOpInput(const std::string& name)
 {
-    SetAccountRoleOp opData;
-    opData.data.activate();
-    opData.data->name = name;
+    ManageAccountRoleOp opData;
+    opData.data.action(ManageAccountRoleOpAction::CREATE);
+    opData.data.createData().name = name;
     return opData;
 }
 
-SetAccountRoleOp
+ManageAccountRoleOp
 SetAccountRoleTestHelper::createDeletionOpInput(uint64_t accountRoleID)
 {
-    SetAccountRoleOp opData;
-    opData.id = accountRoleID;
+    ManageAccountRoleOp opData;
+    opData.data.action(ManageAccountRoleOpAction::REMOVE);
+    opData.data.removeData().accountRoleID = accountRoleID;
     return opData;
 }
 
 TransactionFramePtr
 SetAccountRoleTestHelper::createAccountRoleTx(Account& source,
-                                              const SetAccountRoleOp& op)
+                                              const ManageAccountRoleOp& op)
 {
     Operation baseOp;
-    baseOp.body.type(OperationType::SET_ACCOUNT_ROLE);
-    baseOp.body.setAccountRoleOp() = op;
+    baseOp.body.type(OperationType::MANAGE_ACCOUNT_ROLE);
+    baseOp.body.manageAccountRoleOp() = op;
     return txFromOperation(source, baseOp, nullptr);
 }
 
-SetAccountRoleResult
+ManageAccountRoleResult
 SetAccountRoleTestHelper::applySetAccountRole(
-    Account& source, const SetAccountRoleOp& op,
-    SetAccountRoleResultCode expectedResultCode)
+    Account& source, const ManageAccountRoleOp& op,
+    ManageAccountRoleResultCode expectedResultCode)
 {
     auto& db = mTestManager->getDB();
 
@@ -53,14 +54,14 @@ SetAccountRoleTestHelper::applySetAccountRole(
 
     auto txResult = txFrame->getResult();
     auto actualResultCode =
-        SetAccountRoleOpFrame::getInnerCode(txResult.result.results()[0]);
+        ManageAccountRoleOpFrame::getInnerCode(txResult.result.results()[0]);
 
     REQUIRE(actualResultCode == expectedResultCode);
 
     auto txFee = mTestManager->getApp().getLedgerManager().getTxFee();
     REQUIRE(txResult.feeCharged == txFee);
 
-    auto opResult = txResult.result.results()[0].tr().setAccountRoleResult();
+    auto opResult = txResult.result.results()[0].tr().manageAccountRoleResult();
 
     return opResult;
 }

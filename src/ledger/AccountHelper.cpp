@@ -426,7 +426,7 @@ namespace stellar
 		AccountEntry& account = res->getAccount();
 
 		int32 accountType;
-		uint32 accountRole;
+		uint64 accountRole;
 		soci::indicator isAccountRolePresent;
 		uint32 accountPolicies;
 		uint32 kycLevel;
@@ -469,7 +469,7 @@ namespace stellar
 		}
 		else
 		{
-			res->setAccountRole(xdr::pointer<uint32>(new uint32(accountRole)));
+			res->setAccountRole(xdr::pointer<uint64>(new uint64(accountRole)));
 		}
 		if (referrer != "")
 			account.referrer.activate() = PubKeyUtils::fromStrKey(referrer);

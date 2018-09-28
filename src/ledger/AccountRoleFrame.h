@@ -25,8 +25,6 @@ class AccountRoleFrame : public EntryFrame
 
     AccountRoleFrame& operator=(AccountRoleFrame const& other);
 
-    LedgerKey createKey() const override;
-
     EntryFrame::pointer
     copy() const override
     {

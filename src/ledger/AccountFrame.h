@@ -158,66 +158,12 @@ class AccountFrame : public EntryFrame
     {
         return mAccountEntry.policies;
     }
-    uint32
-    getKYCLevel() const
-    {
-        if (mAccountEntry.ext.v() == LedgerVersion::USE_KYC_LEVEL)
-        {
-            return mAccountEntry.ext.kycLevel();
-        }
-        else if (mAccountEntry.ext.v() ==
-                 LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
-        {
-            return mAccountEntry.ext.ext_0().kycLevel;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-    void
-    setKYCLevel(uint32 kycLevel)
-    {
-        if (mAccountEntry.ext.v() == LedgerVersion::USE_KYC_LEVEL)
-        {
-            mAccountEntry.ext.kycLevel() = kycLevel;
-        }
-        else if (mAccountEntry.ext.v() ==
-                 LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
-        {
-            mAccountEntry.ext.ext_0().kycLevel = kycLevel;
-        }
-        else if (kycLevel != 0)
-        {
-            throw std::runtime_error("Could not read KYC Level");
-        }
-    }
-    xdr::pointer<uint32>
-    getAccountRole() const
-    {
-        if (mAccountEntry.ext.v() ==
-                 LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
-        {
-            return mAccountEntry.ext.ext_0().accountRole;
-        }
-        else
-        {
-            return xdr::pointer<uint32>();
-        }
-    }
-    void
-    setAccountRole(xdr::pointer<uint32> accountRole)
-    {
-        if (mAccountEntry.ext.v() ==
-                 LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
-        {
-            mAccountEntry.ext.ext_0().accountRole = accountRole;
-        }
-        else if (accountRole)
-        {
-            throw std::runtime_error("Could not set account role");
-        }
-    }
+
+    uint32 getKYCLevel() const;
+    void setKYCLevel(uint32 kycLevel);
+    xdr::pointer<uint64> getAccountRole() const;
+    void setAccountRole(xdr::pointer<uint64> accountRole);
+
     // compare signers, ignores weight
     static bool signerCompare(Signer const& s1, Signer const& s2);
 };

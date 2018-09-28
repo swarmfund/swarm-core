@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "ledger/AccountFrame.h"

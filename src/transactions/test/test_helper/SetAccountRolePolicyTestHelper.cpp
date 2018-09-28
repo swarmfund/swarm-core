@@ -1,7 +1,7 @@
 #include "SetAccountRolePolicyTestHelper.h"
 #include "ledger/AccountRolePolicyHelper.h"
 #include "ledger/StorageHelperImpl.h"
-#include "transactions/SetAccountRolePolicyOpFrame.h"
+#include "transactions/ManageAccountRolePolicyOpFrame.h"
 #include <lib/catch.hpp>
 
 namespace stellar
@@ -19,50 +19,69 @@ SetAccountRolePolicyTestHelper::SetAccountRolePolicyTestHelper(
 
 TransactionFramePtr
 SetAccountRolePolicyTestHelper::createSetAccountRolePolicyTx(
-    Account& source, AccountRolePolicyEntry policyEntry, bool isDelete)
+    Account& source, AccountRolePolicyEntry policyEntry,
+    ManageAccountRolePolicyOpAction action)
 {
     Operation op;
-    op.body.type(OperationType::SET_ACCOUNT_ROLE_POLICY);
+    op.body.type(OperationType::MANAGE_ACCOUNT_ROLE_POLICY);
+    ManageAccountRolePolicyOp& manageAccountRolePolicyOp =
+        op.body.manageAccountRolePolicyOp();
+    manageAccountRolePolicyOp.data.action(action);
 
-    SetAccountRolePolicyOp& setAccountRolePolicyOp =
-        op.body.setAccountRolePolicyOp();
-
-    setAccountRolePolicyOp.id = policyEntry.accountRolePolicyID;
-    if (!isDelete)
+    switch (action)
     {
-        setAccountRolePolicyOp.data.activate();
-        setAccountRolePolicyOp.data->resource = policyEntry.resource;
-        setAccountRolePolicyOp.data->action = policyEntry.action;
-        setAccountRolePolicyOp.data->effect = policyEntry.effect;
-        setAccountRolePolicyOp.data->roleID = policyEntry.accountRoleID;
+    case ManageAccountRolePolicyOpAction::CREATE:
+        manageAccountRolePolicyOp.data.createData().roleID =
+            policyEntry.accountRoleID;
+        manageAccountRolePolicyOp.data.createData().resource =
+            policyEntry.resource;
+        manageAccountRolePolicyOp.data.createData().action = policyEntry.action;
+        manageAccountRolePolicyOp.data.createData().effect = policyEntry.effect;
+        break;
+    case ManageAccountRolePolicyOpAction::UPDATE:
+        manageAccountRolePolicyOp.data.updateData().policyID =
+            policyEntry.accountRolePolicyID;
+        manageAccountRolePolicyOp.data.updateData().roleID =
+            policyEntry.accountRoleID;
+        manageAccountRolePolicyOp.data.updateData().resource =
+            policyEntry.resource;
+        manageAccountRolePolicyOp.data.updateData().action = policyEntry.action;
+        manageAccountRolePolicyOp.data.updateData().effect = policyEntry.effect;
+        break;
+    case ManageAccountRolePolicyOpAction::REMOVE:
+        manageAccountRolePolicyOp.data.removeData().policyID =
+            policyEntry.accountRolePolicyID;
+        break;
+    default:
+        throw std::runtime_error("Unknown action");
     }
-    setAccountRolePolicyOp.ext.v(LedgerVersion::EMPTY_VERSION);
+    manageAccountRolePolicyOp.ext.v(LedgerVersion::EMPTY_VERSION);
 
     return TxHelper::txFromOperation(source, op, nullptr);
 }
 
 void
 SetAccountRolePolicyTestHelper::applySetIdentityPolicyTx(
-    Account& source, AccountRolePolicyEntry policyEntry, bool isDelete,
-    SetAccountRolePolicyResultCode expectedResult)
+    Account& source, AccountRolePolicyEntry& policyEntry, ManageAccountRolePolicyOpAction action,
+    ManageAccountRolePolicyResultCode expectedResult)
 {
     TransactionFramePtr txFrame;
-    txFrame = createSetAccountRolePolicyTx(source, policyEntry, isDelete);
+    txFrame = createSetAccountRolePolicyTx(source, policyEntry, action);
     mTestManager->applyCheck(txFrame);
 
     auto txResult = txFrame->getResult();
-    auto actualResult =
-        SetAccountRolePolicyOpFrame::getInnerCode(txResult.result.results()[0]);
+    auto actualResult = ManageAccountRolePolicyOpFrame::getInnerCode(
+        txResult.result.results()[0]);
 
     REQUIRE(actualResult == expectedResult);
 
-    if (actualResult != SetAccountRolePolicyResultCode::SUCCESS)
+    if (actualResult != ManageAccountRolePolicyResultCode::SUCCESS)
     {
         return;
     }
 
-    SetAccountRolePolicyResult result =
-        txResult.result.results()[0].tr().setAccountRolePolicyResult();
+    ManageAccountRolePolicyResult result =
+        txResult.result.results()[0].tr().manageAccountRolePolicyResult();
 
     StorageHelperImpl storageHelperImpl(mTestManager->getDB(), nullptr);
     AccountRolePolicyHelper rolePolicyHelper(storageHelperImpl);
@@ -74,7 +93,7 @@ SetAccountRolePolicyTestHelper::applySetIdentityPolicyTx(
 
     EntryFrame::pointer affectedPolicy =
         rolePolicyHelper.storeLoad(affectedPolicyKey);
-    if (isDelete)
+    if (action == ManageAccountRolePolicyOpAction::REMOVE)
     {
         REQUIRE(!affectedPolicy);
     }

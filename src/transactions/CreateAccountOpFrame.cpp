@@ -205,12 +205,11 @@ namespace stellar {
         trySetReferrer(app, db, destAccountFrame);
         destAccount.policies = mCreateAccount.policies;
         storeExternalSystemsIDs(app, delta, db, destAccountFrame);
-        if (mCreateAccount.ext.v() >= LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES &&
-            mCreateAccount.ext.ext_0().roleID)
+        if (mCreateAccount.ext.v() == LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES &&
+            mCreateAccount.ext.opExt().roleID)
         {
-            destAccount.ext.v(mCreateAccount.ext.v());
-            destAccount.ext.ext_0().accountRole.activate();
-            *destAccount.ext.ext_0().accountRole = *mCreateAccount.ext.ext_0().roleID;
+            destAccount.ext.v(LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES);
+            destAccount.ext.accountEntryExt().accountRole.activate() = *mCreateAccount.ext.opExt().roleID;
         }
     }
 }

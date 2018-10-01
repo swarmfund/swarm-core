@@ -48,7 +48,7 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
-#include <ledger/AccountRolePolicyHelper.h>
+#include <ledger/AccountRolePermissionHelper.h>
 #include <ledger/KeyValueHelperLegacy.h>
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/StatisticsV2Helper.h>
@@ -220,7 +220,7 @@ DatabaseImpl::applySchemaUpgrade(unsigned long vers)
         case databaseSchemaVersion::ADD_ACCOUNT_ROLES_AND_POLICIES:
             AccountRoleHelper::dropAll(*this);
             AccountHelper::Instance()->addAccountRole(*this);
-            AccountRolePolicyHelper::dropAll(*this);
+            AccountRolePermissionHelper::dropAll(*this);
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

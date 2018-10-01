@@ -1,12 +1,7 @@
-
 #pragma once
 
-#include "ledger/AccountRolePolicyHelper.h"
-#include "transactions/PolicyDetails.h"
+#include "ledger/AccountRolePermissionHelper.h"
 #include "xdr/Stellar-types.h"
-
-#include <array>
-#include <regex>
 
 namespace stellar
 {
@@ -14,20 +9,13 @@ namespace stellar
 class IdentityPolicyChecker
 {
   public:
-    enum class FindResult
-    {
-        NOT_FOUND,
-        ALLOW,
-        DENY
-    };
     IdentityPolicyChecker() = delete;
 
-    static bool isPolicyAllowed(const AccountFrame::pointer initiatorAccountFrame,
-                                const PolicyDetails& policyDetails,
-                                Database& db, LedgerDelta* delta = nullptr);
-    static FindResult findPolicy(uint32 accountRole,
-                                 const PolicyDetails& policyDetails,
-                                 Database& db);
+    static bool
+    isPolicyAllowed(const AccountFrame::pointer initiatorAccountFrame,
+                    const OperationType opType, Database& db);
+    static bool checkPolicy(uint32 accountRole, const OperationType opType,
+                            Database& db);
 };
 
 } // namespace stellar

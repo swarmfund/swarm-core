@@ -9,7 +9,7 @@ namespace stellar
 using xdr::operator<;
 
 static const char* accountRolesColumnSelector =
-    "SELECT role_id, role_name, last_modified, version "
+    "SELECT role_id, role_name, lastmodified, version "
     "FROM account_roles";
 
 void
@@ -21,7 +21,7 @@ AccountRoleHelper::dropAll(Database& db)
            "("
            "role_id                 BIGINT      NOT NULL CHECK (role_id >= 0), "
            "role_name               TEXT        NOT NULL, "
-           "last_modified           INT         NOT NULL, "
+           "lastmodified            INT         NOT NULL, "
            "version                 INT         NOT NULL DEFAULT 0, "
            "PRIMARY KEY (role_id)"
            ");";
@@ -48,14 +48,14 @@ AccountRoleHelper::storeUpdate(LedgerEntry const& entry, bool insert)
     if (insert)
     {
         sql = "INSERT INTO account_roles (role_id, role_name, "
-              "last_modified, version) VALUES (:id, :rn,"
+              "lastmodified, version) VALUES (:id, :rn,"
               ":lm, :v)";
     }
     else
     {
         sql = "UPDATE account_roles "
               "SET role_id = :id, role_name = :rn,"
-              "last_modified = :lm, version = :v "
+              "lastmodified = :lm, version = :v "
               "WHERE role_id = :id";
     }
 

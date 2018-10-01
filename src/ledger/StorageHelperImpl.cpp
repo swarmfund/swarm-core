@@ -149,14 +149,14 @@ StorageHelperImpl::getAccountRoleHelper()
     }
     return *mAccountRoleHelper;
 }
-AccountRolePolicyHelper&
-StorageHelperImpl::getAccountRolePolicyHelper()
+AccountRolePermissionHelper&
+StorageHelperImpl::getAccountRolePermissionHelper()
 {
-    if (!mAccountRolePolicyHelper)
+    if (!mAccountRolePermissionHelper)
     {
-        mAccountRolePolicyHelper = std::make_unique<AccountRolePolicyHelper>(*this);
+        mAccountRolePermissionHelper = std::make_unique<AccountRolePermissionHelper>(*this);
     }
-    return *mAccountRolePolicyHelper;
+    return *mAccountRolePermissionHelper;
 }
 
 } // namespace stellar

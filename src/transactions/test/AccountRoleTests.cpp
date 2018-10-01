@@ -8,9 +8,9 @@
 #include "test/test_marshaler.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "transactions/BindExternalSystemAccountIdOpFrame.h"
-#include "transactions/ManageAccountRolePolicyOpFrame.h"
-#include "transactions/test/test_helper/SetAccountRolePolicyTestHelper.h"
-#include "transactions/test/test_helper/SetAccountRoleTestHelper.h"
+#include "transactions/ManageAccountRolePermissionOpFrame.h"
+#include "transactions/test/test_helper/ManageAccountRolePermissionTestHelper.h"
+#include "transactions/test/test_helper/ManageAccountRoleTestHelper.h"
 #include "util/make_unique.h"
 
 using namespace stellar;
@@ -43,8 +43,8 @@ TEST_CASE("Account role tests", "[tx][set_account_roles]")
     auto master = Account{getRoot(), Salt(1)};
 
     CreateAccountTestHelper createAccountTestHelper(testManager);
-    SetAccountRoleTestHelper manageAccountRoleHelper(testManager);
-    SetAccountRolePolicyTestHelper setIdentityPolicyHelper(testManager);
+    ManageAccountRoleTestHelper manageAccountRoleHelper(testManager);
+    ManageAccountRolePermissionTestHelper setIdentityPolicyHelper(testManager);
 
     // create account for further tests
     auto accountKey = SecretKey::random();

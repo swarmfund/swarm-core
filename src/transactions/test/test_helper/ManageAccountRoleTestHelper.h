@@ -6,10 +6,10 @@ namespace stellar
 {
 namespace txtest
 {
-class SetAccountRoleTestHelper : TxHelper
+class ManageAccountRoleTestHelper : TxHelper
 {
   public:
-    explicit SetAccountRoleTestHelper(TestManager::pointer testManager);
+    explicit ManageAccountRoleTestHelper(TestManager::pointer testManager);
 
     ManageAccountRoleOp createCreationOpInput(const std::string& name);
 

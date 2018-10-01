@@ -10,7 +10,7 @@ class KeyValueHelper;
 class ExternalSystemAccountIDHelper;
 class ExternalSystemAccountIDPoolEntryHelper;
 class AccountRoleHelper;
-class AccountRolePolicyHelper;
+class AccountRolePermissionHelper;
 
 class StorageHelper
 {
@@ -36,6 +36,6 @@ class StorageHelper
     virtual ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper() = 0;
     virtual AccountRoleHelper& getAccountRoleHelper() = 0;
-    virtual AccountRolePolicyHelper& getAccountRolePolicyHelper() = 0;
+    virtual AccountRolePermissionHelper& getAccountRolePermissionHelper() = 0;
 };
 } // namespace stellar

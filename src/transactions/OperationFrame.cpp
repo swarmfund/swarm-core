@@ -38,7 +38,7 @@
 #include "transactions/CreateAMLAlertRequestOpFrame.h"
 #include "transactions/kyc/CreateKYCReviewableRequestOpFrame.h"
 #include "transactions/dex/ManageSaleOpFrame.h"
-#include "transactions/ManageAccountRolePolicyOpFrame.h"
+#include "transactions/ManageAccountRolePermissionOpFrame.h"
 #include "transactions/ManageAccountRoleOpFrame.h"
 #include "database/Database.h"
 
@@ -124,8 +124,8 @@ OperationFrame::makeHelper(Operation const& op, OperationResult& res,
         return shared_ptr<OperationFrame>(new CancelSaleCreationRequestOpFrame(op, res, tx));
     case OperationType::MANAGE_ACCOUNT_ROLE:
         return shared_ptr<OperationFrame>(new ManageAccountRoleOpFrame(op, res, tx));
-    case OperationType::MANAGE_ACCOUNT_ROLE_POLICY:
-        return shared_ptr<OperationFrame>(new ManageAccountRolePolicyOpFrame(op, res, tx));
+    case OperationType::MANAGE_ACCOUNT_ROLE_PERMISSION:
+        return shared_ptr<OperationFrame>(new ManageAccountRolePermissionOpFrame(op, res, tx));
     default:
         ostringstream err;
         err << "Unknown Tx type: " << static_cast<int32_t >(op.body.type());
@@ -167,10 +167,6 @@ SourceDetails OperationFrame::getSourceAccountDetails(
     int32_t ledgerVersion, Database& db) const
 {
     return getSourceAccountDetails(counterpartiesDetails, ledgerVersion);
-}
-
-PolicyDetails OperationFrame::getPolicyDetails(Database &db, LedgerDelta *delta) const {
-    return {};
 }
 
 bool OperationFrame::isAllowed() const
@@ -314,22 +310,21 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 		return false;
 	}
 
+    if (app.isCheckingPolicies() &&
+        !xdr::operator==(mSourceAccount->getID(), app.getMasterID()))
+    {
+        OperationType thisOpType = getOperation().body.type();
+        if (!IdentityPolicyChecker::isPolicyAllowed(mSourceAccount, thisOpType, db))
+        {
+            mResult.code(OperationResultCode::opACCOUNT_BLOCKED);
+            return false;
+        }
+    }
+
 	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion, db);
     if (!doCheckSignature(app, db, sourceDetails))
     {
         return false;
-    }
-
-    if (app.isCheckingPolicies() &&
-        !xdr::operator==(mSourceAccount->getID(), app.getMasterID()))
-    {
-        const auto &policyDetails = getPolicyDetails(db, delta);
-        if (!policyDetails.empty() &&
-            !IdentityPolicyChecker::isPolicyAllowed(mSourceAccount, policyDetails, db,
-                                                   delta))
-        {
-            return false;
-        }
     }
 
     if (!forApply)

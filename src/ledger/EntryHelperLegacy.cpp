@@ -60,8 +60,8 @@ namespace stellar
         {
             case LedgerEntryType::ACCOUNT_ROLE:
                 return std::make_shared<AccountRoleHelper>(storageHelper);
-            case LedgerEntryType::ACCOUNT_ROLE_POLICY:
-                return std::make_shared<AccountRolePolicyHelper>(storageHelper);
+            case LedgerEntryType::ACCOUNT_ROLE_PERMISSION:
+                return std::make_shared<AccountRolePermissionHelper>(storageHelper);
             default:
                 return nullptr;
         }
@@ -70,7 +70,7 @@ namespace stellar
     LedgerKey LedgerEntryKey(LedgerEntry const &e)
     {
         // TODO: move this to helpers somehow
-        if (e.data.type() == LedgerEntryType::ACCOUNT_ROLE || e.data.type() == LedgerEntryType::ACCOUNT_ROLE_POLICY)
+        if (e.data.type() == LedgerEntryType::ACCOUNT_ROLE || e.data.type() == LedgerEntryType::ACCOUNT_ROLE_PERMISSION)
         {
             LedgerKey key;
             key.type(e.data.type());
@@ -81,10 +81,10 @@ namespace stellar
                     key.accountRole().accountRoleID = e.data.accountRole().accountRoleID;
                     break;
                 }
-                case LedgerEntryType::ACCOUNT_ROLE_POLICY:
+                case LedgerEntryType::ACCOUNT_ROLE_PERMISSION:
                 {
-                    auto& sourceData = e.data.accountRolePolicy();
-                    key.accountRolePolicy().accountRolePolicyID = sourceData.accountRolePolicyID;
+                    auto& sourceData = e.data.accountRolePermission();
+                    key.accountRolePermission().permissionID = sourceData.permissionID;
                     break;
                 }
                 default:

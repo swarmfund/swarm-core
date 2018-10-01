@@ -199,11 +199,11 @@ struct LedgerEntryIdCmp
 
                 return arole.accountRoleID < brole.accountRoleID;
             }
-            case LedgerEntryType::ACCOUNT_ROLE_POLICY:
+            case LedgerEntryType::ACCOUNT_ROLE_PERMISSION:
             {
-                auto const& aarp = a.accountRolePolicy();
-                auto const& barp = b.accountRolePolicy();
-                return aarp.accountRolePolicyID < barp.accountRolePolicyID;
+                auto const& aarp = a.accountRolePermission();
+                auto const& barp = b.accountRolePermission();
+                return aarp.permissionID < barp.permissionID;
             }
             default:
             {

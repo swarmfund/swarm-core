@@ -5,7 +5,7 @@
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "ledger/AccountRoleHelper.h"
-#include "ledger/AccountRolePolicyHelper.h"
+#include "ledger/AccountRolePermissionHelper.h"
 
 namespace stellar
 {
@@ -26,7 +26,7 @@ class MockStorageHelper : public StorageHelper
     MOCK_METHOD0(getExternalSystemAccountIDPoolEntryHelper,
                  ExternalSystemAccountIDPoolEntryHelper&());
     MOCK_METHOD0(getAccountRoleHelper, AccountRoleHelper&());
-    MOCK_METHOD0(getAccountRolePolicyHelper, AccountRolePolicyHelper&());
+    MOCK_METHOD0(getAccountRolePermissionHelper, AccountRolePermissionHelper&());
 };
 
 } // namespace stellar

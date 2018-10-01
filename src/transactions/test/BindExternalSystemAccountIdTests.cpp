@@ -10,8 +10,8 @@
 #include "test_helper/BindExternalSystemAccountIdTestHelper.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ManageExternalSystemAccountIDPoolEntryTestHelper.h"
-#include "test_helper/SetAccountRoleTestHelper.h"
-#include "test_helper/SetAccountRolePolicyTestHelper.h"
+#include "transactions/test/test_helper/ManageAccountRoleTestHelper.h"
+#include "transactions/test/test_helper/ManageAccountRolePermissionTestHelper.h"
 #include "test/test_marshaler.h"
 
 using namespace stellar;
@@ -125,10 +125,9 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
     {
         app.resumeCheckingPolicies();
 
-        SetAccountRoleTestHelper setAccountRoleTestHelper(testManager);
-        SetAccountRolePolicyTestHelper setAccountRolePolicyTestHelper(testManager);
+        ManageAccountRoleTestHelper setAccountRoleTestHelper(testManager);
+        ManageAccountRolePermissionTestHelper setAccountRolePolicyTestHelper(testManager);
 
-        PolicyDetails policyDetails{"bind-external", "create"};
         // create account role using root as source
         auto accountRoleID = setAccountRoleTestHelper.applySetAccountRole(
                 root, setAccountRoleTestHelper.createCreationOpInput("regular")).success().accountRoleID;
@@ -141,12 +140,12 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
                 .setRoleID(accountRoleID));
         // create policy (just entry)
         auto policyEntry =
-                setAccountRolePolicyTestHelper.createAccountRolePolicyEntry(
-                        accountRoleID, binder.key.getPublicKey(), &policyDetails);
+                setAccountRolePolicyTestHelper.createAccountRolePermissionEntry(
+                        accountRoleID, OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID);
         // write this entry to DB
-        setAccountRolePolicyTestHelper.applySetIdentityPolicyTx(
-                binder, policyEntry, ManageAccountRolePolicyOpAction::CREATE,
-                ManageAccountRolePolicyResultCode::SUCCESS);
+        setAccountRolePolicyTestHelper.applySetIdentityPermissionTx(
+                root, policyEntry, ManageAccountRolePermissionOpAction::CREATE,
+                ManageAccountRolePermissionResultCode::SUCCESS);
 
         manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
                                                                                                 ERC20_TokenExternalSystemType,

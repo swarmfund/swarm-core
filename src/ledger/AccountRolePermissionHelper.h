@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "AccountRolePolicyFrame.h"
+#include "AccountRolePermissionFrame.h"
 #include "ledger/EntryHelper.h"
 #include "ledger/StorageHelper.h"
 #include "map"
@@ -13,10 +13,10 @@ namespace stellar
 {
 class LedgerManager;
 
-class AccountRolePolicyHelper : public EntryHelper
+class AccountRolePermissionHelper : public EntryHelper
 {
   public:
-    explicit AccountRolePolicyHelper(StorageHelper& storageHelper);
+    explicit AccountRolePermissionHelper(StorageHelper& storageHelper);
 
     static void dropAll(Database& db);
 

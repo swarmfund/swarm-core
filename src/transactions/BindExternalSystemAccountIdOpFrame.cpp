@@ -46,11 +46,6 @@ BindExternalSystemAccountIdOpFrame::BindExternalSystemAccountIdOpFrame(
 {
 }
 
-PolicyDetails BindExternalSystemAccountIdOpFrame::getPolicyDetails(Database &db, LedgerDelta *delta) const
-{
-    return PolicyDetails{"bind-external", "create"};
-}
-
 bool
 BindExternalSystemAccountIdOpFrame::doApply(Application& app,
                                             StorageHelper& storageHelper,

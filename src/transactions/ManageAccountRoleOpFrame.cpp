@@ -1,7 +1,7 @@
 #include "ManageAccountRoleOpFrame.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountRoleHelper.h"
-#include "ledger/AccountRolePolicyHelper.h"
+#include "ledger/AccountRolePermissionHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerHeaderFrame.h"
 #include <xdr/Stellar-operation-manage-account-role.h>
@@ -33,7 +33,7 @@ ManageAccountRoleOpFrame::getSourceAccountDetails(
 {
     return SourceDetails(
         getAllAccountTypes(), mSourceAccount->getHighThreshold(),
-        static_cast<int32_t>(SignerType::ACCOUNT_ROLE_POLICY_MANAGER));
+        static_cast<int32_t>(SignerType::ACCOUNT_ROLE_PERMISSION_MANAGER));
 }
 
 bool

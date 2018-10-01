@@ -10,11 +10,12 @@
 namespace stellar
 {
 
-class ManageAccountRolePolicyOpFrame : public OperationFrame
+class ManageAccountRolePermissionOpFrame : public OperationFrame
 {
   public:
-    ManageAccountRolePolicyOpFrame(Operation const& op, OperationResult& res,
-                                   TransactionFrame& parentTx);
+    ManageAccountRolePermissionOpFrame(Operation const& op,
+                                       OperationResult& res,
+                                       TransactionFrame& parentTx);
 
     bool doApply(Application& app, StorageHelper& storageHelper,
                  LedgerManager& ledgerManager) override;
@@ -27,26 +28,26 @@ class ManageAccountRolePolicyOpFrame : public OperationFrame
                                 counterpartiesDetails,
                             int32_t ledgerVersion) const override;
 
-    static ManageAccountRolePolicyResultCode
+    static ManageAccountRolePermissionResultCode
     getInnerCode(OperationResult const& res)
     {
-        return res.tr().manageAccountRolePolicyResult().code();
+        return res.tr().manageAccountRolePermissionResult().code();
     }
 
     std::string
     getInnerResultCodeAsStr() override
     {
-        return xdr::xdr_traits<ManageAccountRolePolicyResultCode>::enum_name(
-            innerResult().code());
+        return xdr::xdr_traits<ManageAccountRolePermissionResultCode>::
+            enum_name(innerResult().code());
     }
 
   private:
-    ManageAccountRolePolicyOp const& mManageAccountRolePolicy;
+    ManageAccountRolePermissionOp const& mManageAccountRolePermission;
 
-    ManageAccountRolePolicyResult&
+    ManageAccountRolePermissionResult&
     innerResult()
     {
-        return mResult.tr().manageAccountRolePolicyResult();
+        return mResult.tr().manageAccountRolePermissionResult();
     }
 
     bool createOrUpdatePolicy(Application& app, StorageHelper& storageHelper);

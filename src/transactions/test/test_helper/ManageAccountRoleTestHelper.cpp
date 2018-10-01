@@ -1,4 +1,4 @@
-#include "SetAccountRoleTestHelper.h"
+#include "ManageAccountRoleTestHelper.h"
 #include "test/test_marshaler.h"
 #include "transactions/ManageAccountRoleOpFrame.h"
 
@@ -7,14 +7,14 @@ namespace stellar
 namespace txtest
 {
 
-SetAccountRoleTestHelper::SetAccountRoleTestHelper(
+ManageAccountRoleTestHelper::ManageAccountRoleTestHelper(
     TestManager::pointer testManager)
     : TxHelper(testManager)
 {
 }
 
 ManageAccountRoleOp
-SetAccountRoleTestHelper::createCreationOpInput(const std::string& name)
+ManageAccountRoleTestHelper::createCreationOpInput(const std::string& name)
 {
     ManageAccountRoleOp opData;
     opData.data.action(ManageAccountRoleOpAction::CREATE);
@@ -23,7 +23,7 @@ SetAccountRoleTestHelper::createCreationOpInput(const std::string& name)
 }
 
 ManageAccountRoleOp
-SetAccountRoleTestHelper::createDeletionOpInput(uint64_t accountRoleID)
+ManageAccountRoleTestHelper::createDeletionOpInput(uint64_t accountRoleID)
 {
     ManageAccountRoleOp opData;
     opData.data.action(ManageAccountRoleOpAction::REMOVE);
@@ -32,8 +32,8 @@ SetAccountRoleTestHelper::createDeletionOpInput(uint64_t accountRoleID)
 }
 
 TransactionFramePtr
-SetAccountRoleTestHelper::createAccountRoleTx(Account& source,
-                                              const ManageAccountRoleOp& op)
+ManageAccountRoleTestHelper::createAccountRoleTx(Account& source,
+                                                 const ManageAccountRoleOp& op)
 {
     Operation baseOp;
     baseOp.body.type(OperationType::MANAGE_ACCOUNT_ROLE);
@@ -42,7 +42,7 @@ SetAccountRoleTestHelper::createAccountRoleTx(Account& source,
 }
 
 ManageAccountRoleResult
-SetAccountRoleTestHelper::applySetAccountRole(
+ManageAccountRoleTestHelper::applySetAccountRole(
     Account& source, const ManageAccountRoleOp& op,
     ManageAccountRoleResultCode expectedResultCode)
 {

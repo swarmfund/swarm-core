@@ -40,6 +40,7 @@ class StorageHelperImpl : public StorageHelper
 
     KeyValueHelper& getKeyValueHelper() override;
     BalanceHelper& getBalanceHelper() override;
+    AssetHelper& getAssetHelper() override;
     ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper() override;
     ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper() override;

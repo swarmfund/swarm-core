@@ -30,9 +30,9 @@ ExternalSystemAccountIDHelperImpl::ExternalSystemAccountIDHelperImpl(
 }
 
 void
-ExternalSystemAccountIDHelperImpl::dropAll(Database& db)
+ExternalSystemAccountIDHelperImpl::dropAll()
 {
-    soci::session& sess = db.getSession();
+    soci::session& sess = getDatabase().getSession();
     sess << "DROP TABLE IF EXISTS external_system_account_id;";
     sess << "CREATE TABLE external_system_account_id"
             "("

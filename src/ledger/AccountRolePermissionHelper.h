@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "AccountRolePermissionFrame.h"
@@ -18,8 +17,7 @@ class AccountRolePermissionHelper : public EntryHelper
   public:
     explicit AccountRolePermissionHelper(StorageHelper& storageHelper);
 
-    static void dropAll(Database& db);
-
+    void dropAll() override;
     void storeAdd(LedgerEntry const& entry) override;
     void storeChange(LedgerEntry const& entry) override;
     void storeDelete(LedgerKey const& key) override;

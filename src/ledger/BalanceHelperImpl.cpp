@@ -24,7 +24,7 @@ BalanceHelperImpl::BalanceHelperImpl(StorageHelper& storageHelper)
 void
 BalanceHelperImpl::dropAll()
 {
-    Database& db = getDatabase();
+    Database& db = mStorageHelper.getDatabase();
 
     db.getSession() << "DROP TABLE IF EXISTS balance;";
     db.getSession() << "CREATE TABLE balance"
@@ -66,7 +66,7 @@ BalanceHelperImpl::storeDelete(LedgerKey const& key)
     st.exchange(use(balanceIDStr, "id"));
     st.define_and_bind();
     st.execute(true);
-    mStorageHelper.getLedgerDelta().deleteEntry(key);
+    mStorageHelper.getLedgerDelta()->deleteEntry(key);
 }
 
 bool
@@ -96,12 +96,15 @@ void
 BalanceHelperImpl::storeUpdateHelper(bool insert, LedgerEntry const& entry)
 {
     Database& db = getDatabase();
-    LedgerDelta& delta = mStorageHelper.getLedgerDelta();
+    LedgerDelta* delta = mStorageHelper.getLedgerDelta();
 
     auto balanceFrame = make_shared<BalanceFrame>(entry);
     auto balanceEntry = balanceFrame->getBalance();
 
-    balanceFrame->touch(delta);
+    if (delta)
+    {
+        balanceFrame->touch(*delta);
+    }
     putCachedEntry(getLedgerKey(entry), make_shared<LedgerEntry>(entry));
 
     bool isValid = balanceFrame->isValid();
@@ -153,13 +156,16 @@ BalanceHelperImpl::storeUpdateHelper(bool insert, LedgerEntry const& entry)
         throw std::runtime_error("could not update SQL");
     }
 
-    if (insert)
+    if (delta)
     {
-        delta.addEntry(*balanceFrame);
-    }
-    else
-    {
-        delta.modEntry(*balanceFrame);
+        if (insert)
+        {
+            delta->addEntry(*balanceFrame);
+        }
+        else
+        {
+            delta->modEntry(*balanceFrame);
+        }
     }
 }
 
@@ -227,7 +233,10 @@ BalanceHelperImpl::loadBalance(BalanceID balanceID)
         return nullptr;
     }
 
-    mStorageHelper.getLedgerDelta().recordEntry(*retBalance);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*retBalance);
+    }
     putCachedEntry(key, make_shared<LedgerEntry>(retBalance->mEntry));
 
     return retBalance;
@@ -278,7 +287,10 @@ BalanceHelperImpl::loadBalance(AccountID accountID, AssetCode assetCode)
         return nullptr;
     }
 
-    mStorageHelper.getLedgerDelta().recordEntry(*retBalance);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*retBalance);
+    }
     putCachedEntry(retBalance->getKey(),
                    make_shared<LedgerEntry>(retBalance->mEntry));
 

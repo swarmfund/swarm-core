@@ -71,7 +71,7 @@ ManageAccountRoleOpFrame::deleteAccountRole(Application& app,
     ledgerKey.type(LedgerEntryType::ACCOUNT_ROLE);
     ledgerKey.accountRole().accountRoleID = data.accountRoleID;
 
-    auto accountRoleHelper = storageHelper.getAccountRoleHelper();
+    auto& accountRoleHelper = storageHelper.getAccountRoleHelper();
     auto result = accountRoleHelper.storeLoad(ledgerKey);
 
     if (result)

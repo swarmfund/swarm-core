@@ -16,10 +16,10 @@ namespace stellar
 using xdr::operator<;
 
 void
-AccountRolePermissionHelper::dropAll(Database& db)
+AccountRolePermissionHelper::dropAll()
 {
-    db.getSession() << "DROP TABLE IF EXISTS account_role_permissions CASCADE;";
-    db.getSession()
+    mDb.getSession() << "DROP TABLE IF EXISTS account_role_permissions CASCADE;";
+    mDb.getSession()
         << "CREATE TABLE account_role_permissions"
            "("
            "id             BIGINT                 NOT NULL CHECK (id > 0),"

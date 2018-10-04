@@ -20,10 +20,9 @@ class ExternalSystemAccountIDPoolEntryHelperImpl : public ExternalSystemAccountI
   public:
     explicit ExternalSystemAccountIDPoolEntryHelperImpl(StorageHelper& storageHelper);
 
-    static void dropAll(Database& db);
-
   private:
-    static void fixTypes(Database& db);
+    void dropAll() override;
+    void fixTypes(Database& db);
 
     void parentToNumeric() override;
     void storeAdd(LedgerEntry const& entry) override;

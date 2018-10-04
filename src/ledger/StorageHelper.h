@@ -11,8 +11,7 @@ class BalanceHelper;
 class AssetHelper;
 class ExternalSystemAccountIDHelper;
 class ExternalSystemAccountIDPoolEntryHelper;
-class AccountRoleHelper;
-class AccountRolePermissionHelper;
+class EntryHelper;
 
 class StorageHelper
 {
@@ -39,7 +38,7 @@ class StorageHelper
     getExternalSystemAccountIDHelper() = 0;
     virtual ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper() = 0;
-    virtual AccountRoleHelper& getAccountRoleHelper() = 0;
-    virtual AccountRolePermissionHelper& getAccountRolePermissionHelper() = 0;
+    virtual EntryHelper& getAccountRoleHelper() = 0;
+    virtual EntryHelper& getAccountRolePermissionHelper() = 0;
 };
 } // namespace stellar

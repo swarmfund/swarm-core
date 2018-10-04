@@ -154,38 +154,30 @@ ExternalSystemAccountIDPoolEntryHelperImpl::storeDelete(LedgerKey const& key)
 }
 
 void
-ExternalSystemAccountIDPoolEntryHelperImpl::dropAll(Database& db)
+ExternalSystemAccountIDPoolEntryHelperImpl::dropAll()
 {
-    db.getSession()
-        << "DROP TABLE IF EXISTS external_system_account_id_pool;";
-    db.getSession()
-        << "CREATE TABLE external_system_account_id_pool"
-           "("
-           "id                   BIGINT      NOT NULL CHECK (id >= 0),"
-           "external_system_type INT         NOT NULL,"
-           "data                 TEXT        NOT NULL,"
-           "parent               INT         NOT NULL,"
-           "is_deleted           BOOLEAN     NOT NULL,"
-           "account_id           VARCHAR(56) NOT NULL,"
-           "expires_at           BIGINT      NOT NULL,"
-           "binded_at            BIGINT      NOT NULL,"
-           "lastmodified         INT         NOT NULL, "
-           "version              INT         NOT NULL DEFAULT 0,"
-           "PRIMARY KEY (id)"
-           ");";
+    soci::session& sess = getDatabase().getSession();
 
-    fixTypes(db);
-}
+    sess << "DROP TABLE IF EXISTS external_system_account_id_pool;";
+    sess << "CREATE TABLE external_system_account_id_pool"
+            "("
+            "id                   BIGINT      NOT NULL CHECK (id >= 0),"
+            "external_system_type INT         NOT NULL,"
+            "data                 TEXT        NOT NULL,"
+            "parent               INT         NOT NULL,"
+            "is_deleted           BOOLEAN     NOT NULL,"
+            "account_id           VARCHAR(56) NOT NULL,"
+            "expires_at           BIGINT      NOT NULL,"
+            "binded_at            BIGINT      NOT NULL,"
+            "lastmodified         INT         NOT NULL, "
+            "version              INT         NOT NULL DEFAULT 0,"
+            "PRIMARY KEY (id)"
+            ");";
 
-void
-ExternalSystemAccountIDPoolEntryHelperImpl::fixTypes(Database& db)
-{
-    db.getSession()
-        << "ALTER TABLE external_system_account_id_pool ALTER "
-           "parent SET DATA TYPE BIGINT;";
-    db.getSession()
-        << "ALTER TABLE external_system_account_id_pool ALTER "
-           "external_system_type SET DATA TYPE BIGINT;";
+    sess << "ALTER TABLE external_system_account_id_pool ALTER "
+            "parent SET DATA TYPE BIGINT;";
+    sess << "ALTER TABLE external_system_account_id_pool ALTER "
+            "external_system_type SET DATA TYPE BIGINT;";
 }
 
 void

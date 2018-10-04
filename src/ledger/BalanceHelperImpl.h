@@ -19,6 +19,7 @@ public:
     explicit BalanceHelperImpl(StorageHelper& storageHelper);
 
 private:
+
     void
     dropAll() override;
 

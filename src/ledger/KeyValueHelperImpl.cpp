@@ -21,8 +21,9 @@ KeyValueHelperImpl::KeyValueHelperImpl(StorageHelper& storageHelper)
 }
 
 void
-KeyValueHelperImpl::dropAll(Database& db)
+KeyValueHelperImpl::dropAll()
 {
+    Database& db = mStorageHelper.getDatabase();
     db.getSession() << "DROP TABLE IF EXISTS key_value_entry;";
     db.getSession() << "CREATE TABLE key_value_entry"
                        "("

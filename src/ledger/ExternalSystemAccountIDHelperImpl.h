@@ -19,9 +19,8 @@ class ExternalSystemAccountIDHelperImpl : public ExternalSystemAccountIDHelper,
   public:
     explicit ExternalSystemAccountIDHelperImpl(StorageHelper& storageHelper);
 
-    static void dropAll(Database& db);
-
   private:
+    void dropAll() override;
     void storeAdd(LedgerEntry const& entry) override;
     void storeChange(LedgerEntry const& entry) override;
     void storeDelete(LedgerKey const& key) override;

@@ -20,8 +20,7 @@ class AccountRoleHelper : public EntryHelper
   public:
     AccountRoleHelper(StorageHelper& storageHelper);
 
-    static void dropAll(Database& db);
-
+    void dropAll() override;
     void storeAdd(LedgerEntry const& entry) override;
     void storeChange(LedgerEntry const& entry) override;
     void storeDelete(LedgerKey const& key) override;

@@ -30,6 +30,7 @@
 #include "ledger/ExternalSystemAccountID.h"
 #include "ledger/AccountRoleHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
+#include "ledger/StorageHelperImpl.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -155,6 +156,7 @@ DatabaseImpl::applySchemaUpgrade(unsigned long vers)
 {
     clearPreparedStatementCache();
 
+    StorageHelperImpl storageHelper(*this, nullptr);
     switch (vers) {
         case databaseSchemaVersion::DROP_SCP:
             Herder::dropAll(*this);
@@ -218,9 +220,9 @@ DatabaseImpl::applySchemaUpgrade(unsigned long vers)
             ContractHelper::Instance()->addCustomerDetails(*this);
             break;
         case databaseSchemaVersion::ADD_ACCOUNT_ROLES_AND_POLICIES:
-            AccountRoleHelper::dropAll(*this);
+            std::make_unique<AccountRoleHelper>(storageHelper)->dropAll();
             AccountHelper::Instance()->addAccountRole(*this);
-            AccountRolePermissionHelper::dropAll(*this);
+            std::make_unique<AccountRolePermissionHelper>(storageHelper)->dropAll();
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

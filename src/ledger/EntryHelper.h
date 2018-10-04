@@ -12,6 +12,8 @@ class LedgerKey;
 class EntryHelper
 {
   public:
+    virtual void dropAll() = 0;
+
     virtual void storeAdd(LedgerEntry const& entry) = 0;
     virtual void storeChange(LedgerEntry const& entry) = 0;
     virtual void storeDelete(LedgerKey const& key) = 0;

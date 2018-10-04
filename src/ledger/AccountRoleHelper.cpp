@@ -13,8 +13,10 @@ static const char* accountRolesColumnSelector =
     "FROM account_roles";
 
 void
-AccountRoleHelper::dropAll(Database& db)
+AccountRoleHelper::dropAll()
 {
+    Database& db = mStorageHelper.getDatabase();
+
     db.getSession() << "DROP TABLE IF EXISTS account_roles CASCADE;";
     db.getSession()
         << "CREATE TABLE account_roles "

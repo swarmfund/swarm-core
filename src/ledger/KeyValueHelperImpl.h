@@ -17,9 +17,9 @@ class KeyValueHelperImpl : public KeyValueHelper, NonCopyable
   public:
     explicit KeyValueHelperImpl(StorageHelper& storageHelper);
 
-    static void dropAll(Database& db);
-
   private:
+    void dropAll() override;
+
     void storeAdd(LedgerEntry const& entry) override;
 
     void storeChange(LedgerEntry const& entry) override;

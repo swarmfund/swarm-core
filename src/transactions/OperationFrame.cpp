@@ -304,24 +304,28 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
         }
     }
 
-	auto counterpartiesDetails = getCounterpartyDetails(db, delta, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion);
+    const uint32 ledgerVersion = app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion;
+    auto counterpartiesDetails = getCounterpartyDetails(db, delta, ledgerVersion);
 	if (!checkCounterparties(app, counterpartiesDetails))
 	{
 		return false;
 	}
 
-    if (app.isCheckingPolicies() &&
-        !xdr::operator==(mSourceAccount->getID(), app.getMasterID()))
+    if (ledgerVersion >= (uint32)LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
     {
-        OperationType thisOpType = getOperation().body.type();
-        if (!IdentityPolicyChecker::isPolicyAllowed(mSourceAccount, thisOpType, db))
+        const bool shouldCheckPolicies = app.isCheckingPolicies();
+        const bool isSourceAccountMaster = !xdr::operator==(mSourceAccount->getID(), app.getMasterID());
+        const OperationType thisOpType = getOperation().body.type();
+        if (shouldCheckPolicies &&
+            !isSourceAccountMaster &&
+            !IdentityPolicyChecker::isPolicyAllowed(mSourceAccount, thisOpType, db))
         {
-            mResult.code(OperationResultCode::opACCOUNT_BLOCKED);
+            mResult.code(OperationResultCode::opNOT_ALLOWED);
             return false;
         }
     }
 
-	auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion, db);
+    auto sourceDetails = getSourceAccountDetails(counterpartiesDetails, ledgerVersion, db);
     if (!doCheckSignature(app, db, sourceDetails))
     {
         return false;

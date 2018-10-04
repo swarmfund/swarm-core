@@ -4,8 +4,8 @@
 
 #include <transactions/test/TxTests.h>
 #include "IssuanceRequestHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/ReferenceFrame.h"
@@ -114,7 +114,7 @@ namespace txtest
 		auto referenceBeforeTx = ReferenceHelper::Instance()->loadReference(source.key.getPublicKey(), reference,
 																			db);
 
-		auto assetBeforeTx = AssetHelper::Instance()->loadAsset(assetCode, db);
+		auto assetBeforeTx = AssetHelperLegacy::Instance()->loadAsset(assetCode, db);
 
         auto issuanceRequest = createIssuanceRequest(assetCode, amount, receiver, externalDetails);
         auto txFrame = createIssuanceRequestTx(source, issuanceRequest, reference, allTasks);

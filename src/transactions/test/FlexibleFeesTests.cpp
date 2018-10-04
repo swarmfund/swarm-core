@@ -7,14 +7,14 @@
 #include "util/make_unique.h"
 #include "main/test.h"
 #include "ledger/FeeHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "TxTests.h"
 
 #include "ledger/LedgerDelta.h"
 #include "crypto/SHA.h"
 
 #include "test/test_marshaler.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 
 using namespace stellar;
 using namespace stellar::txtest;
@@ -44,11 +44,11 @@ TEST_CASE("Flexible fees", "[dep_tx][flexible_fees]")
 	closeLedgerOn(app, 4, 1, 7, 2014);
     auto accountType = AccountType::GENERAL;
 
-	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
 	auto feeHelper = FeeHelper::Instance();
 
         std::vector<AssetFrame::pointer> baseAssets;
-        AssetHelper::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
+        AssetHelperLegacy::Instance()->loadBaseAssets(baseAssets, app.getDatabase());
         REQUIRE(!baseAssets.empty());
         auto asset = baseAssets[0];
 

@@ -13,6 +13,27 @@ namespace txtest
 {
     ManageLimitsTestHelper::ManageLimitsTestHelper(TestManager::pointer testManager) : TxHelper(testManager) {}
 
+    ManageLimitsOp ManageLimitsTestHelper::createManageLimitsOp(AssetCode asset,
+                        StatsOpType type, bool isConvertNeeded, uint64_t daily,
+                        uint64_t weekly, uint64_t monthly, uint64_t annual,
+                        xdr::pointer<AccountID> accountID,
+                        xdr::pointer<AccountType> accountType)
+    {
+        ManageLimitsOp manageLimitsOp;
+        manageLimitsOp.details.action(ManageLimitsAction::CREATE);
+        manageLimitsOp.details.limitsCreateDetails().accountID = accountID;
+        manageLimitsOp.details.limitsCreateDetails().accountType = accountType;
+        manageLimitsOp.details.limitsCreateDetails().assetCode = asset;
+        manageLimitsOp.details.limitsCreateDetails().statsOpType = type;
+        manageLimitsOp.details.limitsCreateDetails().isConvertNeeded = isConvertNeeded;
+        manageLimitsOp.details.limitsCreateDetails().dailyOut = daily;
+        manageLimitsOp.details.limitsCreateDetails().weeklyOut = weekly;
+        manageLimitsOp.details.limitsCreateDetails().monthlyOut = monthly;
+        manageLimitsOp.details.limitsCreateDetails().annualOut = annual;
+
+        return manageLimitsOp;
+    }
+
     TransactionFramePtr
     ManageLimitsTestHelper::createManageLimitsTx(Account &source, ManageLimitsOp& manageLimitsOp)
     {

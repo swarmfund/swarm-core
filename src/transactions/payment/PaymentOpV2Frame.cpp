@@ -3,9 +3,9 @@
 #include "ledger/StorageHelper.h"
 #include "main/Application.h"
 #include <ledger/AccountHelper.h>
-#include <ledger/AssetHelper.h>
+#include <ledger/AssetHelperLegacy.h>
 #include <ledger/AssetPairHelper.h>
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <ledger/FeeHelper.h>
 #include <ledger/LedgerHeaderFrame.h>
 #include <ledger/ReferenceHelper.h>
@@ -100,7 +100,7 @@ namespace stellar {
 
         // try to load balance for fee to be charged
         if (chargeFrom->getAsset() != actualFee.feeAsset) {
-            chargeFrom = BalanceHelper::Instance()->loadBalance(chargeFrom->getAccountID(), actualFee.feeAsset, db,
+            chargeFrom = BalanceHelperLegacy::Instance()->loadBalance(chargeFrom->getAccountID(), actualFee.feeAsset, db,
                                                                 &delta);
             if (!chargeFrom) {
                 innerResult().code(PaymentV2ResultCode::BALANCE_TO_CHARGE_FEE_FROM_NOT_FOUND);
@@ -153,7 +153,7 @@ namespace stellar {
     PaymentOpV2Frame::tryLoadDestinationBalance(AssetCode asset, Database &db, LedgerDelta &delta, LedgerManager& lm) {
         switch (mPayment.destination.type()) {
             case PaymentDestinationType::BALANCE: {
-                auto dest = BalanceHelper::Instance()->loadBalance(mPayment.destination.balanceID(), db,
+                auto dest = BalanceHelperLegacy::Instance()->loadBalance(mPayment.destination.balanceID(), db,
                                                                    &delta);
                 if (!dest) {
                     innerResult().code(PaymentV2ResultCode::DESTINATION_BALANCE_NOT_FOUND);
@@ -198,7 +198,7 @@ namespace stellar {
         }
 
         // is transfer allowed by asset policy
-        auto asset = AssetHelper::Instance()->mustLoadAsset(from->getAsset(), db);
+        auto asset = AssetHelperLegacy::Instance()->mustLoadAsset(from->getAsset(), db);
         if (!asset->isPolicySet(AssetPolicy::TRANSFERABLE)) {
             innerResult().code(PaymentV2ResultCode::NOT_ALLOWED_BY_ASSET_POLICY);
             return false;
@@ -294,7 +294,7 @@ namespace stellar {
     {
         Database& db = storageHelper.getDatabase();
         LedgerDelta& delta = *storageHelper.getLedgerDelta();
-        auto sourceBalance = BalanceHelper::Instance()->loadBalance(
+        auto sourceBalance = BalanceHelperLegacy::Instance()->loadBalance(
             getSourceID(), mPayment.sourceBalanceID, db, &delta);
         if (!sourceBalance)
         {

@@ -17,6 +17,8 @@
 #include "transactions/test/mocks/MockExternalSystemAccountIDHelper.h"
 #include "transactions/test/mocks/MockExternalSystemAccountIDPoolEntryHelper.h"
 #include "transactions/test/mocks/MockKeyValueHelper.h"
+#include "transactions/test/mocks/MockBalanceHelper.h"
+#include "transactions/test/mocks/MockAssetHelper.h"
 #include "transactions/test/mocks/MockLedgerDelta.h"
 #include "transactions/test/mocks/MockLedgerManager.h"
 #include "transactions/test/mocks/MockSignatureValidator.h"
@@ -91,7 +93,6 @@ TEST_CASE("bind external system account_id - unit test",
 
     BindExternalSystemAccountIdOpFrame opFrame(operation, operationResult,
                                                transactionFrameMock);
-
     SECTION("Check validity")
     {
         EXPECT_CALL(transactionFrameMock,

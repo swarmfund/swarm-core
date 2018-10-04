@@ -1,6 +1,6 @@
 #include "ManageBalanceTestHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "transactions/ManageBalanceOpFrame.h"
 #include "test/test_marshaler.h"
 
@@ -40,8 +40,8 @@ ManageBalanceTestHelper::applyManageBalanceTx(Account& from, AccountID& account,
 {
     TransactionFramePtr txFrame;
 
-    auto assetHelper = AssetHelper::Instance();
-    auto balanceHelper = BalanceHelper::Instance();
+    auto assetHelper = AssetHelperLegacy::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
 
     std::vector<BalanceFrame::pointer> balances;
     Database& db = mTestManager->getDB();

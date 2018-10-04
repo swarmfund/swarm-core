@@ -9,7 +9,7 @@
 #include "test_helper/ManageAssetTestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
 #include "test_helper/ManageKeyValueTestHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "test_helper/WithdrawRequestHelper.h"
 #include "test_helper/ReviewWithdrawalRequestHelper.h"
 #include "test/test_marshaler.h"
@@ -57,7 +57,7 @@ TEST_CASE("KV limits", "[tx][withdraw][limits][manage_key_value]")
     auto withdrawerKP = SecretKey::random();
     createAccountTestHelper.applyCreateAccountTx(root, withdrawerKP.getPublicKey(), AccountType::GENERAL);
     auto withdrawer = Account{ withdrawerKP, Salt(0) };
-    auto withdrawerBalance = BalanceHelper::Instance()->
+    auto withdrawerBalance = BalanceHelperLegacy::Instance()->
             loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
     REQUIRE(withdrawerBalance);
     uint32_t allTasks = 0;
@@ -74,7 +74,7 @@ TEST_CASE("KV limits", "[tx][withdraw][limits][manage_key_value]")
 
         //create withdraw request
         uint64_t amountToWithdraw = 100 * ONE;
-        withdrawerBalance = BalanceHelper::Instance()->loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
+        withdrawerBalance = BalanceHelperLegacy::Instance()->loadBalance(withdrawerKP.getPublicKey(), asset, testManager->getDB(), nullptr);
         REQUIRE(withdrawerBalance->getAmount() >= amountToWithdraw);
         const uint64_t expectedAmountInDestAsset = 0.05 * ONE;
 

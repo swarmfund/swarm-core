@@ -4,7 +4,7 @@
 
 #include <ledger/AssetPairHelper.h>
 #include "ReviewSaleRequestHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/SaleFrame.h"
 #include "test/test_marshaler.h"
@@ -25,14 +25,14 @@ SaleReviewChecker::SaleReviewChecker(const TestManager::pointer testManager,
     }
 
     saleCreationRequest = std::make_shared<SaleCreationRequest>(request->getRequestEntry().body.saleCreationRequest());
-    baseAssetBeforeTx = AssetHelper::Instance()->loadAsset(saleCreationRequest->baseAsset, mTestManager->getDB());
+    baseAssetBeforeTx = AssetHelperLegacy::Instance()->loadAsset(saleCreationRequest->baseAsset, mTestManager->getDB());
 }
 
 void SaleReviewChecker::checkApprove(ReviewableRequestFrame::pointer)
 {
     REQUIRE(!!saleCreationRequest);
     REQUIRE(!!baseAssetBeforeTx);
-    auto baseAssetAfterTx = AssetHelper::Instance()->loadAsset(saleCreationRequest->baseAsset, mTestManager->getDB());
+    auto baseAssetAfterTx = AssetHelperLegacy::Instance()->loadAsset(saleCreationRequest->baseAsset, mTestManager->getDB());
     REQUIRE(!!baseAssetAfterTx);
     auto saleCreationRequestTemp = *saleCreationRequest;
     uint64_t hardCapInBaseAsset = saleCreationRequest->ext.v() >=

@@ -1,7 +1,7 @@
 #include <ledger/SaleAnteHelper.h>
 #include <ledger/FeeHelper.h>
 #include <ledger/AccountHelper.h>
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include "ParticipateInSaleTestHelper.h"
 #include "transactions/test/TxTests.h"
 #include "ledger/OfferHelper.h"
@@ -73,7 +73,7 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
                                                                         balanceBeforeTx.balanceID, db);
         REQUIRE(!!saleAnteAfterTx);
 
-        auto balanceAfterTx = BalanceHelper::Instance()->loadBalance(balanceBeforeTx.balanceID, db);
+        auto balanceAfterTx = BalanceHelperLegacy::Instance()->loadBalance(balanceBeforeTx.balanceID, db);
         REQUIRE(balanceAfterTx->getLocked() - success.offer.offer().quoteAmount ==
                 balanceBeforeTx.locked + saleAnteAfterTx->getAmount());
     }
@@ -85,7 +85,7 @@ void ParticipateInSaleTestHelper::ensureCreateSuccess(Account& source,
                                const AssetCode quoteAsset, const uint64_t quoteAssetAmount, const uint64_t price, const uint64_t fee, const uint64_t* saleAnteAmount)
     {
         IssuanceRequestHelper issuanceRequestHelper(mTestManager);
-        auto quoteBalance = BalanceHelper::Instance()->loadBalance(participant.key.getPublicKey(), quoteAsset, mTestManager->getDB(), nullptr);
+        auto quoteBalance = BalanceHelperLegacy::Instance()->loadBalance(participant.key.getPublicKey(), quoteAsset, mTestManager->getDB(), nullptr);
         REQUIRE(!!quoteBalance);
         // issue 1 more to ensure that it is enough to cover rounded up base amount
         uint32_t allTasks = 0;

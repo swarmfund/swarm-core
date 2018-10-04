@@ -6,8 +6,8 @@
 #include <cstdint>
 #include "ManageAssetTestHelper.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "transactions/manage_asset/ManageAssetOpFrame.h"
@@ -80,8 +80,8 @@ ManageAssetResult ManageAssetTestHelper::applyManageAssetTx(
                                                   mTestManager->getDB());
     auto manageAssetResult = opResult.tr().manageAssetResult();
 
-    auto assetHelper = AssetHelper::Instance();
-    auto balanceHelper = BalanceHelper::Instance();
+    auto assetHelper = AssetHelperLegacy::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
 
     if (sourceFrame->getAccountType() == AccountType::MASTER)
     {
@@ -277,7 +277,7 @@ void ManageAssetTestHelper::validateManageAssetEffect(
     ManageAssetOp::_request_t request)
 {
     AssetCode assetCode;
-    auto assetHelper = AssetHelper::Instance();
+    auto assetHelper = AssetHelperLegacy::Instance();
     switch (request.action())
     {
     case ManageAssetAction::CREATE_ASSET_CREATION_REQUEST:
@@ -300,7 +300,7 @@ void ManageAssetTestHelper::validateManageAssetEffect(
     }
     auto assetFrame = assetHelper->loadAsset(assetCode, mTestManager->getDB());
     REQUIRE(assetFrame);
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     if (assetFrame->isPolicySet(AssetPolicy::BASE_ASSET))
     {
         auto systemAccounts = mTestManager->getApp().getSystemAccounts();

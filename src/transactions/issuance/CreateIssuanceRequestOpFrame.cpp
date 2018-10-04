@@ -9,8 +9,8 @@
 #include "util/asio.h"
 #include "CreateIssuanceRequestOpFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "ledger/ReferenceFrame.h"
@@ -50,7 +50,7 @@ bool CreateIssuanceRequestOpFrame::doApplyV1(Application& app, LedgerDelta& delt
 	}
 
     auto& database = app.getDatabase();
-    const auto assetFrame = AssetHelper::Instance()->loadAsset(mCreateIssuanceRequest.request.asset, database);
+    const auto assetFrame = AssetHelperLegacy::Instance()->loadAsset(mCreateIssuanceRequest.request.asset, database);
     if (!assetFrame)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to load asset for issuance request. Asset Code: "
@@ -93,7 +93,7 @@ bool CreateIssuanceRequestOpFrame::doApplyV1(Application& app, LedgerDelta& delt
 	innerResult().success().fulfilled = isFulfilled;
     innerResult().success().fee = request->getRequestEntry().body.issuanceRequest().fee;
 	auto& db = app.getDatabase();
-	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
 	auto receiver = balanceHelper->mustLoadBalance(mCreateIssuanceRequest.request.receiver, db);
 	innerResult().success().receiver = receiver->getAccountID();
 	return true;
@@ -119,7 +119,7 @@ bool CreateIssuanceRequestOpFrame::doApplyV2(Application& app, LedgerDelta& delt
     requestFrame->setTasks(allTasks);
     EntryHelperProvider::storeChangeEntry(delta, db, requestFrame->mEntry);
 
-    const auto assetFrame = AssetHelper::Instance()->loadAsset(mCreateIssuanceRequest.request.asset, db);
+    const auto assetFrame = AssetHelperLegacy::Instance()->loadAsset(mCreateIssuanceRequest.request.asset, db);
     if (!assetFrame)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Failed to load asset for issuance request. Asset Code: "
@@ -169,7 +169,7 @@ bool CreateIssuanceRequestOpFrame::doApplyV2(Application& app, LedgerDelta& delt
 	innerResult().success().requestID = requestFrame->getRequestID();
 	innerResult().success().fulfilled = isFulfilled;
 	innerResult().success().fee = requestFrame->getRequestEntry().body.issuanceRequest().fee;
-	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
 	auto receiver = balanceHelper->mustLoadBalance(mCreateIssuanceRequest.request.receiver, db);
 	innerResult().success().receiver = receiver->getAccountID();
     return true;
@@ -271,7 +271,7 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
 	auto asset = assetHelper->loadAsset(mCreateIssuanceRequest.request.asset, db);
 	if (!asset) {
 		innerResult().code(CreateIssuanceRequestResultCode::ASSET_NOT_FOUND);
@@ -288,7 +288,7 @@ ReviewableRequestFrame::pointer CreateIssuanceRequestOpFrame::tryCreateIssuanceR
 		return nullptr;
 	}
 
-	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
     auto balance = balanceHelper->loadBalance(mCreateIssuanceRequest.request.receiver, db);
 	if (!balance || balance->getAsset() != asset->getCode()) {
 		innerResult().code(CreateIssuanceRequestResultCode::NO_COUNTERPARTY);

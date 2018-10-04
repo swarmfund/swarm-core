@@ -1,7 +1,7 @@
 #include <ledger/AccountHelper.h>
 #include <transactions/CreateAccountOpFrame.h>
 #include <ledger/StatisticsHelper.h>
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include "CreateAccountTestHelper.h"
 #include "test/test_marshaler.h"
 
@@ -176,7 +176,7 @@ namespace stellar {
 
             if (!toAccount)
             {
-                auto balanceHelper = BalanceHelper::Instance();
+                auto balanceHelper = BalanceHelperLegacy::Instance();
                 std::vector<BalanceFrame::pointer> balances;
                 balanceHelper->loadBalances(toAccountAfter->getAccount().accountID, balances, db);
                 for (const auto& balance : balances)

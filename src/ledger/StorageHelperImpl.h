@@ -3,6 +3,7 @@
 #include "ledger/StorageHelper.h"
 #include "ledger/AccountRoleHelper.h"
 #include "ledger/AccountRolePermissionHelper.h"
+#include "BalanceHelperLegacy.h"
 #include <memory>
 
 namespace soci
@@ -14,6 +15,8 @@ namespace stellar
 {
 
 class KeyValueHelper;
+class BalanceHelper;
+class AssetHelper;
 class ExternalSystemAccountIDHelper;
 class ExternalSystemAccountIDPoolEntryHelper;
 
@@ -36,6 +39,7 @@ class StorageHelperImpl : public StorageHelper
     virtual std::unique_ptr<StorageHelper> startNestedTransaction();
 
     KeyValueHelper& getKeyValueHelper() override;
+    BalanceHelper& getBalanceHelper() override;
     ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper() override;
     ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper() override;
@@ -49,6 +53,8 @@ class StorageHelperImpl : public StorageHelper
     std::unique_ptr<soci::transaction> mTransaction;
 
     std::unique_ptr<KeyValueHelper> mKeyValueHelper;
+    std::unique_ptr<BalanceHelper> mBalanceHelper;
+    std::unique_ptr<AssetHelper> mAssetHelper;
     std::unique_ptr<ExternalSystemAccountIDHelper>
         mExternalSystemAccountIDHelper;
     std::unique_ptr<ExternalSystemAccountIDPoolEntryHelper>

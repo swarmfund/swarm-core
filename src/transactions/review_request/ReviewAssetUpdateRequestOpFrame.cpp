@@ -5,8 +5,8 @@
 #include <transactions/manage_asset/ManageAssetHelper.h>
 #include "ReviewAssetUpdateRequestOpFrame.h"
 #include "database/Database.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/AssetFrame.h"
@@ -29,7 +29,7 @@ bool ReviewAssetUpdateRequestOpFrame::handleApprove(Application & app, LedgerDel
 	auto assetUpdateRequest = request->getRequestEntry().body.assetUpdateRequest();
 	Database& db = ledgerManager.getDatabase();
 
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
 	auto assetFrame = assetHelper->loadAsset(assetUpdateRequest.code, db, &delta);
 	if (!assetFrame) {
 		innerResult().code(ReviewRequestResultCode::ASSET_DOES_NOT_EXISTS);

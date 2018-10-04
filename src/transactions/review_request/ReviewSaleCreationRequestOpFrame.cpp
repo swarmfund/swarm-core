@@ -5,7 +5,7 @@
 #include "ReviewSaleCreationRequestOpFrame.h"
 #include "database/Database.h"
 #include "ledger/LedgerHeaderFrame.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/SaleHelper.h"
@@ -89,7 +89,7 @@ ReviewSaleCreationRequestOpFrame::tryCreateSale(
         return ReviewRequestResultCode::INSUFFICIENT_PREISSUED_FOR_HARD_CAP;
     }
 
-    AssetHelper::Instance()->storeChange(delta, db, baseAsset->mEntry);
+    AssetHelperLegacy::Instance()->storeChange(delta, db, baseAsset->mEntry);
 
     AccountManager accountManager(app, db, delta, ledgerManager);
     const auto balances =
@@ -114,7 +114,7 @@ ReviewSaleCreationRequestOpFrame::loadAsset(LedgerManager& ledgerManager,
             LedgerVersion::ALLOW_TO_UPDATE_VOTING_SALES_AS_PROMOTION))
     {
         retAsset =
-            AssetHelper::Instance()->loadAsset(code, requestor, db, delta);
+            AssetHelperLegacy::Instance()->loadAsset(code, requestor, db, delta);
         return retAsset;
     }
 
@@ -123,11 +123,11 @@ ReviewSaleCreationRequestOpFrame::loadAsset(LedgerManager& ledgerManager,
 
     if (requestorFrame->getAccountType() == AccountType::MASTER)
     {
-        retAsset = AssetHelper::Instance()->loadAsset(code, db, delta);
+        retAsset = AssetHelperLegacy::Instance()->loadAsset(code, db, delta);
         return retAsset;
     }
 
-    retAsset = AssetHelper::Instance()->loadAsset(code, requestor, db, delta);
+    retAsset = AssetHelperLegacy::Instance()->loadAsset(code, requestor, db, delta);
     return retAsset;
 }
 

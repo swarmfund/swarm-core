@@ -4,7 +4,7 @@
 
 #include "crypto/SHA.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerDeltaImpl.h"
 #include "main/Application.h"
 #include "main/test.h"
@@ -44,7 +44,7 @@ TEST_CASE("txenvelope", "[tx][envelope]")
     auto txHelper = TxHelper(testManager);
 
     // db helpers
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
 
     SECTION("Transaction fee")
     {
@@ -128,6 +128,21 @@ TEST_CASE("txenvelope", "[tx][envelope]")
             auto txResult = txFrame->getResult();
             REQUIRE(txResult.result.code() ==
                     TransactionResultCode::txINSUFFICIENT_FEE);
+        }
+
+        SECTION("Source doesn't have balance in tx fee asset")
+        {
+            manageKeyValueTestHelper.setKey(ManageKeyValueOpFrame::transactionFeeAssetKey);
+            manageKeyValueTestHelper.setValue("VLT");
+            manageKeyValueTestHelper.setResult(ManageKeyValueResultCode::SUCCESS);
+            manageKeyValueTestHelper.doApply(app, ManageKVAction::PUT, true,
+                                             KeyValueEntryType::STRING);
+            uint64_t maxTotalFee = 20 * ONE;
+            TransactionFramePtr txFrame = txHelper.txFromOperations(txFeePayer, ops, &maxTotalFee);
+            txFrame->addSignature(operationSource.key);
+            testManager->applyCheck(txFrame);
+            auto txResult = txFrame->getResult();
+            REQUIRE(txResult.result.code() == TransactionResultCode::txSOURCE_UNDERFUNDED);
         }
 
         SECTION("Source underfunded")

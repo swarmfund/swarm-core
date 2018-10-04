@@ -7,7 +7,7 @@
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
 #include "TxTests.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerDeltaImpl.h"
 #include "test_helper/TestManager.h"
 #include "test_helper/CreateAccountTestHelper.h"
@@ -35,7 +35,7 @@ TEST_CASE("manage balance", "[tx][manage_balance]")
 
     auto root = Account{getRoot(), Salt(0)};
 
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     ManageBalanceTestHelper manageBalanceTestHelper(testManager);
 
     auto account = Account{SecretKey::random() , 0};

@@ -5,7 +5,7 @@
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include <transactions/test/test_helper/ManageAccountTestHelper.h>
 #include "main/test.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/LedgerDeltaImpl.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "TxTests.h"
@@ -92,7 +92,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
 
     auto root = Account{getRoot(), Salt(0)};
 
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
     CreateAccountTestHelper createAccountTestHelper(testManager);
 
     SECTION("Given valid asset") 
@@ -102,7 +102,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
         auto request = manageAssetHelper.createAssetCreationRequest(assetCode, root.key.getPublicKey(), "{}", UINT64_MAX, 0);
         manageAssetHelper.applyManageAssetTx(root, 0,
             request);
-        auto assetFrame = AssetHelper::Instance()->loadAsset(assetCode, testManager->getDB());
+        auto assetFrame = AssetHelperLegacy::Instance()->loadAsset(assetCode, testManager->getDB());
         REQUIRE(!!assetFrame);
         SECTION("Not able to update max issuance") 
         {
@@ -123,7 +123,7 @@ TEST_CASE("manage asset", "[tx][manage_asset]")
                 app.getDatabase());
             applyCheck(txFrame, delta, app);
 
-            assetFrame = AssetHelper::Instance()->loadAsset(assetCode, testManager->getDB());
+            assetFrame = AssetHelperLegacy::Instance()->loadAsset(assetCode, testManager->getDB());
             REQUIRE(!!assetFrame);
             REQUIRE(assetFrame->getMaxIssuanceAmount() == maxIssuanceAmount);
         }
@@ -454,7 +454,7 @@ void testManageAssetHappyPath(TestManager::pointer testManager,
                 const auto opResult = txResult.result.results()[0];
                 auto actualResultCode = ManageAssetOpFrame::getInnerCode(opResult);
                 REQUIRE(actualResultCode == ManageAssetResultCode::SUCCESS);
-                auto assetFrame = AssetHelper::Instance()->loadAsset(assetCode, testManager->getDB());
+                auto assetFrame = AssetHelperLegacy::Instance()->loadAsset(assetCode, testManager->getDB());
                 REQUIRE(assetFrame->getPreIssuedAssetSigner() == newPreIssuanceSigner.getPublicKey());
                 SECTION("Owner is not able to change signer")
                 {

@@ -6,7 +6,7 @@
 #include "transactions/SetOptionsOpFrame.h"
 #include "ledger/TrustFrame.h"
 #include "ledger/TrustHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "crypto/SHA.h"
 #include "database/Database.h"
@@ -201,7 +201,7 @@ SetOptionsOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (mSetOptions.trustData)
     {
         auto trust = mSetOptions.trustData->trust;
-		auto balanceHelper = BalanceHelper::Instance();
+		auto balanceHelper = BalanceHelperLegacy::Instance();
         auto balanceFrame = balanceHelper->loadBalance(trust.balanceToUse, db);
         if (!balanceFrame || !(balanceFrame->getAccountID() == getSourceID()))
         {

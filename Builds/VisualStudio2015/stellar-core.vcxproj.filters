@@ -735,7 +735,7 @@
     <ClCompile Include="..\..\src\ledger\AccountTypeLimitsHelper.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ledger\AssetHelper.cpp">
+    <ClCompile Include="..\..\src\ledger\AssetHelperLegacy.cpp">
       <Filter>ledger</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\ledger\AssetPairHelper.cpp">
@@ -1763,7 +1763,7 @@
     <ClInclude Include="..\..\src\ledger\AccountTypeLimitsHelper.h">
       <Filter>ledger</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\ledger\AssetHelper.h">
+    <ClInclude Include="..\..\src\ledger\AssetHelperLegacy.h">
       <Filter>ledger</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ledger\AssetPairHelper.h">

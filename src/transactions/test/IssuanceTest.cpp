@@ -8,8 +8,8 @@
 #include <transactions/test/test_helper/ManageKeyValueTestHelper.h>
 #include "overlay/LoopbackPeer.h"
 #include "main/test.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 #include "TxTests.h"
 #include "test_helper/IssuanceRequestHelper.h"
@@ -35,7 +35,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
     CreateAccountTestHelper createAccountTestHelper(testManager);
     createAccountTestHelper.applyCreateAccountTx(root, receiverKP.getPublicKey(), AccountType::GENERAL);
 
-	auto balanceHelper = BalanceHelper::Instance();
+	auto balanceHelper = BalanceHelperLegacy::Instance();
 	auto receiverBalance = balanceHelper->loadBalance(receiverKP.getPublicKey(), assetToBeIssued, testManager->getDB(), nullptr);
 	REQUIRE(receiverBalance);
 
@@ -133,7 +133,7 @@ void createIssuanceRequestHappyPath(TestManager::pointer testManager, Account& a
 		newAccountBalanceAfterRequest = balanceHelper->loadBalance(receiverBalance->getBalanceID(), testManager->getDB());
 		REQUIRE(newAccountBalanceAfterRequest->getAmount() == issuanceRequestAmount);
 
-		auto assetHelper = AssetHelper::Instance();
+		auto assetHelper = AssetHelperLegacy::Instance();
 		auto assetFrame = assetHelper->loadAsset(assetToBeIssued, testManager->getDB());
 		REQUIRE(assetFrame->getIssued() == issuanceRequestAmount);
 		REQUIRE(assetFrame->getAvailableForIssuance() == preIssuedAmount);
@@ -259,7 +259,7 @@ void createPreIssuanceRequestHardPath(TestManager::pointer testManager, Account 
             //issue some amount first
             SecretKey receiver = SecretKey::random();
             createAccountTestHelper.applyCreateAccountTx(root, receiver.getPublicKey(), AccountType::GENERAL);
-            auto balanceHelper = BalanceHelper::Instance();
+            auto balanceHelper = BalanceHelperLegacy::Instance();
             auto receiverBalance = balanceHelper->loadBalance(receiver.getPublicKey(), assetCode, testManager->getDB(), nullptr);
             REQUIRE(receiverBalance);
 
@@ -302,7 +302,7 @@ void createIssuanceRequestHardPath(TestManager::pointer testManager, Account &as
     //create receiver account
     SecretKey receiverKP = SecretKey::random();
     createAccountTestHelper.applyCreateAccountTx(root, receiverKP.getPublicKey(), AccountType::GENERAL);
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto receiverBalance = balanceHelper->loadBalance(receiverKP.getPublicKey(), assetCode, testManager->getDB(),
                                                       nullptr);
     REQUIRE(receiverBalance);
@@ -487,7 +487,7 @@ TEST_CASE("Issuance", "[tx][issuance]")
         issuanceRequestHelper.createAssetWithPreIssuedAmount(issuer, assetToBeIssued, preIssuedAmount, root);
 
         auto& db = testManager->getDB();
-        auto issuerBalance = BalanceHelper::Instance()->loadBalance(issuerSecret.getPublicKey(), assetToBeIssued,
+        auto issuerBalance = BalanceHelperLegacy::Instance()->loadBalance(issuerSecret.getPublicKey(), assetToBeIssued,
                                                                     db, nullptr);
         auto issuerBalanceID = issuerBalance->getBalanceID();
 

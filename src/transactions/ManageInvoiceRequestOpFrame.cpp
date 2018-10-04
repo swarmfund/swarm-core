@@ -9,7 +9,7 @@
 #include <ledger/KeyValueHelperLegacy.h>
 #include "medida/metrics_registry.h"
 #include "ledger/LedgerDelta.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ManageKeyValueOpFrame.h"
 
 namespace stellar
@@ -121,7 +121,7 @@ ManageInvoiceRequestOpFrame::createManageInvoiceRequest(Application& app, Ledger
     Database& db = ledgerManager.getDatabase();
     auto& invoiceCreationRequest = mManageInvoiceRequest.details.invoiceRequest();
 
-    auto senderBalance = BalanceHelper::Instance()->loadBalance(invoiceCreationRequest.sender,
+    auto senderBalance = BalanceHelperLegacy::Instance()->loadBalance(invoiceCreationRequest.sender,
                                                                 invoiceCreationRequest.asset, db, &delta);
     if (!senderBalance)
     {

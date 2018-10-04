@@ -1,4 +1,4 @@
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <transactions/test/test_helper/CreateAccountTestHelper.h>
 #include <transactions/test/test_helper/IssuanceRequestHelper.h>
 #include <transactions/test/test_helper/ManageAssetTestHelper.h>
@@ -37,7 +37,7 @@ TEST_CASE("payment v2", "[tx][payment_v2]") {
     auto manageLimitsTestHelper = ManageLimitsTestHelper(testManager);
 
     // db helpers
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
 
     auto root = Account{getRoot(), Salt(0)};
     auto payer = Account{SecretKey::random(), Salt(1)};

@@ -2,7 +2,7 @@
 #include "ManageOfferTestHelper.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/OfferHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "transactions/dex/OfferManager.h"
 #include "test/test_marshaler.h"
 
@@ -31,7 +31,7 @@ void ManageOfferTestHelper::ensureDeleteSuccess(Account& source, ManageOfferOp o
     balanceKey.balance().balanceID = offer->getLockedBalance();
 
     auto sellingBalanceBefore = stateBeforeTx[balanceKey]->mEntry.data.balance();
-    auto sellingBalanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer->getLockedBalance(), mTestManager->getDB());
+    auto sellingBalanceAfter = BalanceHelperLegacy::Instance()->mustLoadBalance(offer->getLockedBalance(), mTestManager->getDB());
 
     REQUIRE(sellingBalanceAfter->getLocked() == sellingBalanceBefore.locked - offer->getLockedAmount());
 }
@@ -61,7 +61,7 @@ void ManageOfferTestHelper::ensureCreateSuccess(Account& source, ManageOfferOp o
             balanceKey.type(LedgerEntryType::BALANCE);
             balanceKey.balance().balanceID = offer->getLockedBalance();
             auto balanceBefore = stateBeforeTx[balanceKey]->mEntry.data.balance();
-            auto balanceAfter = BalanceHelper::Instance()->mustLoadBalance(offer->getLockedBalance(), db);
+            auto balanceAfter = BalanceHelperLegacy::Instance()->mustLoadBalance(offer->getLockedBalance(), db);
 
             auto saleAnteAfter = SaleAnteHelper::Instance()->loadSaleAnte(offerEntry.orderBookID,
                                                                           balanceAfter->getBalanceID(), db);

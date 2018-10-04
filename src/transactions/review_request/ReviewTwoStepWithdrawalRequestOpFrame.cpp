@@ -10,8 +10,8 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ReferenceFrame.h"
-#include "ledger/AssetHelper.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/AssetHelperLegacy.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "main/Application.h"
 #include "xdrpp/printer.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -109,7 +109,7 @@ uint64_t ReviewTwoStepWithdrawalRequestOpFrame::getTotalAmountToCharge(
 bool ReviewTwoStepWithdrawalRequestOpFrame::rejectWithdrawalRequest(Application& app, LedgerDelta& delta, LedgerManager& ledgerManager, ReviewableRequestFrame::pointer request, WithdrawalRequest& withdrawRequest)
 {
     Database& db = app.getDatabase();
-    auto balance = BalanceHelper::Instance()->mustLoadBalance(withdrawRequest.balance, db, &delta);
+    auto balance = BalanceHelperLegacy::Instance()->mustLoadBalance(withdrawRequest.balance, db, &delta);
     const auto totalAmountToCharge = getTotalAmountToCharge(request->getRequestID(), withdrawRequest);
     if (!balance->unlock(totalAmountToCharge))
     {

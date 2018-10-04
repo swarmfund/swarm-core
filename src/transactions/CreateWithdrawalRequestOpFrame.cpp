@@ -5,8 +5,8 @@
 #include "ledger/StatisticsHelper.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/BalanceHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/AssetPairHelper.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/KeyValueHelperLegacy.h"
@@ -48,7 +48,7 @@ const
 BalanceFrame::pointer CreateWithdrawalRequestOpFrame::tryLoadBalance(
     Database& db, LedgerDelta& delta) const
 {
-    auto balanceFrame = BalanceHelper::Instance()->loadBalance(mCreateWithdrawalRequest.request.balance, db, &delta);
+    auto balanceFrame = BalanceHelperLegacy::Instance()->loadBalance(mCreateWithdrawalRequest.request.balance, db, &delta);
     if (!balanceFrame || !(balanceFrame->getAccountID() == getSourceID()))
     {
         return nullptr;
@@ -223,7 +223,7 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
         return false;
     }
 
-    const auto assetFrame = AssetHelper::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
+    const auto assetFrame = AssetHelperLegacy::Instance()->mustLoadAsset(balanceFrame->getAsset(), db);
     if (!assetFrame->isPolicySet(AssetPolicy::WITHDRAWABLE))
     {
         innerResult().code(CreateWithdrawalRequestResultCode::ASSET_IS_NOT_WITHDRAWABLE);
@@ -259,7 +259,7 @@ CreateWithdrawalRequestOpFrame::doApply(Application& app, LedgerDelta& delta,
     if (!request)
         return false;
 
-    BalanceHelper::Instance()->storeChange(delta, db, balanceFrame->mEntry);
+    BalanceHelperLegacy::Instance()->storeChange(delta, db, balanceFrame->mEntry);
 
     innerResult().code(CreateWithdrawalRequestResultCode::SUCCESS);
     innerResult().success().requestID = request->getRequestID();

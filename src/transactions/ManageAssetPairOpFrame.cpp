@@ -6,7 +6,7 @@
 #include "transactions/dex/ManageOfferOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AssetFrame.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/AssetPairHelper.h"
 
 #include "database/Database.h"
@@ -16,7 +16,7 @@
 #include "medida/metrics_registry.h"
 #include "ledger/OfferHelper.h"
 #include "dex/OfferManager.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 
 namespace stellar
 {
@@ -61,7 +61,7 @@ bool ManageAssetPairOpFrame::createNewAssetPair(Application& app, LedgerDelta& d
 		return false;
 	}
 
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
 	bool assetsExist = assetHelper->exists(db, mManageAssetPair.base);
 	assetsExist = assetsExist && assetHelper->exists(db, mManageAssetPair.quote);
 	if (!assetsExist)

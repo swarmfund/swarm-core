@@ -1,4 +1,4 @@
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <ledger/LedgerHeaderFrame.h>
 #include "ManageAssetHelper.h"
 #include "transactions/AccountManager.h"
@@ -32,7 +32,7 @@ void ManageAssetHelper::createBalanceForAccount(AccountID account,
 
     void ManageAssetHelper::createBalanceForAccount(AccountID account, AssetCode assetCode, Database &db,
                                                     LedgerDelta &delta) {
-        auto balanceFrame = BalanceHelper::Instance()->loadBalance(account, assetCode, db, &delta);
+        auto balanceFrame = BalanceHelperLegacy::Instance()->loadBalance(account, assetCode, db, &delta);
         if (!!balanceFrame)
             return;
         const BalanceID balanceID = BalanceKeyUtils::forAccount(account, delta.getHeaderFrame().generateID(LedgerEntryType::BALANCE));

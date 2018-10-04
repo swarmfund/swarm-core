@@ -10,7 +10,7 @@
 #include "TxTests.h"
 #include "transactions/dex/OfferExchange.h"
 #include "ledger/LedgerDeltaImpl.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/OfferHelper.h"
 #include "test_helper/ManageAssetTestHelper.h"
 #include "test_helper/IssuanceRequestHelper.h"
@@ -64,7 +64,7 @@ TEST_CASE("manage offer", "[tx][offer]")
         issuanceHelper.applyCreateIssuanceRequest(rootAccount, code, amount, receiver, SecretKey::random().getStrKeyPublic());
     };
 
-    auto balanceHelper = BalanceHelper::Instance();
+    auto balanceHelper = BalanceHelperLegacy::Instance();
     auto offerHelper = OfferHelper::Instance();
 
     auto offerTestHelper = ManageOfferTestHelper(testManager);

@@ -1,7 +1,7 @@
 #include "ManageSaleOpFrame.h"
 #include "OfferManager.h"
 #include "transactions/sale/CreateSaleCreationRequestOpFrame.h"
-#include <ledger/BalanceHelper.h>
+#include <ledger/BalanceHelperLegacy.h>
 #include <ledger/OfferHelper.h>
 #include <ledger/ReviewableRequestHelper.h>
 #include <ledger/SaleAnteHelper.h>
@@ -204,7 +204,7 @@ namespace stellar {
     void ManageSaleOpFrame::deleteAllAntesForSale(uint64_t saleID, LedgerDelta &delta, Database &db) {
         auto saleAntes = SaleAnteHelper::Instance()->loadSaleAntesForSale(saleID, db);
         for (auto &saleAnte : saleAntes) {
-            auto participantBalanceFrame = BalanceHelper::Instance()->mustLoadBalance(
+            auto participantBalanceFrame = BalanceHelperLegacy::Instance()->mustLoadBalance(
                     saleAnte->getParticipantBalanceID(),
                     db, &delta);
             if (!participantBalanceFrame->unlock(saleAnte->getAmount())) {
@@ -447,7 +447,7 @@ namespace stellar {
     }
 
     void ManageSaleOpFrame::trySetFulfilled(LedgerManager &lm, bool fulfilled) {
-        if (!lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_SEND_TO_SELF)) {
+        if (!lm.shouldUse(LedgerVersion::FIX_PAYMENT_V2_DEST_ACCOUNT_NOT_FOUND)) {
             return;
         }
 

@@ -6,7 +6,7 @@
 #include "UpdateAssetOpFrame.h"
 #include "ledger/LedgerDelta.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/ReviewableRequestHelper.h"
 
 #include "database/Database.h"
@@ -70,7 +70,7 @@ bool UpdateAssetOpFrame::doApply(Application & app, LedgerDelta & delta, LedgerM
         return false;
     }
 
-	auto assetHelper = AssetHelper::Instance();
+	auto assetHelper = AssetHelperLegacy::Instance();
 	auto assetFrame = assetHelper->loadAsset(mAssetUpdateRequest.code, getSourceID(), db, &delta);
 	if (!assetFrame) {
 		innerResult().code(ManageAssetResultCode::ASSET_NOT_FOUND);

@@ -9,8 +9,8 @@
 #include "ledger/LedgerDelta.h"
 #include "ledger/LedgerHeaderFrame.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/BalanceHelper.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "xdrpp/printer.h"
 #include "ledger/ReviewableRequestHelper.h"
@@ -45,7 +45,7 @@ AssetFrame::pointer
 CreateSaleCreationRequestOpFrame::tryLoadBaseAssetOrRequest(SaleCreationRequest const& request,
                                                             Database& db, AccountID const& source)
 {
-    const auto assetFrame = AssetHelper::Instance()->loadAsset(request.baseAsset, source, db);
+    const auto assetFrame = AssetHelperLegacy::Instance()->loadAsset(request.baseAsset, source, db);
     if (!!assetFrame)
     {
         return assetFrame;
@@ -112,14 +112,14 @@ bool CreateSaleCreationRequestOpFrame::isBaseAssetHasSufficientIssuance(
 
 bool CreateSaleCreationRequestOpFrame::areQuoteAssetsValid(Database& db, xdr::xvector<SaleCreationRequestQuoteAsset, 100> quoteAssets, AssetCode defaultQuoteAsset)
 {
-    if (!AssetHelper::Instance()->exists(db, defaultQuoteAsset))
+    if (!AssetHelperLegacy::Instance()->exists(db, defaultQuoteAsset))
     {
         return false;
     }
 
     for (auto const& quoteAsset : quoteAssets)
     {
-        if (!AssetHelper::Instance()->exists(db, quoteAsset.quoteAsset))
+        if (!AssetHelperLegacy::Instance()->exists(db, quoteAsset.quoteAsset))
         {
             return false;
         }

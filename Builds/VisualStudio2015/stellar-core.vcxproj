@@ -209,7 +209,7 @@
     <ClCompile Include="..\..\src\ledger\AccountTypeLimitsFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\AccountTypeLimitsHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\AssetFrame.cpp" />
-    <ClCompile Include="..\..\src\ledger\AssetHelper.cpp" />
+    <ClCompile Include="..\..\src\ledger\AssetHelperLegacy.cpp" />
     <ClCompile Include="..\..\src\ledger\AssetPairFrame.cpp" />
     <ClCompile Include="..\..\src\ledger\AssetPairHelper.cpp" />
     <ClCompile Include="..\..\src\ledger\BalanceFrame.cpp" />
@@ -558,7 +558,7 @@
     <ClInclude Include="..\..\src\ledger\AccountTypeLimitsFrame.h" />
     <ClInclude Include="..\..\src\ledger\AccountTypeLimitsHelper.h" />
     <ClInclude Include="..\..\src\ledger\AssetFrame.h" />
-    <ClInclude Include="..\..\src\ledger\AssetHelper.h" />
+    <ClInclude Include="..\..\src\ledger\AssetHelperLegacy.h" />
     <ClInclude Include="..\..\src\ledger\AssetPairFrame.h" />
     <ClInclude Include="..\..\src\ledger\AssetPairHelper.h" />
     <ClInclude Include="..\..\src\ledger\BalanceFrame.h" />

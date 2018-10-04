@@ -3,7 +3,7 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "OfferManager.h"
-#include "ledger/BalanceHelper.h"
+#include "ledger/BalanceHelperLegacy.h"
 #include "ledger/LedgerDelta.h"
 #include "xdrpp/printer.h"
 #include "ledger/FeeHelper.h"
@@ -14,7 +14,7 @@ void OfferManager::deleteOffer(OfferFrame::pointer offerFrame, Database& db,
     LedgerDelta& delta)
 {
     const auto balanceID = offerFrame->getLockedBalance();
-    auto balanceFrame = BalanceHelper::Instance()->loadBalance(balanceID, db, &delta);
+    auto balanceFrame = BalanceHelperLegacy::Instance()->loadBalance(balanceID, db, &delta);
     if (!balanceFrame)
     {
         CLOG(ERROR, Logging::OPERATION_LOGGER) << "Invalid database state: failed to load balance to cancel order: " << xdr::xdr_to_string(offerFrame->getOffer());

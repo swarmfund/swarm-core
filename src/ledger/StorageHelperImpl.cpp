@@ -3,6 +3,8 @@
 #include "ledger/ExternalSystemAccountIDPoolEntryHelperImpl.h"
 #include "ledger/KeyValueHelperImpl.h"
 #include "ledger/LedgerDeltaImpl.h"
+#include "BalanceHelperImpl.h"
+#include "AssetHelperImpl.h"
 
 namespace stellar
 {
@@ -119,6 +121,24 @@ StorageHelperImpl::getKeyValueHelper()
         mKeyValueHelper = std::make_unique<KeyValueHelperImpl>(*this);
     }
     return *mKeyValueHelper;
+}
+BalanceHelper&
+StorageHelperImpl::getBalanceHelper()
+{
+    if (!mBalanceHelper)
+    {
+        mBalanceHelper = std::make_unique<BalanceHelperImpl>(*this);
+    }
+    return *mBalanceHelper;
+}
+AssetHelper&
+StorageHelperImpl::getAssetHelper()
+{
+    if (!mAssetHelper)
+    {
+        mAssetHelper = std::make_unique<AssetHelperImpl>(*this);
+    }
+    return *mAssetHelper;
 }
 ExternalSystemAccountIDHelper&
 StorageHelperImpl::getExternalSystemAccountIDHelper()

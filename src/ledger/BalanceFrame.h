@@ -74,6 +74,8 @@ class BalanceFrame : public EntryFrame
     {
         return mBalance.balanceID;
     }
+
+    uint64_t getTotal() const;
         
     static bool isValid(BalanceEntry const& oe);
     bool isValid() const;

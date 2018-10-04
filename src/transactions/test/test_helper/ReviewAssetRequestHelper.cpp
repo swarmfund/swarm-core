@@ -4,7 +4,7 @@
 
 #include "ReviewAssetRequestHelper.h"
 #include "ledger/AssetFrame.h"
-#include "ledger/AssetHelper.h"
+#include "ledger/AssetHelperLegacy.h"
 #include "test/test_marshaler.h"
 
 
@@ -15,7 +15,7 @@ namespace txtest
 void AssetReviewChecker::checkApproval(AssetCreationRequest const& request,
     AccountID const& requestor) const
 {
-    auto assetHelper = AssetHelper::Instance();
+    auto assetHelper = AssetHelperLegacy::Instance();
     auto assetFrame = assetHelper->loadAsset(request.code,
         mTestManager->getDB(), nullptr);
     REQUIRE(!!assetFrame);
@@ -33,7 +33,7 @@ void AssetReviewChecker::checkApproval(AssetCreationRequest const& request,
 void AssetReviewChecker::checkApproval(AssetUpdateRequest const& request,
     AccountID const& requestor)
 {
-    auto assetHelper = AssetHelper::Instance();
+    auto assetHelper = AssetHelperLegacy::Instance();
     auto assetFrame = assetHelper->loadAsset(request.code,
         mTestManager->getDB(), nullptr);
     REQUIRE(!!assetFrame);

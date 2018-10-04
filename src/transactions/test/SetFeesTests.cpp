@@ -16,7 +16,6 @@
 #include "test_helper/ManageAssetPairTestHelper.h"
 #include "test_helper/SetFeesTestHelper.h"
 #include "test/test_marshaler.h"
-#include "ledger/AssetHelper.h"
 #include "ledger/AccountHelper.h"
 
 using namespace stellar;

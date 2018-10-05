@@ -22,7 +22,7 @@ namespace stellar {
 
             void checkResult(TransactionResult result, bool mustSuccess);
 
-            static Value ledgerVersion(Application& app);
+            static Value ledgerVersion(Application& app, LedgerVersion version);
 
             static Value externalSystemGenerators(Application& app);
 
@@ -34,6 +34,7 @@ namespace stellar {
 
             static pointer make(Application &app);
 
+            static void upgradeToLedgerVersion(Application& app, LedgerVersion ledgerVersion);
             static void upgradeToCurrentLedgerVersion(Application& app);
 
             Hash const &getNetworkID() const {

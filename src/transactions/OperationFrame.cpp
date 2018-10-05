@@ -317,7 +317,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
     {
         if (!checkRolePermissions(app))
         {
-            mResult.code(OperationResultCode::opNOT_ALLOWED);
+            mResult.code(OperationResultCode::opNO_ROLE_PERMISSION);
             return false;
         }
     }

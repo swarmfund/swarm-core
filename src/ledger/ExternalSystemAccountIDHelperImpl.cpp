@@ -30,6 +30,22 @@ ExternalSystemAccountIDHelperImpl::ExternalSystemAccountIDHelperImpl(
 }
 
 void
+ExternalSystemAccountIDHelperImpl::dropAll()
+{
+    soci::session& sess = getDatabase().getSession();
+    sess << "DROP TABLE IF EXISTS external_system_account_id;";
+    sess << "CREATE TABLE external_system_account_id"
+            "("
+            "account_id           VARCHAR(56) NOT NULL,"
+            "external_system_type INT         NOT NULL,"
+            "data                 TEXT        NOT NULL,"
+            "lastmodified         INT         NOT NULL, "
+            "version              INT         NOT NULL DEFAULT 0,"
+            "PRIMARY KEY (account_id, external_system_type)"
+            ");";
+}
+
+void
 ExternalSystemAccountIDHelperImpl::storeUpdateHelper(const bool insert,
                                                      LedgerEntry const& entry)
 {
@@ -38,7 +54,10 @@ ExternalSystemAccountIDHelperImpl::storeUpdateHelper(const bool insert,
     auto externalSystemAccountIDEntry =
         externalSystemAccountIDFrame->getExternalSystemAccountID();
 
-    externalSystemAccountIDFrame->touch(mStorageHelper.getLedgerDelta());
+    if (mStorageHelper.getLedgerDelta())
+    {
+        externalSystemAccountIDFrame->touch(*mStorageHelper.getLedgerDelta());
+    }
 
     bool isValid = externalSystemAccountIDFrame->isValid();
     if (!isValid)
@@ -92,13 +111,16 @@ ExternalSystemAccountIDHelperImpl::storeUpdateHelper(const bool insert,
         throw runtime_error("could not update SQL");
     }
 
-    if (insert)
+    if (mStorageHelper.getLedgerDelta())
     {
-        mStorageHelper.getLedgerDelta().addEntry(*externalSystemAccountIDFrame);
-    }
-    else
-    {
-        mStorageHelper.getLedgerDelta().modEntry(*externalSystemAccountIDFrame);
+        if (insert)
+        {
+            mStorageHelper.getLedgerDelta()->addEntry(*externalSystemAccountIDFrame);
+        }
+        else
+        {
+            mStorageHelper.getLedgerDelta()->modEntry(*externalSystemAccountIDFrame);
+        }
     }
 }
 
@@ -129,23 +151,11 @@ ExternalSystemAccountIDHelperImpl::storeDelete(LedgerKey const& key)
     st.exchange(use(exSysAccountID.externalSystemType, "etype"));
     st.define_and_bind();
     st.execute(true);
-    mStorageHelper.getLedgerDelta().deleteEntry(key);
-}
 
-void
-ExternalSystemAccountIDHelperImpl::dropAll()
-{
-    soci::session& sess = getDatabase().getSession();
-    sess << "DROP TABLE IF EXISTS external_system_account_id;";
-    sess << "CREATE TABLE external_system_account_id"
-            "("
-            "account_id           VARCHAR(56) NOT NULL,"
-            "external_system_type INT         NOT NULL,"
-            "data                 TEXT        NOT NULL,"
-            "lastmodified         INT         NOT NULL, "
-            "version              INT         NOT NULL DEFAULT 0,"
-            "PRIMARY KEY (account_id, external_system_type)"
-            ");";
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->deleteEntry(key);
+    }
 }
 
 bool
@@ -235,9 +245,10 @@ ExternalSystemAccountIDHelperImpl::load(const AccountID rawAccountID,
     {
         return nullptr;
     }
-
-    mStorageHelper.getLedgerDelta().recordEntry(*result);
-
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*result);
+    }
     return result;
 }
 

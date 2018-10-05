@@ -91,7 +91,7 @@ TEST_CASE("payout - unit test", "[tx][payout]")
             .WillByDefault(ReturnRef(ledgerHeaderFake));
     ON_CALL(storageHelperMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
     ON_CALL(storageHelperMock, getLedgerDelta())
-            .WillByDefault(ReturnRef(ledgerDeltaMock));
+            .WillByDefault(Return(&ledgerDeltaMock));
     ON_CALL(transactionFrameMock, getSignatureValidator())
             .WillByDefault(Return(signatureValidatorMock));
     ON_CALL(storageHelperMock, getKeyValueHelper())

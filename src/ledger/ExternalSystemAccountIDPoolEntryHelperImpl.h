@@ -22,7 +22,8 @@ class ExternalSystemAccountIDPoolEntryHelperImpl : public ExternalSystemAccountI
 
   private:
     void dropAll() override;
-    void fixTypes() override;
+    void fixTypes(Database& db);
+
     void parentToNumeric() override;
     void storeAdd(LedgerEntry const& entry) override;
     void storeChange(LedgerEntry const& entry) override;

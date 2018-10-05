@@ -278,6 +278,12 @@ class Application
     virtual const std::string getBTCAddressRoot() const = 0;
     virtual const std::string getETHAddressRoot() const = 0;
 
+    // Returns false if policies should not be checked,
+    // for sake of testing or otherwise.
+    virtual bool isCheckingPolicies() const = 0;
+    virtual void stopCheckingPolicies() = 0;
+    virtual void resumeCheckingPolicies() = 0;
+
     // Factory: create a new Application object bound to `clock`, with a local
     // copy made of `cfg`.
     static pointer create(VirtualClock& clock, Config const& cfg,

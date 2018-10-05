@@ -8,6 +8,7 @@ namespace stellar
 
 class MockDatabase : public Database
 {
+  public:
     MOCK_METHOD0(getQueryMeter, medida::Meter&());
     MOCK_CONST_METHOD0(totalQueryTime, std::chrono::nanoseconds());
     MOCK_METHOD2(excludeTime, void(std::chrono::nanoseconds const& queryTime,

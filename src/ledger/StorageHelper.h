@@ -11,6 +11,8 @@ class BalanceHelper;
 class AssetHelper;
 class ExternalSystemAccountIDHelper;
 class ExternalSystemAccountIDPoolEntryHelper;
+class EntryHelper;
+class AccountRolePermissionHelper;
 
 class StorageHelper
 {
@@ -21,8 +23,8 @@ class StorageHelper
 
     virtual Database& getDatabase() = 0;
     virtual const Database& getDatabase() const = 0;
-    virtual LedgerDelta& getLedgerDelta() = 0;
-    virtual const LedgerDelta& getLedgerDelta() const = 0;
+    virtual LedgerDelta* getLedgerDelta() = 0;
+    virtual const LedgerDelta* getLedgerDelta() const = 0;
 
     virtual void commit() = 0;
     virtual void rollback() = 0;
@@ -37,5 +39,7 @@ class StorageHelper
     getExternalSystemAccountIDHelper() = 0;
     virtual ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper() = 0;
+    virtual EntryHelper& getAccountRoleHelper() = 0;
+    virtual AccountRolePermissionHelper& getAccountRolePermissionHelper() = 0;
 };
 } // namespace stellar

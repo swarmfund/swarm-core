@@ -23,6 +23,11 @@ namespace stellar {
                 createAccountOp.policies = policies;
             if (referrer)
                 createAccountOp.referrer.activate() = *referrer;
+            if (isRoleIDSpecified)
+            {
+                createAccountOp.ext.v(LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES);
+                createAccountOp.ext.opExt().roleID.activate() = roleID;
+            }
             return op;
         }
 
@@ -56,6 +61,14 @@ namespace stellar {
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setPolicies(AccountPolicies policies) {
             return setPolicies(static_cast<int32_t>(policies));
+        }
+
+        CreateAccountTestBuilder CreateAccountTestBuilder::setRoleID(uint64_t roleID)
+        {
+            auto newTestHelper = copy();
+            newTestHelper.isRoleIDSpecified = true;
+            newTestHelper.roleID = roleID;
+            return newTestHelper;
         }
 
         CreateAccountTestBuilder CreateAccountTestBuilder::setResultCode(CreateAccountResultCode expectedResult) {

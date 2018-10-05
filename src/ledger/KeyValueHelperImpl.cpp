@@ -24,7 +24,6 @@ void
 KeyValueHelperImpl::dropAll()
 {
     Database& db = mStorageHelper.getDatabase();
-
     db.getSession() << "DROP TABLE IF EXISTS key_value_entry;";
     db.getSession() << "CREATE TABLE key_value_entry"
                        "("
@@ -64,7 +63,10 @@ KeyValueHelperImpl::storeDelete(LedgerKey const& key)
     st.exchange(use(keyStr));
     st.define_and_bind();
     st.execute(true);
-    mStorageHelper.getLedgerDelta().deleteEntry(key);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->deleteEntry(key);
+    }
 }
 
 bool
@@ -91,13 +93,16 @@ KeyValueHelperImpl::exists(LedgerKey const& key)
 }
 
 void
-KeyValueHelperImpl::storeUpdateHelper(LedgerDelta& delta, Database& db,
+KeyValueHelperImpl::storeUpdateHelper(LedgerDelta* delta, Database& db,
                                       bool insert, LedgerEntry const& entry)
 {
     auto keyValueFrame = std::make_shared<KeyValueEntryFrame>(entry);
     auto keyValueEntry = keyValueFrame->getKeyValue();
 
-    keyValueFrame->touch(delta);
+    if (delta)
+    {
+        keyValueFrame->touch(*delta);
+    }
 
     auto key = keyValueFrame->getKey();
     flushCachedEntry(key);
@@ -137,13 +142,16 @@ KeyValueHelperImpl::storeUpdateHelper(LedgerDelta& delta, Database& db,
         throw std::runtime_error("could not update SQL");
     }
 
-    if (insert)
+    if (delta)
     {
-        delta.addEntry(*keyValueFrame);
-    }
-    else
-    {
-        delta.modEntry(*keyValueFrame);
+        if (insert)
+        {
+            delta->addEntry(*keyValueFrame);
+        }
+        else
+        {
+            delta->modEntry(*keyValueFrame);
+        }
     }
 }
 
@@ -207,7 +215,10 @@ KeyValueHelperImpl::loadKeyValue(string256 valueKey)
         return nullptr;
     }
 
-    mStorageHelper.getLedgerDelta().recordEntry(*retKeyValue);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*retKeyValue);
+    }
 
     auto pEntry = std::make_shared<LedgerEntry>(retKeyValue->mEntry);
     putCachedEntry(key, pEntry);

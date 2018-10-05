@@ -232,7 +232,7 @@ PayoutOpFrame::processTransfers(BalanceFrame::pointer sourceBalance,
         {
             auto balanceID = BalanceKeyUtils::forAccount(
                     holdersAmount.first, storageHelper.getLedgerDelta()
-                        .getHeaderFrame().generateID(LedgerEntryType::BALANCE));
+                        ->getHeaderFrame().generateID(LedgerEntryType::BALANCE));
             receiverBalance = BalanceFrame::createNew(balanceID,
                     holdersAmount.first, sourceBalance->getAsset());
 
@@ -335,8 +335,8 @@ PayoutOpFrame::doApply(Application &app, StorageHelper &storageHelper,
     }
 
     Database& db = storageHelper.getDatabase();
-    LedgerDelta& delta = storageHelper.getLedgerDelta();
-    AccountManager accountManager(app, db, delta, ledgerManager);
+    LedgerDelta* delta = storageHelper.getLedgerDelta();
+    AccountManager accountManager(app, db, *delta, ledgerManager);
     if (!tryProcessTransferFee(accountManager, db, actualTotalAmount,
                                sourceBalance))
         return false;
@@ -347,7 +347,7 @@ PayoutOpFrame::doApply(Application &app, StorageHelper &storageHelper,
 
     balanceHelper.storeChange(sourceBalance->mEntry);
 
-    StatisticsV2Processor statsProcessor(db, delta, ledgerManager);
+    StatisticsV2Processor statsProcessor(db, *delta, ledgerManager);
     return processStatistics(statsProcessor, sourceBalance, actualTotalAmount);
 }
 

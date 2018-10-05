@@ -9,7 +9,7 @@
 namespace stellar
 {
 
-StorageHelperImpl::StorageHelperImpl(Database& db, LedgerDelta& ledgerDelta)
+StorageHelperImpl::StorageHelperImpl(Database& db, LedgerDelta* ledgerDelta)
     : mDatabase(db)
     , mLedgerDelta(ledgerDelta)
     , mTransaction(new soci::transaction(db.getSession()))
@@ -40,12 +40,12 @@ StorageHelperImpl::getDatabase() const
 {
     return mDatabase;
 }
-LedgerDelta&
+LedgerDelta*
 StorageHelperImpl::getLedgerDelta()
 {
     return mLedgerDelta;
 }
-const LedgerDelta&
+const LedgerDelta*
 StorageHelperImpl::getLedgerDelta() const
 {
     return mLedgerDelta;
@@ -58,7 +58,10 @@ StorageHelperImpl::commit()
     {
         throw std::runtime_error("Cannot commit a released StorageHelper.");
     }
-    mLedgerDelta.commit();
+    if (mLedgerDelta)
+    {
+        mLedgerDelta->commit();
+    }
     if (mTransaction)
     {
         mTransaction->commit();
@@ -72,7 +75,10 @@ StorageHelperImpl::rollback()
     {
         throw std::runtime_error("Cannot rollback a released StorageHelper.");
     }
-    mLedgerDelta.rollback();
+    if (mLedgerDelta)
+    {
+        mLedgerDelta->rollback();
+    }
     if (mTransaction)
     {
         mTransaction->rollback();
@@ -93,13 +99,18 @@ StorageHelperImpl::release()
 std::unique_ptr<StorageHelper>
 StorageHelperImpl::startNestedTransaction()
 {
+    if (!mLedgerDelta)
+    {
+        throw std::runtime_error("This StorageHelper has empty ledger delta and "
+                                 "cannot create nested transactions.");
+    }
     if (mNestedDelta && mNestedDelta->isStateActive())
     {
         throw std::runtime_error("Invalid operation: this StorageHelper "
                                  "already has an active nested StorageHelper");
     }
-    mNestedDelta = std::make_unique<LedgerDeltaImpl>(mLedgerDelta);
-    return std::make_unique<StorageHelperImpl>(mDatabase, *mNestedDelta);
+    mNestedDelta = std::make_unique<LedgerDeltaImpl>(*mLedgerDelta);
+    return std::make_unique<StorageHelperImpl>(mDatabase, mNestedDelta.get());
 }
 
 KeyValueHelper&
@@ -148,6 +159,24 @@ StorageHelperImpl::getExternalSystemAccountIDPoolEntryHelper()
             std::make_unique<ExternalSystemAccountIDPoolEntryHelperImpl>(*this);
     }
     return *mExternalSystemAccountIDPoolEntryHelper;
+}
+AccountRoleHelper&
+StorageHelperImpl::getAccountRoleHelper()
+{
+    if (!mAccountRoleHelper)
+    {
+        mAccountRoleHelper = std::make_unique<AccountRoleHelper>(*this);
+    }
+    return *mAccountRoleHelper;
+}
+AccountRolePermissionHelperImpl&
+StorageHelperImpl::getAccountRolePermissionHelper()
+{
+    if (!mAccountRolePermissionHelper)
+    {
+        mAccountRolePermissionHelper = std::make_unique<AccountRolePermissionHelperImpl>(*this);
+    }
+    return *mAccountRolePermissionHelper;
 }
 
 } // namespace stellar

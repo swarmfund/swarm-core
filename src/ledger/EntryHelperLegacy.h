@@ -45,9 +45,12 @@ namespace stellar
 
 	class EntryHelperProvider {
 	public:
-		static EntryHelperLegacy *getHelper(LedgerEntryType type) {
-			return helpers[type];
-		}
+        static EntryHelperLegacy* getHelper(LedgerEntryType type)
+        {
+            auto foundHelperIt = helpers.find(type);
+            return foundHelperIt == helpers.end() ? nullptr
+                                                  : foundHelperIt->second;
+        }
 
 		static void dropAll(Database &db);
 		static EntryFrame::pointer fromXDREntry(LedgerEntry const& from);

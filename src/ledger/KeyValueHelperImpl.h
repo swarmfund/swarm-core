@@ -14,7 +14,6 @@ class StorageHelper;
 
 class KeyValueHelperImpl : public KeyValueHelper, NonCopyable
 {
-
   public:
     explicit KeyValueHelperImpl(StorageHelper& storageHelper);
 
@@ -44,7 +43,7 @@ class KeyValueHelperImpl : public KeyValueHelper, NonCopyable
         std::function<void(LedgerEntry const&)> keyValueProcessor) override;
 
   private:
-    void storeUpdateHelper(LedgerDelta& delta, Database& db, bool insert,
+    void storeUpdateHelper(LedgerDelta* delta, Database& db, bool insert,
                            LedgerEntry const& entry);
 
     Database& getDatabase() override;

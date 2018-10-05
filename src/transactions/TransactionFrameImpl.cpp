@@ -561,7 +561,7 @@ TransactionFrameImpl::applyTx(LedgerDelta& delta, TransactionMeta& meta,
             auto time = opTimer.TimeScope();
             LedgerDeltaImpl opDeltaImpl(thisTxDelta);
             LedgerDelta& opDelta = opDeltaImpl;
-            StorageHelperImpl storageHelperImpl(app.getDatabase(), opDelta);
+            StorageHelperImpl storageHelperImpl(app.getDatabase(), &opDelta);
             StorageHelper& storageHelper = storageHelperImpl;
             bool txRes = op->apply(storageHelper, app);
 

@@ -35,8 +35,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::storeUpdateHelper(
             std::make_shared<ExternalSystemAccountIDPoolEntryFrame>(entry);
         auto poolEntry = poolEntryFrame->getExternalSystemAccountIDPoolEntry();
 
-        poolEntryFrame->touch(mStorageHelper.getLedgerDelta());
-
+        if (mStorageHelper.getLedgerDelta())
+        {
+            poolEntryFrame->touch(*mStorageHelper.getLedgerDelta());
+        }
         poolEntryFrame->ensureValid();
 
         std::string sql;
@@ -97,13 +99,16 @@ ExternalSystemAccountIDPoolEntryHelperImpl::storeUpdateHelper(
             throw std::runtime_error("could not update SQL");
         }
 
-        if (insert)
+        if (mStorageHelper.getLedgerDelta())
         {
-            mStorageHelper.getLedgerDelta().addEntry(*poolEntryFrame);
-        }
-        else
-        {
-            mStorageHelper.getLedgerDelta().modEntry(*poolEntryFrame);
+            if (insert)
+            {
+                mStorageHelper.getLedgerDelta()->addEntry(*poolEntryFrame);
+            }
+            else
+            {
+                mStorageHelper.getLedgerDelta()->modEntry(*poolEntryFrame);
+            }
         }
     }
     catch (std::exception ex)
@@ -142,42 +147,37 @@ ExternalSystemAccountIDPoolEntryHelperImpl::storeDelete(LedgerKey const& key)
     st.define_and_bind();
     st.execute(true);
 
-    mStorageHelper.getLedgerDelta().deleteEntry(key);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->deleteEntry(key);
+    }
 }
 
 void
 ExternalSystemAccountIDPoolEntryHelperImpl::dropAll()
 {
-    getDatabase().getSession()
-        << "DROP TABLE IF EXISTS external_system_account_id_pool;";
-    getDatabase().getSession()
-        << "CREATE TABLE external_system_account_id_pool"
-           "("
-           "id                   BIGINT      NOT NULL CHECK (id >= 0),"
-           "external_system_type INT         NOT NULL,"
-           "data                 TEXT        NOT NULL,"
-           "parent               INT         NOT NULL,"
-           "is_deleted           BOOLEAN     NOT NULL,"
-           "account_id           VARCHAR(56) NOT NULL,"
-           "expires_at           BIGINT      NOT NULL,"
-           "binded_at            BIGINT      NOT NULL,"
-           "lastmodified         INT         NOT NULL, "
-           "version              INT         NOT NULL DEFAULT 0,"
-           "PRIMARY KEY (id)"
-           ");";
+    soci::session& sess = getDatabase().getSession();
 
-    fixTypes();
-}
+    sess << "DROP TABLE IF EXISTS external_system_account_id_pool;";
+    sess << "CREATE TABLE external_system_account_id_pool"
+            "("
+            "id                   BIGINT      NOT NULL CHECK (id >= 0),"
+            "external_system_type INT         NOT NULL,"
+            "data                 TEXT        NOT NULL,"
+            "parent               INT         NOT NULL,"
+            "is_deleted           BOOLEAN     NOT NULL,"
+            "account_id           VARCHAR(56) NOT NULL,"
+            "expires_at           BIGINT      NOT NULL,"
+            "binded_at            BIGINT      NOT NULL,"
+            "lastmodified         INT         NOT NULL, "
+            "version              INT         NOT NULL DEFAULT 0,"
+            "PRIMARY KEY (id)"
+            ");";
 
-void
-ExternalSystemAccountIDPoolEntryHelperImpl::fixTypes()
-{
-    getDatabase().getSession()
-        << "ALTER TABLE external_system_account_id_pool ALTER "
-           "parent SET DATA TYPE BIGINT;";
-    getDatabase().getSession()
-        << "ALTER TABLE external_system_account_id_pool ALTER "
-           "external_system_type SET DATA TYPE BIGINT;";
+    sess << "ALTER TABLE external_system_account_id_pool ALTER "
+            "parent SET DATA TYPE BIGINT;";
+    sess << "ALTER TABLE external_system_account_id_pool ALTER "
+            "external_system_type SET DATA TYPE BIGINT;";
 }
 
 void
@@ -291,8 +291,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::load(uint64_t poolEntryID)
     {
         return nullptr;
     }
-
-    mStorageHelper.getLedgerDelta().recordEntry(*result);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*result);
+    }
 
     return result;
 }
@@ -319,9 +321,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::load(int32 type,
     {
         return nullptr;
     }
-
-    mStorageHelper.getLedgerDelta().recordEntry(*result);
-
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*result);
+    }
     return result;
 }
 
@@ -349,9 +352,10 @@ ExternalSystemAccountIDPoolEntryHelperImpl::load(int32 externalSystemType,
     {
         return nullptr;
     }
-
-    mStorageHelper.getLedgerDelta().recordEntry(*result);
-
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*result);
+    }
     return result;
 }
 

@@ -45,6 +45,9 @@ bool SignatureValidatorImpl::isAccountTypeAllowed(AccountFrame& account,
                                               vector<AccountType>
                                               allowedAccountTypes)
 {
+    if (allowedAccountTypes.size() == 1)
+        return true;
+
     auto sourceAccountType = account.getAccountType();
     for (auto allowedAccountType : allowedAccountTypes)
     {
@@ -194,13 +197,18 @@ SignatureValidatorImpl::Result SignatureValidatorImpl::check(
         sourceDetails.mAllowedBlockedReasons)
         return ACCOUNT_BLOCKED;
 
-    if (!isAccountTypeAllowed(account, sourceDetails.mAllowedSourceAccountTypes)
-    )
+    const uint32 ledgerVersion = app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion;
+    if (ledgerVersion < (uint32)LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES &&
+        !isAccountTypeAllowed(account, sourceDetails.mAllowedSourceAccountTypes))
+    {
         return INVALID_ACCOUNT_TYPE;
+    }
 
     if (!sourceDetails.mSpecificSigners.empty())
     {
-        return check(sourceDetails.mSpecificSigners, sourceDetails.mNeeededTheshold, LedgerVersion(app.getLedgerManager().getCurrentLedgerHeader().ledgerVersion));
+        return check(sourceDetails.mSpecificSigners,
+                     sourceDetails.mNeeededTheshold,
+                     LedgerVersion(ledgerVersion));
     }
 
     return checkSignature(app, db, account, sourceDetails);

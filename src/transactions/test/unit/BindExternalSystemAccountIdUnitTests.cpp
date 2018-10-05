@@ -67,6 +67,8 @@ TEST_CASE("bind external system account_id - unit test",
         AccountFrame::makeAuthOnlyAccount(*operation.sourceAccount);
     LedgerHeader ledgerHeaderFake;
 
+    Database::EntryCache cacheFake(4096);
+
     ON_CALL(appMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
     ON_CALL(appMock, getLedgerManager())
         .WillByDefault(ReturnRef(ledgerManagerMock));
@@ -74,12 +76,13 @@ TEST_CASE("bind external system account_id - unit test",
         .WillByDefault(ReturnRef(ledgerHeaderFake));
     ON_CALL(storageHelperMock, getDatabase()).WillByDefault(ReturnRef(dbMock));
     ON_CALL(storageHelperMock, getLedgerDelta())
-        .WillByDefault(ReturnRef(ledgerDeltaMock));
+        .WillByDefault(Return(&ledgerDeltaMock));
     ON_CALL(transactionFrameMock, getSignatureValidator())
         .WillByDefault(Return(signatureValidatorMock));
     ON_CALL(*signatureValidatorMock,
             check(Ref(appMock), Ref(dbMock), Ref(*accountFrameFake), _))
         .WillByDefault(Return(SignatureValidator::Result::SUCCESS));
+    ON_CALL(dbMock, getEntryCache()).WillByDefault(ReturnRef(cacheFake));
 
     ON_CALL(storageHelperMock, getKeyValueHelper())
         .WillByDefault(ReturnRef(keyValueHelperMock));

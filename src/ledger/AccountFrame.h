@@ -5,10 +5,10 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "ledger/EntryFrame.h"
-#include <functional>
 #include "map"
-#include <unordered_map>
 #include "xdr/Stellar-ledger-entries-account.h"
+#include <functional>
+#include <unordered_map>
 
 namespace soci
 {
@@ -17,7 +17,7 @@ namespace details
 {
 class prepare_temp_type;
 }
-}
+} // namespace soci
 
 namespace stellar
 {
@@ -47,40 +47,45 @@ class AccountFrame : public EntryFrame
         return EntryFrame::pointer(new AccountFrame(*this));
     }
 
-	void normalize();
+    void normalize();
 
-	bool isValid();
+    bool isValid();
 
-	static bool isLimitsValid(Limits const& limits)
-	{
-		if (limits.dailyOut < 0)
-			return false;
-		return limits.dailyOut <= limits.weeklyOut && limits.weeklyOut <= limits.monthlyOut && limits.monthlyOut <= limits.annualOut;
-	}
+    static bool
+    isLimitsValid(Limits const& limits)
+    {
+        if (limits.dailyOut < 0)
+            return false;
+        return limits.dailyOut <= limits.weeklyOut &&
+               limits.weeklyOut <= limits.monthlyOut &&
+               limits.monthlyOut <= limits.annualOut;
+    }
 
-	void
-	setUpdateSigners(bool updateSigners)
-	{
-		normalize();
-		mUpdateSigners = updateSigners;
-	}
+    void
+    setUpdateSigners(bool updateSigners)
+    {
+        normalize();
+        mUpdateSigners = updateSigners;
+    }
 
-	void initLoaded(bool updateSigners)
-	{
-		setUpdateSigners(updateSigners);
-		assert(isValid());
-		clearCached();
-	}
+    void
+    initLoaded(bool updateSigners)
+    {
+        setUpdateSigners(updateSigners);
+        assert(isValid());
+        clearCached();
+    }
 
-	bool isBlocked() const;
+    bool isBlocked() const;
     void setBlockReasons(uint32 reasonsToAdd, uint32 reasonsToRemove);
     AccountID const& getID() const;
 
-	bool checkPolicy(AccountPolicies policy) const
-	{
-        auto policyValue = static_cast<int32_t >(policy);
-		return (mAccountEntry.policies & policyValue) == policyValue;
-	}
+    bool
+    checkPolicy(AccountPolicies policy) const
+    {
+        auto policyValue = static_cast<int32_t>(policy);
+        return (mAccountEntry.policies & policyValue) == policyValue;
+    }
 
     uint32_t getMasterWeight() const;
     uint32_t getHighThreshold() const;
@@ -100,69 +105,66 @@ class AccountFrame : public EntryFrame
         return mAccountEntry;
     }
 
-
-	bool getUpdateSigners() const
-	{
-		return mUpdateSigners;
-	}
-
-	AccountType getAccountType() const
+    bool
+    getUpdateSigners() const
     {
-		return mAccountEntry.accountType;
+        return mUpdateSigners;
     }
 
-	uint32 getBlockReasons() const
+    AccountType
+    getAccountType() const
     {
-		return mAccountEntry.blockReasons;
+        return mAccountEntry.accountType;
     }
-    
-    void setAccountType(AccountType accountType)
+
+    uint32
+    getBlockReasons() const
+    {
+        return mAccountEntry.blockReasons;
+    }
+
+    void
+    setAccountType(AccountType accountType)
     {
         mAccountEntry.accountType = accountType;
     }
 
-    void setReferrer(AccountID referrer)
+    void
+    setReferrer(AccountID referrer)
     {
         mAccountEntry.referrer.activate() = referrer;
     }
 
-	AccountID* getReferrer() const
+    AccountID*
+    getReferrer() const
     {
-		return mAccountEntry.referrer.get();
+        return mAccountEntry.referrer.get();
     }
 
-    AccountID getRecoveryID() const
+    AccountID
+    getRecoveryID() const
     {
         return mAccountEntry.recoveryID;
     }
-    
-    void setRecoveryID(const AccountID& recovery)
+
+    void
+    setRecoveryID(const AccountID& recovery)
     {
         mAccountEntry.recoveryID = recovery;
     }
 
-	int32_t getPolicies() const
-	{
-		return mAccountEntry.policies;
-	}
-	uint32 getKYCLevel() const 
-	{
-		uint32 kycLevel = 0;
-		if (mAccountEntry.ext.v() == LedgerVersion::USE_KYC_LEVEL) {
-			kycLevel = mAccountEntry.ext.kycLevel();
-		}
-		return kycLevel;
-	}
-	void setKYCLevel(uint32 kycLevel) {
-		if (mAccountEntry.ext.v() == LedgerVersion::USE_KYC_LEVEL) {
-			mAccountEntry.ext.kycLevel() = kycLevel;
-		}
-		else if (kycLevel != 0) {
-			throw std::runtime_error("Could not read KYC Level");
-		}
-	}
+    int32_t
+    getPolicies() const
+    {
+        return mAccountEntry.policies;
+    }
+
+    uint32 getKYCLevel() const;
+    void setKYCLevel(uint32 kycLevel);
+    xdr::pointer<uint64> getAccountRole() const;
+    void setAccountRole(xdr::pointer<uint64> accountRole);
+
     // compare signers, ignores weight
     static bool signerCompare(Signer const& s1, Signer const& s2);
-
 };
-}
+} // namespace stellar

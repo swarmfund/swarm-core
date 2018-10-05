@@ -70,7 +70,11 @@ AssetHelperImpl::storeDelete(LedgerKey const& key)
     st.exchange(use(key.asset().code, "code"));
     st.define_and_bind();
     st.execute(true);
-    mStorageHelper.getLedgerDelta().deleteEntry(key);
+
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->deleteEntry(key);
+    }
 }
 
 bool
@@ -99,12 +103,15 @@ void
 AssetHelperImpl::storeUpdateHelper(bool insert, LedgerEntry const& entry)
 {
     Database& db = getDatabase();
-    LedgerDelta& delta = mStorageHelper.getLedgerDelta();
+    LedgerDelta* delta = mStorageHelper.getLedgerDelta();
 
     auto assetFrame = make_shared<AssetFrame>(entry);
     auto assetEntry = assetFrame->getAsset();
 
-    assetFrame->touch(delta);
+    if (delta)
+    {
+        assetFrame->touch(*delta);
+    }
     putCachedEntry(getLedgerKey(entry), make_shared<LedgerEntry>(entry));
 
     assetFrame->ensureValid();
@@ -160,13 +167,16 @@ AssetHelperImpl::storeUpdateHelper(bool insert, LedgerEntry const& entry)
         throw runtime_error("could not update SQL");
     }
 
-    if (insert)
+    if (delta)
     {
-        delta.addEntry(*assetFrame);
-    }
-    else
-    {
-        delta.modEntry(*assetFrame);
+        if (insert)
+        {
+            delta->addEntry(*assetFrame);
+        }
+        else
+        {
+            delta->modEntry(*assetFrame);
+        }
     }
 }
 
@@ -232,7 +242,10 @@ AssetHelperImpl::loadAsset(AssetCode assetCode)
         return nullptr;
     }
 
-    mStorageHelper.getLedgerDelta().recordEntry(*retAsset);
+    if (mStorageHelper.getLedgerDelta())
+    {
+        mStorageHelper.getLedgerDelta()->recordEntry(*retAsset);
+    }
     putCachedEntry(key, make_shared<LedgerEntry>(retAsset->mEntry));
 
     return retAsset;

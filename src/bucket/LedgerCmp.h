@@ -192,6 +192,19 @@ struct LedgerEntryIdCmp
                 auto const& bcon = b.contract();
                 return acon.contractID < bcon.contractID;
             }
+            case LedgerEntryType::ACCOUNT_ROLE:
+            {
+                auto const& arole = a.accountRole();
+                auto const& brole = b.accountRole();
+
+                return arole.accountRoleID < brole.accountRoleID;
+            }
+            case LedgerEntryType::ACCOUNT_ROLE_PERMISSION:
+            {
+                auto const& aarp = a.accountRolePermission();
+                auto const& barp = b.accountRolePermission();
+                return aarp.permissionID < barp.permissionID;
+            }
             default:
             {
                 throw std::runtime_error("Unexpected state. LedgerCmp cannot compare structures. Unknown ledger entry type");

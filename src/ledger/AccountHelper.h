@@ -34,6 +34,7 @@ namespace stellar
 			return &singleton;
 		}
 		void addKYCLevel(Database& db);
+		void addAccountRole(Database& db);
 		void dropAll(Database& db) override;
 
 		void storeAdd(LedgerDelta& delta, Database& db, LedgerEntry const& entry) override;

@@ -10,6 +10,8 @@
 #include "test_helper/BindExternalSystemAccountIdTestHelper.h"
 #include "test_helper/CreateAccountTestHelper.h"
 #include "test_helper/ManageExternalSystemAccountIDPoolEntryTestHelper.h"
+#include "transactions/test/test_helper/ManageAccountRoleTestHelper.h"
+#include "transactions/test/test_helper/ManageAccountRolePermissionTestHelper.h"
 #include "test/test_marshaler.h"
 
 using namespace stellar;
@@ -27,6 +29,7 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
     auto& app = *appPtr;
     app.start();
     auto testManager = TestManager::make(app);
+    testManager->upgradeToLedgerVersion(app, LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES);
 
     LedgerDeltaImpl delta(app.getLedgerManager().getCurrentLedgerHeader(),
                           app.getDatabase());
@@ -98,5 +101,57 @@ TEST_CASE("bind external system account_id", "[tx][bind_external_system_account_
         testManager->advanceToTime(BindExternalSystemAccountIdOpFrame::dayInSeconds * 3);
 
         bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(account, ERC20_TokenExternalSystemType);
+    }
+    SECTION("Cannot proceed frame due to policies")
+    {
+        app.resumeCheckingPolicies();
+
+        manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
+                                                                                                ERC20_TokenExternalSystemType,
+                                                                                                "Some data");
+
+        auto binder = Account {SecretKey::random(), Salt(0)};
+        createAccountTestHelper.applyTx(
+                CreateAccountTestBuilder()
+                        .setSource(root)
+                        .setToPublicKey(binder.key.getPublicKey()));
+
+        REQUIRE_FALSE(testManager->applyCheck(bindExternalSystemAccountIdTestHelper.createBindExternalSystemAccountIdTx(
+                account, ERC20_TokenExternalSystemType)));
+
+        app.stopCheckingPolicies();
+    }
+    SECTION("Happy path with policies check")
+    {
+        app.resumeCheckingPolicies();
+
+        ManageAccountRoleTestHelper setAccountRoleTestHelper(testManager);
+        ManageAccountRolePermissionTestHelper setAccountRolePolicyTestHelper(testManager);
+
+        // create account role using root as source
+        auto accountRoleID = setAccountRoleTestHelper.applySetAccountRole(
+                root, setAccountRoleTestHelper.createCreationOpInput("regular")).success().accountRoleID;
+        // create binder with this role using root as source
+        auto binder = Account {SecretKey::random(), Salt(0)};
+        createAccountTestHelper.applyTx(
+                CreateAccountTestBuilder()
+                .setSource(root)
+                .setToPublicKey(binder.key.getPublicKey())
+                .setRoleID(accountRoleID));
+        // create policy (just entry)
+        auto policyEntry =
+                setAccountRolePolicyTestHelper.createAccountRolePermissionEntry(
+                        accountRoleID, OperationType::BIND_EXTERNAL_SYSTEM_ACCOUNT_ID);
+        // write this entry to DB
+        setAccountRolePolicyTestHelper.applySetIdentityPermissionTx(
+                root, policyEntry, ManageAccountRolePermissionOpAction::CREATE,
+                ManageAccountRolePermissionResultCode::SUCCESS);
+
+        manageExternalSystemAccountIDPoolEntryTestHelper.createExternalSystemAccountIdPoolEntry(root,
+                                                                                                ERC20_TokenExternalSystemType,
+                                                                                                "Some data");
+        bindExternalSystemAccountIdTestHelper.applyBindExternalSystemAccountIdTx(binder, ERC20_TokenExternalSystemType);
+
+        app.stopCheckingPolicies();
     }
 }

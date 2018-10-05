@@ -14,15 +14,15 @@ namespace stellar {
     namespace txtest {
         class TestManager {
         protected:
-            Application &mApp;
-            Database &mDB;
-            LedgerManager &mLm;
+            Application& mApp;
+            Database& mDB;
+            LedgerManager& mLm;
 
             bool apply(TransactionFramePtr tx, std::vector<LedgerDelta::KeyEntryMap> &stateBeforeOp, LedgerDelta &txDelta);
 
             void checkResult(TransactionResult result, bool mustSuccess);
 
-            static Value ledgerVersion(Application& app);
+            static Value ledgerVersion(Application& app, LedgerVersion version);
 
             static Value externalSystemGenerators(Application& app);
 
@@ -30,9 +30,11 @@ namespace stellar {
             typedef std::shared_ptr<TestManager> pointer;
 
             TestManager(Application &app, Database &db, LedgerManager &lm);
+            virtual ~TestManager();
 
             static pointer make(Application &app);
 
+            static void upgradeToLedgerVersion(Application& app, LedgerVersion ledgerVersion);
             static void upgradeToCurrentLedgerVersion(Application& app);
 
             Hash const &getNetworkID() const {

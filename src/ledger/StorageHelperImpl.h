@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ledger/StorageHelper.h"
+#include "ledger/AccountRoleHelper.h"
+#include "ledger/AccountRolePermissionHelperImpl.h"
 #include "BalanceHelperLegacy.h"
 #include <memory>
 
@@ -21,14 +23,14 @@ class ExternalSystemAccountIDPoolEntryHelper;
 class StorageHelperImpl : public StorageHelper
 {
   public:
-    StorageHelperImpl(Database& db, LedgerDelta& ledgerDelta);
+    StorageHelperImpl(Database& db, LedgerDelta* ledgerDelta);
     virtual ~StorageHelperImpl();
 
   private:
     virtual Database& getDatabase();
     virtual const Database& getDatabase() const;
-    virtual LedgerDelta& getLedgerDelta();
-    virtual const LedgerDelta& getLedgerDelta() const;
+    virtual LedgerDelta* getLedgerDelta();
+    virtual const LedgerDelta* getLedgerDelta() const;
 
     virtual void commit();
     virtual void rollback();
@@ -36,15 +38,17 @@ class StorageHelperImpl : public StorageHelper
 
     virtual std::unique_ptr<StorageHelper> startNestedTransaction();
 
-    virtual KeyValueHelper& getKeyValueHelper();
-    virtual BalanceHelper& getBalanceHelper();
-    virtual AssetHelper& getAssetHelper();
-    virtual ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper();
-    virtual ExternalSystemAccountIDPoolEntryHelper&
-    getExternalSystemAccountIDPoolEntryHelper();
+    KeyValueHelper& getKeyValueHelper() override;
+    BalanceHelper& getBalanceHelper() override;
+    AssetHelper& getAssetHelper() override;
+    ExternalSystemAccountIDHelper& getExternalSystemAccountIDHelper() override;
+    ExternalSystemAccountIDPoolEntryHelper&
+    getExternalSystemAccountIDPoolEntryHelper() override;
+    AccountRoleHelper& getAccountRoleHelper() override;
+    AccountRolePermissionHelperImpl& getAccountRolePermissionHelper() override;
 
     Database& mDatabase;
-    LedgerDelta& mLedgerDelta;
+    LedgerDelta* mLedgerDelta;
     bool mIsReleased = false;
     std::unique_ptr<LedgerDelta> mNestedDelta;
     std::unique_ptr<soci::transaction> mTransaction;
@@ -56,5 +60,7 @@ class StorageHelperImpl : public StorageHelper
         mExternalSystemAccountIDHelper;
     std::unique_ptr<ExternalSystemAccountIDPoolEntryHelper>
         mExternalSystemAccountIDPoolEntryHelper;
+    std::unique_ptr<AccountRoleHelper> mAccountRoleHelper;
+    std::unique_ptr<AccountRolePermissionHelperImpl> mAccountRolePermissionHelper;
 };
 } // namespace stellar

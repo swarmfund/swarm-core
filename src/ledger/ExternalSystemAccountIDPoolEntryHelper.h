@@ -16,7 +16,6 @@ class LedgerManager;
 class ExternalSystemAccountIDPoolEntryHelper : public EntryHelper
 {
   public:
-    virtual void fixTypes() = 0;
     virtual void parentToNumeric() = 0;
 
     virtual bool exists(uint64_t poolEntryID) = 0;

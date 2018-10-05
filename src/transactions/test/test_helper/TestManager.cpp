@@ -13,7 +13,14 @@ namespace stellar {
 
     namespace txtest {
         TestManager::TestManager(Application &app, Database &db, LedgerManager &lm) :
-                mApp(app), mDB(db), mLm(lm) {
+                mApp(app), mDB(db), mLm(lm)
+        {
+            mApp.stopCheckingPolicies();
+        }
+
+        TestManager::~TestManager()
+        {
+            mApp.resumeCheckingPolicies();
         }
 
         TestManager::pointer TestManager::make(Application &app) {
@@ -23,13 +30,17 @@ namespace stellar {
         }
 
         void TestManager::upgradeToCurrentLedgerVersion(Application& app) {
+            upgradeToLedgerVersion(app, static_cast<LedgerVersion>(app.getConfig().LEDGER_PROTOCOL_VERSION));
+        }
+
+        void TestManager::upgradeToLedgerVersion(Application& app, LedgerVersion ledgerVersion) {
             auto const &lcl = app.getLedgerManager().getLastClosedLedgerHeader();
             auto const &lastHash = lcl.hash;
             TxSetFramePtr txSet = std::make_shared<TxSetFrame>(lastHash);
 
             xdr::xvector<UpgradeType, 6> upgrades;
-            auto ledgerVersion = TestManager::ledgerVersion(app);
-            upgrades.emplace_back(ledgerVersion.begin(), ledgerVersion.end());
+            auto ledgerVersionValue = TestManager::ledgerVersion(app, ledgerVersion);
+            upgrades.emplace_back(ledgerVersionValue.begin(), ledgerVersionValue.end());
             auto externalSystemGenerators = TestManager::externalSystemGenerators(app);
             upgrades.emplace_back(externalSystemGenerators.begin(), externalSystemGenerators.end());
 
@@ -78,9 +89,9 @@ namespace stellar {
             REQUIRE(result.result.code() != TransactionResultCode::txSUCCESS);
         }
 
-        Value TestManager::ledgerVersion(Application& application){
+        Value TestManager::ledgerVersion(Application& application, LedgerVersion version) {
             LedgerUpgrade upgrade(LedgerUpgradeType::VERSION);
-            upgrade.newLedgerVersion() = application.getConfig().LEDGER_PROTOCOL_VERSION;
+            upgrade.newLedgerVersion() = static_cast<uint32>(version);
             Value v(xdr::xdr_to_opaque(upgrade));
             return v;
         }

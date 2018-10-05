@@ -28,7 +28,9 @@
 #include "ledger/OfferFrame.h"
 #include "ledger/ReviewableRequestFrame.h"
 #include "ledger/ExternalSystemAccountID.h"
+#include "ledger/AccountRoleHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelperLegacy.h"
+#include "ledger/StorageHelperImpl.h"
 #include "overlay/OverlayManager.h"
 #include "overlay/BanManager.h"
 #include "main/PersistentState.h"
@@ -47,6 +49,7 @@
 #include <sstream>
 #include <thread>
 #include <ledger/AccountKYCHelper.h>
+#include <ledger/AccountRolePermissionHelperImpl.h>
 #include <ledger/KeyValueHelperLegacy.h>
 #include <ledger/LimitsV2Helper.h>
 #include <ledger/StatisticsV2Helper.h>
@@ -94,10 +97,11 @@ enum databaseSchemaVersion : unsigned long {
     ADD_CONTRACTS = 18,
     REVIEWABLE_REQUEST_FIX_DEFAULT_VALUE = 19,
     REVIEWABLE_REQUEST_FIX_EXTERNAL_DETAILS = 20,
-    ADD_CUSTOMER_DETAILS_TO_CONTRACT = 21
+    ADD_CUSTOMER_DETAILS_TO_CONTRACT = 21,
+    ADD_ACCOUNT_ROLES_AND_POLICIES = 22
 };
 
-static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT;
+static unsigned long const SCHEMA_VERSION = databaseSchemaVersion::ADD_ACCOUNT_ROLES_AND_POLICIES;
 
 static void
 setSerializable(soci::session& sess)
@@ -152,6 +156,8 @@ DatabaseImpl::applySchemaUpgrade(unsigned long vers)
 {
     clearPreparedStatementCache();
 
+    StorageHelperImpl storageHelper(*this, nullptr);
+    static_cast<StorageHelper&>(storageHelper).release();
     switch (vers) {
         case databaseSchemaVersion::DROP_SCP:
             Herder::dropAll(*this);
@@ -213,6 +219,11 @@ DatabaseImpl::applySchemaUpgrade(unsigned long vers)
             break;
         case databaseSchemaVersion::ADD_CUSTOMER_DETAILS_TO_CONTRACT:
             ContractHelper::Instance()->addCustomerDetails(*this);
+            break;
+        case databaseSchemaVersion::ADD_ACCOUNT_ROLES_AND_POLICIES:
+            std::make_unique<AccountRoleHelper>(storageHelper)->dropAll();
+            AccountHelper::Instance()->addAccountRole(*this);
+            std::unique_ptr<AccountRolePermissionHelper>(new AccountRolePermissionHelperImpl(storageHelper))->dropAll();
             break;
         default:
             throw std::runtime_error("Unknown DB schema version");

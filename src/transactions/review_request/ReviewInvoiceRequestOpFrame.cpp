@@ -189,7 +189,7 @@ ReviewInvoiceRequestOpFrame::processPaymentV2(Application &app, LedgerDelta &del
 
     paymentOpV2Frame.setSourceAccountPtr(mSourceAccount);
 
-    StorageHelperImpl storageHelper(app.getDatabase(), delta);
+    StorageHelperImpl storageHelper(app.getDatabase(), &delta);
     static_cast<StorageHelper&>(storageHelper).release();
     if (!paymentOpV2Frame.doCheckValid(app) || !paymentOpV2Frame.doApply(app, storageHelper, ledgerManager))
     {

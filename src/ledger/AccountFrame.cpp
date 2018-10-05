@@ -3,12 +3,12 @@
 // of this distribution or at http://www.apache.org/licenses/LICENSE-2.0
 
 #include "AccountFrame.h"
-#include "ledger/AccountTypeLimitsFrame.h"
-#include "database/Database.h"
 #include "LedgerDelta.h"
+#include "database/Database.h"
+#include "ledger/AccountTypeLimitsFrame.h"
+#include "lib/util/format.h"
 #include "util/basen.h"
 #include "util/types.h"
-#include "lib/util/format.h"
 
 using namespace soci;
 using namespace std;
@@ -71,17 +71,18 @@ AccountFrame::isValid()
                           &AccountFrame::signerCompare);
 }
 
-bool AccountFrame::isBlocked() const
+bool
+AccountFrame::isBlocked() const
 {
-	return mAccountEntry.blockReasons > 0;
+    return mAccountEntry.blockReasons > 0;
 }
 
-void AccountFrame::setBlockReasons(uint32 reasonsToAdd, uint32 reasonsToRemove)
+void
+AccountFrame::setBlockReasons(uint32 reasonsToAdd, uint32 reasonsToRemove)
 {
-	mAccountEntry.blockReasons |= reasonsToAdd;
+    mAccountEntry.blockReasons |= reasonsToAdd;
     mAccountEntry.blockReasons &= ~reasonsToRemove;
 }
-
 
 AccountID const&
 AccountFrame::getID() const
@@ -89,29 +90,93 @@ AccountFrame::getID() const
     return (mAccountEntry.accountID);
 }
 
-
 uint32_t
 AccountFrame::getMasterWeight() const
 {
-    return mAccountEntry.thresholds[static_cast<int32_t >(ThresholdIndexes::MASTER_WEIGHT)];
+    return mAccountEntry
+        .thresholds[static_cast<int32_t>(ThresholdIndexes::MASTER_WEIGHT)];
 }
 
 uint32_t
 AccountFrame::getHighThreshold() const
 {
-    return mAccountEntry.thresholds[static_cast<int32_t >(ThresholdIndexes::HIGH)];
+    return mAccountEntry
+        .thresholds[static_cast<int32_t>(ThresholdIndexes::HIGH)];
 }
 
 uint32_t
 AccountFrame::getMediumThreshold() const
 {
-    return mAccountEntry.thresholds[static_cast<int32_t >(ThresholdIndexes::MED)];
+    return mAccountEntry
+        .thresholds[static_cast<int32_t>(ThresholdIndexes::MED)];
 }
 
 uint32_t
 AccountFrame::getLowThreshold() const
 {
-    return mAccountEntry.thresholds[static_cast<int32_t >(ThresholdIndexes::LOW)];
+    return mAccountEntry
+        .thresholds[static_cast<int32_t>(ThresholdIndexes::LOW)];
 }
 
+uint32
+AccountFrame::getKYCLevel() const
+{
+    if (mAccountEntry.ext.v() == LedgerVersion::USE_KYC_LEVEL)
+    {
+        return mAccountEntry.ext.kycLevel();
+    }
+    else if (mAccountEntry.ext.v() ==
+             LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
+    {
+        return mAccountEntry.ext.accountEntryExt().kycLevel;
+    }
+    else
+    {
+        return 0;
+    }
 }
+void
+AccountFrame::setKYCLevel(uint32 kycLevel)
+{
+    if (mAccountEntry.ext.v() == LedgerVersion::USE_KYC_LEVEL)
+    {
+        mAccountEntry.ext.kycLevel() = kycLevel;
+    }
+    else if (mAccountEntry.ext.v() ==
+             LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
+    {
+        mAccountEntry.ext.accountEntryExt().kycLevel = kycLevel;
+    }
+    else if (kycLevel != 0)
+    {
+        throw std::runtime_error("Could not read KYC Level");
+    }
+}
+xdr::pointer<uint64>
+AccountFrame::getAccountRole() const
+{
+    if (mAccountEntry.ext.v() ==
+        LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
+    {
+        return mAccountEntry.ext.accountEntryExt().accountRole;
+    }
+    else
+    {
+        return xdr::pointer<uint64>();
+    }
+}
+void
+AccountFrame::setAccountRole(xdr::pointer<uint64> accountRole)
+{
+    if (mAccountEntry.ext.v() ==
+        LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
+    {
+        mAccountEntry.ext.accountEntryExt().accountRole = accountRole;
+    }
+    else if (accountRole)
+    {
+        throw std::runtime_error("Could not set account role");
+    }
+}
+
+} // namespace stellar

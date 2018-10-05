@@ -316,7 +316,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
     if (ledgerVersion >= (uint32)LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
     {
         const bool shouldCheckPolicies = app.isCheckingPolicies();
-        const bool isSourceAccountMaster = !xdr::operator==(mSourceAccount->getID(), app.getMasterID());
+        const bool isSourceAccountMaster = xdr::operator==(mSourceAccount->getID(), app.getMasterID());
         const OperationType thisOpType = getOperation().body.type();
         if (shouldCheckPolicies &&
             !isSourceAccountMaster &&

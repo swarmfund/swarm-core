@@ -8,7 +8,6 @@
 #include "transactions/AccountManager.h"
 #include "transactions/CounterpartyDetails.h"
 #include "transactions/SourceDetails.h"
-#include "transactions/IdentityPolicyChecker.h"
 #include "ledger/LedgerManager.h"
 #include "ledger/AccountFrame.h"
 #include "ledger/AssetFrame.h"
@@ -36,6 +35,7 @@ class OperationFrame
 
   private:
 	bool checkCounterparties(Application& app, std::unordered_map<AccountID, CounterpartyDetails>& counterparties);
+	bool checkRolePermissions(Application& app);
   
   protected:
 

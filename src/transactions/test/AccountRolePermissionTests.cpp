@@ -1,7 +1,7 @@
 #include "TxTests.h"
 #include "crypto/SHA.h"
 #include "ledger/AccountHelper.h"
-#include "ledger/AccountRolePermissionHelper.h"
+#include "ledger/AccountRolePermissionHelperImpl.h"
 #include "ledger/AssetHelper.h"
 #include "ledger/LedgerDeltaImpl.h"
 #include "main/Application.h"

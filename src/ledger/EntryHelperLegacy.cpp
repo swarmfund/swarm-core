@@ -60,7 +60,7 @@ namespace stellar
             case LedgerEntryType::ACCOUNT_ROLE:
                 return std::make_shared<AccountRoleHelper>(storageHelper);
             case LedgerEntryType::ACCOUNT_ROLE_PERMISSION:
-                return std::make_shared<AccountRolePermissionHelper>(storageHelper);
+                return std::make_shared<AccountRolePermissionHelperImpl>(storageHelper);
             default:
                 return nullptr;
         }

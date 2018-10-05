@@ -169,12 +169,12 @@ StorageHelperImpl::getAccountRoleHelper()
     }
     return *mAccountRoleHelper;
 }
-AccountRolePermissionHelper&
+AccountRolePermissionHelperImpl&
 StorageHelperImpl::getAccountRolePermissionHelper()
 {
     if (!mAccountRolePermissionHelper)
     {
-        mAccountRolePermissionHelper = std::make_unique<AccountRolePermissionHelper>(*this);
+        mAccountRolePermissionHelper = std::make_unique<AccountRolePermissionHelperImpl>(*this);
     }
     return *mAccountRolePermissionHelper;
 }

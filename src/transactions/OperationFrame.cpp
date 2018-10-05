@@ -315,12 +315,7 @@ OperationFrame::checkValid(Application& app, LedgerDelta* delta)
 
     if (ledgerVersion >= (uint32)LedgerVersion::REPLACE_ACCOUNT_TYPES_WITH_POLICIES)
     {
-        const bool shouldCheckPolicies = app.isCheckingPolicies();
-        const bool isSourceAccountMaster = xdr::operator==(mSourceAccount->getID(), app.getMasterID());
-        const OperationType thisOpType = getOperation().body.type();
-        if (shouldCheckPolicies &&
-            !isSourceAccountMaster &&
-            !IdentityPolicyChecker::isPolicyAllowed(mSourceAccount, thisOpType, db))
+        if (!checkRolePermissions(app))
         {
             mResult.code(OperationResultCode::opNOT_ALLOWED);
             return false;
@@ -392,6 +387,23 @@ OperationFrame::checkCounterparties(Application& app, std::unordered_map<Account
     }
 
     return true;
+}
+
+bool
+OperationFrame::checkRolePermissions(Application& app)
+{
+    const bool shouldCheckPolicies = app.isCheckingPolicies();
+    const bool isSourceAccountMaster = xdr::operator==(mSourceAccount->getID(), app.getMasterID());
+    if (!shouldCheckPolicies || isSourceAccountMaster)
+    {
+        return true;
+    }
+
+    const OperationType thisOpType = getOperation().body.type();
+    StorageHelperImpl storageHelper(app.getDatabase(), nullptr);
+    AccountRolePermissionHelperImpl permissionHelper(storageHelper);
+    return static_cast<AccountRolePermissionHelper&>(permissionHelper)
+        .hasPermission(mSourceAccount, thisOpType);
 }
 
 }

@@ -5,7 +5,7 @@
 #include "ledger/ExternalSystemAccountIDHelper.h"
 #include "ledger/ExternalSystemAccountIDPoolEntryHelper.h"
 #include "ledger/AccountRoleHelper.h"
-#include "ledger/AccountRolePermissionHelper.h"
+#include "ledger/AccountRolePermissionHelperImpl.h"
 
 namespace stellar
 {

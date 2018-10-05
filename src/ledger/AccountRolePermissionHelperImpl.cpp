@@ -1,4 +1,4 @@
-#include "AccountRolePermissionHelper.h"
+#include "AccountRolePermissionHelperImpl.h"
 #include "ledger/AccountHelper.h"
 #include "ledger/AccountTypeLimitsFrame.h"
 
@@ -16,24 +16,27 @@ namespace stellar
 using xdr::operator<;
 
 void
-AccountRolePermissionHelper::dropAll()
+AccountRolePermissionHelperImpl::dropAll()
 {
-    mDb.getSession() << "DROP TABLE IF EXISTS account_role_permissions CASCADE;";
+    mDb.getSession()
+        << "DROP TABLE IF EXISTS account_role_permissions CASCADE;";
     mDb.getSession()
         << "CREATE TABLE account_role_permissions"
            "("
            "id             BIGINT                 NOT NULL CHECK (id > 0),"
            "role           BIGINT                 NOT NULL CHECK (role >= 0),"
-           "operation_type INT                    NOT NULL CHECK (operation_type >= 0),"
+           "operation_type INT                    NOT NULL CHECK "
+           "(operation_type >= 0),"
            "lastmodified   INT                    NOT NULL,"
            "version        INT                    NOT NULL,"
            "PRIMARY KEY(id), "
-           "FOREIGN KEY(role) REFERENCES account_roles(role_id) ON DELETE RESTRICT ON UPDATE CASCADE, "
+           "FOREIGN KEY(role) REFERENCES account_roles(role_id) ON DELETE "
+           "RESTRICT ON UPDATE CASCADE, "
            "CONSTRAINT unique_p UNIQUE(role, operation_type)"
            ");";
 }
 
-AccountRolePermissionHelper::AccountRolePermissionHelper(
+AccountRolePermissionHelperImpl::AccountRolePermissionHelperImpl(
     StorageHelper& storageHelper)
     : mDb(storageHelper.getDatabase())
     , mLedgerDelta(storageHelper.getLedgerDelta())
@@ -41,19 +44,19 @@ AccountRolePermissionHelper::AccountRolePermissionHelper(
 }
 
 void
-AccountRolePermissionHelper::storeAdd(LedgerEntry const& entry)
+AccountRolePermissionHelperImpl::storeAdd(LedgerEntry const& entry)
 {
     storeUpdate(entry, true);
 }
 
 void
-AccountRolePermissionHelper::storeChange(LedgerEntry const& entry)
+AccountRolePermissionHelperImpl::storeChange(LedgerEntry const& entry)
 {
     storeUpdate(entry, false);
 }
 
 void
-AccountRolePermissionHelper::storeDelete(LedgerKey const& key)
+AccountRolePermissionHelperImpl::storeDelete(LedgerKey const& key)
 {
     flushCachedEntry(key);
 
@@ -73,23 +76,24 @@ AccountRolePermissionHelper::storeDelete(LedgerKey const& key)
 }
 
 void
-AccountRolePermissionHelper::storeUpdate(LedgerEntry const& entry, bool insert)
+AccountRolePermissionHelperImpl::storeUpdate(LedgerEntry const& entry,
+                                             bool insert)
 {
-    const auto accountRolePolicyFrame =
+    const auto accountRolePermissionFrame =
         make_shared<AccountRolePermissionFrame>(entry);
 
-    accountRolePolicyFrame->ensureValid();
+    accountRolePermissionFrame->ensureValid();
     if (mLedgerDelta)
     {
-        accountRolePolicyFrame->touch(*mLedgerDelta);
+        accountRolePermissionFrame->touch(*mLedgerDelta);
     }
 
     LedgerKey const& key = getLedgerKey(entry);
     flushCachedEntry(key);
 
-    const uint64_t id = accountRolePolicyFrame->getID();
-    const uint64_t roleID = accountRolePolicyFrame->getRoleID();
-    const OperationType opType = accountRolePolicyFrame->getOperationType();
+    const uint64_t id = accountRolePermissionFrame->getID();
+    const uint64_t roleID = accountRolePermissionFrame->getRoleID();
+    const OperationType opType = accountRolePermissionFrame->getOperationType();
     const auto version = static_cast<int32_t>(entry.ext.v());
 
     std::string sql;
@@ -115,8 +119,8 @@ AccountRolePermissionHelper::storeUpdate(LedgerEntry const& entry, bool insert)
         st.exchange(use(id, "id"));
         st.exchange(use(roleID, "r"));
         st.exchange(use(static_cast<int32>(opType), "o"));
-        st.exchange(
-            use(accountRolePolicyFrame->mEntry.lastModifiedLedgerSeq, "lm"));
+        st.exchange(use(
+            accountRolePermissionFrame->mEntry.lastModifiedLedgerSeq, "lm"));
         st.exchange(use(version, "v"));
 
         st.define_and_bind();
@@ -134,18 +138,18 @@ AccountRolePermissionHelper::storeUpdate(LedgerEntry const& entry, bool insert)
         {
             if (insert)
             {
-                mLedgerDelta->addEntry(*accountRolePolicyFrame);
+                mLedgerDelta->addEntry(*accountRolePermissionFrame);
             }
             else
             {
-                mLedgerDelta->modEntry(*accountRolePolicyFrame);
+                mLedgerDelta->modEntry(*accountRolePermissionFrame);
             }
         }
     }
 }
 
 bool
-AccountRolePermissionHelper::exists(LedgerKey const& key)
+AccountRolePermissionHelperImpl::exists(LedgerKey const& key)
 {
     int exists = 0;
     auto timer = mDb.getSelectTimer("account_role_permission_exists");
@@ -164,11 +168,11 @@ AccountRolePermissionHelper::exists(LedgerKey const& key)
 }
 
 LedgerKey
-AccountRolePermissionHelper::getLedgerKey(LedgerEntry const& from)
+AccountRolePermissionHelperImpl::getLedgerKey(LedgerEntry const& from)
 {
     if (from.data.type() != LedgerEntryType::ACCOUNT_ROLE_PERMISSION)
     {
-        throw std::runtime_error("Not a role policy entry.");
+        throw std::runtime_error("Not a role permission entry.");
     }
 
     LedgerKey ledgerKey;
@@ -179,17 +183,17 @@ AccountRolePermissionHelper::getLedgerKey(LedgerEntry const& from)
 }
 
 EntryFrame::pointer
-AccountRolePermissionHelper::fromXDR(LedgerEntry const& from)
+AccountRolePermissionHelperImpl::fromXDR(LedgerEntry const& from)
 {
     return make_shared<AccountRolePermissionFrame>(from);
 }
 
 EntryFrame::pointer
-AccountRolePermissionHelper::storeLoad(LedgerKey const& key)
+AccountRolePermissionHelperImpl::storeLoad(LedgerKey const& key)
 {
     if (key.type() != LedgerEntryType::ACCOUNT_ROLE_PERMISSION)
     {
-        throw std::runtime_error("Not a role policy entry.");
+        throw std::runtime_error("Not a role permission entry.");
     }
     if (cachedEntryExists(key))
     {
@@ -229,12 +233,12 @@ AccountRolePermissionHelper::storeLoad(LedgerKey const& key)
     }
 
     auto result = make_shared<AccountRolePermissionFrame>(le);
-    auto& policyEntry = result->getPermissionEntry();
+    auto& permissionEntry = result->getPermissionEntry();
 
-    policyEntry.permissionID = key.accountRolePermission().permissionID;
-    policyEntry.accountRoleID = roleID;
-    policyEntry.opType = static_cast<OperationType>(opType);
-    policyEntry.ext.v(static_cast<LedgerVersion>(version));
+    permissionEntry.permissionID = key.accountRolePermission().permissionID;
+    permissionEntry.accountRoleID = roleID;
+    permissionEntry.opType = static_cast<OperationType>(opType);
+    permissionEntry.ext.v(static_cast<LedgerVersion>(version));
 
     std::shared_ptr<LedgerEntry const> pEntry =
         std::make_shared<LedgerEntry const>(result->mEntry);
@@ -245,7 +249,7 @@ AccountRolePermissionHelper::storeLoad(LedgerKey const& key)
 }
 
 uint64_t
-AccountRolePermissionHelper::countObjects()
+AccountRolePermissionHelperImpl::countObjects()
 {
     auto timer = mDb.getSelectTimer("account_role_permission_count");
     auto prep = mDb.getPreparedStatement(
@@ -260,8 +264,53 @@ AccountRolePermissionHelper::countObjects()
     return count;
 }
 
+bool
+AccountRolePermissionHelperImpl::hasPermission(
+    const AccountFrame::pointer initiatorAccountFrame,
+    const OperationType opType)
+{
+    if (!initiatorAccountFrame->getAccountRole())
+    {
+        // accounts with no role assigned will fail the check
+        return false;
+    }
+    return checkPermission(*initiatorAccountFrame->getAccountRole(), opType);
+}
+
+bool
+AccountRolePermissionHelperImpl::checkPermission(uint32 accountRole,
+                                                 const OperationType opType)
+{
+    const std::string sql = "SELECT EXISTS (SELECT NULL "
+                            "FROM account_role_permissions "
+                            "WHERE role = :role AND operation_type = :o)";
+
+    auto prep = getDatabase().getPreparedStatement(sql);
+    std::vector<stellar::AccountRolePermissionFrame::pointer> result;
+
+    int32 exists;
+    AccountID ownerIDStrKey;
+
+    auto timer = getDatabase().getSelectTimer("identity_permission-join");
+
+    LedgerEntry le;
+    le.data.type(LedgerEntryType::ACCOUNT_ROLE_PERMISSION);
+
+    std::string actIDStrKey;
+
+    auto& st = prep.statement();
+    st.exchange(soci::use(accountRole));
+    st.exchange(soci::use(static_cast<int32>(opType)));
+    st.exchange(soci::into(exists));
+
+    st.define_and_bind();
+    st.execute(true);
+
+    return exists != 0;
+}
+
 Database&
-AccountRolePermissionHelper::getDatabase()
+AccountRolePermissionHelperImpl::getDatabase()
 {
     return mDb;
 }

@@ -2,7 +2,7 @@
 
 #include "ledger/StorageHelper.h"
 #include "ledger/AccountRoleHelper.h"
-#include "ledger/AccountRolePermissionHelper.h"
+#include "ledger/AccountRolePermissionHelperImpl.h"
 #include "BalanceHelperLegacy.h"
 #include <memory>
 
@@ -45,7 +45,7 @@ class StorageHelperImpl : public StorageHelper
     ExternalSystemAccountIDPoolEntryHelper&
     getExternalSystemAccountIDPoolEntryHelper() override;
     AccountRoleHelper& getAccountRoleHelper() override;
-    AccountRolePermissionHelper& getAccountRolePermissionHelper() override;
+    AccountRolePermissionHelperImpl& getAccountRolePermissionHelper() override;
 
     Database& mDatabase;
     LedgerDelta* mLedgerDelta;
@@ -61,6 +61,6 @@ class StorageHelperImpl : public StorageHelper
     std::unique_ptr<ExternalSystemAccountIDPoolEntryHelper>
         mExternalSystemAccountIDPoolEntryHelper;
     std::unique_ptr<AccountRoleHelper> mAccountRoleHelper;
-    std::unique_ptr<AccountRolePermissionHelper> mAccountRolePermissionHelper;
+    std::unique_ptr<AccountRolePermissionHelperImpl> mAccountRolePermissionHelper;
 };
 } // namespace stellar

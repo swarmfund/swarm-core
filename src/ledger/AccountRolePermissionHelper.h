@@ -1,38 +1,23 @@
 #pragma once
 
-#include "AccountRolePermissionFrame.h"
 #include "ledger/EntryHelper.h"
-#include "ledger/StorageHelper.h"
-#include "map"
-#include "xdr/Stellar-types.h"
-#include <functional>
-#include <unordered_map>
+#include "ledger/AccountFrame.h"
+
+namespace soci
+{
+class session;
+}
 
 namespace stellar
 {
-class LedgerManager;
+class StorageHelper;
 
 class AccountRolePermissionHelper : public EntryHelper
 {
   public:
-    explicit AccountRolePermissionHelper(StorageHelper& storageHelper);
-
-    void dropAll() override;
-    void storeAdd(LedgerEntry const& entry) override;
-    void storeChange(LedgerEntry const& entry) override;
-    void storeDelete(LedgerKey const& key) override;
-    bool exists(LedgerKey const& key) override;
-    LedgerKey getLedgerKey(LedgerEntry const& from) override;
-    EntryFrame::pointer fromXDR(LedgerEntry const& from) override;
-    EntryFrame::pointer storeLoad(LedgerKey const& ledgerKey) override;
-    uint64_t countObjects() override;
-
-    Database& getDatabase() override;
-
-  private:
-    void storeUpdate(LedgerEntry const& entry, bool insert);
-    Database& mDb;
-    LedgerDelta* mLedgerDelta{nullptr};
+    virtual bool
+    hasPermission(const AccountFrame::pointer initiatorAccountFrame,
+                  const OperationType opType) = 0;
 };
 
 } // namespace stellar

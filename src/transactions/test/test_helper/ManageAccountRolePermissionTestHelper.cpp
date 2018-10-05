@@ -1,5 +1,5 @@
 #include "ManageAccountRolePermissionTestHelper.h"
-#include "ledger/AccountRolePermissionHelper.h"
+#include "ledger/AccountRolePermissionHelperImpl.h"
 #include "ledger/StorageHelperImpl.h"
 #include "transactions/ManageAccountRolePermissionOpFrame.h"
 #include <lib/catch.hpp>
@@ -81,14 +81,15 @@ ManageAccountRolePermissionTestHelper::applySetIdentityPermissionTx(
         txResult.result.results()[0].tr().manageAccountRolePermissionResult();
 
     StorageHelperImpl storageHelperImpl(mTestManager->getDB(), nullptr);
-    AccountRolePermissionHelper rolePermissionHelper(storageHelperImpl);
+    AccountRolePermissionHelperImpl rolePermissionHelper(storageHelperImpl);
     LedgerKey affectedPermissionKey;
     affectedPermissionKey.type(LedgerEntryType::ACCOUNT_ROLE_PERMISSION);
     affectedPermissionKey.accountRolePermission().permissionID =
         result.success().permissionID;
 
     EntryFrame::pointer affectedPermission =
-        rolePermissionHelper.storeLoad(affectedPermissionKey);
+        static_cast<AccountRolePermissionHelper&>(rolePermissionHelper)
+            .storeLoad(affectedPermissionKey);
     if (action == ManageAccountRolePermissionOpAction::REMOVE)
     {
         REQUIRE(!affectedPermission);
